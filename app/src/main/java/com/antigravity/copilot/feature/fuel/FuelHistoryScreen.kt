@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,7 +38,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.util.NumberFormatUtils
 import com.antigravity.copilot.core.database.FuelEventEntity
-import com.antigravity.copilot.core.database.TripEntity
 import com.antigravity.copilot.core.designsystem.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -85,7 +83,6 @@ private data class YearlyFuelAnalytics(
 @Composable
 fun FuelHistoryScreen(
     fuelEvents: List<FuelEventEntity>,
-    trips: List<TripEntity> = emptyList(),
     onBackToCockpit: () -> Unit,
     modifier: Modifier = Modifier,
     onEditEvent: (FuelEventEntity) -> Unit = {},
@@ -108,8 +105,6 @@ fun FuelHistoryScreen(
         mutableStateOf(if (availableYears.contains(currentCalYear)) currentCalYear else availableYears.first())
     }
 
-    var isStatisticsMode by remember { mutableStateOf(false) }
-
     // Track expanded monthly accordions (defaults to all expanded)
     val expandedMonths = remember { mutableStateMapOf<String, Boolean>() }
 
@@ -122,8 +117,6 @@ fun FuelHistoryScreen(
             eventToEdit = null
         } else if (eventToDelete != null) {
             eventToDelete = null
-        } else if (isStatisticsMode) {
-            isStatisticsMode = false
         } else {
             onBackToCockpit()
         }
@@ -236,7 +229,7 @@ fun FuelHistoryScreen(
                         }
                     }
 
-                    // Top Action Controls: Year Selector, Statistics Chip, Close Button
+                    // Top Action Controls: Year Selector, Close Button
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -274,76 +267,26 @@ fun FuelHistoryScreen(
                             }
                         }
 
-                        // Statistics Mode Chip
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isStatisticsMode) Color(0xFF2E1A47) else Color(0xFF111827))
-                                .border(
-                                    width = 1.2.dp,
-                                    color = if (isStatisticsMode) Color(0xFFA855F7) else Color(0xFF1E2838),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .clickable { isStatisticsMode = !isStatisticsMode }
-                                .padding(horizontal = 18.dp, vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (isStatisticsMode) Icons.AutoMirrored.Filled.ReceiptLong else Icons.Default.BarChart,
-                                    contentDescription = null,
-                                    tint = if (isStatisticsMode) Color(0xFFC084FC) else Color(0xFF38BDF8),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = if (isStatisticsMode) "View Records" else "Statistics",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp
-                                    ),
-                                    color = if (isStatisticsMode) Color(0xFFC084FC) else Color.White
-                                )
-                            }
-                        }
-
-
                     }
                 }
 
-                // ==================== 2. YEARLY SUMMARY TILES (Shown in Records Feed) ====================
-                if (!isStatisticsMode) {
-                    YearlySummaryBanner(
-                        analytics = yearlyAnalytics,
-                        isCompact = isCompact
-                    )
-                }
+                // ==================== 2. YEARLY SUMMARY TILES ====================
+                YearlySummaryBanner(
+                    analytics = yearlyAnalytics,
+                    isCompact = isCompact
+                )
 
                 // ==================== 3. CONTENT AREA ====================
-                if (isStatisticsMode) {
-                    // Modern High-Fidelity Automotive Fuel Statistics Dashboard
-                    FuelStatisticsDashboard(
-                        fuelEvents = fuelEvents,
-                        trips = trips,
-                        selectedYear = selectedYear,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    )
-                } else {
-                    // Chronological Month-Grouped Feed
-                    FuelRecordsMonthGroupedFeed(
-                        analytics = yearlyAnalytics,
-                        expandedMonths = expandedMonths,
-                        onEditEvent = { eventToEdit = it },
-                        onDeleteEvent = { eventToDelete = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    )
-                }
+                // Chronological Month-Grouped Feed
+                FuelRecordsMonthGroupedFeed(
+                    analytics = yearlyAnalytics,
+                    expandedMonths = expandedMonths,
+                    onEditEvent = { eventToEdit = it },
+                    onDeleteEvent = { eventToDelete = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                )
             }
         }
 

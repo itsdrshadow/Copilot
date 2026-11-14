@@ -195,9 +195,6 @@ fun TripHistoryScreen(
         mutableStateOf(if (availableYears.contains(currentCalYear)) currentCalYear else availableYears.first())
     }
 
-    // View toggle: Journeys Feed vs Annual Statistics
-    var isAnnualStatsMode by remember { mutableStateOf(false) }
-
     // Selected Trip state
     var selectedTrip by remember { mutableStateOf<TripEntity?>(null) }
     var selectedDetailTab by remember { mutableStateOf(TripDetailTab.MAP_REPLAY) }
@@ -206,8 +203,6 @@ fun TripHistoryScreen(
     BackHandler {
         if (showMobileDetailDialog) {
             showMobileDetailDialog = false
-        } else if (isAnnualStatsMode) {
-            isAnnualStatsMode = false
         } else {
             onBackToCockpit()
         }
@@ -366,7 +361,7 @@ fun TripHistoryScreen(
                     }
                 }
 
-                // Controls: Year Selection Chips & Statistics Mode Toggle
+                // Controls: Year Selection Chips
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -403,63 +398,15 @@ fun TripHistoryScreen(
                             }
                         }
                     }
-
-                    // Statistics Toggle Chip
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isAnnualStatsMode) Color(0xFF2E1A47) else Color(0xFF111827))
-                            .border(
-                                width = 1.2.dp,
-                                color = if (isAnnualStatsMode) Color(0xFFA855F7) else Color(0xFF1E2838),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .clickable { isAnnualStatsMode = !isAnnualStatsMode }
-                            .padding(horizontal = 18.dp, vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isAnnualStatsMode) Icons.Default.DirectionsCar else Icons.Default.BarChart,
-                                contentDescription = null,
-                                tint = if (isAnnualStatsMode) Color(0xFFC084FC) else Color(0xFF38BDF8),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = if (isAnnualStatsMode) "View Journeys" else "Statistics",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                ),
-                                color = if (isAnnualStatsMode) Color(0xFFC084FC) else Color.White
-                            )
-                        }
-                    }
                 }
             }
 
-            // ==================== 2. YEARLY SUMMARY BANNER (Shown in Journeys Feed) ====================
-            if (!isAnnualStatsMode) {
-                YearlyTripSummaryBanner(analytics = yearlyAnalytics)
-            }
+            // ==================== 2. YEARLY SUMMARY BANNER ====================
+            YearlyTripSummaryBanner(analytics = yearlyAnalytics)
 
             // ==================== 3. CONTENT AREA ====================
-            if (isAnnualStatsMode) {
-                // Modern High-Fidelity Automotive Trip Statistics Dashboard
-                TripStatisticsDashboard(
-                    trips = trips,
-                    selectedYear = selectedYear,
-                    fuelPrice = fuelPrice,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
-            } else {
-                // Journeys Feed + Split Interactive Detail View
-                Row(
+            // Journeys Feed + Split Interactive Detail View
+            Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -534,7 +481,6 @@ fun TripHistoryScreen(
                     }
                 }
             }
-        }
 
         // Mobile Fullscreen Detail Dialog for Compact Width (< 760dp)
         if (isCompactWidth && showMobileDetailDialog && selectedTrip != null) {

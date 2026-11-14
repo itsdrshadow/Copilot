@@ -287,7 +287,6 @@ private fun MainAppScreen(
                 )
                 3 -> FuelHistoryScreen(
                     fuelEvents = fuelHistory,
-                    trips = qualifyingTrips,
                     onBackToCockpit = { viewModel.selectTab(0) },
                     onEditEvent = { updatedEvent -> viewModel.updateFuelEvent(updatedEvent) },
                     onDeleteEvent = { eventId -> viewModel.deleteFuelEvent(eventId) }
