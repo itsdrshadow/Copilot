@@ -29,74 +29,74 @@ class AppDrawerPaginationAndGridTest {
     }
 
     @Test
-    fun testTwelveAppsProducesExactlyOnePage() {
-        val pageCount = LauncherManager.calculatePages(12)
+    fun testThirtyAppsProducesExactlyOnePage() {
+        val pageCount = LauncherManager.calculatePages(30)
         assertEquals(1, pageCount)
 
-        val apps = (1..12).map { "App $it" }
+        val apps = (1..30).map { "App $it" }
         val paginated = LauncherManager.paginate(apps)
         assertEquals(1, paginated.size)
-        assertEquals(12, paginated[0].size)
+        assertEquals(30, paginated[0].size)
     }
 
     @Test
-    fun testThirteenAppsProducesTwoPagesTwelveAndOne() {
-        val pageCount = LauncherManager.calculatePages(13)
+    fun testThirtyOneAppsProducesTwoPagesThirtyAndOne() {
+        val pageCount = LauncherManager.calculatePages(31)
         assertEquals(2, pageCount)
 
-        val apps = (1..13).map { "App $it" }
+        val apps = (1..31).map { "App $it" }
         val paginated = LauncherManager.paginate(apps)
         assertEquals(2, paginated.size)
-        assertEquals(12, paginated[0].size)
+        assertEquals(30, paginated[0].size)
         assertEquals(1, paginated[1].size)
     }
 
     @Test
-    fun testTwentyFiveAppsProducesThreePagesTwelveTwelveAndOne() {
-        // Explicit example from requirements: 25 apps should produce 3 pages (12 + 12 + 1)
-        val pageCount = LauncherManager.calculatePages(25)
+    fun testSixtyFiveAppsProducesThreePagesThirtyThirtyAndFive() {
+        // 65 apps should produce 3 pages (30 + 30 + 5) in 6x5 grid
+        val pageCount = LauncherManager.calculatePages(65)
         assertEquals(3, pageCount)
 
-        val apps = (1..25).map { "App $it" }
+        val apps = (1..65).map { "App $it" }
         val paginated = LauncherManager.paginate(apps)
         assertEquals(3, paginated.size)
-        assertEquals(12, paginated[0].size)
-        assertEquals(12, paginated[1].size)
-        assertEquals(1, paginated[2].size)
+        assertEquals(30, paginated[0].size)
+        assertEquals(30, paginated[1].size)
+        assertEquals(5, paginated[2].size)
     }
 
     @Test
-    fun testFortyAppsProducesFourPages() {
-        val pageCount = LauncherManager.calculatePages(40)
+    fun testOneHundredAppsProducesFourPages() {
+        val pageCount = LauncherManager.calculatePages(100)
         assertEquals(4, pageCount)
 
-        val apps = (1..40).map { "App $it" }
+        val apps = (1..100).map { "App $it" }
         val paginated = LauncherManager.paginate(apps)
         assertEquals(4, paginated.size)
-        assertEquals(12, paginated[0].size)
-        assertEquals(12, paginated[1].size)
-        assertEquals(12, paginated[2].size)
-        assertEquals(4, paginated[3].size)
+        assertEquals(30, paginated[0].size)
+        assertEquals(30, paginated[1].size)
+        assertEquals(30, paginated[2].size)
+        assertEquals(10, paginated[3].size)
     }
 
     @Test
-    fun testStrictGridDimensionsThreeColumnsFourRows() {
-        assertEquals(3, LauncherManager.GRID_COLUMNS)
-        assertEquals(4, LauncherManager.GRID_ROWS)
-        assertEquals(12, LauncherManager.GRID_COLUMNS * LauncherManager.GRID_ROWS)
+    fun testStrictGridDimensionsSixColumnsFiveRows() {
+        assertEquals(6, LauncherManager.GRID_COLUMNS)
+        assertEquals(5, LauncherManager.GRID_ROWS)
+        assertEquals(30, LauncherManager.GRID_COLUMNS * LauncherManager.GRID_ROWS)
         assertEquals(LauncherManager.APPS_PER_PAGE, LauncherManager.GRID_COLUMNS * LauncherManager.GRID_ROWS)
     }
 
     @Test
     fun testPartiallyFilledFinalPageAlignmentPlaceholderCalculation() {
-        // On a page with 1 item (e.g. page 3 of 25 apps):
-        // 1 item in Row 0, Col 0. 11 remaining cells must be empty placeholders.
+        // On a page with 1 item (e.g. page 3 of 65 apps):
+        // 1 item in Row 0, Col 0. 29 remaining cells must be empty placeholders.
         val totalCapacity = LauncherManager.GRID_COLUMNS * LauncherManager.GRID_ROWS
         val pageAppsCount = 1
         val emptySpacerCount = totalCapacity - pageAppsCount
-        assertEquals(11, emptySpacerCount)
+        assertEquals(29, emptySpacerCount)
 
-        // For each row (0..3) and col (0..2), verify indexing:
+        // For each row (0..4) and col (0..5), verify indexing:
         var filledCount = 0
         var emptyCount = 0
         for (r in 0 until LauncherManager.GRID_ROWS) {
@@ -110,7 +110,7 @@ class AppDrawerPaginationAndGridTest {
             }
         }
         assertEquals(1, filledCount)
-        assertEquals(11, emptyCount)
+        assertEquals(29, emptyCount)
     }
 
     @Test

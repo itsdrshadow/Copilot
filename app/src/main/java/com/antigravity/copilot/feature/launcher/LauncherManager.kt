@@ -15,9 +15,9 @@ class LauncherManager(private val context: Context) {
     private val packageManager: PackageManager = context.packageManager
 
     companion object {
-        const val APPS_PER_PAGE = 12
-        const val GRID_COLUMNS = 3
-        const val GRID_ROWS = 4
+        const val APPS_PER_PAGE = 30
+        const val GRID_COLUMNS = 6
+        const val GRID_ROWS = 5
 
         private val iconCache = LruCache<String, Bitmap>(200)
 
