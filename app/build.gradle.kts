@@ -12,16 +12,16 @@ android {
         applicationId = "com.antigravity.drivingreport"
         minSdk = 26
         targetSdk = 30
-        versionCode = 36
-        versionName = "1.21.0"
+        versionCode = 37
+        versionName = "1.22.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "VERSION_NAME", "\"1.21.0\"")
-        buildConfigField("int", "VERSION_CODE", "36")
+        buildConfigField("String", "VERSION_NAME", "\"1.22.0\"")
+        buildConfigField("int", "VERSION_CODE", "37")
 
         kapt {
             arguments {

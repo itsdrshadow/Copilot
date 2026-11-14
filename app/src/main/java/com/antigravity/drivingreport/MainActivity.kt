@@ -52,7 +52,11 @@ import com.antigravity.drivingreport.feature.fuel.RefuelStationPromptDialog
 import com.antigravity.drivingreport.feature.launcher.AppDrawerDialog
 import com.antigravity.drivingreport.feature.maps.LiveMapPanel
 import com.antigravity.drivingreport.feature.settings.LauncherSettingsDialog
+import com.antigravity.drivingreport.feature.splash.SplashViewModel
+import com.antigravity.drivingreport.feature.splash.WelcomeSplashScreen
 import com.antigravity.drivingreport.feature.trips.TripHistoryScreen
+import androidx.activity.compose.BackHandler
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -183,6 +187,12 @@ private fun MainAppScreen(
     val isFuelDialogOpen by viewModel.isFuelDialogOpen.collectAsState()
     val isSettingsDialogOpen by viewModel.isSettingsDialogOpen.collectAsState()
     val installedApps by viewModel.installedApps.collectAsState()
+    val splashViewModel: SplashViewModel = viewModel()
+    val isSplashCompleted by splashViewModel.isSplashCompleted.collectAsState()
+
+    BackHandler(enabled = !isSplashCompleted) {
+        splashViewModel.skipSplash()
+    }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -432,6 +442,15 @@ private fun MainAppScreen(
                             Text("Cancel", color = Color.White)
                         }
                     }
+                }
+            )
+        }
+
+        if (!isSplashCompleted) {
+            WelcomeSplashScreen(
+                viewModel = splashViewModel,
+                onSplashFinished = {
+                    splashViewModel.onAnimationFinished()
                 }
             )
         }
