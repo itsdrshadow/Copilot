@@ -13,3 +13,7 @@
   - `### Fixed`
   - `### Removed`
 - Version increment hone par `app/build.gradle.kts` aur `CHANGELOG.md` dono synchronised rahenge.
+
+## 3. Mandatory Emulator Installation & Launch Verification
+- **Strict Requirement**: Task complete hone ke baad build ko Android emulator me install (`adb install -r`) karna aur app ko open/launch (`am start`) karke verify karna anivarya (mandatory) hai.
+- Launch ke baad verify karo ki process active hai aur koi fatal crash nahi hai.
