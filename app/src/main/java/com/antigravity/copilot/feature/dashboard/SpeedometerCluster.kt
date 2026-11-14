@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
 import com.antigravity.copilot.core.database.TripEntity
 import com.antigravity.copilot.core.designsystem.*
@@ -38,6 +39,7 @@ import com.antigravity.copilot.core.location.SpeedLimitInfo
 import com.antigravity.copilot.core.location.StoppingDistanceEngine
 import com.antigravity.copilot.core.location.StoppingDistanceEstimate
 import com.antigravity.copilot.core.model.TripPoint
+import com.antigravity.copilot.core.odometer.OdometerManager
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -85,8 +87,24 @@ fun SpeedometerCluster(
     latestPoint: TripPoint?,
     modifier: Modifier = Modifier,
     isVeryCompact: Boolean = false,
-    allTrips: List<TripEntity> = emptyList()
+    allTrips: List<TripEntity> = emptyList(),
+    totalLifetimeKm: Double = 0.0
 ) {
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        OdometerManager.init(context)
+    }
+
+    val odoConfig by OdometerManager.odometerConfig.collectAsState()
+    val currentOdometerKm = remember(odoConfig.baselineOdometerKm, totalLifetimeKm, odoConfig.baselineLifetimeKmAtUpdate) {
+        OdometerManager.calculateLiveOdometer(totalLifetimeKm)
+    }
+    val deltaKmSinceCalibration = remember(odoConfig.baselineLifetimeKmAtUpdate, totalLifetimeKm) {
+        OdometerManager.calculateDeltaKm(totalLifetimeKm)
+    }
+
+    var showOdometerDialog by remember { mutableStateOf(false) }
+
     var lastValidSpeedKmh by remember { mutableFloatStateOf(0f) }
     var lastValidSpeedTimeMs by remember { mutableLongStateOf(0L) }
     var tickerTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -431,7 +449,7 @@ fun SpeedometerCluster(
                 }
             }
 
-            // ==================== 3. BOTTOM TELEMETRY DOCK (STOP DIST + BEST ECO) ====================
+            // ==================== 3. BOTTOM TELEMETRY DOCK (ODOMETER + SINCE CAL) ====================
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -443,31 +461,31 @@ fun SpeedometerCluster(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Cell 1: Stopping Distance (Tap to inspect)
+                // Cell 1: ODOMETER (Tap to calibrate)
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(6.dp))
-                        .clickable { showStoppingDistanceDialog = true },
+                        .clickable { showOdometerDialog = true },
                     horizontalAlignment = Alignment.Start
                 ) {
                     Text(
-                        text = stoppingEstimate.formattedTotalMeters,
+                        text = String.format(Locale.US, "%,.1f km", currentOdometerKm),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.SansSerif,
-                            fontSize = if (isVeryCompact) 12.sp else 17.sp
+                            fontSize = if (isVeryCompact) 12.sp else 16.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,
-                        color = cyanAccent
+                        color = textPrimary
                     )
                     Text(
-                        text = "STOP DIST",
+                        text = "ODOMETER",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = if (isVeryCompact) 8.sp else 11.5.sp
+                            fontSize = if (isVeryCompact) 8.sp else 11.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -479,38 +497,39 @@ fun SpeedometerCluster(
                     modifier = Modifier
                         .height(24.dp)
                         .width(1.dp)
-                        .background(Color.White.copy(alpha = 0.12f))
+                        .background(CockpitTheme.colors.border.copy(alpha = 0.6f))
                 )
 
-                // Cell 2: Best Eco Speed (Tap to inspect)
+                // Cell 2: SINCE CAL. (Delta since calibration, tap to sync)
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(6.dp))
-                        .clickable { showBestEcoDialog = true },
+                        .clickable { showOdometerDialog = true },
                     horizontalAlignment = Alignment.End
                 ) {
+                    val deltaText = if (deltaKmSinceCalibration > 0.05) {
+                        String.format(Locale.US, "+%.1f km", deltaKmSinceCalibration)
+                    } else {
+                        "Synced"
+                    }
                     Text(
-                        text = if (bestEcoResult.status == EfficiencyLearningStatus.CONFIRMED && bestEcoResult.recommendedBand != null) {
-                            bestEcoResult.recommendedBand.label
-                        } else {
-                            "Learning"
-                        },
+                        text = deltaText,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.SansSerif,
-                            fontSize = if (isVeryCompact) 12.sp else 17.sp
+                            fontSize = if (isVeryCompact) 12.sp else 16.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
                         overflow = TextOverflow.Ellipsis,
-                        color = if (bestEcoResult.status == EfficiencyLearningStatus.CONFIRMED) CockpitTheme.colors.accent else CockpitTheme.colors.warning
+                        color = cyanAccent
                     )
                     Text(
-                        text = "BEST ECO",
+                        text = "SINCE CAL.",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = if (isVeryCompact) 8.sp else 11.5.sp
+                            fontSize = if (isVeryCompact) 8.sp else 11.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -647,6 +666,271 @@ fun SpeedometerCluster(
                             colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
                         ) {
                             Text("Done", color = CockpitTheme.colors.onAccent, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Modal Dialog 3: Vehicle Odometer Calibration
+    if (showOdometerDialog) {
+        SpeedometerOdometerCalibrationDialog(
+            currentOdometerKm = currentOdometerKm,
+            onDismiss = { showOdometerDialog = false },
+            onConfirmCalibration = { newKm ->
+                OdometerManager.setBaselineOdometer(context, newKm, totalLifetimeKm)
+                showOdometerDialog = false
+            }
+        )
+    }
+}
+
+/**
+ * Interactive dialog allowing the driver to calibrate and sync vehicle odometer
+ * with physical dashboard cluster reading.
+ */
+@Composable
+private fun SpeedometerOdometerCalibrationDialog(
+    currentOdometerKm: Double,
+    onDismiss: () -> Unit,
+    onConfirmCalibration: (Double) -> Unit
+) {
+    var textValue by remember { mutableStateOf(String.format(Locale.US, "%.1f", currentOdometerKm)) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    fun adjustBy(delta: Double) {
+        val current = textValue.toDoubleOrNull() ?: currentOdometerKm
+        val newOdo = (current + delta).coerceAtLeast(0.0)
+        textValue = String.format(Locale.US, "%.1f", newOdo)
+        errorMessage = null
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .width(520.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(CockpitTheme.colors.card)
+                .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(20.dp))
+                .padding(20.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(CockpitTheme.colors.accentSoft),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = null,
+                                tint = CockpitTheme.colors.accent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "Calibrate Vehicle Odometer",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = CockpitTheme.colors.textPrimary
+                            )
+                            Text(
+                                text = "Sync with physical car dashboard cluster reading",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = CockpitTheme.colors.textSecondary
+                            )
+                        }
+                    }
+
+                    // Delta Badge
+                    val currentVal = textValue.toDoubleOrNull()
+                    if (currentVal != null) {
+                        val diff = currentVal - currentOdometerKm
+                        val diffText = if (kotlin.math.abs(diff) < 0.05) "Exact Match" else String.format(Locale.US, "%+.1f km", diff)
+                        val diffColor = if (kotlin.math.abs(diff) < 0.05) CockpitTheme.colors.accent else CockpitTheme.colors.warning
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(diffColor.copy(alpha = 0.15f))
+                                .border(1.dp, diffColor.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = diffText,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                ),
+                                color = diffColor
+                            )
+                        }
+                    }
+                }
+
+                // Odometer readout chamber
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(CockpitTheme.colors.cardElevated)
+                        .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "ODOMETER",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = CockpitTheme.colors.textSecondary
+                        )
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = textValue.ifEmpty { "0.0" },
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 28.sp
+                                ),
+                                color = CockpitTheme.colors.textPrimary
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "KM",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = CockpitTheme.colors.accent,
+                                modifier = Modifier.padding(bottom = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage ?: "",
+                        color = CockpitTheme.colors.critical,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Quick Step Adjustment Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(-1000.0, -100.0, -10.0, 10.0, 100.0, 1000.0).forEach { delta ->
+                        val sign = if (delta > 0) "+${delta.toInt()}" else "${delta.toInt()}"
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(CockpitTheme.colors.cardElevated)
+                                .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(6.dp))
+                                .clickable { adjustBy(delta) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = sign,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                ),
+                                color = if (delta > 0) CockpitTheme.colors.accent else CockpitTheme.colors.critical
+                            )
+                        }
+                    }
+                }
+
+                // Keypad
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    val keyRows = listOf(
+                        listOf("1", "2", "3"),
+                        listOf("4", "5", "6"),
+                        listOf("7", "8", "9"),
+                        listOf(".", "0", "DEL")
+                    )
+
+                    keyRows.forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            row.forEach { key ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(38.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(CockpitTheme.colors.cardElevated)
+                                        .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(6.dp))
+                                        .clickable {
+                                            errorMessage = null
+                                            when (key) {
+                                                "DEL" -> if (textValue.isNotEmpty()) textValue = textValue.dropLast(1)
+                                                "." -> if (!textValue.contains(".")) textValue += "."
+                                                else -> textValue += key
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = key,
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = FontFamily.Monospace
+                                        ),
+                                        color = if (key == "DEL") CockpitTheme.colors.critical else CockpitTheme.colors.textPrimary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = { textValue = ""; errorMessage = null }) {
+                        Text("Clear", color = CockpitTheme.colors.critical)
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = onDismiss) {
+                            Text("Cancel", color = CockpitTheme.colors.textSecondary)
+                        }
+                        Button(
+                            onClick = {
+                                val parsed = textValue.toDoubleOrNull()
+                                if (parsed == null || parsed < 0.0 || parsed > 2_000_000.0) {
+                                    errorMessage = "Enter valid odometer (0 - 2,000,000 km)"
+                                } else {
+                                    onConfirmCalibration(parsed)
+                                }
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
+                        ) {
+                            Text("Confirm Calibration", color = CockpitTheme.colors.onAccent, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

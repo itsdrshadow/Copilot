@@ -290,8 +290,8 @@ fun FuelTankCard(
                     .fillMaxWidth()
                     .height(if (isVeryCompact) 42.dp else 48.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color.Black.copy(alpha = 0.25f))
-                    .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
+                    .background(CockpitTheme.colors.cardElevated)
+                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -324,9 +324,9 @@ fun FuelTankCard(
 
                 Box(
                     modifier = Modifier
-                        .height(20.dp)
+                        .height(24.dp)
                         .width(1.dp)
-                        .background(Color.White.copy(alpha = 0.12f))
+                        .background(CockpitTheme.colors.border.copy(alpha = 0.6f))
                 )
 
                 // Mileage

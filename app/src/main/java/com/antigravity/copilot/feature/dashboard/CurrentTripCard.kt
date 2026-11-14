@@ -414,12 +414,12 @@ fun CurrentTripCard(
             val dockBg = when {
                 isFlashingGreen -> positiveAccent.copy(alpha = 0.22f * flashPulseAlpha)
                 isFlashingRed -> dangerAccent.copy(alpha = 0.22f * flashPulseAlpha)
-                else -> Color.Black.copy(alpha = 0.25f)
+                else -> CockpitTheme.colors.cardElevated
             }
             val dockBorderColor = when {
                 isFlashingGreen -> positiveAccent.copy(alpha = flashPulseAlpha)
                 isFlashingRed -> dangerAccent.copy(alpha = flashPulseAlpha)
-                else -> Color.White.copy(alpha = 0.06f)
+                else -> CockpitTheme.colors.border
             }
             val dockBorderWidth = if (isFlashingGreen || isFlashingRed) 1.8.dp else 1.dp
 

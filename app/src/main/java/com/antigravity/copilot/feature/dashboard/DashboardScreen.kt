@@ -132,7 +132,8 @@ fun DashboardScreen(
                                 latestPoint = latestPoint,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 isVeryCompact = isVeryCompact,
-                                allTrips = allTrips
+                                allTrips = allTrips,
+                                totalLifetimeKm = totalLifetimeKm
                             )
                             FuelTankCard(
                                 fuelState = fuelState,
@@ -202,7 +203,8 @@ fun DashboardScreen(
                                 latestPoint = latestPoint,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 isVeryCompact = isVeryCompact,
-                                allTrips = allTrips
+                                allTrips = allTrips,
+                                totalLifetimeKm = totalLifetimeKm
                             )
                             FuelTankCard(
                                 fuelState = fuelState,

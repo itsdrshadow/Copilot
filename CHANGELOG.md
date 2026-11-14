@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.27.2] - 2026-11-15
+
+### Added
+- **Speedometer Cluster Odometer & Since Cal. Integration**: Embedded vehicle odometer (`ODOMETER`) and calibration delta (`SINCE CAL.`) in the `SpeedometerCluster` bottom dock, replacing obsolete stop distance and best eco widgets. Added interactive `SpeedometerOdometerCalibrationDialog` on tap for instantaneous odometer offset adjustments.
+- **Permanent GraphicEq Media Pill**: Introduced a permanent automotive equalizer pill (`Icons.Default.GraphicEq`) inside `SmartMusicClockCard`, visibly indicating media status across both idle and active playback modes with a modern automotive icon.
+
+### Changed
+- **Unified Dark Cockpit Theme**: Standardized outer background, elevated dock surfaces (`cardElevated`), borders, and corner radiuses identically across `SpeedometerCluster`, `FuelTankCard`, `CurrentTripCard`, and `SmartMusicClockCard`.
+- **10-Bar Fuel Gauge Synchronization**: Refined full tank LED MID bar fallback to accurately illuminate all 10 segments when tank level is at 100%.
+
+---
+
 ## [1.27.1] - 2026-11-15
 
 ### Fixed

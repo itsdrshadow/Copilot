@@ -104,13 +104,13 @@ fun SmartMusicClockCard(
     val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
     val cornerRadius = if (isVeryCompact) 16.dp else 20.dp
-    val cardPadding = if (isVeryCompact) 10.dp else 12.dp
+    val cardPadding = if (isVeryCompact) 10.dp else 14.dp
 
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius))
             .background(cardBg)
-            .border(1.2.dp, cardBorder, RoundedCornerShape(cornerRadius))
+            .border(1.25.dp, cardBorder, RoundedCornerShape(cornerRadius))
             .padding(cardPadding)
     ) {
         AnimatedContent(
@@ -208,31 +208,13 @@ private fun ClockOnlyState(
                 )
             }
 
-            // Quick Music Launcher Pill
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(CockpitTheme.colors.cardElevated)
-                    .clickable(onClick = onOpenMusicApp)
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = "Music",
-                    tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(12.dp)
-                )
-                Text(
-                    text = "Music",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 10.5.sp else 12.5.sp),
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = CockpitTheme.colors.textSecondary
-                )
-            }
+            // Permanent Automotive Media Pill
+            AutomotiveMusicPill(
+                isPlaying = false,
+                label = "Media",
+                isVeryCompact = isVeryCompact,
+                onClick = onOpenMusicApp
+            )
         }
 
         // Center Hero Clock: Big Tabular Time
@@ -368,26 +350,33 @@ private fun ClockWithMusicState(
                     )
                 }
 
-                Text(
-                    text = if (amPmString.isNotBlank()) "$timeString $amPmString" else timeString,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 17.sp else 21.sp)
-                    ),
-                    color = CockpitTheme.colors.textPrimary
-                )
+                Column {
+                    Text(
+                        text = if (amPmString.isNotBlank()) "$timeString $amPmString" else timeString,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = scaling.scaleFont(if (isVeryCompact) 15.sp else 18.sp)
+                        ),
+                        color = CockpitTheme.colors.textPrimary
+                    )
+                    Text(
+                        text = dateString,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = scaling.scaleFont(if (isVeryCompact) 9.sp else 10.5.sp),
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = CockpitTheme.colors.textSecondary
+                    )
+                }
             }
 
-            // Compact Date
-            Text(
-                text = dateString,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = scaling.scaleFont(if (isVeryCompact) 11.5.sp else 13.5.sp),
-                    fontWeight = FontWeight.Medium
-                ),
-                color = CockpitTheme.colors.textSecondary,
-                maxLines = 1
+            // Permanent Music Pill
+            AutomotiveMusicPill(
+                isPlaying = playbackState.isPlaying,
+                label = if (playbackState.isPlaying) "Playing" else "Paused",
+                isVeryCompact = isVeryCompact,
+                onClick = onOpenMusicApp
             )
         }
 
@@ -574,5 +563,49 @@ fun formatDuration(ms: Long): String {
         String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
     } else {
         String.format(Locale.US, "%d:%02d", minutes, seconds)
+    }
+}
+
+/**
+ * Automotive Equalizer Media Pill:
+ * Permanently displayed in the top header.
+ * Uses high-tech GraphicEq audio frequency spectrum bars icon.
+ */
+@Composable
+private fun AutomotiveMusicPill(
+    isPlaying: Boolean,
+    label: String,
+    isVeryCompact: Boolean,
+    onClick: () -> Unit
+) {
+    val scaling = CockpitTheme.scaling
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(CockpitTheme.colors.cardElevated)
+            .border(
+                1.dp,
+                if (isPlaying) CockpitTheme.colors.accent.copy(alpha = 0.6f) else CockpitTheme.colors.border,
+                RoundedCornerShape(12.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = if (isVeryCompact) 7.dp else 10.dp, vertical = if (isVeryCompact) 2.5.dp else 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.GraphicEq,
+            contentDescription = "Media Player",
+            tint = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary,
+            modifier = Modifier.size(if (isVeryCompact) 13.dp else 16.dp)
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 12.sp),
+                fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
+            ),
+            color = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary
+        )
     }
 }
