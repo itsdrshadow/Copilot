@@ -291,7 +291,7 @@ private fun MainAppScreen(
                     speedLimitInfo = speedLimitInfo,
                     onNavItemSelected = { index -> viewModel.selectTab(index) },
                     onOpenFuelDialog = { viewModel.setFuelDialogOpen(true) },
-                    onOpenFuelHistory = { viewModel.setFuelHistoryOpen(true) },
+                    onOpenFuelHistory = { viewModel.selectTab(3) },
                     onOpenAppDrawer = { viewModel.setAppDrawerOpen(true) },
                     onLaunchNavi = { viewModel.launchNavigation() },
                     onLaunchSettings = { viewModel.setSettingsDialogOpen(true) },
@@ -344,10 +344,22 @@ private fun MainAppScreen(
                         viewModel.setAppDrawerOpen(false)
                     }
                 },
-                onBackToHome = { viewModel.setAppDrawerOpen(false) },
-                onOpenSettings = { viewModel.setSettingsDialogOpen(true) },
-                onOpenTrips = { viewModel.selectTab(2) },
-                onOpenFuel = { viewModel.selectTab(3) }
+                onBackToHome = {
+                    viewModel.setAppDrawerOpen(false)
+                    viewModel.selectTab(0)
+                },
+                onOpenSettings = {
+                    viewModel.setAppDrawerOpen(false)
+                    viewModel.setSettingsDialogOpen(true)
+                },
+                onOpenTrips = {
+                    viewModel.setAppDrawerOpen(false)
+                    viewModel.selectTab(2)
+                },
+                onOpenFuel = {
+                    viewModel.setAppDrawerOpen(false)
+                    viewModel.selectTab(3)
+                }
             )
         }
 

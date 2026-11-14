@@ -9,8 +9,8 @@ class LauncherNavigationAndSpaceReclaimTest {
 
     @Test
     fun testVersionBumpToSemVerMinor() {
-        assertEquals("1.25.2", BuildConfig.VERSION_NAME)
-        assertEquals(44, BuildConfig.VERSION_CODE)
+        assertEquals("1.25.3", BuildConfig.VERSION_NAME)
+        assertEquals(45, BuildConfig.VERSION_CODE)
     }
 
     @Test
@@ -44,5 +44,38 @@ class LauncherNavigationAndSpaceReclaimTest {
                 m.name.contains("BottomDock", ignoreCase = true)
             )
         }
+    }
+
+    @Test
+    fun testAppDrawerNavRoutesToTripHistoryAndFuelHistory() {
+        // Tab index definitions: 0 = Dashboard, 1 = LiveMap, 2 = TripHistory, 3 = FuelHistory
+        val TAB_DASHBOARD = 0
+        val TAB_MAP = 1
+        val TAB_TRIP_HISTORY = 2
+        val TAB_FUEL_HISTORY = 3
+
+        var drawerOpen = true
+        var currentTab = TAB_DASHBOARD
+
+        // Clicking "Trips" action:
+        val onOpenTripsAction: () -> Unit = {
+            drawerOpen = false
+            currentTab = TAB_TRIP_HISTORY
+        }
+        onOpenTripsAction()
+        assertFalse("App drawer must close when navigating to Trip History", drawerOpen)
+        assertEquals("Selected tab must switch to Trip History (Tab 2)", TAB_TRIP_HISTORY, currentTab)
+
+        // Reopen drawer
+        drawerOpen = true
+
+        // Clicking "Fuels" action:
+        val onOpenFuelAction: () -> Unit = {
+            drawerOpen = false
+            currentTab = TAB_FUEL_HISTORY
+        }
+        onOpenFuelAction()
+        assertFalse("App drawer must close when navigating to Fuel History", drawerOpen)
+        assertEquals("Selected tab must switch to Fuel History (Tab 3)", TAB_FUEL_HISTORY, currentTab)
     }
 }

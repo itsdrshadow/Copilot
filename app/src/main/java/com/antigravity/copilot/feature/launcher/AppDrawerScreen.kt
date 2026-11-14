@@ -467,7 +467,7 @@ fun AppDrawerHeader(
                 )
             }
 
-            // Fuel Log Pill (Icon + Text)
+            // Fuels Pill (Icon + Text)
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
@@ -480,12 +480,12 @@ fun AppDrawerHeader(
             ) {
                 Icon(
                     Icons.Default.LocalGasStation,
-                    contentDescription = "Fuel Log",
+                    contentDescription = "Fuels",
                     tint = CockpitTheme.colors.textSecondary,
                     modifier = Modifier.size(19.dp)
                 )
                 Text(
-                    text = "Fuel Log",
+                    text = "Fuels",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.5.sp
