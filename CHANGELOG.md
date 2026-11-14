@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.27.1] - 2026-11-15
+
+### Fixed
+- **Restored Original Speedometer & Fuel Tank Cards**: Restored the original standalone `SpeedometerCluster` (with 240° dial, speed limit, speed trend badge) and standalone `FuelTankCard` (with "+ ADD FUEL" button, OEM capacity, 10-bar LED MID gauge, Est. Range, and Current Mileage km/L) in the balanced 2x2 cockpit dashboard grid alongside `CurrentTripCard` and `SmartMusicClockCard`.
+- **UI Scaling Text Shrinkage Bug**: Fixed root-cause regression in `DashboardScreen` where selecting `UiScaleMode.EXTRA_LARGE` inadvertently forced `isVeryCompact = true`, causing card typography and layouts to collapse into tiny compact mode instead of scaling up.
+- **Automotive Typography & Glanceability**: Elevated typography across speedometer digits, digital clock, and telemetry metrics for effortless readability from normal driving distance.
+- **10-Segment LED MID Gauge & Calibration**: Restored original 10-point color palette (red, amber, cyan) with full mid-bar calibration dialog trigger.
+
+---
+
 ## [1.27.0] - 2026-11-14
 
 ### Added

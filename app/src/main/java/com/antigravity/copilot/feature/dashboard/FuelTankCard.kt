@@ -48,9 +48,14 @@ fun FuelTankCard(
     val textPrimary = CockpitTheme.colors.textPrimary
     val textSecondary = CockpitTheme.colors.textSecondary
 
+    val currentLiters = fuelState.remainingLiters
+    val capacity = fuelState.designCapacityLiters
+    val tankPct = fuelState.fuelPercentage.toDouble().coerceIn(0.0, 100.0)
+
     var showGaugeDialog by remember { mutableStateOf(false) }
-    var tempSelectedBar by remember(fuelState.currentMidBar, showGaugeDialog) {
-        mutableStateOf(fuelState.currentMidBar)
+    val initialMidBar = if (fuelState.currentMidBar in 1..10) fuelState.currentMidBar else ((tankPct / 10.0).toInt()).coerceIn(1, 10)
+    var tempSelectedBar by remember(initialMidBar, showGaugeDialog) {
+        mutableIntStateOf(initialMidBar)
     }
 
     val addButtonInteraction = remember { MutableInteractionSource() }
@@ -60,10 +65,6 @@ fun FuelTankCard(
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         label = "PremiumAddFuelScale"
     )
-
-    val currentLiters = fuelState.remainingLiters
-    val capacity = fuelState.designCapacityLiters
-    val tankPct = fuelState.fuelPercentage.toDouble().coerceIn(0.0, 100.0)
 
     val primaryStatusColor = when {
         tankPct <= 15.0 -> dangerAccent
@@ -240,8 +241,9 @@ fun FuelTankCard(
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val activeBars = if (fuelState.currentMidBar in 1..10) fuelState.currentMidBar else ((tankPct / 10.0).toInt()).coerceIn(0, 10)
                     for (i in 1..10) {
-                        val isSegmentActive = i <= fuelState.currentMidBar
+                        val isSegmentActive = i <= activeBars
                         val segmentColor = when {
                             !isSegmentActive -> CockpitTheme.colors.border
                             i <= 1 -> dangerAccent

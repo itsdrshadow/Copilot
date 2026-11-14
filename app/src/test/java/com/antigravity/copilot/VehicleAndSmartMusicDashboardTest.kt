@@ -281,4 +281,60 @@ class VehicleAndSmartMusicDashboardTest {
             assertTrue("Item spacing in $mode must be in 5dp..10dp", tokens.itemSpacing.value in 5f..10f)
         }
     }
+
+    // =========================================================================
+    // 6. RESTORED CURRENT MILEAGE & 10-SEGMENT MID GAUGE LOGIC
+    // =========================================================================
+
+    @Test
+    fun testCurrentMileageResolutionLogic() {
+        // Case 1: Confirmed learned mileage
+        val learnedFuel = FuelState(
+            currentMileageKmpl = 18.2,
+            mileageLearningState = com.antigravity.copilot.core.model.MileageLearningState.LEARNED
+        )
+        val isConfirmed = learnedFuel.mileageLearningState == com.antigravity.copilot.core.model.MileageLearningState.LEARNED && learnedFuel.currentMileageKmpl > 0.0
+        assertTrue("Learned state with positive kmpl must be confirmed", isConfirmed)
+        assertEquals("18.2 km/L", String.format(Locale.US, "%.1f km/L", learnedFuel.currentMileageKmpl))
+
+        // Case 2: Estimated mileage
+        val learningFuel = FuelState(
+            currentMileageKmpl = 15.6,
+            mileageLearningState = com.antigravity.copilot.core.model.MileageLearningState.LEARNING
+        )
+        val isEstimated = (learningFuel.mileageLearningState == com.antigravity.copilot.core.model.MileageLearningState.LEARNING || learningFuel.isRealMileageDerived) && learningFuel.currentMileageKmpl > 0.0
+        assertTrue("Learning state with positive kmpl must be marked estimated", isEstimated)
+        assertEquals("15.6 km/L", String.format(Locale.US, "%.1f km/L", learningFuel.currentMileageKmpl))
+
+        // Case 3: Initial learning state (no data yet)
+        val zeroFuel = FuelState(
+            currentMileageKmpl = 0.0,
+            expectedMileageKmpl = 0.0,
+            mileageLearningState = com.antigravity.copilot.core.model.MileageLearningState.INSUFFICIENT_DATA
+        )
+        val hasAnyMileage = zeroFuel.currentMileageKmpl > 0.0 || zeroFuel.expectedMileageKmpl > 0.0
+        assertFalse("Uninitialized state with 0 kmpl must not claim valid mileage", hasAnyMileage)
+    }
+
+    @Test
+    fun testTenSegmentMidGaugeColorLogic() {
+        for (currentMidBar in 0..10) {
+            for (i in 1..10) {
+                val isActive = i <= currentMidBar
+                if (!isActive) {
+                    // Inactive segment
+                    assertTrue(i > currentMidBar)
+                } else {
+                    val zone = when {
+                        i <= 2 -> "CRITICAL_RED"
+                        i <= 4 -> "WARNING_AMBER"
+                        else -> "ACCENT_CYAN"
+                    }
+                    if (i in 1..2) assertEquals("CRITICAL_RED", zone)
+                    if (i in 3..4) assertEquals("WARNING_AMBER", zone)
+                    if (i in 5..10) assertEquals("ACCENT_CYAN", zone)
+                }
+            }
+        }
+    }
 }

@@ -202,7 +202,7 @@ private fun ClockOnlyState(
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
-                        fontSize = scaling.scaleFont(10.5.sp)
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 11.sp else 13.5.sp)
                     ),
                     color = CockpitTheme.colors.accent
                 )
@@ -227,7 +227,7 @@ private fun ClockOnlyState(
                 Text(
                     text = "Music",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = scaling.scaleFont(10.sp),
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 10.5.sp else 12.5.sp),
                         fontWeight = FontWeight.Medium
                     ),
                     color = CockpitTheme.colors.textSecondary
@@ -250,7 +250,7 @@ private fun ClockOnlyState(
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Black,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 42.sp else 50.sp),
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 48.sp else 62.sp),
                         letterSpacing = (-1).sp
                     ),
                     color = CockpitTheme.colors.textPrimary
@@ -262,7 +262,7 @@ private fun ClockOnlyState(
                         text = amPmString,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = scaling.scaleFont(if (isVeryCompact) 14.sp else 16.sp)
+                            fontSize = scaling.scaleFont(if (isVeryCompact) 16.sp else 20.sp)
                         ),
                         color = CockpitTheme.colors.accent,
                         modifier = Modifier.padding(bottom = 6.dp)
@@ -281,12 +281,12 @@ private fun ClockOnlyState(
                     imageVector = Icons.Default.CalendarToday,
                     contentDescription = null,
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(if (isVeryCompact) 11.dp else 13.dp)
+                    modifier = Modifier.size(if (isVeryCompact) 12.dp else 14.dp)
                 )
                 Text(
                     text = dateString,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 11.5.sp else 13.sp),
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 12.5.sp else 15.sp),
                         fontWeight = FontWeight.Medium
                     ),
                     color = CockpitTheme.colors.textSecondary
@@ -303,7 +303,7 @@ private fun ClockOnlyState(
             Text(
                 text = "Vehicle Time • Synchronized",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = scaling.scaleFont(9.5.sp)
+                    fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 11.5.sp)
                 ),
                 color = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
             )
@@ -373,7 +373,7 @@ private fun ClockWithMusicState(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 15.sp else 18.sp)
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 17.sp else 21.sp)
                     ),
                     color = CockpitTheme.colors.textPrimary
                 )
@@ -383,7 +383,7 @@ private fun ClockWithMusicState(
             Text(
                 text = dateString,
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 11.5.sp),
+                    fontSize = scaling.scaleFont(if (isVeryCompact) 11.5.sp else 13.5.sp),
                     fontWeight = FontWeight.Medium
                 ),
                 color = CockpitTheme.colors.textSecondary,
@@ -406,7 +406,7 @@ private fun ClockWithMusicState(
             horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 8.dp else 10.dp)
         ) {
             // Album Artwork or Fallback Icon
-            val artSize = if (isVeryCompact) 44.dp else 50.dp
+            val artSize = if (isVeryCompact) 48.dp else 56.dp
             Box(
                 modifier = Modifier
                     .size(artSize)
@@ -427,7 +427,7 @@ private fun ClockWithMusicState(
                         imageVector = Icons.Default.MusicNote,
                         contentDescription = null,
                         tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(if (isVeryCompact) 22.dp else 26.dp)
+                        modifier = Modifier.size(if (isVeryCompact) 24.dp else 28.dp)
                     )
                 }
             }
@@ -441,7 +441,7 @@ private fun ClockWithMusicState(
                     text = playbackState.displayTitle,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 13.sp else 15.sp)
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 14.5.sp else 17.5.sp)
                     ),
                     color = CockpitTheme.colors.textPrimary,
                     maxLines = 1,
@@ -453,7 +453,7 @@ private fun ClockWithMusicState(
                 Text(
                     text = playbackState.displayArtist,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 11.sp else 12.5.sp),
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 12.sp else 14.5.sp),
                         fontWeight = FontWeight.Normal
                     ),
                     color = CockpitTheme.colors.textSecondary,
@@ -474,7 +474,7 @@ private fun ClockWithMusicState(
                 progress = { progressFraction },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.5.dp)
+                    .height(4.dp)
                     .clip(RoundedCornerShape(2.dp)),
                 color = CockpitTheme.colors.accent,
                 trackColor = CockpitTheme.colors.cardElevated
@@ -488,7 +488,7 @@ private fun ClockWithMusicState(
                     text = formattedCurrentTime,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
-                        fontSize = scaling.scaleFont(9.sp)
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 12.sp)
                     ),
                     color = CockpitTheme.colors.textSecondary
                 )
@@ -496,7 +496,7 @@ private fun ClockWithMusicState(
                     text = formattedTotalTime,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
-                        fontSize = scaling.scaleFont(9.sp)
+                        fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 12.sp)
                     ),
                     color = CockpitTheme.colors.textSecondary
                 )
@@ -512,20 +512,20 @@ private fun ClockWithMusicState(
             // Previous Button
             IconButton(
                 onClick = onSkipPrevious,
-                modifier = Modifier.size(if (isVeryCompact) 32.dp else 36.dp)
+                modifier = Modifier.size(if (isVeryCompact) 34.dp else 38.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.SkipPrevious,
                     contentDescription = "Previous",
                     tint = CockpitTheme.colors.textPrimary,
-                    modifier = Modifier.size(if (isVeryCompact) 20.dp else 24.dp)
+                    modifier = Modifier.size(if (isVeryCompact) 22.dp else 26.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(if (isVeryCompact) 12.dp else 16.dp))
+            Spacer(modifier = Modifier.width(if (isVeryCompact) 14.dp else 18.dp))
 
             // Play / Pause Hero Button
-            val playButtonSize = if (isVeryCompact) 38.dp else 44.dp
+            val playButtonSize = if (isVeryCompact) 40.dp else 46.dp
             Box(
                 modifier = Modifier
                     .size(playButtonSize)
@@ -538,22 +538,22 @@ private fun ClockWithMusicState(
                     imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
                     tint = Color.Black,
-                    modifier = Modifier.size(if (isVeryCompact) 22.dp else 26.dp)
+                    modifier = Modifier.size(if (isVeryCompact) 24.dp else 28.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(if (isVeryCompact) 12.dp else 16.dp))
+            Spacer(modifier = Modifier.width(if (isVeryCompact) 14.dp else 18.dp))
 
             // Next Button
             IconButton(
                 onClick = onSkipNext,
-                modifier = Modifier.size(if (isVeryCompact) 32.dp else 36.dp)
+                modifier = Modifier.size(if (isVeryCompact) 34.dp else 38.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
                     contentDescription = "Next",
                     tint = CockpitTheme.colors.textPrimary,
-                    modifier = Modifier.size(if (isVeryCompact) 20.dp else 24.dp)
+                    modifier = Modifier.size(if (isVeryCompact) 22.dp else 26.dp)
                 )
             }
         }

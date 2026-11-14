@@ -79,7 +79,7 @@ fun DashboardScreen(
         val screenWidth = maxWidth
         val isPortrait = screenWidth < screenHeight
         val scaling = CockpitTheme.scaling
-        val isVeryCompact = screenHeight < 480.dp || (isPortrait && screenWidth < 500.dp) || scaling.mode == com.antigravity.copilot.core.designsystem.UiScaleMode.EXTRA_LARGE
+        val isVeryCompact = screenHeight < 420.dp || (isPortrait && screenWidth < 420.dp)
         val itemSpacing = scaling.itemSpacing
 
         Box(
@@ -119,19 +119,29 @@ fun DashboardScreen(
                             .weight(1.5f),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
-                        // Row 1: Unified Vehicle Information Card (Speedometer + Fuel + Odometer)
-                        VehicleDashboardCard(
-                            speedKmh = currentSpeed,
-                            speedLimitInfo = speedLimitInfo,
-                            latestPoint = latestPoint,
-                            fuelState = fuelState,
-                            allTrips = allTrips,
-                            totalLifetimeKm = totalLifetimeKm,
-                            onOpenFuelDialog = onOpenFuelDialog,
-                            onCalibrateGauge = onCalibrateMidBar,
-                            modifier = Modifier.fillMaxWidth().weight(1.15f),
-                            isVeryCompact = true
-                        )
+                        // Row 1: Speedometer + Fuel Tank
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(itemSpacing)
+                        ) {
+                            SpeedometerCluster(
+                                speedKmh = currentSpeed,
+                                speedLimitInfo = speedLimitInfo,
+                                latestPoint = latestPoint,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                isVeryCompact = isVeryCompact,
+                                allTrips = allTrips
+                            )
+                            FuelTankCard(
+                                fuelState = fuelState,
+                                onClick = onOpenFuelDialog,
+                                onCalibrateGauge = onCalibrateMidBar,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                isVeryCompact = isVeryCompact
+                            )
+                        }
 
                         // Row 2: Current Trip + Music Player / Permanent Clock
                         Row(
@@ -144,12 +154,12 @@ fun DashboardScreen(
                                 currentTrip = currentTrip,
                                 tripVisualState = tripVisualState,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = true,
+                                isVeryCompact = isVeryCompact,
                                 baselineMileage = fallbackMileage
                             )
                             SmartMusicClockCard(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = true
+                                isVeryCompact = isVeryCompact
                             )
                         }
                     }
@@ -179,19 +189,29 @@ fun DashboardScreen(
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
-                        // Row 1: Unified Vehicle Information Card (Speedometer + Fuel + Odometer)
-                        VehicleDashboardCard(
-                            speedKmh = currentSpeed,
-                            speedLimitInfo = speedLimitInfo,
-                            latestPoint = latestPoint,
-                            fuelState = fuelState,
-                            allTrips = allTrips,
-                            totalLifetimeKm = totalLifetimeKm,
-                            onOpenFuelDialog = onOpenFuelDialog,
-                            onCalibrateGauge = onCalibrateMidBar,
-                            modifier = Modifier.fillMaxWidth().weight(1.15f),
-                            isVeryCompact = isVeryCompact
-                        )
+                        // Row 1: Speedometer + Fuel Tank
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(itemSpacing)
+                        ) {
+                            SpeedometerCluster(
+                                speedKmh = currentSpeed,
+                                speedLimitInfo = speedLimitInfo,
+                                latestPoint = latestPoint,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                isVeryCompact = isVeryCompact,
+                                allTrips = allTrips
+                            )
+                            FuelTankCard(
+                                fuelState = fuelState,
+                                onClick = onOpenFuelDialog,
+                                onCalibrateGauge = onCalibrateMidBar,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                isVeryCompact = isVeryCompact
+                            )
+                        }
 
                         // Row 2: Current Trip + Music Player / Permanent Clock
                         Row(
