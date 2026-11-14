@@ -36,9 +36,10 @@ object MediaPlaybackManager {
 
         override fun onSessionDestroyed() {
             activeController = null
-            _playbackState.value = _playbackState.value.copy(
+            _playbackState.value = MediaPlaybackState(
                 isPlaying = false,
-                hasActiveSession = false
+                hasActiveSession = false,
+                playbackStateCode = PlaybackState.STATE_NONE
             )
         }
     }
@@ -97,7 +98,10 @@ object MediaPlaybackManager {
 
         val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         val position = pbState?.position ?: 0L
-        val isPlaying = pbState?.state == PlaybackState.STATE_PLAYING
+        val lastUpdateTime = pbState?.lastPositionUpdateTime ?: 0L
+        val speed = pbState?.playbackSpeed ?: 1.0f
+        val stateCode = pbState?.state ?: PlaybackState.STATE_NONE
+        val isPlaying = stateCode == PlaybackState.STATE_PLAYING
 
         _playbackState.value = MediaPlaybackState(
             title = title,
@@ -108,6 +112,9 @@ object MediaPlaybackManager {
             packageName = controller.packageName,
             durationMs = duration.coerceAtLeast(0L),
             positionMs = position.coerceAtLeast(0L),
+            playbackSpeed = speed,
+            lastPositionUpdateTime = lastUpdateTime,
+            playbackStateCode = stateCode,
             hasActiveSession = true
         )
     }
@@ -118,13 +125,27 @@ object MediaPlaybackManager {
             val sessionManager = ctx.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
             val notificationListenerComponent = ComponentName(ctx, CarMediaNotificationListener::class.java)
             val controllers = sessionManager?.getActiveSessions(notificationListenerComponent)
-            val active = controllers?.firstOrNull()
+            val active = controllers?.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+                ?: controllers?.firstOrNull()
             setActiveController(active)
         } catch (_: SecurityException) {
             // Notification access not granted yet; key-event fallback will still work
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    fun seekTo(positionMs: Long) {
+        val controller = activeController
+        if (controller != null) {
+            try {
+                controller.transportControls.seekTo(positionMs)
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun setTestPlaybackState(state: MediaPlaybackState) {
+        _playbackState.value = state
     }
 
     fun togglePlayPause() {

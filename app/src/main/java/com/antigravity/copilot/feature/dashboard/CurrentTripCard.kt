@@ -34,6 +34,16 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+data class PremiumRotatingMetric(
+    val id: String,
+    val title: String,
+    val value: String,
+    val unit: String,
+    val subtitle: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val accentColor: Color
+)
+
 /**
  * Current Trip Instrument Card:
  * Features live dynamic trip duration timer, rotating metrics, peak braking deceleration, and tactile status indicators.

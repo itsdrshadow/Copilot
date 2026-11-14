@@ -11,7 +11,8 @@ class CarMediaNotificationListener : NotificationListenerService() {
     private var sessionManager: MediaSessionManager? = null
 
     private val sessionListener = MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
-        val active = controllers?.firstOrNull()
+        val active = controllers?.firstOrNull { it.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING }
+            ?: controllers?.firstOrNull()
         MediaPlaybackManager.setActiveController(active)
     }
 
@@ -22,7 +23,9 @@ class CarMediaNotificationListener : NotificationListenerService() {
             val component = ComponentName(this, CarMediaNotificationListener::class.java)
             sessionManager?.addOnActiveSessionsChangedListener(sessionListener, component)
             val initialControllers = sessionManager?.getActiveSessions(component)
-            MediaPlaybackManager.setActiveController(initialControllers?.firstOrNull())
+            val active = initialControllers?.firstOrNull { it.playbackState?.state == android.media.session.PlaybackState.STATE_PLAYING }
+                ?: initialControllers?.firstOrNull()
+            MediaPlaybackManager.setActiveController(active)
         } catch (e: Exception) {
             e.printStackTrace()
         }

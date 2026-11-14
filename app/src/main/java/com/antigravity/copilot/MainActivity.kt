@@ -100,6 +100,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private var testMediaReceiver: BroadcastReceiver? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -112,6 +114,36 @@ class MainActivity : ComponentActivity() {
             addDataScheme("package")
         }
         registerReceiver(packageReceiver, packageFilter)
+
+        val mediaFilter = IntentFilter("com.antigravity.copilot.TEST_MEDIA_STATE")
+        testMediaReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val isPlaying = intent?.getBooleanExtra("playing", true) ?: true
+                val title = intent?.getStringExtra("title") ?: if (isPlaying) "Nightcall" else ""
+                val artist = intent?.getStringExtra("artist") ?: if (isPlaying) "Kavinsky" else ""
+                val album = intent?.getStringExtra("album") ?: if (isPlaying) "OutRun" else ""
+                val code = if (isPlaying) android.media.session.PlaybackState.STATE_PLAYING else android.media.session.PlaybackState.STATE_STOPPED
+                com.antigravity.copilot.core.media.MediaPlaybackManager.setTestPlaybackState(
+                    com.antigravity.copilot.core.media.MediaPlaybackState(
+                        title = title,
+                        artist = artist,
+                        album = album,
+                        isPlaying = isPlaying,
+                        hasActiveSession = isPlaying,
+                        playbackStateCode = code,
+                        durationMs = 259000L,
+                        positionMs = 64000L,
+                        lastPositionUpdateTime = android.os.SystemClock.elapsedRealtime(),
+                        playbackSpeed = 1.0f
+                    )
+                )
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(testMediaReceiver, mediaFilter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(testMediaReceiver, mediaFilter)
+        }
 
         // Automotive Edge-to-Edge Immersive Sticky Mode (Hides status bar and gesture navigation)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -159,6 +191,9 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         try {
             unregisterReceiver(packageReceiver)
+        } catch (_: Exception) {}
+        try {
+            testMediaReceiver?.let { unregisterReceiver(it) }
         } catch (_: Exception) {}
     }
 

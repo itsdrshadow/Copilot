@@ -64,39 +64,11 @@ fun DashboardScreen(
         currentTrip.status == com.antigravity.copilot.core.model.TripStatus.TEMPORARY_STOP
 
     val activeTripDistanceKm = if (isTripActive) currentTrip.distanceKm else 0.0
-    val activeTripDurationMs = if (isTripActive) (currentTrip.drivingDurationMs + currentTrip.stationaryDurationMs) else 0L
-    val activeDrivingDurationMs = if (isTripActive) currentTrip.drivingDurationMs else 0L
-    val activeTripFuelLiters = if (isTripActive && currentTrip.estimatedFuelConsumedLiters > 0.0) currentTrip.estimatedFuelConsumedLiters else 0.0
 
     val totalLifetimeKm = remember(allTrips, activeTripDistanceKm) {
         allTrips.sumOf { it.distanceMeters } / 1000.0 + activeTripDistanceKm
     }
-    val totalTripsCount = allTrips.size
-    val (totalHours, totalRemainingMin) = remember(allTrips, activeTripDurationMs) {
-        val totalMs = allTrips.sumOf { it.drivingDurationMs + it.stationaryDurationMs } + activeTripDurationMs
-        val totalDurationMin = totalMs / 60000L
-        Pair((totalDurationMin / 60).toInt(), (totalDurationMin % 60).toInt())
-    }
-    val lifetimeAvgSpeed = remember(allTrips, totalLifetimeKm, activeDrivingDurationMs) {
-        val totalDrivingMs = allTrips.sumOf { it.drivingDurationMs } + activeDrivingDurationMs
-        if (totalDrivingMs > 60000L && totalLifetimeKm > 0.1) {
-            val hours = totalDrivingMs / 3600000.0
-            totalLifetimeKm / hours
-        } else if (allTrips.isNotEmpty()) {
-            val valid = allTrips.map { it.avgSpeedKmh }.filter { it > 0 }
-            if (valid.isNotEmpty()) valid.average() else 0.0
-        } else 0.0
-    }
     val fallbackMileage = if (fuelState.currentMileageKmpl > 0.0) fuelState.currentMileageKmpl else (if (fuelState.expectedMileageKmpl > 0.0) fuelState.expectedMileageKmpl else 18.0)
-    val totalLifetimeFuelLiters = remember(allTrips, activeTripFuelLiters, fallbackMileage) {
-        allTrips.sumOf {
-            if (it.estimatedFuelLiters > 0.0) it.estimatedFuelLiters
-            else (it.distanceMeters / 1000.0) / (if (it.calculatedMileageKmpl > 0.0) it.calculatedMileageKmpl else fallbackMileage)
-        } + activeTripFuelLiters
-    }
-    val lifetimeMileage = remember(totalLifetimeKm, totalLifetimeFuelLiters, fallbackMileage) {
-        if (totalLifetimeFuelLiters > 0.05) totalLifetimeKm / totalLifetimeFuelLiters else fallbackMileage
-    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -140,38 +112,28 @@ fun DashboardScreen(
                             .clip(RoundedCornerShape(if (isVeryCompact) 14.dp else 18.dp))
                     )
 
-                    // 2x2 Telemetry Cards (Bottom ~60%)
+                    // Telemetry Area (Bottom ~60%)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1.5f),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
-                        // Row 1: Speedometer + Fuel
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(itemSpacing)
-                        ) {
-                            SpeedometerCluster(
-                                speedKmh = currentSpeed,
-                                speedLimitInfo = speedLimitInfo,
-                                latestPoint = latestPoint,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = true,
-                                allTrips = allTrips
-                            )
-                            FuelTankCard(
-                                fuelState = fuelState,
-                                onClick = onOpenFuelDialog,
-                                onCalibrateGauge = onCalibrateMidBar,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = true
-                            )
-                        }
+                        // Row 1: Unified Vehicle Information Card (Speedometer + Fuel + Odometer)
+                        VehicleDashboardCard(
+                            speedKmh = currentSpeed,
+                            speedLimitInfo = speedLimitInfo,
+                            latestPoint = latestPoint,
+                            fuelState = fuelState,
+                            allTrips = allTrips,
+                            totalLifetimeKm = totalLifetimeKm,
+                            onOpenFuelDialog = onOpenFuelDialog,
+                            onCalibrateGauge = onCalibrateMidBar,
+                            modifier = Modifier.fillMaxWidth().weight(1.15f),
+                            isVeryCompact = true
+                        )
 
-                        // Row 2: Trip + Odometer
+                        // Row 2: Current Trip + Music Player / Permanent Clock
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -185,14 +147,7 @@ fun DashboardScreen(
                                 isVeryCompact = true,
                                 baselineMileage = fallbackMileage
                             )
-                            OdometerCard(
-                                totalLifetimeKm = totalLifetimeKm,
-                                totalLifetimeFuelLiters = totalLifetimeFuelLiters,
-                                totalTripsCount = totalTripsCount,
-                                totalHours = totalHours,
-                                totalRemainingMin = totalRemainingMin,
-                                lifetimeAvgSpeed = lifetimeAvgSpeed,
-                                lifetimeMileage = lifetimeMileage,
+                            SmartMusicClockCard(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 isVeryCompact = true
                             )
@@ -217,38 +172,28 @@ fun DashboardScreen(
                             .clip(RoundedCornerShape(if (isVeryCompact) 14.dp else 18.dp))
                     )
 
-                    // Right Pane: 2x2 Telemetry Cards (~48%)
+                    // Right Pane: Telemetry Area (~48%)
                     Column(
                         modifier = Modifier
                             .weight(1.0f)
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
-                        // Row 1: Speedometer + Fuel
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(itemSpacing)
-                        ) {
-                            SpeedometerCluster(
-                                speedKmh = currentSpeed,
-                                speedLimitInfo = speedLimitInfo,
-                                latestPoint = latestPoint,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact,
-                                allTrips = allTrips
-                            )
-                            FuelTankCard(
-                                fuelState = fuelState,
-                                onClick = onOpenFuelDialog,
-                                onCalibrateGauge = onCalibrateMidBar,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact
-                            )
-                        }
+                        // Row 1: Unified Vehicle Information Card (Speedometer + Fuel + Odometer)
+                        VehicleDashboardCard(
+                            speedKmh = currentSpeed,
+                            speedLimitInfo = speedLimitInfo,
+                            latestPoint = latestPoint,
+                            fuelState = fuelState,
+                            allTrips = allTrips,
+                            totalLifetimeKm = totalLifetimeKm,
+                            onOpenFuelDialog = onOpenFuelDialog,
+                            onCalibrateGauge = onCalibrateMidBar,
+                            modifier = Modifier.fillMaxWidth().weight(1.15f),
+                            isVeryCompact = isVeryCompact
+                        )
 
-                        // Row 2: Trip + Odometer
+                        // Row 2: Current Trip + Music Player / Permanent Clock
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -262,14 +207,7 @@ fun DashboardScreen(
                                 isVeryCompact = isVeryCompact,
                                 baselineMileage = fallbackMileage
                             )
-                            OdometerCard(
-                                totalLifetimeKm = totalLifetimeKm,
-                                totalLifetimeFuelLiters = totalLifetimeFuelLiters,
-                                totalTripsCount = totalTripsCount,
-                                totalHours = totalHours,
-                                totalRemainingMin = totalRemainingMin,
-                                lifetimeAvgSpeed = lifetimeAvgSpeed,
-                                lifetimeMileage = lifetimeMileage,
+                            SmartMusicClockCard(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 isVeryCompact = isVeryCompact
                             )
