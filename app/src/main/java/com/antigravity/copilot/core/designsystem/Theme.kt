@@ -176,15 +176,10 @@ object CockpitTheme {
         @ReadOnlyComposable
         get() = LocalCockpitThemeMode.current
 
-    val scaling: CockpitScaleTokens
+    val tokens: AutomotiveDesignTokens
         @Composable
         @ReadOnlyComposable
-        get() = LocalCockpitScale.current
-
-    val scaleMode: UiScaleMode
-        @Composable
-        @ReadOnlyComposable
-        get() = LocalUiScaleMode.current
+        get() = LocalAutomotiveTokens.current
 
     val isPremium: Boolean
         @Composable
@@ -197,13 +192,10 @@ object CockpitTheme {
 @Composable
 fun CopilotTheme(
     themeMode: CockpitThemeMode = CockpitThemeMode.APEX,
-    scaleMode: UiScaleMode = UiScaleMode.DEFAULT,
     @Suppress("UNUSED_PARAMETER") appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.NIGHT,
     @Suppress("UNUSED_PARAMETER") isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val scaleTokens = remember(scaleMode) { CockpitScaleTokens.forMode(scaleMode) }
-    val scaledTypography = remember(scaleTokens.fontScale) { CockpitTypography.scaled(scaleTokens.fontScale) }
     val targetBaseColors = ApexCockpitColors
 
     val animSpec = tween<Color>(durationMillis = 300)
@@ -261,12 +253,11 @@ fun CopilotTheme(
     CompositionLocalProvider(
         LocalCockpitColors provides activeColors,
         LocalCockpitThemeMode provides themeMode,
-        LocalUiScaleMode provides scaleMode,
-        LocalCockpitScale provides scaleTokens
+        LocalAutomotiveTokens provides AutomotiveDesignTokens
     ) {
         MaterialTheme(
             colorScheme = materialColors,
-            typography = scaledTypography,
+            typography = CockpitTypography,
             content = content
         )
     }
@@ -275,38 +266,10 @@ fun CopilotTheme(
 @Composable
 fun DrivingReportTheme(
     themeMode: CockpitThemeMode = CockpitThemeMode.APEX,
-    scaleMode: UiScaleMode = UiScaleMode.DEFAULT,
     appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.NIGHT,
     isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
-) = CopilotTheme(themeMode, scaleMode, appearanceMode, isDaytimeCalculated, content)
-
-fun Typography.scaled(scaleFactor: Float): Typography {
-    if (scaleFactor == 1.0f) return this
-    fun TextStyle.scale(): TextStyle {
-        return copy(
-            fontSize = if (fontSize != androidx.compose.ui.unit.TextUnit.Unspecified) (fontSize.value * scaleFactor).sp else fontSize,
-            lineHeight = if (lineHeight != androidx.compose.ui.unit.TextUnit.Unspecified) (lineHeight.value * scaleFactor).sp else lineHeight
-        )
-    }
-    return copy(
-        displayLarge = displayLarge.scale(),
-        displayMedium = displayMedium.scale(),
-        displaySmall = displaySmall.scale(),
-        headlineLarge = headlineLarge.scale(),
-        headlineMedium = headlineMedium.scale(),
-        headlineSmall = headlineSmall.scale(),
-        titleLarge = titleLarge.scale(),
-        titleMedium = titleMedium.scale(),
-        titleSmall = titleSmall.scale(),
-        bodyLarge = bodyLarge.scale(),
-        bodyMedium = bodyMedium.scale(),
-        bodySmall = bodySmall.scale(),
-        labelLarge = labelLarge.scale(),
-        labelMedium = labelMedium.scale(),
-        labelSmall = labelSmall.scale()
-    )
-}
+) = CopilotTheme(themeMode, appearanceMode, isDaytimeCalculated, content)
 
 val CockpitTypography = Typography(
     displayLarge = TextStyle(

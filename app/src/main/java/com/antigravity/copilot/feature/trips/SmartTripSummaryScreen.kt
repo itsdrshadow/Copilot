@@ -40,15 +40,12 @@ fun SmartTripSummaryScreen(
         onBackToCockpit()
     }
 
-    val scaling = CockpitTheme.scaling
-
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFF070B12))
     ) {
         val isLandscape = maxWidth > maxHeight
-        val isVeryCompact = maxHeight < 440.dp || maxWidth < 440.dp
 
         if (report == null) {
             Box(
@@ -77,18 +74,17 @@ fun SmartTripSummaryScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(if (isVeryCompact) 6.dp else 10.dp)
+                .padding(10.dp)
         ) {
             // ==================== 1. AUTOMOTIVE TOP HEADER ====================
             TopSummaryHeader(
                 report = report,
                 onBack = onBackToCockpit,
                 onOpenTrips = onOpenTripHistory,
-                onOpenFuel = onOpenFuelHistory,
-                isVeryCompact = isVeryCompact
+                onOpenFuel = onOpenFuelHistory
             )
 
-            Spacer(modifier = Modifier.height(if (isVeryCompact) 6.dp else 10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // ==================== 2. MAIN REPORT BODY ====================
             if (isLandscape) {
@@ -117,8 +113,7 @@ fun SmartTripSummaryScreen(
 
                         // Quick Glance 4-Metric Dock under Map
                         QuickGlanceDock(
-                            overview = report.overview,
-                            isVeryCompact = isVeryCompact
+                            overview = report.overview
                         )
                     }
 
@@ -174,7 +169,7 @@ fun SmartTripSummaryScreen(
                     }
 
                     item {
-                        QuickGlanceDock(overview = report.overview, isVeryCompact = isVeryCompact)
+                        QuickGlanceDock(overview = report.overview)
                     }
 
                     item {
@@ -207,8 +202,7 @@ private fun TopSummaryHeader(
     report: SmartTripReport,
     onBack: () -> Unit,
     onOpenTrips: () -> Unit,
-    onOpenFuel: () -> Unit,
-    isVeryCompact: Boolean
+    onOpenFuel: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -216,7 +210,7 @@ private fun TopSummaryHeader(
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF0F172A))
             .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
-            .padding(horizontal = 12.dp, vertical = if (isVeryCompact) 6.dp else 10.dp),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -264,7 +258,7 @@ private fun TopSummaryHeader(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.2.sp,
-                            fontSize = if (isVeryCompact) 13.sp else 16.sp
+                            fontSize = 16.5.sp
                         ),
                         color = Color.White
                     )
@@ -292,7 +286,7 @@ private fun TopSummaryHeader(
                 Text(
                     text = "${report.overview.startLocation} â†’ ${report.overview.endLocation} â€¢ ${report.overview.timeRangeFormatted}",
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = if (isVeryCompact) 9.5.sp else 11.sp
+                        fontSize = 11.5.sp
                     ),
                     color = Color(0xFF94A3B8),
                     maxLines = 1
@@ -346,8 +340,7 @@ private fun TopSummaryHeader(
 
 @Composable
 private fun QuickGlanceDock(
-    overview: TripOverviewData,
-    isVeryCompact: Boolean
+    overview: TripOverviewData
 ) {
     Row(
         modifier = Modifier
@@ -355,7 +348,7 @@ private fun QuickGlanceDock(
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF0F172A))
             .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
-            .padding(vertical = if (isVeryCompact) 6.dp else 10.dp, horizontal = 8.dp),
+            .padding(vertical = 10.dp, horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.antigravity.copilot.core.database.TripEntity
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.CockpitTheme
 import com.antigravity.copilot.core.location.SpeedLimitInfo
 import com.antigravity.copilot.core.model.FuelState
@@ -79,9 +80,7 @@ fun DashboardScreen(
         val screenHeight = maxHeight
         val screenWidth = maxWidth
         val isPortrait = screenWidth < screenHeight
-        val scaling = CockpitTheme.scaling
-        val isVeryCompact = screenHeight < 420.dp || (isPortrait && screenWidth < 420.dp)
-        val itemSpacing = scaling.itemSpacing
+        val itemSpacing = AutomotiveDesignTokens.Spacing.extraSmall
 
         Box(
             modifier = Modifier
@@ -93,7 +92,7 @@ fun DashboardScreen(
                         }
                     }
                 }
-                .padding(if (isVeryCompact) 6.dp else 8.dp)
+                .padding(AutomotiveDesignTokens.Spacing.extraSmall)
         ) {
             if (isPortrait) {
                 // ==================== PORTRAIT VERTICAL COCKPIT ====================
@@ -110,7 +109,7 @@ fun DashboardScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1.05f)
-                            .clip(RoundedCornerShape(if (isVeryCompact) 14.dp else 18.dp))
+                            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
                     )
 
                     // Telemetry Area (Bottom ~60%)
@@ -132,7 +131,6 @@ fun DashboardScreen(
                                 speedLimitInfo = speedLimitInfo,
                                 latestPoint = latestPoint,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact,
                                 allTrips = allTrips,
                                 totalLifetimeKm = totalLifetimeKm
                             )
@@ -140,8 +138,7 @@ fun DashboardScreen(
                                 fuelState = fuelState,
                                 onClick = onOpenFuelDialog,
                                 onCalibrateGauge = onCalibrateMidBar,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact
+                                modifier = Modifier.weight(1f).fillMaxHeight()
                             )
                         }
 
@@ -156,13 +153,11 @@ fun DashboardScreen(
                                 currentTrip = currentTrip,
                                 tripVisualState = tripVisualState,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact,
                                 baselineMileage = fallbackMileage,
                                 onOpenTripSummary = onOpenTripSummary
                             )
                             SmartMusicClockCard(
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact
+                                modifier = Modifier.weight(1f).fillMaxHeight()
                             )
                         }
                     }
@@ -182,7 +177,7 @@ fun DashboardScreen(
                         modifier = Modifier
                             .weight(1.08f)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(if (isVeryCompact) 14.dp else 18.dp))
+                            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
                     )
 
                     // Right Pane: Telemetry Area (~48%)
@@ -204,7 +199,6 @@ fun DashboardScreen(
                                 speedLimitInfo = speedLimitInfo,
                                 latestPoint = latestPoint,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact,
                                 allTrips = allTrips,
                                 totalLifetimeKm = totalLifetimeKm
                             )
@@ -212,8 +206,7 @@ fun DashboardScreen(
                                 fuelState = fuelState,
                                 onClick = onOpenFuelDialog,
                                 onCalibrateGauge = onCalibrateMidBar,
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact
+                                modifier = Modifier.weight(1f).fillMaxHeight()
                             )
                         }
 
@@ -228,13 +221,11 @@ fun DashboardScreen(
                                 currentTrip = currentTrip,
                                 tripVisualState = tripVisualState,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact,
                                 baselineMileage = fallbackMileage,
                                 onOpenTripSummary = onOpenTripSummary
                             )
                             SmartMusicClockCard(
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                isVeryCompact = isVeryCompact
+                                modifier = Modifier.weight(1f).fillMaxHeight()
                             )
                         }
                     }

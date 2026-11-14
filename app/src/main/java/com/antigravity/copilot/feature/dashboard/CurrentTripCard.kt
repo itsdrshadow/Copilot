@@ -53,7 +53,6 @@ fun CurrentTripCard(
     currentTrip: TripSummary,
     tripVisualState: TripVisualState = TripVisualState(),
     modifier: Modifier = Modifier,
-    isVeryCompact: Boolean = false,
     baselineMileage: Double = 18.0,
     onOpenTripSummary: () -> Unit = {}
 ) {
@@ -212,12 +211,12 @@ fun CurrentTripCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(if (isVeryCompact) 16.dp else 20.dp))
+            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
             .background(cardBg)
             .border(
                 width = 1.25.dp,
                 color = if (flashColor != Color.Transparent) flashColor else cardBorder,
-                shape = RoundedCornerShape(if (isVeryCompact) 16.dp else 20.dp)
+                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
             )
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
@@ -233,7 +232,7 @@ fun CurrentTripCard(
                     }
                 )
             }
-            .padding(if (isVeryCompact) 10.dp else 14.dp)
+            .padding(14.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -251,7 +250,7 @@ fun CurrentTripCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(if (isVeryCompact) 22.dp else 28.dp)
+                            .size(28.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(statusColor.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
@@ -260,7 +259,7 @@ fun CurrentTripCard(
                             imageVector = Icons.Default.Timer,
                             contentDescription = null,
                             tint = statusColor,
-                            modifier = Modifier.size(if (isVeryCompact) 13.dp else 18.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     Text(
@@ -268,7 +267,7 @@ fun CurrentTripCard(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.1.sp,
-                            fontSize = if (isVeryCompact) 9.5.sp else 14.5.sp
+                            fontSize = 14.5.sp
                         ),
                         color = textSecondary,
                         maxLines = 1
@@ -282,12 +281,12 @@ fun CurrentTripCard(
                     // Smart Trip Summary Pill
                     Box(
                         modifier = Modifier
-                            .height(if (isVeryCompact) 26.dp else 32.dp)
+                            .height(32.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(cyanAccent.copy(alpha = 0.12f))
                             .border(1.dp, cyanAccent.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
                             .clickable { onOpenTripSummary() }
-                            .padding(horizontal = if (isVeryCompact) 5.dp else 8.dp),
+                            .padding(horizontal = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
@@ -298,13 +297,13 @@ fun CurrentTripCard(
                                 imageVector = Icons.Default.Assessment,
                                 contentDescription = "Summary",
                                 tint = cyanAccent,
-                                modifier = Modifier.size(if (isVeryCompact) 11.dp else 14.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = "SUMMARY",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = if (isVeryCompact) 8.5.sp else 10.sp,
+                                    fontSize = 10.sp,
                                     letterSpacing = 0.5.sp
                                 ),
                                 color = cyanAccent
@@ -315,13 +314,13 @@ fun CurrentTripCard(
                     // Automotive Status Icon Telltale (Active vs Completed vs Parked)
                     Box(
                         modifier = Modifier
-                            .height(if (isVeryCompact) 26.dp else 32.dp)
-                            .defaultMinSize(minWidth = if (isVeryCompact) 26.dp else 32.dp)
+                            .height(32.dp)
+                            .defaultMinSize(minWidth = 32.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(statusColor.copy(alpha = 0.14f))
                             .border(1.dp, statusColor.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                             .clickable { onOpenTripSummary() }
-                            .padding(horizontal = if (isVeryCompact) 6.dp else 8.dp),
+                            .padding(horizontal = 8.dp),
                         contentAlignment = Alignment.Center
                     ) {
                     Row(
@@ -341,7 +340,7 @@ fun CurrentTripCard(
                             imageVector = statusIcon,
                             contentDescription = statusLabel,
                             tint = statusColor,
-                            modifier = Modifier.size(if (isVeryCompact) 13.dp else 16.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
@@ -375,14 +374,14 @@ fun CurrentTripCard(
                             imageVector = target.icon,
                             contentDescription = null,
                             tint = target.accentColor,
-                            modifier = Modifier.size(if (isVeryCompact) 13.dp else 17.dp)
+                            modifier = Modifier.size(17.dp)
                         )
                         Text(
                             text = target.title,
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.8.sp,
-                                fontSize = if (isVeryCompact) 9.sp else 13.5.sp
+                                fontSize = 13.5.sp
                             ),
                             color = textSecondary,
                             maxLines = 1,
@@ -395,8 +394,8 @@ fun CurrentTripCard(
                     AdaptiveMetricValueText(
                         value = target.value,
                         unit = target.unit,
-                        preferredFontSize = if (isVeryCompact) 28.sp else 44.sp,
-                        minFontSize = if (isVeryCompact) 18.sp else 24.sp,
+                        preferredFontSize = AutomotiveDesignTokens.Typography.heroMetric,
+                        minFontSize = 24.sp,
                         valueColor = textPrimary,
                         unitColor = target.accentColor,
                         modifier = Modifier.fillMaxWidth()
@@ -407,7 +406,7 @@ fun CurrentTripCard(
                     Text(
                         text = target.subtitle,
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = if (isVeryCompact) 8.5.sp else 13.sp
+                            fontSize = 13.sp
                         ),
                         color = textSecondary.copy(alpha = 0.8f),
                         maxLines = 1,
@@ -487,7 +486,7 @@ fun CurrentTripCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isVeryCompact) 42.dp else 48.dp)
+                    .height(48.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(dockBg)
                     .border(dockBorderWidth, dockBorderColor, RoundedCornerShape(10.dp))
@@ -502,7 +501,7 @@ fun CurrentTripCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.Monospace,
-                            fontSize = if (isVeryCompact) 13.sp else 18.sp
+                            fontSize = 18.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -512,7 +511,7 @@ fun CurrentTripCard(
                         text = timerLabelText,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = if (isVeryCompact) 8.sp else 10.5.sp
+                            fontSize = 10.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -545,7 +544,7 @@ fun CurrentTripCard(
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.Monospace,
-                            fontSize = if (isVeryCompact) 12.sp else 16.sp
+                            fontSize = 16.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -555,7 +554,7 @@ fun CurrentTripCard(
                         text = "DRIVING TIME",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = if (isVeryCompact) 8.sp else 10.5.sp
+                            fontSize = 10.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -575,13 +574,11 @@ fun PremiumCurrentTripCard(
     currentTrip: TripSummary,
     tripVisualState: TripVisualState = TripVisualState(),
     modifier: Modifier = Modifier,
-    isVeryCompact: Boolean = false,
     baselineMileage: Double = 18.0
 ) = CurrentTripCard(
     currentTrip = currentTrip,
     tripVisualState = tripVisualState,
     modifier = modifier,
-    isVeryCompact = isVeryCompact,
     baselineMileage = baselineMileage
 )
 

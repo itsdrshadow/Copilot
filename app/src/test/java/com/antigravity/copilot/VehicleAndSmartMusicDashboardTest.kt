@@ -3,8 +3,7 @@ package com.antigravity.copilot
 import android.media.session.PlaybackState
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.antigravity.copilot.core.designsystem.CockpitScaleTokens
-import com.antigravity.copilot.core.designsystem.UiScaleMode
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.location.RoadSurfaceCondition
 import com.antigravity.copilot.core.location.StoppingDistanceEngine
 import com.antigravity.copilot.core.media.MediaPlaybackManager
@@ -259,27 +258,26 @@ class VehicleAndSmartMusicDashboardTest {
     }
 
     // =========================================================================
-    // 5. RESPONSIVE UI SCALING INTEGRATION
+    // 5. AUTOMOTIVE DESIGN TOKENS INTEGRATION
     // =========================================================================
 
     @Test
-    fun testAllScalingModesTelemetryTokensPreserved() {
-        UiScaleMode.entries.forEach { mode ->
-            val tokens = CockpitScaleTokens.forMode(mode)
+    fun testAutomotiveDesignTokensGuarantees() {
+        // Speed number size must be prominent and glanceable
+        assertEquals(82.sp, AutomotiveDesignTokens.Typography.speedValue)
 
-            // Speed number size must be readable and constrained
-            assertTrue("Speed number size in $mode must be >= 60sp", tokens.speedNumberSize.value >= 60f)
-            assertTrue("Speed number size in $mode must be <= 85sp", tokens.speedNumberSize.value <= 85f)
+        // Clock time size
+        assertEquals(62.sp, AutomotiveDesignTokens.Typography.clockValue)
 
-            // Fuel value size must scale appropriately
-            assertTrue("Fuel value size in $mode must be > 25sp", tokens.fuelValueSize.value > 25f)
+        // Fuel and hero value sizes
+        assertEquals(34.sp, AutomotiveDesignTokens.Typography.largeMetric)
+        assertEquals(44.sp, AutomotiveDesignTokens.Typography.heroMetric)
 
-            // Card padding must protect screen boundary
-            assertTrue("Card padding in $mode must be in 10dp..16dp", tokens.cardPadding.value in 10f..16f)
+        // Card padding must protect screen boundary
+        assertEquals(16.dp, AutomotiveDesignTokens.Spacing.cardInternalPadding)
 
-            // Item spacing must remain balanced
-            assertTrue("Item spacing in $mode must be in 5dp..10dp", tokens.itemSpacing.value in 5f..10f)
-        }
+        // Card corner radius
+        assertEquals(20.dp, AutomotiveDesignTokens.Radii.card)
     }
 
     // =========================================================================

@@ -609,168 +609,58 @@ private fun AppearanceSettingsContent(
     state: AppSettingsManager.SettingsState
 ) {
     val context = LocalContext.current
-    val currentMode = state.uiScaleMode
 
-    // 1. UI & TEXT SIZE SETTING
+    // 1. AUTOMOTIVE DESIGN SYSTEM SPECIFICATION
     SettingsCard(
-        title = "UI & Text Size",
-        icon = Icons.Default.TextFields
+        title = "Automotive Design System",
+        icon = Icons.Default.DashboardCustomize
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
-                text = "Scale launcher UI components, typography, cards, and docks for optimal in-car readability.",
+                text = "Premium Fixed Automotive Cockpit System calibrated for 10.1-inch landscape infotainment (1280×800). Features driver-safe touch controls (64–88dp), 8dp spatial grid, and high-contrast glanceable telemetry.",
                 style = MaterialTheme.typography.bodySmall,
                 color = CockpitTheme.colors.textSecondary
             )
 
-            // Selector Cards for 4 scaling levels
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                UiScaleMode.values().forEach { mode ->
-                    val isSelected = currentMode == mode
-                    val activeBg = CockpitTheme.colors.accentSoft
-                    val inactiveBg = CockpitTheme.colors.cardElevated
-                    val activeBorder = CockpitTheme.colors.accent
-                    val inactiveBorder = CockpitTheme.colors.border
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) activeBg else inactiveBg)
-                            .border(
-                                width = if (isSelected) 1.5.dp else 1.dp,
-                                color = if (isSelected) activeBorder else inactiveBorder,
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .clickable {
-                                AppSettingsManager.updateUiScale(context, mode)
-                            }
-                            .padding(horizontal = 10.dp, vertical = 12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            // Top Row: Scaled preview glyph + Selected indicator
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Aa",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontSize = (15 * mode.scaleFactor).sp,
-                                        fontWeight = FontWeight.Black
-                                    ),
-                                    color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
-                                )
-
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = "Selected",
-                                        tint = CockpitTheme.colors.accent,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(16.dp)
-                                            .clip(CircleShape)
-                                            .border(1.dp, CockpitTheme.colors.border, CircleShape)
-                                    )
-                                }
-                            }
-
-                            // Option Label
-                            Text(
-                                text = mode.displayName,
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary,
-                                textAlign = TextAlign.Center
-                            )
-
-                            // Scale Factor Badge
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(
-                                        if (isSelected) CockpitTheme.colors.accent.copy(alpha = 0.2f)
-                                        else CockpitTheme.colors.card
-                                    )
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "${String.format(java.util.Locale.US, "%.2f", mode.scaleFactor)}×",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp
-                                    ),
-                                    color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary
-                                )
-                            }
-
-                            // Subtitle description
-                            Text(
-                                text = when (mode) {
-                                    UiScaleMode.SMALL -> "Small"
-                                    UiScaleMode.DEFAULT -> "Default"
-                                    UiScaleMode.LARGE -> "Large"
-                                    UiScaleMode.EXTRA_LARGE -> "Extra Large"
-                                },
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                color = CockpitTheme.colors.textSecondary,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Live Interactive Preview Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(CockpitTheme.colors.cardElevated)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "LIVE SCALING PREVIEW",
+                            text = "ACTIVE LAYOUT PROFILE",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Black,
                                 letterSpacing = 0.8.sp
                             ),
                             color = CockpitTheme.colors.accent
                         )
                         Text(
-                            text = "Speed 120 km/h • Fuel 48.0 L • Lifetime 1,420 km",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            text = "10.1\" Infotainment • Fixed Precision Grid",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                             color = CockpitTheme.colors.textPrimary
                         )
                     }
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(CockpitTheme.colors.accentSoft)
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
                         Text(
-                            text = "Active: ${currentMode.displayName} (${currentMode.scaleFactor}×)",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            text = "OPTIMIZED",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
                             color = CockpitTheme.colors.accent
                         )
                     }

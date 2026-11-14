@@ -36,8 +36,7 @@ fun FuelTankCard(
     fuelState: FuelState,
     onClick: () -> Unit,
     onCalibrateGauge: (Int) -> Unit = {},
-    modifier: Modifier = Modifier,
-    isVeryCompact: Boolean = false
+    modifier: Modifier = Modifier
 ) {
     val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
@@ -74,14 +73,14 @@ fun FuelTankCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(if (isVeryCompact) 16.dp else 20.dp))
+            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
             .background(cardBg)
             .border(
                 width = 1.25.dp,
                 color = cardBorder,
-                shape = RoundedCornerShape(if (isVeryCompact) 16.dp else 20.dp)
+                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
             )
-            .padding(if (isVeryCompact) 10.dp else 14.dp)
+            .padding(14.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -99,7 +98,7 @@ fun FuelTankCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(if (isVeryCompact) 22.dp else 28.dp)
+                            .size(28.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(primaryStatusColor.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
@@ -108,7 +107,7 @@ fun FuelTankCard(
                             imageVector = Icons.Default.LocalGasStation,
                             contentDescription = null,
                             tint = primaryStatusColor,
-                            modifier = Modifier.size(if (isVeryCompact) 13.dp else 18.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     Text(
@@ -116,7 +115,7 @@ fun FuelTankCard(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.1.sp,
-                            fontSize = if (isVeryCompact) 9.5.sp else 14.5.sp
+                            fontSize = 14.5.sp
                         ),
                         color = textSecondary
                     )
@@ -125,7 +124,7 @@ fun FuelTankCard(
                 // Dedicated Tactile "+ ADD FUEL" Button
                 Box(
                     modifier = Modifier
-                        .height(if (isVeryCompact) 26.dp else 32.dp)
+                        .height(32.dp)
                         .graphicsLayer {
                             scaleX = addScale
                             scaleY = addScale
@@ -133,7 +132,7 @@ fun FuelTankCard(
                         .clip(RoundedCornerShape(8.dp))
                         .background(cyanAccent)
                         .clickable(interactionSource = addButtonInteraction, indication = null) { onClick() }
-                        .padding(horizontal = if (isVeryCompact) 9.dp else 12.dp),
+                        .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
@@ -144,14 +143,14 @@ fun FuelTankCard(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
                             tint = Color.Black,
-                            modifier = Modifier.size(if (isVeryCompact) 11.dp else 14.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = "ADD FUEL",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 0.5.sp,
-                                fontSize = if (isVeryCompact) 9.sp else 12.sp
+                                fontSize = 12.sp
                             ),
                             color = Color.Black
                         )
@@ -163,7 +162,7 @@ fun FuelTankCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = if (isVeryCompact) 2.dp else 4.dp),
+                    .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -175,7 +174,7 @@ fun FuelTankCard(
                             style = MaterialTheme.typography.displayMedium.copy(
                                 fontWeight = FontWeight.Black,
                                 fontFamily = FontFamily.SansSerif,
-                                fontSize = if (isVeryCompact) 26.sp else 34.sp
+                                fontSize = 34.sp
                             ),
                             color = textPrimary
                         )
@@ -184,7 +183,7 @@ fun FuelTankCard(
                             text = "L",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = if (isVeryCompact) 13.sp else 18.sp
+                                fontSize = 18.sp
                             ),
                             color = primaryStatusColor
                         )
@@ -192,7 +191,7 @@ fun FuelTankCard(
                     Text(
                         text = "OEM Capacity ${capacity.toInt()} L",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = if (isVeryCompact) 8.5.sp else 12.5.sp
+                            fontSize = 12.5.sp
                         ),
                         color = textSecondary
                     )
@@ -208,7 +207,7 @@ fun FuelTankCard(
                         style = MaterialTheme.typography.displayMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.SansSerif,
-                            fontSize = if (isVeryCompact) 24.sp else 32.sp
+                            fontSize = 32.sp
                         ),
                         color = primaryStatusColor
                     )
@@ -217,7 +216,7 @@ fun FuelTankCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp,
-                            fontSize = if (isVeryCompact) 8.sp else 11.5.sp
+                            fontSize = 11.5.sp
                         ),
                         color = textSecondary
                     )
@@ -237,7 +236,7 @@ fun FuelTankCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(if (isVeryCompact) 8.dp else 15.dp),
+                        .height(15.dp),
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -273,12 +272,12 @@ fun FuelTankCard(
                 ) {
                     Text(
                         text = "E",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = if (isVeryCompact) 9.sp else 13.sp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 13.sp),
                         color = if (tankPct <= 15.0) dangerAccent else textSecondary
                     )
                     Text(
                         text = "F",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = if (isVeryCompact) 9.sp else 13.sp),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 13.sp),
                         color = if (tankPct >= 90.0) positiveAccent else textSecondary
                     )
                 }
@@ -288,7 +287,7 @@ fun FuelTankCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isVeryCompact) 42.dp else 48.dp)
+                    .height(48.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(CockpitTheme.colors.cardElevated)
                     .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
@@ -304,7 +303,7 @@ fun FuelTankCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.SansSerif,
-                            fontSize = if (isVeryCompact) 13.sp else 19.sp
+                            fontSize = 19.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -314,7 +313,7 @@ fun FuelTankCard(
                         text = "EST. RANGE",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = if (isVeryCompact) 8.sp else 11.5.sp
+                            fontSize = 11.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -359,7 +358,7 @@ fun FuelTankCard(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.SansSerif,
-                            fontSize = if (isVeryCompact) 13.sp else 19.sp
+                            fontSize = 19.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -369,7 +368,7 @@ fun FuelTankCard(
                         text = mileageLabel,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = if (isVeryCompact) 8.sp else 11.5.sp
+                            fontSize = 11.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -605,13 +604,11 @@ fun PremiumFuelTankCard(
     fuelState: FuelState,
     onClick: () -> Unit,
     onCalibrateGauge: (Int) -> Unit = {},
-    modifier: Modifier = Modifier,
-    isVeryCompact: Boolean = false
+    modifier: Modifier = Modifier
 ) = FuelTankCard(
     fuelState = fuelState,
     onClick = onClick,
     onCalibrateGauge = onCalibrateGauge,
-    modifier = modifier,
-    isVeryCompact = isVeryCompact
+    modifier = modifier
 )
 

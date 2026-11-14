@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.29.0] - 2026-11-15
+
+### Added
+- **Centralized Automotive Design System (`AutomotiveDesignTokens`)**: Introduced an 8dp-based spatial grid, driver-safe touch targets (64–88dp), prominent glanceable typography hierarchy (speed: 82sp, clock: 62sp, hero: 44sp, secondary: 34sp), consistent container radii (20dp card, 16dp container, 14dp button, 24dp pill), and standardized dock dimensions (48dp height).
+- **Driver-Safe High-Contrast Automotive Theme**: Preserved dark cockpit contrast with vibrant semantic accents (Electric Cyan `#38BDF8`, Emerald `#22C993`, Amber `#F59E0B`, Coral/Red `#EF4444`) and deep navy surfaces (`#080E1B` / `#111D30`) optimized for 10.1-inch landscape automotive displays.
+- **Automotive Design Tokens Test Suite (`AutomotiveDesignTokensTest`)**: Added comprehensive unit test coverage verifying spatial tokens, touch target minimums (>=64dp), typography invariants, 6x5 app drawer grid, and clean settings persistence.
+
+### Changed
+- **Fixed Automotive Infotainment Layout**: Redesigned all major screens and components—including Dashboard, Speedometer Cluster, Fuel Tank Card, Current Trip Card, Smart Music & Clock Card, App Drawer, Smart Trip Summary, Settings, and Fuel Entry dialogs—to use unified fixed tokens instead of dynamic font multipliers.
+- **App Drawer & Dock Architecture**: Replaced scaling with fixed 48dp app drawer icons, 12sp labels, 48dp navigation pills, and standardized 48dp card docks with 16dp internal card padding.
+
+### Removed
+- **Dynamic 4-Level UI Scaling**: Completely eliminated `UiScaleMode` (`Small`, `Default`, `Large`, `Extra Large`), `CockpitScaleTokens`, `LocalCockpitScale`, `LocalUiScaleMode`, `Typography.scaled()`, preferences keys (`KEY_UI_SCALE`, `uiScale`), and UI scale selector settings.
+- **`isVeryCompact` Logic & Compact Workarounds**: Completely eradicated `isVeryCompact` flags, conditional layout branches, compact dimensions, and obsolete responsive fallbacks across all launcher composables and dialogs.
+
+---
+
 ## [1.28.0] - 2026-11-15
 
 ### Added

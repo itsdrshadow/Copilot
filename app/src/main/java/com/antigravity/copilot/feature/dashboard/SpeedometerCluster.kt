@@ -86,7 +86,6 @@ fun SpeedometerCluster(
     speedLimitInfo: SpeedLimitInfo,
     latestPoint: TripPoint?,
     modifier: Modifier = Modifier,
-    isVeryCompact: Boolean = false,
     allTrips: List<TripEntity> = emptyList(),
     totalLifetimeKm: Double = 0.0
 ) {
@@ -205,14 +204,14 @@ fun SpeedometerCluster(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(if (isVeryCompact) 16.dp else 20.dp))
+            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
             .background(cardBg)
             .border(
                 width = 1.25.dp,
                 color = cardBorder,
-                shape = RoundedCornerShape(if (isVeryCompact) 16.dp else 20.dp)
+                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
             )
-            .padding(if (isVeryCompact) 10.dp else 14.dp)
+            .padding(14.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -231,7 +230,7 @@ fun SpeedometerCluster(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(if (isVeryCompact) 22.dp else 28.dp)
+                            .size(28.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(cyanAccent.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
@@ -240,7 +239,7 @@ fun SpeedometerCluster(
                             imageVector = Icons.Default.Speed,
                             contentDescription = null,
                             tint = cyanAccent,
-                            modifier = Modifier.size(if (isVeryCompact) 13.dp else 18.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     Text(
@@ -248,7 +247,7 @@ fun SpeedometerCluster(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.1.sp,
-                            fontSize = if (isVeryCompact) 9.5.sp else 14.5.sp
+                            fontSize = 14.5.sp
                         ),
                         color = textSecondary
                     )
@@ -257,23 +256,23 @@ fun SpeedometerCluster(
                 if (speedLimit > 0) {
                     Box(
                         modifier = Modifier
-                            .size(if (isVeryCompact) 26.dp else 32.dp)
+                            .size(32.dp)
                             .clip(CircleShape)
                             .background(Color.White)
-                            .border(if (isVeryCompact) 2.dp else 2.5.dp, Premium_Danger, CircleShape),
+                            .border(2.5.dp, Premium_Danger, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "$speedLimit",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = if (isVeryCompact) 11.sp else 16.sp
+                                fontSize = 16.sp
                             ),
                             color = Color.Black
                         )
                     }
                 } else {
-                    Spacer(modifier = Modifier.size(if (isVeryCompact) 26.dp else 32.dp))
+                    Spacer(modifier = Modifier.size(32.dp))
                 }
             }
 
@@ -370,7 +369,7 @@ fun SpeedometerCluster(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.SansSerif,
                             fontFeatureSettings = "tnum",
-                            fontSize = if (isVeryCompact) 44.sp else 82.sp
+                            fontSize = AutomotiveDesignTokens.Typography.speedValue
                         ),
                         color = textPrimary
                     )
@@ -379,12 +378,12 @@ fun SpeedometerCluster(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.0.sp,
-                            fontSize = if (isVeryCompact) 10.sp else 14.sp
+                            fontSize = AutomotiveDesignTokens.Typography.speedUnit
                         ),
                         color = statusColor
                     )
 
-                    Spacer(Modifier.height(if (isVeryCompact) 4.dp else 6.dp))
+                    Spacer(Modifier.height(6.dp))
 
                     // Prominent Dynamic Speed Trend Readout
                     Row(
@@ -401,8 +400,8 @@ fun SpeedometerCluster(
                                 }
                             )
                             .padding(
-                                horizontal = if (isVeryCompact) 8.dp else 12.dp,
-                                vertical = if (isVeryCompact) 2.dp else 4.dp
+                                horizontal = 12.dp,
+                                vertical = 4.dp
                             )
                     ) {
                         Icon(
@@ -419,7 +418,7 @@ fun SpeedometerCluster(
                                 isDecelerating -> CockpitTheme.colors.warning
                                 else -> textSecondary
                             },
-                            modifier = Modifier.size(if (isVeryCompact) 13.dp else 16.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = when {
@@ -432,7 +431,7 @@ fun SpeedometerCluster(
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Black,
                                 fontFamily = FontFamily.Monospace,
-                                fontSize = if (isVeryCompact) 9.5.sp else 12.5.sp,
+                                fontSize = 12.5.sp,
                                 letterSpacing = 0.4.sp
                             ),
                             maxLines = 1,
@@ -453,7 +452,7 @@ fun SpeedometerCluster(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (isVeryCompact) 42.dp else 48.dp)
+                    .height(48.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(CockpitTheme.colors.cardElevated)
                     .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
@@ -474,7 +473,7 @@ fun SpeedometerCluster(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.SansSerif,
-                            fontSize = if (isVeryCompact) 12.sp else 16.5.sp
+                            fontSize = 16.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -485,7 +484,7 @@ fun SpeedometerCluster(
                         text = "ODOMETER",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = if (isVeryCompact) 8.sp else 11.sp
+                            fontSize = 11.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -518,7 +517,7 @@ fun SpeedometerCluster(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.SansSerif,
-                            fontSize = if (isVeryCompact) 12.sp else 16.5.sp
+                            fontSize = 16.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -529,7 +528,7 @@ fun SpeedometerCluster(
                         text = "SINCE CAL.",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = if (isVeryCompact) 8.sp else 11.sp
+                            fontSize = 11.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -948,14 +947,12 @@ fun PremiumSpeedometerCluster(
     speedLimitInfo: SpeedLimitInfo,
     latestPoint: TripPoint?,
     modifier: Modifier = Modifier,
-    isVeryCompact: Boolean = false,
     allTrips: List<TripEntity> = emptyList()
 ) = SpeedometerCluster(
     speedKmh = speedKmh,
     speedLimitInfo = speedLimitInfo,
     latestPoint = latestPoint,
     modifier = modifier,
-    isVeryCompact = isVeryCompact,
     allTrips = allTrips
 )
 

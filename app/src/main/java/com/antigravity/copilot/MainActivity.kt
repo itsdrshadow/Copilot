@@ -174,8 +174,7 @@ class MainActivity : ComponentActivity() {
             val settings by AppSettingsManager.settingsState.collectAsState()
 
             CopilotTheme(
-                themeMode = settings.cockpitThemeMode,
-                scaleMode = settings.uiScaleMode
+                themeMode = settings.cockpitThemeMode
             ) {
                 MainAppScreen(viewModel = viewModel)
             }

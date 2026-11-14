@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.CockpitTheme
 import com.antigravity.copilot.core.media.MediaPlaybackManager
 import com.antigravity.copilot.core.media.MediaPlaybackState
@@ -55,8 +56,7 @@ import java.util.*
  */
 @Composable
 fun SmartMusicClockCard(
-    modifier: Modifier = Modifier,
-    isVeryCompact: Boolean = false
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val playbackState by MediaPlaybackManager.playbackState.collectAsState()
@@ -103,8 +103,8 @@ fun SmartMusicClockCard(
 
     val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
-    val cornerRadius = if (isVeryCompact) 16.dp else 20.dp
-    val cardPadding = if (isVeryCompact) 10.dp else 14.dp
+    val cornerRadius = AutomotiveDesignTokens.Radii.card
+    val cardPadding = 14.dp
 
     Box(
         modifier = modifier
@@ -126,7 +126,6 @@ fun SmartMusicClockCard(
                     timeString = timeString,
                     amPmString = amPmString,
                     dateString = dateString,
-                    isVeryCompact = isVeryCompact,
                     onOpenMusicApp = {
                         if (!MediaPlaybackManager.isNotificationAccessGranted(context)) {
                             MediaPlaybackManager.openNotificationAccessSettings(context)
@@ -143,7 +142,6 @@ fun SmartMusicClockCard(
                     dateString = dateString,
                     playbackState = playbackState,
                     liveProgressMs = liveProgressMs,
-                    isVeryCompact = isVeryCompact,
                     onTogglePlayPause = { MediaPlaybackManager.togglePlayPause() },
                     onSkipNext = { MediaPlaybackManager.skipToNext() },
                     onSkipPrevious = { MediaPlaybackManager.skipToPrevious() },
@@ -163,11 +161,8 @@ private fun ClockOnlyState(
     timeString: String,
     amPmString: String,
     dateString: String,
-    isVeryCompact: Boolean,
     onOpenMusicApp: () -> Unit
 ) {
-    val scaling = CockpitTheme.scaling
-
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -185,7 +180,7 @@ private fun ClockOnlyState(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(if (isVeryCompact) 20.dp else 24.dp)
+                        .size(24.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(CockpitTheme.colors.accentSoft),
                     contentAlignment = Alignment.Center
@@ -194,7 +189,7 @@ private fun ClockOnlyState(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = null,
                         tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(if (isVeryCompact) 12.dp else 15.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
                 Text(
@@ -202,7 +197,7 @@ private fun ClockOnlyState(
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 11.sp else 13.5.sp)
+                        fontSize = 13.5.sp
                     ),
                     color = CockpitTheme.colors.accent
                 )
@@ -212,7 +207,6 @@ private fun ClockOnlyState(
             AutomotiveMusicPill(
                 isPlaying = false,
                 label = "Media",
-                isVeryCompact = isVeryCompact,
                 onClick = onOpenMusicApp
             )
         }
@@ -232,7 +226,7 @@ private fun ClockOnlyState(
                     style = MaterialTheme.typography.displayLarge.copy(
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Black,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 48.sp else 62.sp),
+                        fontSize = AutomotiveDesignTokens.Typography.clockValue,
                         letterSpacing = (-1).sp
                     ),
                     color = CockpitTheme.colors.textPrimary
@@ -244,7 +238,7 @@ private fun ClockOnlyState(
                         text = amPmString,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = scaling.scaleFont(if (isVeryCompact) 16.sp else 20.sp)
+                            fontSize = 20.sp
                         ),
                         color = CockpitTheme.colors.accent,
                         modifier = Modifier.padding(bottom = 6.dp)
@@ -263,12 +257,12 @@ private fun ClockOnlyState(
                     imageVector = Icons.Default.CalendarToday,
                     contentDescription = null,
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(if (isVeryCompact) 12.dp else 14.dp)
+                    modifier = Modifier.size(14.dp)
                 )
                 Text(
                     text = dateString,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 12.5.sp else 15.sp),
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
                     ),
                     color = CockpitTheme.colors.textSecondary
@@ -285,7 +279,7 @@ private fun ClockOnlyState(
             Text(
                 text = "Vehicle Time • Synchronized",
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 11.5.sp)
+                    fontSize = 11.5.sp
                 ),
                 color = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
             )
@@ -305,13 +299,11 @@ private fun ClockWithMusicState(
     dateString: String,
     playbackState: MediaPlaybackState,
     liveProgressMs: Long,
-    isVeryCompact: Boolean,
     onTogglePlayPause: () -> Unit,
     onSkipNext: () -> Unit,
     onSkipPrevious: () -> Unit,
     onOpenMusicApp: () -> Unit
 ) {
-    val scaling = CockpitTheme.scaling
     val durationMs = playbackState.durationMs
     val progressFraction = if (durationMs > 0L) {
         (liveProgressMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
@@ -337,7 +329,7 @@ private fun ClockWithMusicState(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(if (isVeryCompact) 18.dp else 22.dp)
+                        .size(22.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(CockpitTheme.colors.accentSoft),
                     contentAlignment = Alignment.Center
@@ -346,7 +338,7 @@ private fun ClockWithMusicState(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = null,
                         tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(if (isVeryCompact) 11.dp else 14.dp)
+                        modifier = Modifier.size(14.dp)
                     )
                 }
 
@@ -356,14 +348,14 @@ private fun ClockWithMusicState(
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
-                            fontSize = scaling.scaleFont(if (isVeryCompact) 15.sp else 18.sp)
+                            fontSize = 18.sp
                         ),
                         color = CockpitTheme.colors.textPrimary
                     )
                     Text(
                         text = dateString,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = scaling.scaleFont(if (isVeryCompact) 9.sp else 10.5.sp),
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Medium
                         ),
                         color = CockpitTheme.colors.textSecondary
@@ -375,7 +367,6 @@ private fun ClockWithMusicState(
             AutomotiveMusicPill(
                 isPlaying = playbackState.isPlaying,
                 label = if (playbackState.isPlaying) "Playing" else "Paused",
-                isVeryCompact = isVeryCompact,
                 onClick = onOpenMusicApp
             )
         }
@@ -392,10 +383,10 @@ private fun ClockWithMusicState(
                     onClick = onOpenMusicApp
                 ),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 8.dp else 10.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Album Artwork or Fallback Icon
-            val artSize = if (isVeryCompact) 48.dp else 56.dp
+            val artSize = 56.dp
             Box(
                 modifier = Modifier
                     .size(artSize)
@@ -416,7 +407,7 @@ private fun ClockWithMusicState(
                         imageVector = Icons.Default.MusicNote,
                         contentDescription = null,
                         tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(if (isVeryCompact) 24.dp else 28.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
@@ -430,7 +421,7 @@ private fun ClockWithMusicState(
                     text = playbackState.displayTitle,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 14.5.sp else 17.5.sp)
+                        fontSize = 17.5.sp
                     ),
                     color = CockpitTheme.colors.textPrimary,
                     maxLines = 1,
@@ -442,7 +433,7 @@ private fun ClockWithMusicState(
                 Text(
                     text = playbackState.displayArtist,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 12.sp else 14.5.sp),
+                        fontSize = 14.5.sp,
                         fontWeight = FontWeight.Normal
                     ),
                     color = CockpitTheme.colors.textSecondary,
@@ -477,7 +468,7 @@ private fun ClockWithMusicState(
                     text = formattedCurrentTime,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 12.sp)
+                        fontSize = 12.sp
                     ),
                     color = CockpitTheme.colors.textSecondary
                 )
@@ -485,7 +476,7 @@ private fun ClockWithMusicState(
                     text = formattedTotalTime,
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontFamily = FontFamily.Monospace,
-                        fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 12.sp)
+                        fontSize = 12.sp
                     ),
                     color = CockpitTheme.colors.textSecondary
                 )
@@ -501,20 +492,20 @@ private fun ClockWithMusicState(
             // Previous Button
             IconButton(
                 onClick = onSkipPrevious,
-                modifier = Modifier.size(if (isVeryCompact) 34.dp else 38.dp)
+                modifier = Modifier.size(38.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.SkipPrevious,
                     contentDescription = "Previous",
                     tint = CockpitTheme.colors.textPrimary,
-                    modifier = Modifier.size(if (isVeryCompact) 22.dp else 26.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(if (isVeryCompact) 14.dp else 18.dp))
+            Spacer(modifier = Modifier.width(18.dp))
 
             // Play / Pause Hero Button
-            val playButtonSize = if (isVeryCompact) 40.dp else 46.dp
+            val playButtonSize = 46.dp
             Box(
                 modifier = Modifier
                     .size(playButtonSize)
@@ -527,22 +518,22 @@ private fun ClockWithMusicState(
                     imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
                     tint = Color.Black,
-                    modifier = Modifier.size(if (isVeryCompact) 24.dp else 28.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(if (isVeryCompact) 14.dp else 18.dp))
+            Spacer(modifier = Modifier.width(18.dp))
 
             // Next Button
             IconButton(
                 onClick = onSkipNext,
-                modifier = Modifier.size(if (isVeryCompact) 34.dp else 38.dp)
+                modifier = Modifier.size(38.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
                     contentDescription = "Next",
                     tint = CockpitTheme.colors.textPrimary,
-                    modifier = Modifier.size(if (isVeryCompact) 22.dp else 26.dp)
+                    modifier = Modifier.size(26.dp)
                 )
             }
         }
@@ -575,10 +566,8 @@ fun formatDuration(ms: Long): String {
 private fun AutomotiveMusicPill(
     isPlaying: Boolean,
     label: String,
-    isVeryCompact: Boolean,
     onClick: () -> Unit
 ) {
-    val scaling = CockpitTheme.scaling
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
@@ -589,7 +578,7 @@ private fun AutomotiveMusicPill(
                 RoundedCornerShape(12.dp)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = if (isVeryCompact) 7.dp else 10.dp, vertical = if (isVeryCompact) 2.5.dp else 4.dp),
+            .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)
     ) {
@@ -597,12 +586,12 @@ private fun AutomotiveMusicPill(
             imageVector = Icons.Default.GraphicEq,
             contentDescription = "Media Player",
             tint = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary,
-            modifier = Modifier.size(if (isVeryCompact) 13.dp else 16.dp)
+            modifier = Modifier.size(16.dp)
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = scaling.scaleFont(if (isVeryCompact) 10.sp else 12.sp),
+                fontSize = 12.sp,
                 fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
             ),
             color = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary

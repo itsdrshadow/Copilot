@@ -208,7 +208,6 @@ fun FuelEntryDialog(
             // Sized ~15% smaller than the screen for an elegant, focused centered cockpit modal
             val dialogMaxWidth = if (maxWidth > 1200.dp) 1000.dp else if (maxWidth > 950.dp) 910.dp else maxWidth * 0.86f
             val dialogMaxHeight = if (maxHeight > 700.dp) 590.dp else if (maxHeight > 550.dp) 540.dp else maxHeight * 0.86f
-            val isVeryCompact = dialogMaxHeight < 560.dp
 
             AnimatedVisibility(
                 visible = isVisible,
@@ -583,7 +582,6 @@ fun FuelEntryDialog(
                                     effectiveMileage = effectiveMileage,
                                     pricePerLiter = pricePerLiter,
                                     isOverfill = isOverfill,
-                                    isVeryCompact = isVeryCompact,
                                     onBarSelected = { userSelectedMidBar = it },
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -786,7 +784,6 @@ fun UnifiedFuelTelemetryAndGaugeCard(
     effectiveMileage: Double,
     pricePerLiter: Double,
     isOverfill: Boolean,
-    isVeryCompact: Boolean,
     onBarSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -828,7 +825,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "FUEL LEVEL & TELEMETRIC PROJECTION",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = if (isVeryCompact) 10.5.sp else 12.sp,
+                            fontSize = 12.sp,
                             letterSpacing = 0.8.sp
                         ),
                         color = Color(0xFF00F5FF)
@@ -887,7 +884,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             text = NumberFormatUtils.formatFuelLiters(postRefillLiters, 1),
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = if (isVeryCompact) 28.sp else 34.sp,
+                                fontSize = 34.sp,
                                 fontFamily = FontFamily.Monospace,
                                 letterSpacing = (-1).sp,
                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
@@ -926,7 +923,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "$tankPct%",
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = if (isVeryCompact) 28.sp else 34.sp,
+                            fontSize = 34.sp,
                             fontFamily = FontFamily.Monospace,
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         ),
@@ -1085,7 +1082,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 text = NumberFormatUtils.formatFuelLiters(dispensedLiters, 2),
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = if (isVeryCompact) 18.sp else 22.sp,
+                                    fontSize = 22.sp,
                                     fontFamily = FontFamily.Monospace
                                 ),
                                 color = Color.White
@@ -1135,7 +1132,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 text = if (addedRangeKm > 0.1) "+${addedRangeKm.toInt()} km" else "+0 km",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = if (isVeryCompact) 18.sp else 22.sp,
+                                    fontSize = 22.sp,
                                     fontFamily = FontFamily.Monospace
                                 ),
                                 color = Color(0xFF10B981)
@@ -1175,7 +1172,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 text = "₹${NumberFormatUtils.formatPrecision(runningCostPerKm, 2)}",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = if (isVeryCompact) 18.sp else 22.sp,
+                                    fontSize = 22.sp,
                                     fontFamily = FontFamily.Monospace
                                 ),
                                 color = Color(0xFFF59E0B)
@@ -1225,7 +1222,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 text = "${totalRangeKm.toInt()} km",
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = if (isVeryCompact) 18.sp else 22.sp,
+                                    fontSize = 22.sp,
                                     fontFamily = FontFamily.Monospace
                                 ),
                                 color = Color(0xFF38BDF8)
