@@ -116,6 +116,15 @@ class TripRepository private constructor(context: Context) {
     val currentTrip: StateFlow<TripSummary> = _currentTrip.asStateFlow()
 
     private val visualPrefs = appContext.getSharedPreferences("trip_visual_lifecycle_prefs", Context.MODE_PRIVATE)
+    private val lastCompletedTripPrefs = appContext.getSharedPreferences("last_completed_trip_prefs", Context.MODE_PRIVATE)
+
+    private val _lastCompletedTripId = MutableStateFlow<Long?>(
+        lastCompletedTripPrefs.getLong("last_completed_trip_id", -1L).takeIf { it > 0 }
+    )
+    val lastCompletedTripId: StateFlow<Long?> = _lastCompletedTripId.asStateFlow()
+
+    private val _lastCompletedTrip = MutableStateFlow<TripEntity?>(null)
+    val lastCompletedTrip: StateFlow<TripEntity?> = _lastCompletedTrip.asStateFlow()
 
     private fun getEffectiveMileageFallback(): Double {
         return try {
@@ -271,9 +280,70 @@ class TripRepository private constructor(context: Context) {
                         tripDao.updateTrip(updated)
                     }
                 }
+
+                // Restore persistent pointer to last completed trip
+                var lastId = lastCompletedTripPrefs.getLong("last_completed_trip_id", -1L)
+                var lastTrip: TripEntity? = null
+                if (lastId > 0L) {
+                    lastTrip = tripDao.getTripById(lastId)
+                }
+                if (lastTrip == null) {
+                    lastTrip = tripDao.getLastCompletedTrip()
+                    if (lastTrip != null) {
+                        lastId = lastTrip.id
+                        lastCompletedTripPrefs.edit().putLong("last_completed_trip_id", lastId).apply()
+                    }
+                }
+                if (lastId > 0L && lastTrip != null) {
+                    _lastCompletedTripId.value = lastId
+                    _lastCompletedTrip.value = lastTrip
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Database operation failed in reloadFromDatabase: ${e.message}", e)
             }
+        }
+    }
+
+    fun getLastCompletedTripId(): Long {
+        return lastCompletedTripPrefs.getLong("last_completed_trip_id", -1L)
+    }
+
+    suspend fun getLastCompletedTrip(): TripEntity? {
+        val cached = _lastCompletedTrip.value
+        if (cached != null) return cached
+        val lastId = getLastCompletedTripId()
+        if (lastId > 0L) {
+            val trip = tripDao.getTripById(lastId)
+            if (trip != null) {
+                _lastCompletedTrip.value = trip
+                return trip
+            }
+        }
+        val fallback = tripDao.getLastCompletedTrip()
+        if (fallback != null) {
+            setLastCompletedTripId(fallback.id)
+            _lastCompletedTrip.value = fallback
+        }
+        return fallback
+    }
+
+    suspend fun getTripById(tripId: Long): TripEntity? {
+        return tripDao.getTripById(tripId)
+    }
+
+    suspend fun getAllHistoricalTripsList(): List<TripEntity> {
+        return tripDao.getAllTrips()
+    }
+
+    suspend fun getActiveTripFromDb(): TripEntity? {
+        return tripDao.getActiveTrip()
+    }
+
+    fun setLastCompletedTripId(tripId: Long) {
+        lastCompletedTripPrefs.edit().putLong("last_completed_trip_id", tripId).apply()
+        _lastCompletedTripId.value = tripId
+        scope.launch {
+            _lastCompletedTrip.value = tripDao.getTripById(tripId)
         }
     }
 
@@ -556,25 +626,30 @@ class TripRepository private constructor(context: Context) {
                 val effectiveStartName = summary.startLocationName.ifEmpty { existingTrip?.startLocationName?.ifEmpty { "Trip Origin" } ?: "Trip Origin" }
                 val effectiveEndName = summary.endLocationName.ifEmpty { existingTrip?.endLocationName?.ifEmpty { "Trip Destination" } ?: "Trip Destination" }
 
-                tripDao.updateTrip(
-                    TripEntity(
-                        id = summary.id,
-                        startTime = summary.startTime,
-                        endTime = summary.endTime,
-                        distanceMeters = summary.distanceMeters,
-                        drivingDurationMs = summary.drivingDurationMs,
-                        stationaryDurationMs = summary.stationaryDurationMs,
-                        avgSpeedKmh = summary.avgSpeedKmh,
-                        maxSpeedKmh = summary.maxSpeedKmh,
-                        estimatedFuelLiters = summary.estimatedFuelConsumedLiters,
-                        calculatedMileageKmpl = if (summary.calculatedMileageKmpl > 0) summary.calculatedMileageKmpl else getEffectiveMileageFallback(),
-                        driverScore = summary.driverScore,
-                        startLocationName = effectiveStartName,
-                        endLocationName = effectiveEndName,
-                        status = TripStatus.COMPLETED.name,
-                        isQualifying = summary.distanceMeters >= 1000.0
-                    )
+                val completedTrip = TripEntity(
+                    id = summary.id,
+                    startTime = summary.startTime,
+                    endTime = summary.endTime,
+                    distanceMeters = summary.distanceMeters,
+                    drivingDurationMs = summary.drivingDurationMs,
+                    stationaryDurationMs = summary.stationaryDurationMs,
+                    avgSpeedKmh = summary.avgSpeedKmh,
+                    maxSpeedKmh = summary.maxSpeedKmh,
+                    estimatedFuelLiters = summary.estimatedFuelConsumedLiters,
+                    calculatedMileageKmpl = if (summary.calculatedMileageKmpl > 0) summary.calculatedMileageKmpl else getEffectiveMileageFallback(),
+                    driverScore = summary.driverScore,
+                    startLocationName = effectiveStartName,
+                    endLocationName = effectiveEndName,
+                    status = TripStatus.COMPLETED.name,
+                    isQualifying = summary.distanceMeters >= 1000.0
                 )
+                tripDao.updateTrip(completedTrip)
+
+                // Atomically update persistent pointer to this newly completed trip
+                lastCompletedTripPrefs.edit().putLong("last_completed_trip_id", summary.id).apply()
+                _lastCompletedTripId.value = summary.id
+                _lastCompletedTrip.value = completedTrip
+
                 PersistentDataManager.backupAsync(appContext, force = true)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed completing trip in Room DB: ${e.message}", e)
@@ -608,6 +683,16 @@ class TripRepository private constructor(context: Context) {
                 tripDao.deletePointsForTrip(tripId)
                 vehicleTransitionDao.deleteTransitionsForTrip(tripId)
                 tripDao.deleteTrip(tripId)
+                if (getLastCompletedTripId() == tripId) {
+                    val nextLatest = tripDao.getLastCompletedTrip()
+                    if (nextLatest != null) {
+                        setLastCompletedTripId(nextLatest.id)
+                    } else {
+                        lastCompletedTripPrefs.edit().remove("last_completed_trip_id").apply()
+                        _lastCompletedTripId.value = null
+                        _lastCompletedTrip.value = null
+                    }
+                }
                 PersistentDataManager.backupAsync(appContext, force = true)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed deleting trip in Room DB: ${e.message}", e)
@@ -619,6 +704,9 @@ class TripRepository private constructor(context: Context) {
         updateVisualLifecycle(TripVisualLifecycleEvent.NONE, 0L, 0L)
         try {
             visualPrefs.edit().clear().apply()
+            lastCompletedTripPrefs.edit().clear().apply()
+            _lastCompletedTripId.value = null
+            _lastCompletedTrip.value = null
         } catch (_: Exception) {}
         _currentTrip.value = TripSummary(id = 0, startTime = 0L, status = TripStatus.IDLE)
         synchronized(trailLock) {

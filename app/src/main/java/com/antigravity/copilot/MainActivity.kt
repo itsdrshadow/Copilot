@@ -56,6 +56,7 @@ import com.antigravity.copilot.feature.settings.LauncherSettingsDialog
 import com.antigravity.copilot.feature.splash.SplashViewModel
 import com.antigravity.copilot.feature.splash.WelcomeSplashScreen
 import com.antigravity.copilot.feature.trips.TripHistoryScreen
+import com.antigravity.copilot.feature.trips.SmartTripSummaryScreen
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 
@@ -332,7 +333,8 @@ private fun MainAppScreen(
                     onLaunchNavi = { viewModel.launchNavigation() },
                     onLaunchSettings = { viewModel.setSettingsDialogOpen(true) },
                     onToggleFullMap = { viewModel.selectTab(1) },
-                    onCalibrateMidBar = { bar -> viewModel.calibrateMidBar(bar) }
+                    onCalibrateMidBar = { bar -> viewModel.calibrateMidBar(bar) },
+                    onOpenTripSummary = { viewModel.openTripSummary() }
                 )
                 1 -> LiveMapPanel(
                     latestPoint = latestPoint,
@@ -349,6 +351,7 @@ private fun MainAppScreen(
                     onLoadTripFuelEvents = { start, end -> viewModel.getFuelEventsForTrip(start, end) },
                     onBackToCockpit = { viewModel.selectTab(0) },
                     onDeleteTrip = { tripId -> viewModel.deleteTrip(tripId) },
+                    onOpenSmartSummary = { tripId -> viewModel.openTripSummary(tripId) },
                     fuelPrice = fuelState.fuelPricePerLiter
                 )
                 3 -> FuelHistoryScreen(
@@ -357,6 +360,15 @@ private fun MainAppScreen(
                     onEditEvent = { updatedEvent -> viewModel.updateFuelEvent(updatedEvent) },
                     onDeleteEvent = { eventId -> viewModel.deleteFuelEvent(eventId) }
                 )
+                4 -> {
+                    val smartReport by viewModel.smartTripReport.collectAsState()
+                    SmartTripSummaryScreen(
+                        report = smartReport,
+                        onBackToCockpit = { viewModel.selectTab(0) },
+                        onOpenTripHistory = { viewModel.selectTab(2) },
+                        onOpenFuelHistory = { viewModel.selectTab(3) }
+                    )
+                }
             }
         }
 
@@ -395,6 +407,10 @@ private fun MainAppScreen(
                 onOpenFuel = {
                     viewModel.setAppDrawerOpen(false)
                     viewModel.selectTab(3)
+                },
+                onOpenTripSummary = {
+                    viewModel.setAppDrawerOpen(false)
+                    viewModel.openTripSummary()
                 }
             )
         }

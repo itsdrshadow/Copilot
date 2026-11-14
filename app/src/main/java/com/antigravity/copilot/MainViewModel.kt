@@ -46,9 +46,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val missedRefuelAlert: StateFlow<MissedRefuelDetectionResult?> = fuelRepository.missedRefuelAlert
     val speedLimitInfo: StateFlow<SpeedLimitInfo> = speedLimitEngine.speedLimitInfo
     val vehicleStateMetrics = tripRepository.vehicleStateMetrics
+    val lastCompletedTrip: StateFlow<TripEntity?> = tripRepository.lastCompletedTrip
+    val lastCompletedTripId: StateFlow<Long?> = tripRepository.lastCompletedTripId
+
+    private val _smartTripReport = MutableStateFlow<com.antigravity.copilot.core.trip.SmartTripReport?>(null)
+    val smartTripReport: StateFlow<com.antigravity.copilot.core.trip.SmartTripReport?> = _smartTripReport.asStateFlow()
+
+    private var autoTransitionJob: kotlinx.coroutines.Job? = null
 
     // UI Navigation & Dialog States
-    private val _selectedTab = MutableStateFlow(0) // 0: Cockpit, 1: Full Map, 2: Trips, 3: Fuel Records
+    private val _selectedTab = MutableStateFlow(0) // 0: Cockpit, 1: Full Map, 2: Trips, 3: Fuel Records, 4: Smart Trip Summary
     val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
 
     private val _isAppDrawerOpen = MutableStateFlow(false)
@@ -74,6 +81,83 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         loadInstalledApps()
+
+        // Scenario B: Startup / Reboot Recovery
+        // If a completed trip summary exists and no active ongoing trip is running, make Smart Trip Summary the default screen
+        viewModelScope.launch {
+            val activeTrip = tripRepository.getActiveTripFromDb()
+            val lastId = tripRepository.getLastCompletedTripId()
+            if (lastId > 0L) {
+                loadSmartTripReport(lastId)
+                if (activeTrip == null && (currentTrip.value.status == com.antigravity.copilot.core.model.TripStatus.IDLE || currentTrip.value.status == com.antigravity.copilot.core.model.TripStatus.COMPLETED)) {
+                    _selectedTab.value = 4
+                }
+            }
+        }
+
+        // Scenario A & D: Auto Transition when a trip ends
+        viewModelScope.launch {
+            tripVisualState.collect { visualState ->
+                if (visualState.event == com.antigravity.copilot.core.trip.TripVisualLifecycleEvent.COMPLETED && visualState.tripId > 0L) {
+                    autoTransitionJob?.cancel()
+                    autoTransitionJob = viewModelScope.launch {
+                        loadSmartTripReport(visualState.tripId)
+                        kotlinx.coroutines.delay(5000L) // Wait exactly 5 seconds
+                        selectTab(4)
+                    }
+                } else if (visualState.event == com.antigravity.copilot.core.trip.TripVisualLifecycleEvent.STARTED) {
+                    autoTransitionJob?.cancel()
+                    if (_selectedTab.value == 4) {
+                        selectTab(0)
+                    }
+                }
+            }
+        }
+
+        // Scenario C: When a new trip starts, automatically return to Home Screen
+        viewModelScope.launch {
+            currentTrip.collect { trip ->
+                if (trip.status == com.antigravity.copilot.core.model.TripStatus.ACTIVE_TRIP ||
+                    trip.status == com.antigravity.copilot.core.model.TripStatus.MOVEMENT_CANDIDATE
+                ) {
+                    autoTransitionJob?.cancel()
+                    if (_selectedTab.value == 4) {
+                        selectTab(0)
+                    }
+                }
+            }
+        }
+    }
+
+    fun loadSmartTripReport(tripId: Long) {
+        viewModelScope.launch {
+            try {
+                val trip = tripRepository.getTripById(tripId) ?: tripRepository.getLastCompletedTrip() ?: return@launch
+                val points = tripRepository.getPointsForTrip(trip.id)
+                val transitions = tripRepository.getTransitionsForTrip(trip.id, trip.startTime, trip.endTime)
+                val fuelEvents = fuelRepository.getFuelEventsBetween(trip.startTime - 180_000L, trip.endTime + 180_000L)
+                val historical = tripRepository.getAllHistoricalTripsList()
+                val report = com.antigravity.copilot.core.trip.SmartTripAnalyticsEngine.generateReport(
+                    trip = trip,
+                    points = points,
+                    fuelEvents = fuelEvents,
+                    transitions = transitions,
+                    historicalTrips = historical,
+                    fuelPricePerLiter = fuelState.value.fuelPricePerLiter
+                )
+                _smartTripReport.value = report
+            } catch (e: Exception) {
+                android.util.Log.e("MainViewModel", "Error generating Smart Trip Report: ${e.message}", e)
+            }
+        }
+    }
+
+    fun openTripSummary(tripId: Long? = null) {
+        val targetId = tripId ?: tripRepository.getLastCompletedTripId()
+        if (targetId > 0L) {
+            loadSmartTripReport(targetId)
+            selectTab(4)
+        }
     }
 
     fun selectTab(tabIndex: Int) {

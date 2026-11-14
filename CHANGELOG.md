@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.28.0] - 2026-11-15
+
+### Added
+- **Smart Trip Summary Full-Screen Page**: Introduced a modern automotive report screen (`SmartTripSummaryScreen`) presenting complete trip intelligence upon trip completion, with quick glance telemetry badges, full trip metrics, speed bands, elevation profiling, and GPS quality indicators.
+- **Interactive Offline Satellite Route Map**: Integrated `SmartTripMapView` using offline satellite tiles, displaying start/finish pins, intermediate stationary stops, route trajectory, and interactive zoom/pan controls.
+- **Deterministic AI Trip Insights**: Added `SmartTripAnalyticsEngine` computing transparent driver efficiency scores, speed band breakdowns, stationary dwell impact, historical trip comparisons, and actionable fuel-saving observations grounded purely in measured telemetry.
+- **Integrated Fuel & Refueling Report**: Correlated trip duration and geographic route with `FuelRepository` logs to detect and display refueling events (litres added, time, location, cost) alongside sensor-backed or calculated consumption figures.
+- **Chronological Trip Timeline**: Added an event timeline documenting journey start, major stops with durations, refueling intervals, and completion timestamps.
+- **Persistent Last Completed Trip Architecture**: Implemented persistent pointer reference in `TripRepository` and `AppDatabase` preserving the latest completed trip across infotainment power cycles and app restarts (Scenario B default launcher destination), while maintaining permanent historical trip records.
+- **Automatic 5-Second Transition & Lifecycle Recovery**: Added automatic 5-second post-completion transition to Smart Trip Summary (Scenario A/D), automatic return to Cockpit Dashboard when a new trip commences (Scenario C), and manual access via Dashboard pills and All Apps drawer.
+
+### Changed
+- **Stationary Debounce & Traffic Jam Detection**: Enhanced `TripDetectionEngine` with stationary anchor tracking and configurable debounce thresholds (`stationaryCompletionThresholdSeconds`, `stationaryDriftRadiusMeters`), preventing false trip termination during traffic lights, congested bottlenecks, and temporary halts.
+
+---
+
 ## [1.27.2] - 2026-11-15
 
 ### Added

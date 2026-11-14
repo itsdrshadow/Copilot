@@ -70,6 +70,11 @@ class TripDetectionEngine(
     // Reboot First-Fix Anchor
     private var rebootAnchorLocation: Location? = null
 
+    // Reliable Stationary Detection & Debounce
+    var stationaryCompletionThresholdSeconds: Int = IDLE_TRIP_END_TIMEOUT_SECONDS
+    var stationaryDriftRadiusMeters: Double = 35.0
+    private var stationaryAnchorLocation: Location? = null
+
     companion object {
         const val MIN_QUALIFYING_DISTANCE_METERS = 1000.0 // 1.0 km
         const val MOVEMENT_SPEED_THRESHOLD_KMH = 6.0f
@@ -128,6 +133,7 @@ class TripDetectionEngine(
         tunnelEntryTimeMs = 0L
         isOutageBridgingPending = false
         rebootAnchorLocation = null
+        stationaryAnchorLocation = null
         currentOriginName = ""
         currentDestinationName = ""
     }
@@ -161,12 +167,15 @@ class TripDetectionEngine(
             if (stationaryDuration >= 15000L) {
                 currentStatus = TripStatus.TEMPORARY_STOP
                 temporaryStopStartTime = lastMovementTime
+                if (stationaryAnchorLocation == null) {
+                    stationaryAnchorLocation = lastAcceptedLocation
+                }
             }
         }
         if (currentStatus == TripStatus.TEMPORARY_STOP && temporaryStopStartTime > 0L) {
             val stoppedSec = (now - temporaryStopStartTime) / 1000
             // In geofence-controlled mode, standstills outside geofences NEVER terminate trips
-            if (!isGeofenceControlled && stoppedSec >= IDLE_TRIP_END_TIMEOUT_SECONDS) {
+            if (!isGeofenceControlled && stoppedSec >= stationaryCompletionThresholdSeconds) {
                 evaluateTripCompletion(now)
             }
         }
@@ -187,7 +196,7 @@ class TripDetectionEngine(
         override fun getAccuracy(): Float = _accuracy
         override fun hasAccuracy(): Boolean = true
         override fun getSpeed(): Float = _speedKmh / 3.6f
-        override fun hasSpeed(): Boolean = _speedKmh > 0.0f
+        override fun hasSpeed(): Boolean = true
         override fun getBearing(): Float = _bearing
         override fun hasBearing(): Boolean = _bearing != 0.0f
         override fun getAltitude(): Double = _altitude
@@ -350,6 +359,7 @@ class TripDetectionEngine(
         }
 
         val effectiveSpeedKmh = when {
+            location.hasSpeed() && location.speed <= 0.3f -> 0f
             hasSensorSpeed -> location.speed * 3.6f
             computedSpeedKmh in 3.0f..220.0f -> computedSpeedKmh
             else -> 0f
@@ -426,13 +436,22 @@ class TripDetectionEngine(
 
             TripStatus.TEMPORARY_STOP -> {
                 val stoppedSec = (now - temporaryStopStartTime) / 1000
-                if (effectiveSpeedKmh >= MOVEMENT_SPEED_THRESHOLD_KMH) {
+                val anchor = stationaryAnchorLocation ?: location
+                val distFromAnchor = computeGeodesicDistance(anchor.latitude, anchor.longitude, location.latitude, location.longitude)
+                val isResumed = effectiveSpeedKmh >= MOVEMENT_SPEED_THRESHOLD_KMH && (distFromAnchor >= stationaryDriftRadiusMeters || effectiveSpeedKmh >= MOVEMENT_SPEED_THRESHOLD_KMH * 1.5f)
+
+                if (isResumed) {
                     stationaryDurationMs += (now - temporaryStopStartTime)
                     currentStatus = TripStatus.ACTIVE_TRIP
                     lastAcceptedLocation = location
                     lastLocationTime = now
-                } else if (!isGeofenceControlled && stoppedSec >= IDLE_TRIP_END_TIMEOUT_SECONDS) {
-                    evaluateTripCompletion(now)
+                    stationaryAnchorLocation = null
+                } else {
+                    lastAcceptedLocation = location
+                    lastLocationTime = now
+                    if (!isGeofenceControlled && stoppedSec >= stationaryCompletionThresholdSeconds) {
+                        evaluateTripCompletion(now)
+                    }
                 }
             }
 
@@ -485,6 +504,12 @@ class TripDetectionEngine(
     }
 
     fun completeGeofenceTrip(now: Long = System.currentTimeMillis(), destinationName: String? = null) {
+        if (currentTripId > 0L || currentStatus == TripStatus.ACTIVE_TRIP || currentStatus == TripStatus.TEMPORARY_STOP || currentStatus == TripStatus.STOP_CANDIDATE) {
+            evaluateTripCompletion(now, destinationName)
+        }
+    }
+
+    fun completeActiveTrip(now: Long = System.currentTimeMillis(), destinationName: String? = null) {
         if (currentTripId > 0L || currentStatus == TripStatus.ACTIVE_TRIP || currentStatus == TripStatus.TEMPORARY_STOP || currentStatus == TripStatus.STOP_CANDIDATE) {
             evaluateTripCompletion(now, destinationName)
         }
@@ -617,8 +642,12 @@ class TripDetectionEngine(
         if (speedKmh > STOP_SPEED_THRESHOLD_KMH) {
             drivingDurationMs += dt
             lastMovementTime = now
+            stationaryAnchorLocation = null
         } else {
             stationaryDurationMs += dt
+            if (stationaryAnchorLocation == null) {
+                stationaryAnchorLocation = location
+            }
             if ((now - lastMovementTime) > 15000) {
                 currentStatus = TripStatus.TEMPORARY_STOP
                 temporaryStopStartTime = lastMovementTime
@@ -748,6 +777,7 @@ class TripDetectionEngine(
         currentOriginName = ""
         currentDestinationName = ""
         lastAcceptedLocation = null
+        stationaryAnchorLocation = null
         tunnelEntryLocation = null
         tunnelEntryTimeMs = 0L
         isOutageBridgingPending = false

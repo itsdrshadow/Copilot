@@ -46,6 +46,7 @@ fun DashboardScreen(
     onLaunchSettings: () -> Unit,
     onToggleFullMap: () -> Unit,
     onCalibrateMidBar: (Int) -> Unit = {},
+    onOpenTripSummary: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isSpeedTimedOut by remember { mutableStateOf(false) }
@@ -156,7 +157,8 @@ fun DashboardScreen(
                                 tripVisualState = tripVisualState,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 isVeryCompact = isVeryCompact,
-                                baselineMileage = fallbackMileage
+                                baselineMileage = fallbackMileage,
+                                onOpenTripSummary = onOpenTripSummary
                             )
                             SmartMusicClockCard(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -227,7 +229,8 @@ fun DashboardScreen(
                                 tripVisualState = tripVisualState,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 isVeryCompact = isVeryCompact,
-                                baselineMileage = fallbackMileage
+                                baselineMileage = fallbackMileage,
+                                onOpenTripSummary = onOpenTripSummary
                             )
                             SmartMusicClockCard(
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -263,6 +266,7 @@ fun PremiumDashboardScreen(
     onLaunchSettings: () -> Unit,
     onToggleFullMap: () -> Unit,
     onCalibrateMidBar: (Int) -> Unit = {},
+    onOpenTripSummary: () -> Unit = {},
     modifier: Modifier = Modifier
 ) = DashboardScreen(
     currentTrip = currentTrip,
@@ -282,5 +286,6 @@ fun PremiumDashboardScreen(
     onLaunchSettings = onLaunchSettings,
     onToggleFullMap = onToggleFullMap,
     onCalibrateMidBar = onCalibrateMidBar,
+    onOpenTripSummary = onOpenTripSummary,
     modifier = modifier
 )

@@ -21,6 +21,9 @@ interface TripDao {
     @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND isQualifying = 1 ORDER BY startTime DESC")
     fun getAllQualifyingTrips(): Flow<List<TripEntity>>
 
+    @Query("SELECT * FROM trips WHERE status = 'COMPLETED' ORDER BY endTime DESC, startTime DESC LIMIT 1")
+    suspend fun getLastCompletedTrip(): TripEntity?
+
     @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND isQualifying = 1 ORDER BY startTime DESC")
     fun getAllHistoricalTrips(): Flow<List<TripEntity>>
 

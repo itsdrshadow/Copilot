@@ -45,7 +45,8 @@ fun AppDrawerScreen(
     onBackToHome: () -> Unit,
     onOpenSettings: () -> Unit = {},
     onOpenTrips: () -> Unit = {},
-    onOpenFuel: () -> Unit = {}
+    onOpenFuel: () -> Unit = {},
+    onOpenTripSummary: () -> Unit = {}
 ) {
     BackHandler(onBack = onBackToHome)
 
@@ -99,6 +100,7 @@ fun AppDrawerScreen(
                 onOpenSettings = onOpenSettings,
                 onOpenTrips = onOpenTrips,
                 onOpenFuel = onOpenFuel,
+                onOpenTripSummary = onOpenTripSummary,
                 isVeryCompact = isVeryCompact
             )
 
@@ -308,6 +310,7 @@ fun AppDrawerHeader(
     onOpenSettings: () -> Unit = {},
     onOpenTrips: () -> Unit = {},
     onOpenFuel: () -> Unit = {},
+    onOpenTripSummary: () -> Unit = {},
     isVeryCompact: Boolean = false
 ) {
     val scaling = CockpitTheme.scaling
@@ -500,6 +503,36 @@ fun AppDrawerHeader(
                 )
                 Text(
                     text = "Fuels",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = scaling.dockTextSize
+                    ),
+                    color = CockpitTheme.colors.textPrimary
+                )
+            }
+
+            // Summary Pill (Icon + Text)
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(CockpitTheme.colors.cardElevated)
+                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
+                    .clickable { onOpenTripSummary() }
+                    .padding(
+                        horizontal = scaling.dockPillPaddingHorizontal,
+                        vertical = if (isVeryCompact) 7.dp else scaling.dockPillPaddingVertical
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Icon(
+                    Icons.Default.Assessment,
+                    contentDescription = "Summary",
+                    tint = CockpitTheme.colors.accent,
+                    modifier = Modifier.size(scaling.dockIconSize)
+                )
+                Text(
+                    text = "Summary",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = scaling.dockTextSize
