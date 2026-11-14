@@ -7,9 +7,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -277,40 +274,6 @@ fun DashboardScreen(
                             )
                         }
                     }
-                }
-            }
-
-            // Right-edge subtle swipe affordance (touchable & visual hint for App Drawer)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
-                    .background(CockpitTheme.colors.card.copy(alpha = 0.85f))
-                    .border(
-                        width = 1.dp,
-                        color = CockpitTheme.colors.border,
-                        shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
-                    )
-                    .clickable { onOpenAppDrawer() }
-                    .padding(horizontal = 6.dp, vertical = 18.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Apps,
-                        contentDescription = "Apps",
-                        tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Icon(
-                        imageVector = Icons.Default.ChevronLeft,
-                        contentDescription = "Swipe left to open all apps",
-                        tint = CockpitTheme.colors.textSecondary,
-                        modifier = Modifier.size(16.dp)
-                    )
                 }
             }
         }

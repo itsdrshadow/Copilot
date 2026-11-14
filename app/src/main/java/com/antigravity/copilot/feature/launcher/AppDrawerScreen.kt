@@ -218,8 +218,8 @@ fun AppDrawer3x4Grid(
 }
 
 /**
- * Driver-safe touch card for head-unit interaction.
- * Dynamically switches between horizontal Row (landscape) and vertical Column (portrait/narrow).
+ * Clean 1x1 automotive app icon without heavy card background.
+ * Compact centered icon with app title below.
  */
 @Composable
 fun AppGridItem(
@@ -231,118 +231,69 @@ fun AppGridItem(
         app.iconBitmap?.asImageBitmap()
     }
 
-    BoxWithConstraints(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(CockpitTheme.colors.card)
-            .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        contentAlignment = Alignment.CenterStart
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        val isNarrowCell = maxWidth < 160.dp
-        val isShortCell = maxHeight < 85.dp
-        val iconSize = if (isShortCell || isNarrowCell) 40.dp else 48.dp
-        val labelFontSize = if (isShortCell) 13.sp else 15.sp
-        val labelLineHeight = if (isShortCell) 16.sp else 18.sp
-
-        if (isNarrowCell) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                if (imageBitmap != null) {
-                    Image(
-                        bitmap = imageBitmap,
-                        contentDescription = app.label,
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clip(RoundedCornerShape(10.dp))
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(CockpitTheme.colors.cardElevated),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = app.label.take(1).uppercase(),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                            color = CockpitTheme.colors.accent
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = app.label,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.5.sp,
-                        textAlign = TextAlign.Center
-                    ),
-                    color = CockpitTheme.colors.textPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // App Icon (clean 1x1 icon without card background)
+            if (imageBitmap != null) {
+                Image(
+                    bitmap = imageBitmap,
+                    contentDescription = app.label,
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(RoundedCornerShape(14.dp))
                 )
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (imageBitmap != null) {
-                    Image(
-                        bitmap = imageBitmap,
-                        contentDescription = app.label,
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clip(RoundedCornerShape(12.dp))
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(iconSize)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(CockpitTheme.colors.cardElevated)
-                            .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = app.label.take(1).uppercase(),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                            color = CockpitTheme.colors.accent
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(CockpitTheme.colors.cardElevated)
+                        .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = app.label,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = labelFontSize,
-                            lineHeight = labelLineHeight
+                        text = app.label.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            fontSize = 24.sp
                         ),
-                        color = CockpitTheme.colors.textPrimary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        color = CockpitTheme.colors.accent
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // App Label underneath the icon
+            Text(
+                text = app.label,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.5.sp,
+                    lineHeight = 15.sp
+                ),
+                color = CockpitTheme.colors.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 130.dp)
+            )
         }
     }
 }
 
 /**
- * Top header of the App Drawer with Cockpit return, app counts, search and shortcuts.
+ * Top dock bar of the App Drawer with larger layout and clear Icon + Text action buttons.
  */
 @Composable
 fun AppDrawerHeader(
@@ -358,28 +309,43 @@ fun AppDrawerHeader(
     isVeryCompact: Boolean = false
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(CockpitTheme.colors.card)
+            .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = if (isVeryCompact) 6.dp else 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Back/Home navigation button & Title with app count badge
+        // Left: Cockpit navigation pill + Title & app count
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            IconButton(
-                onClick = onBackToHome,
+            Row(
                 modifier = Modifier
-                    .size(if (isVeryCompact) 36.dp else 42.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CockpitTheme.colors.card)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(CockpitTheme.colors.accentSoft)
+                    .border(1.2.dp, CockpitTheme.colors.accent.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                    .clickable { onBackToHome() }
+                    .padding(horizontal = 14.dp, vertical = if (isVeryCompact) 7.dp else 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Dashboard,
-                    contentDescription = "Back to Cockpit",
+                    contentDescription = "Cockpit",
                     tint = CockpitTheme.colors.accent,
-                    modifier = Modifier.size(if (isVeryCompact) 18.dp else 22.dp)
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "Cockpit",
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp
+                    ),
+                    color = CockpitTheme.colors.accent
                 )
             }
 
@@ -389,7 +355,7 @@ fun AppDrawerHeader(
                         text = "All Applications",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = if (isVeryCompact) 16.sp else 19.sp
+                            fontSize = if (isVeryCompact) 17.sp else 20.sp
                         ),
                         color = CockpitTheme.colors.textPrimary
                     )
@@ -399,13 +365,13 @@ fun AppDrawerHeader(
                             .clip(RoundedCornerShape(6.dp))
                             .background(CockpitTheme.colors.cardElevated)
                             .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "$totalAppsCount apps",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
+                                fontSize = 11.5.sp
                             ),
                             color = CockpitTheme.colors.accent
                         )
@@ -414,17 +380,20 @@ fun AppDrawerHeader(
                 if (totalPages > 1) {
                     Text(
                         text = "Page ${pageIndex + 1} of $totalPages • Swipe left/right",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
                         color = CockpitTheme.colors.textSecondary
                     )
                 }
             }
         }
 
-        // Center / Right: Search & Quick Navigation Shortcuts
+        // Center / Right: Search & Quick Navigation Pill Buttons (Icon + Text)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             OutlinedTextField(
                 value = searchQuery,
@@ -433,7 +402,7 @@ fun AppDrawerHeader(
                     Text(
                         "Search apps...",
                         color = CockpitTheme.colors.textDisabled,
-                        fontSize = if (isVeryCompact) 11.sp else 12.5.sp
+                        fontSize = 12.5.sp
                     )
                 },
                 leadingIcon = {
@@ -441,84 +410,114 @@ fun AppDrawerHeader(
                         Icons.Default.Search,
                         contentDescription = null,
                         tint = CockpitTheme.colors.textSecondary,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 },
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }, modifier = Modifier.size(20.dp)) {
+                        IconButton(onClick = { onSearchQueryChange("") }, modifier = Modifier.size(22.dp)) {
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = "Clear",
                                 tint = CockpitTheme.colors.textSecondary,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(13.dp)
                             )
                         }
                     }
                 },
                 singleLine = true,
                 modifier = Modifier
-                    .width(if (isVeryCompact) 180.dp else 230.dp)
-                    .height(if (isVeryCompact) 38.dp else 42.dp),
-                shape = RoundedCornerShape(10.dp),
+                    .width(if (isVeryCompact) 170.dp else 220.dp)
+                    .height(if (isVeryCompact) 40.dp else 46.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = CockpitTheme.colors.textPrimary,
                     unfocusedTextColor = CockpitTheme.colors.textPrimary,
                     focusedBorderColor = CockpitTheme.colors.accent,
                     unfocusedBorderColor = CockpitTheme.colors.border,
                     focusedContainerColor = CockpitTheme.colors.cardElevated,
-                    unfocusedContainerColor = CockpitTheme.colors.card
+                    unfocusedContainerColor = CockpitTheme.colors.cardElevated
                 )
             )
 
-            // Trips Shortcut
-            IconButton(
-                onClick = onOpenTrips,
+            // Trips Pill (Icon + Text)
+            Row(
                 modifier = Modifier
-                    .size(if (isVeryCompact) 36.dp else 40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CockpitTheme.colors.card)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(CockpitTheme.colors.cardElevated)
+                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
+                    .clickable { onOpenTrips() }
+                    .padding(horizontal = 12.dp, vertical = if (isVeryCompact) 7.dp else 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
                     Icons.Default.History,
-                    contentDescription = "Trip History",
+                    contentDescription = "Trips",
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Trips",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    ),
+                    color = CockpitTheme.colors.textPrimary
                 )
             }
 
-            // Fuel Log Shortcut
-            IconButton(
-                onClick = onOpenFuel,
+            // Fuel Log Pill (Icon + Text)
+            Row(
                 modifier = Modifier
-                    .size(if (isVeryCompact) 36.dp else 40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CockpitTheme.colors.card)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(CockpitTheme.colors.cardElevated)
+                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
+                    .clickable { onOpenFuel() }
+                    .padding(horizontal = 12.dp, vertical = if (isVeryCompact) 7.dp else 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
                     Icons.Default.LocalGasStation,
                     contentDescription = "Fuel Log",
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Fuel Log",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    ),
+                    color = CockpitTheme.colors.textPrimary
                 )
             }
 
-            // Settings Shortcut
-            IconButton(
-                onClick = onOpenSettings,
+            // Settings Pill (Icon + Text)
+            Row(
                 modifier = Modifier
-                    .size(if (isVeryCompact) 36.dp else 40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CockpitTheme.colors.card)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(CockpitTheme.colors.cardElevated)
+                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
+                    .clickable { onOpenSettings() }
+                    .padding(horizontal = 12.dp, vertical = if (isVeryCompact) 7.dp else 9.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
                     Icons.Default.Settings,
                     contentDescription = "Settings",
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = "Settings",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    ),
+                    color = CockpitTheme.colors.textPrimary
                 )
             }
         }
