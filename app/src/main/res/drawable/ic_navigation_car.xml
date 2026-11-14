@@ -1,0 +1,153 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="54dp"
+    android:height="88dp"
+    android:viewportWidth="64"
+    android:viewportHeight="96">
+
+    <!-- 1. Layered Ambient Ground Shadows (Simulating Soft 3D Lighting) -->
+    <path
+        android:fillColor="#15000000"
+        android:pathData="M 12,18 C 12,10 52,10 52,18 C 58,35 58,74 52,88 C 52,94 12,94 12,88 C 6,74 6,35 12,18 Z" />
+    <path
+        android:fillColor="#25000000"
+        android:pathData="M 15,22 C 15,14 49,14 49,22 C 54,36 54,72 49,85 C 49,90 15,90 15,85 C 10,72 10,36 15,22 Z" />
+    <path
+        android:fillColor="#35000000"
+        android:pathData="M 17,28 C 17,20 47,20 47,28 C 51,40 51,68 47,82 C 47,86 17,86 17,82 C 13,68 13,40 17,28 Z" />
+
+    <!-- 2. Tires (Dark Charcoal Rubber) -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 9,27 C 9,25 12,25 12,27 L 12,39 C 12,41 9,41 9,39 Z" />
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 52,27 C 52,25 55,25 55,27 L 55,39 C 55,41 52,41 52,39 Z" />
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 8,63 C 8,61 11,61 11,63 L 11,77 C 11,79 8,79 8,77 Z" />
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 53,63 C 53,61 56,61 56,63 L 56,77 C 56,79 53,79 53,77 Z" />
+
+    <!-- 3. Aerodynamic Side Mirrors -->
+    <!-- Left Mirror -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 14,35 L 7,33 C 6,33 5,34 6,36 L 7,38 C 8,39 10,39 12,38 L 14,37 Z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M 8,34 L 12,35 L 12,37 L 8,37 Z" />
+    <!-- Right Mirror -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 50,35 L 57,33 C 58,33 59,34 58,36 L 57,38 C 56,39 54,39 52,38 L 50,37 Z" />
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M 52,35 L 56,34 L 56,37 L 52,37 Z" />
+
+    <!-- 4. Main Vehicle Body / Chassis (Pearlescent White 3D Form) -->
+    <path
+        android:fillColor="#F8FAFC"
+        android:pathData="M 23,12 C 28,10 36,10 41,12 C 48,15 50,24 51,36 L 52,60 C 53,72 52,80 47,84 C 42,86 22,86 17,84 C 12,80 11,72 12,60 L 13,36 C 14,24 16,15 23,12 Z" />
+
+    <!-- Subtle Outer Body Bevel / Shading on Flanks -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 23,12 C 16,15 14,24 13,36 L 12,60 C 11,72 12,80 17,84 C 19,84.5 21,85 24,85 C 19,82 17,76 17,62 L 18,38 C 19,27 20,20 25,14 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 41,12 C 48,15 50,24 51,36 L 52,60 C 53,72 52,80 47,84 C 45,84.5 43,85 40,85 C 45,82 47,76 47,62 L 46,38 C 45,27 44,20 39,14 Z" />
+
+    <!-- Body Border Contour -->
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="0.8"
+        android:pathData="M 23,12 C 28,10 36,10 41,12 C 48,15 50,24 51,36 L 52,60 C 53,72 52,80 47,84 C 42,86 22,86 17,84 C 12,80 11,72 12,60 L 13,36 C 14,24 16,15 23,12 Z" />
+
+    <!-- 5. Front Hood Sculpted Contours & Xenon Headlights -->
+    <path
+        android:strokeColor="#E2E8F0"
+        android:strokeWidth="1.0"
+        android:pathData="M 23,15 C 28,17 36,17 41,15" />
+    <path
+        android:strokeColor="#E2E8F0"
+        android:strokeWidth="0.8"
+        android:pathData="M 25,16 L 23,28 M 39,16 L 41,28" />
+
+    <!-- Front Left Headlight (Cyan Xenon) -->
+    <path
+        android:fillColor="#7DD3FC"
+        android:pathData="M 16,16 C 18,14 22,14 23,16 L 19,19 C 17,19 16,18 16,16 Z" />
+    <!-- Front Right Headlight (Cyan Xenon) -->
+    <path
+        android:fillColor="#7DD3FC"
+        android:pathData="M 48,16 C 46,14 42,14 41,16 L 45,19 C 47,19 48,18 48,16 Z" />
+
+    <!-- 6. Front Windshield (Google Maps Blue Reflective Glass) -->
+    <path
+        android:fillColor="#0284C7"
+        android:pathData="M 19,27 C 26,25 38,25 45,27 L 43,40 C 37,39 27,39 21,40 Z" />
+    <!-- Windshield Specular Sky Highlight -->
+    <path
+        android:fillColor="#7DD3FC"
+        android:pathData="M 22,28 C 28,26 36,26 42,28 L 40,32 C 35,30 29,30 24,32 Z" />
+    <path
+        android:fillColor="#E0F2FE"
+        android:pathData="M 24,28.5 C 28,27.5 34,27.5 38,28.5 L 37,30 C 34,29 28,29 25,30 Z" />
+
+    <!-- 7. White Panoramic Roof -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 21,40 L 43,40 L 42,56 L 22,56 Z" />
+    <!-- Roof Dynamic Seam Lines -->
+    <path
+        android:strokeColor="#E2E8F0"
+        android:strokeWidth="0.8"
+        android:pathData="M 26,41 L 26,55 M 38,41 L 38,55" />
+
+    <!-- 8. Rear Windshield (Curved Elevated Back Glass) -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 22,56 L 42,56 L 45,69 C 38,71 26,71 19,69 Z" />
+    <path
+        android:fillColor="#0369A1"
+        android:pathData="M 23,57 L 41,57 L 44,67 C 37,69 27,69 20,67 Z" />
+    <!-- Rear Glass Soft Cyan Reflection -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M 25,59 C 29,58 35,58 39,59 L 42,65 C 37,66 27,66 22,65 Z" />
+
+    <!-- 9. Rear Deck Lid & License Plate Inset -->
+    <path
+        android:fillColor="#F1F5F9"
+        android:pathData="M 19,69 C 26,71 38,71 45,69 L 46,79 C 41,81 23,81 18,79 Z" />
+    <path
+        android:strokeColor="#CBD5E1"
+        android:strokeWidth="0.8"
+        android:pathData="M 21,74 C 27,75 37,75 43,74" />
+
+    <!-- 10. Distinct Rear Red LED Taillight Bar (Signature Google Maps Navigation Look) -->
+    <!-- Full Width Rear Taillight Strip -->
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M 17,79 C 25,81 39,81 47,79 C 48,81 47,83 46,84 C 39,85 25,85 18,84 C 17,83 16,81 17,79 Z" />
+    <!-- Left Taillight Cluster Accent -->
+    <path
+        android:fillColor="#DC2626"
+        android:pathData="M 17,79 L 23,79.5 L 22,83.5 L 17.5,83 Z" />
+    <!-- Right Taillight Cluster Accent -->
+    <path
+        android:fillColor="#DC2626"
+        android:pathData="M 47,79 L 41,79.5 L 42,83.5 L 46.5,83 Z" />
+    <!-- Glowing Center LED Core -->
+    <path
+        android:fillColor="#FCA5A5"
+        android:pathData="M 19,80.5 C 26,82 38,82 45,80.5 L 44.5,82 C 38,83.2 26,83.2 19.5,82 Z" />
+
+    <!-- Rear Diffuser / Bottom Shadow -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M 24,84 L 40,84 L 38,86 L 26,86 Z" />
+
+</vector>

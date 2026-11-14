@@ -1,0 +1,62 @@
+[
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/recovery/CrashGuardian.kt",
+    "line": 60,
+    "summary": "CrashGuardian UncaughtExceptionHandler doesn't chain to default handler, breaking Play Console crash reporting",
+    "failure_scenario": "When a crash occurs, CrashGuardian logs and kills process immediately via Process.killProcess()/System.exit() without calling the default UncaughtExceptionHandler. This prevents automatic crash upload to Google Play Console, leaving developers blind to production crashes."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/recovery/CrashGuardian.kt",
+    "line": 154,
+    "summary": "Safe Mode flag set but never actually reduces resource usage (map layers, animations)",
+    "failure_scenario": "After 3 crashes, user selects 'Restart in Safe Mode' which only sets a SharedPreferences flag. No code reads this flag to disable heavy map layers or animations, so the app restarts with full resource usage and immediately crashes again, creating an unrecoverable crash loop."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/odometer/OdometerManager.kt",
+    "line": 36,
+    "summary": "latestLifetimeKm volatile field not persisted to SharedPreferences, lost on process death",
+    "failure_scenario": "App process killed by OS (low memory). On restart, OdometerManager re-initializes from prefs with old baselineOdometerKm, but latestLifetimeKm resets to 0.0. calculateLiveOdometer() returns baseline only, causing odometer reading to jump backward by hundreds of km, corrupting fuel mileage calculations."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/fuel/FuelRepository.kt",
+    "line": 182,
+    "summary": "getEffectiveOdometer() returns 0 if OdometerManager not initialized before FuelRepository",
+    "failure_scenario": "FuelRepository.init() calls OdometerManager.init() at line 70, but if FuelRepository is accessed before DrivingReportApp.onCreate() completes (e.g., via static initializer or early service start), OdometerManager.isInitialized is false. getEffectiveOdometer() then returns 0.0, breaking all fuel range/DTE calculations."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/trip/TripRepository.kt",
+    "line": 39,
+    "summary": "SnapshotTrailList.get() returns dummy TripPoint(0,0) instead of throwing when backing list cleared",
+    "failure_scenario": "After trip completes, activeTrailPoints is cleared (line 545). UI observing tripTrail StateFlow receives new SnapshotTrailList with size=0 but version incremented. Any indexed access (e.g., map rendering last point) returns a phantom TripPoint at lat/lon 0,0 (Gulf of Guinea), drawing wrong route on map."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/trip/TripRepository.kt",
+    "line": 337,
+    "summary": "Double locking on different objects (trailLock then activeTrailPoints) creates deadlock risk",
+    "failure_scenario": "attachDeparturePoints() locks trailLock then activeTrailPoints. Another thread (e.g., onTripUpdated) could lock activeTrailPoints (via synchronized(activeTrailPoints) at line 447) then trailLock (line 446), causing classic AB-BA deadlock when both run concurrently during trip start."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/location/SpeedLimitEngine.kt",
+    "line": 170,
+    "summary": "Network check added but no fallback to cached speed limit when offline",
+    "failure_scenario": "Vehicle enters tunnel or area with no cell signal. hasNetwork=false skips both Overpass and Nominatim API calls. resolvedLimit stays null, _speedLimitInfo emits SpeedLimitInfo(speedLimitKmh=0). Driver sees blank/zero speed limit instead of last known valid limit, losing safety awareness."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/designsystem/Theme.kt",
+    "line": 16,
+    "summary": "CLASSIC theme enum value removed but fromId() silently defaults to PREMIUM for 'classic' pref",
+    "failure_scenario": "User had CLASSIC theme selected (stored as 'classic' in SharedPreferences). After update, CockpitThemeMode.fromId('classic') returns PREMIUM (since CLASSIC enum deleted). Theme silently switches without user consent, violating user preference and causing visual regression for users who preferred classic."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/DrivingReportApp.kt",
+    "line": 17,
+    "summary": "MapLibre.getInstance() initialization removed - any MapLibre usage will crash",
+    "failure_scenario": "MapLibre native SDK requires explicit initialization via MapLibre.getInstance(context). This call was removed in the diff. If LiveMapView or any other component uses MapLibre (e.g., MapLibreMapView), it will crash with 'MapLibre not initialized' on first map render."
+  },
+  {
+    "file": "app/src/main/java/com/antigravity/drivingreport/core/map/IndiaOfflineMapManager.kt",
+    "line": 500,
+    "summary": "6 concurrent workers with 1000-capacity Channel may cause OOM on low-memory automotive head units",
+    "failure_scenario": "Downloading large region (e.g., All-India 1100MB). Channel buffers 1000 tile indices (Long objects). 6 workers each hold HTTP connections (HttpURLConnection) and decode JPEG/PNG byte arrays simultaneously. On 2-4GB RAM head units with other apps, this triggers OOM kill, losing download progress and corrupting partial SQLite tiles."
+  }
+]

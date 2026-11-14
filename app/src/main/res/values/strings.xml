@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Driving Report</string>
+    <string name="tracking_channel_name">Driving Tracker</string>
+    <string name="tracking_channel_description">Continuous vehicle movement and trip monitoring service</string>
+    <string name="tracking_active_title">Driving Report Active</string>
+    <string name="tracking_active_desc">Monitoring driving analytics and automatic trip recording</string>
+</resources>
