@@ -492,17 +492,12 @@ private fun GeneralSettingsContent(
                 color = CockpitTheme.colors.textPrimary
             )
 
-            // Theme Options with Preview Swatches
+            // Theme Option with Preview Swatches
             listOf(
                 Triple(
-                    CockpitThemeMode.CALM_TEAL,
-                    "Calm Teal (New)",
-                    listOf(CalmTeal_Night_Bg, CalmTeal_Night_Card, CalmTeal_Night_Accent)
-                ),
-                Triple(
-                    CockpitThemeMode.PREMIUM,
-                    "Premium Studio",
-                    listOf(Premium_Background, Premium_CardSurface, Premium_PrimaryAccent)
+                    CockpitThemeMode.APEX,
+                    CockpitThemeMode.APEX.displayName,
+                    listOf(Apex_Background, Apex_CardSurface, Apex_PrimaryAccent)
                 )
             ).forEach { (mode, name, swatches) ->
                 val isSelected = state.cockpitThemeMode == mode
@@ -548,47 +543,6 @@ private fun GeneralSettingsContent(
                                     .border(1.dp, CockpitTheme.colors.border, CircleShape)
                             )
                         }
-                    }
-                }
-            }
-
-            HorizontalDivider(color = CockpitTheme.colors.border)
-
-            // Mode: Auto / Day / Night
-            Text(
-                text = "Day / Night Mode",
-                style = MaterialTheme.typography.titleSmall,
-                color = CockpitTheme.colors.textPrimary
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                com.antigravity.drivingreport.core.designsystem.ThemeAppearanceMode.entries.forEach { appMode ->
-                    val isModeSelected = state.appearanceMode == appMode
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isModeSelected) CockpitTheme.colors.accentSoft else CockpitTheme.colors.cardElevated)
-                            .border(
-                                width = 1.dp,
-                                color = if (isModeSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .clickable { AppSettingsManager.updateThemeAppearanceMode(context, appMode) }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = appMode.displayName,
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = if (isModeSelected) FontWeight.Black else FontWeight.Medium,
-                                fontSize = 12.sp
-                            ),
-                            color = if (isModeSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary
-                        )
                     }
                 }
             }

@@ -101,7 +101,6 @@ class MainActivity : ComponentActivity() {
         AppSettingsManager.init(applicationContext)
         com.antigravity.drivingreport.core.odometer.OdometerManager.init(applicationContext)
         com.antigravity.drivingreport.core.media.MediaPlaybackManager.init(applicationContext)
-        com.antigravity.drivingreport.core.maintenance.MaintenanceManager.init(applicationContext)
         com.antigravity.drivingreport.core.tts.AutomotiveVoiceAssistant.getInstance(applicationContext)
         PersistentDataManager.backupAsync(applicationContext)
 
@@ -118,20 +117,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val settings by AppSettingsManager.settingsState.collectAsState()
-            val latestPoint by viewModel.latestPoint.collectAsState()
-
-            // Solar Ephemeris Day/Night calculation for Auto Mode
-            val isDaytimeCalculated = remember(latestPoint) {
-                val pt = latestPoint
-                val lat = pt?.latitude ?: 0.0
-                val lon = pt?.longitude ?: 0.0
-                com.antigravity.drivingreport.core.solar.SolarEphemerisEngine.calculateSolarTimes(lat, lon).isDaytime
-            }
 
             DrivingReportTheme(
-                themeMode = settings.cockpitThemeMode,
-                appearanceMode = settings.appearanceMode,
-                isDaytimeCalculated = isDaytimeCalculated
+                themeMode = settings.cockpitThemeMode
             ) {
                 MainAppScreen(viewModel = viewModel)
             }
@@ -194,7 +182,6 @@ private fun MainAppScreen(
     val isAppDrawerOpen by viewModel.isAppDrawerOpen.collectAsState()
     val isFuelDialogOpen by viewModel.isFuelDialogOpen.collectAsState()
     val isSettingsDialogOpen by viewModel.isSettingsDialogOpen.collectAsState()
-    val isMaintenanceDialogOpen by viewModel.isMaintenanceDialogOpen.collectAsState()
     val installedApps by viewModel.installedApps.collectAsState()
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -224,15 +211,6 @@ private fun MainAppScreen(
             currentTrip.status == com.antigravity.drivingreport.core.model.TripStatus.TEMPORARY_STOP
         val activeKm = if (isTripActive) currentTrip.distanceKm else 0.0
         historicalKm + activeKm
-    }
-
-    // Calculate due service count based on current odometer
-    val odoConfig by com.antigravity.drivingreport.core.odometer.OdometerManager.odometerConfig.collectAsState()
-    val currentOdometerKm = remember(odoConfig.baselineOdometerKm, recordedDistanceKm, odoConfig.baselineLifetimeKmAtUpdate) {
-        com.antigravity.drivingreport.core.odometer.OdometerManager.calculateLiveOdometer(recordedDistanceKm)
-    }
-    val dueServiceCount = remember(currentOdometerKm) {
-        com.antigravity.drivingreport.core.maintenance.MaintenanceManager.getDueItemsCount(currentOdometerKm)
     }
 
     LaunchedEffect(recordedDistanceKm) {
@@ -282,9 +260,7 @@ private fun MainAppScreen(
                     onLaunchNavi = { viewModel.launchNavigation() },
                     onLaunchSettings = { viewModel.setSettingsDialogOpen(true) },
                     onToggleFullMap = { viewModel.selectTab(1) },
-                    onCalibrateMidBar = { bar -> viewModel.calibrateMidBar(bar) },
-                    onOpenMaintenance = { viewModel.setMaintenanceDialogOpen(true) },
-                    dueServiceCount = dueServiceCount
+                    onCalibrateMidBar = { bar -> viewModel.calibrateMidBar(bar) }
                 )
                 1 -> LiveMapPanel(
                     latestPoint = latestPoint,
@@ -373,13 +349,6 @@ private fun MainAppScreen(
                     viewModel.resetAllData()
                 },
                 onDismiss = { viewModel.setSettingsDialogOpen(false) }
-            )
-        }
-
-        if (isMaintenanceDialogOpen) {
-            com.antigravity.drivingreport.feature.maintenance.VehicleMaintenanceDialog(
-                currentOdoKm = currentOdometerKm,
-                onDismissRequest = { viewModel.setMaintenanceDialogOpen(false) }
             )
         }
 

@@ -9,29 +9,36 @@ class CockpitThemeSystemTest {
 
     @Test
     fun testThemeEnumFromIdResolution() {
+        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("apex"))
+        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("APEX"))
+        assertEquals("Apex Studio", CockpitThemeMode.APEX.displayName)
         assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("premium"))
         assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("PREMIUM"))
-        // Legacy "classic" or unknown/blank values automatically and safely resolve to finalized PREMIUM
-        assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("classic"))
-        assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("CLASSIC"))
-        assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("unknown"))
-        assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId(""))
+        // Legacy "classic", "calm_teal", or unknown/blank values automatically and safely resolve to finalized APEX
+        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("classic"))
+        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("calm_teal"))
+        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("unknown"))
+        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId(""))
     }
 
     @Test
     fun testPremiumPaletteTokensIntegrity() {
-        assertTrue(PremiumCockpitColors.isPremium)
-        assertEquals(Premium_Background, PremiumCockpitColors.background)
-        assertEquals(Premium_CardSurface, PremiumCockpitColors.cardSurface)
-        assertEquals(Premium_CardSurfaceElevated, PremiumCockpitColors.cardSurfaceElevated)
-        assertEquals(Premium_CardBorder, PremiumCockpitColors.cardBorder)
-        assertEquals(Premium_PrimaryAccent, PremiumCockpitColors.primaryAccent)
-        assertEquals(Premium_Positive, PremiumCockpitColors.greenEco)
-        assertEquals(Premium_Warning, PremiumCockpitColors.amberWarning)
-        assertEquals(Premium_Danger, PremiumCockpitColors.redAlert)
-        assertEquals(Premium_TextPrimary, PremiumCockpitColors.textPrimary)
-        assertEquals(Premium_TextSecondary, PremiumCockpitColors.textSecondary)
-        assertEquals(Premium_TextTertiary, PremiumCockpitColors.textTertiary)
+        assertTrue(ApexCockpitColors.isPremium)
+        assertEquals(Apex_Background, ApexCockpitColors.background)
+        assertEquals(Apex_CardSurface, ApexCockpitColors.cardSurface)
+        assertEquals(Apex_CardSurfaceElevated, ApexCockpitColors.cardSurfaceElevated)
+        assertEquals(Apex_CardBorder, ApexCockpitColors.cardBorder)
+        assertEquals(Apex_PrimaryAccent, ApexCockpitColors.primaryAccent)
+        assertEquals(Apex_Positive, ApexCockpitColors.greenEco)
+        assertEquals(Apex_Warning, ApexCockpitColors.amberWarning)
+        assertEquals(Apex_Danger, ApexCockpitColors.redAlert)
+        assertEquals(Apex_TextPrimary, ApexCockpitColors.textPrimary)
+        assertEquals(Apex_TextSecondary, ApexCockpitColors.textSecondary)
+        assertEquals(Apex_TextTertiary, ApexCockpitColors.textTertiary)
+
+        // Verifies backward compatibility of Premium aliases
+        assertEquals(ApexCockpitColors, PremiumCockpitColors)
+        assertEquals(Apex_Background, Premium_Background)
     }
 
     @Test

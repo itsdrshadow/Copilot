@@ -59,8 +59,6 @@ fun DashboardScreen(
     onLaunchSettings: () -> Unit,
     onToggleFullMap: () -> Unit,
     onCalibrateMidBar: (Int) -> Unit = {},
-    onOpenMaintenance: () -> Unit = {},
-    dueServiceCount: Int = 0,
     modifier: Modifier = Modifier
 ) {
     var isSpeedTimedOut by remember { mutableStateOf(false) }
@@ -304,8 +302,6 @@ fun DashboardScreen(
                 onSelectFuelHistory = { onNavItemSelected(3) },
                 onOpenApps = onOpenAppDrawer,
                 onOpenSettings = onLaunchSettings,
-                onOpenMaintenance = onOpenMaintenance,
-                dueServiceCount = dueServiceCount,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(dockHeight),
@@ -370,8 +366,6 @@ private fun PremiumBottomDock(
     onSelectFuelHistory: () -> Unit,
     onOpenApps: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenMaintenance: () -> Unit,
-    dueServiceCount: Int = 0,
     modifier: Modifier = Modifier,
     isVeryCompact: Boolean = false,
     isNarrow: Boolean = false
@@ -411,16 +405,6 @@ private fun PremiumBottomDock(
                 isSelected = selectedTab == 3,
                 onClick = onSelectFuelHistory,
                 isVeryCompact = isVeryCompact
-            )
-            // Service & Maintenance Button (Placed next to driving records with prominent due badge)
-            PremiumDockItem(
-                icon = Icons.Default.Build,
-                label = if (dueServiceCount > 0) "Service ($dueServiceCount)" else "Service",
-                isSelected = false,
-                onClick = onOpenMaintenance,
-                isVeryCompact = isVeryCompact,
-                accentColor = if (dueServiceCount > 0) CockpitTheme.colors.critical else CockpitTheme.colors.accent,
-                badgeCount = dueServiceCount
             )
             PremiumDockItem(
                 icon = Icons.Default.Apps,

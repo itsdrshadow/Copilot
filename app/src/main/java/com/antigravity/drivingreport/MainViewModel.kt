@@ -64,9 +64,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSettingsDialogOpen = MutableStateFlow(false)
     val isSettingsDialogOpen: StateFlow<Boolean> = _isSettingsDialogOpen.asStateFlow()
 
-    private val _isMaintenanceDialogOpen = MutableStateFlow(false)
-    val isMaintenanceDialogOpen: StateFlow<Boolean> = _isMaintenanceDialogOpen.asStateFlow()
-
     private val _installedApps = MutableStateFlow<List<AppDrawerItem>>(emptyList())
     val installedApps: StateFlow<List<AppDrawerItem>> = _installedApps.asStateFlow()
 
@@ -106,10 +103,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSettingsDialogOpen(isOpen: Boolean) {
         _isSettingsDialogOpen.value = isOpen
-    }
-
-    fun setMaintenanceDialogOpen(isOpen: Boolean) {
-        _isMaintenanceDialogOpen.value = isOpen
     }
 
     fun loadInstalledApps() {

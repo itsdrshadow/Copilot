@@ -17,32 +17,28 @@ import androidx.compose.ui.unit.sp
 // ==================== THEME ENUMS & CONTRACTS ====================
 
 enum class CockpitThemeMode(val id: String, val displayName: String, val subtitle: String) {
-    PREMIUM(
-        id = "premium",
-        displayName = "Premium Studio",
+    APEX(
+        id = "apex",
+        displayName = "Apex Studio",
         subtitle = "Contemporary dark navy studio cockpit with luminous cyan telemetry"
-    ),
-    CALM_TEAL(
-        id = "calm_teal",
-        displayName = "Calm Teal",
-        subtitle = "Refined automotive palette with calming teal accent and balanced contrast"
     );
 
     companion object {
-        fun fromId(id: String): CockpitThemeMode {
-            return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: PREMIUM
+        // Backwards compatibility alias
+        val PREMIUM = APEX
+
+        fun fromId(@Suppress("UNUSED_PARAMETER") id: String): CockpitThemeMode {
+            return APEX
         }
     }
 }
 
 enum class ThemeAppearanceMode(val id: String, val displayName: String) {
-    AUTO(id = "auto", displayName = "Auto (Solar / Time)"),
-    DAY(id = "day", displayName = "Day"),
     NIGHT(id = "night", displayName = "Night");
 
     companion object {
-        fun fromId(id: String): ThemeAppearanceMode {
-            return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: AUTO
+        fun fromId(@Suppress("UNUSED_PARAMETER") id: String): ThemeAppearanceMode {
+            return NIGHT
         }
     }
 }
@@ -88,121 +84,62 @@ data class CockpitColors(
     val isPremium: Boolean = true
 )
 
-// ==================== CALM TEAL TOKEN SPECIFICATIONS ====================
+// ==================== APEX STUDIO COCKPIT PALETTE ====================
 
-// Night Tokens (Default)
-val CalmTeal_Night_Bg = Color(0xFF0E1319)
-val CalmTeal_Night_Card = Color(0xFF161C24)
-val CalmTeal_Night_CardElevated = Color(0xFF1B222C)
-val CalmTeal_Night_Border = Color(0xFF232B36)
-val CalmTeal_Night_TextPrimary = Color(0xFFE6EAF0)
-val CalmTeal_Night_TextSecondary = Color(0xFF9AA6B5)
-val CalmTeal_Night_TextDisabled = Color(0xFF55606E)
-val CalmTeal_Night_Accent = Color(0xFF4FD1C5)
-val CalmTeal_Night_AccentSoft = Color(0x294FD1C5) // ~16% opacity (0x29 / 0xFF ~= 0.16)
-val CalmTeal_Night_OnAccent = Color(0xFF06201E)
-val CalmTeal_Night_Warning = Color(0xFFF2B35E)
-val CalmTeal_Night_Critical = Color(0xFFFF6B6B)
+val Apex_Background = Color(0xFF080E1B)
+val Apex_BackgroundSecondary = Color(0xFF0C1424)
+val Apex_CardSurface = Color(0xFF111D30)
+val Apex_CardSurfaceElevated = Color(0xFF16243A)
+val Apex_CardBorder = Color(0xFF243750)
+val Apex_CardBorderGlow = Color(0xFF35BDF5)
+val Apex_PrimaryAccent = Color(0xFF35BDF5)
+val Apex_BlueGlow = Color(0xFF229ED9)
+val Apex_Positive = Color(0xFF22C993)
+val Apex_Warning = Color(0xFFF5B942)
+val Apex_Danger = Color(0xFFF05B67)
+val Apex_TextPrimary = Color(0xFFF3F6FC)
+val Apex_TextSecondary = Color(0xFF91A1B8)
+val Apex_TextTertiary = Color(0xFF5D718C)
 
-// Card blended with 5% text-primary at the top, fading to flat card by 40% height
-val CalmTeal_Night_CardGradient = Brush.verticalGradient(
-    0.0f to Color(0xFF202630), // blended 5% #E6EAF0 into #161C24
-    0.4f to Color(0xFF161C24),
-    1.0f to Color(0xFF161C24)
-)
+// Backward-compatible color aliases
+val Premium_Background = Apex_Background
+val Premium_BackgroundSecondary = Apex_BackgroundSecondary
+val Premium_CardSurface = Apex_CardSurface
+val Premium_CardSurfaceElevated = Apex_CardSurfaceElevated
+val Premium_CardBorder = Apex_CardBorder
+val Premium_CardBorderGlow = Apex_CardBorderGlow
+val Premium_PrimaryAccent = Apex_PrimaryAccent
+val Premium_BlueGlow = Apex_BlueGlow
+val Premium_Positive = Apex_Positive
+val Premium_Warning = Apex_Warning
+val Premium_Danger = Apex_Danger
+val Premium_TextPrimary = Apex_TextPrimary
+val Premium_TextSecondary = Apex_TextSecondary
+val Premium_TextTertiary = Apex_TextTertiary
 
-val CalmTealNightColors = CockpitColors(
-    bg = CalmTeal_Night_Bg,
-    card = CalmTeal_Night_Card,
-    cardElevated = CalmTeal_Night_CardElevated,
-    border = CalmTeal_Night_Border,
-    textPrimary = CalmTeal_Night_TextPrimary,
-    textSecondary = CalmTeal_Night_TextSecondary,
-    textDisabled = CalmTeal_Night_TextDisabled,
-    accent = CalmTeal_Night_Accent,
-    accentSoft = CalmTeal_Night_AccentSoft,
-    onAccent = CalmTeal_Night_OnAccent,
-    warning = CalmTeal_Night_Warning,
-    critical = CalmTeal_Night_Critical,
-    cardTopLightGradient = CalmTeal_Night_CardGradient
-)
-
-// Day Tokens
-val CalmTeal_Day_Bg = Color(0xFFEEF1F5)
-val CalmTeal_Day_Card = Color(0xFFFFFFFF)
-val CalmTeal_Day_CardElevated = Color(0xFFF3F5F8)
-val CalmTeal_Day_Border = Color(0xFFD8DEE6)
-val CalmTeal_Day_TextPrimary = Color(0xFF1B2028)
-val CalmTeal_Day_TextSecondary = Color(0xFF566272)
-val CalmTeal_Day_TextDisabled = Color(0xFFA0AAB8)
-val CalmTeal_Day_Accent = Color(0xFF0E8F8A)
-val CalmTeal_Day_AccentSoft = Color(0x290E8F8A) // ~16% opacity
-val CalmTeal_Day_OnAccent = Color(0xFFFFFFFF)
-val CalmTeal_Day_Warning = Color(0xFFB96F0A)
-val CalmTeal_Day_Critical = Color(0xFFD63B3B)
-
-val CalmTeal_Day_CardGradient = Brush.verticalGradient(
-    0.0f to Color(0xFFF5F6F8),
-    0.4f to Color(0xFFFFFFFF),
-    1.0f to Color(0xFFFFFFFF)
-)
-
-val CalmTealDayColors = CockpitColors(
-    bg = CalmTeal_Day_Bg,
-    card = CalmTeal_Day_Card,
-    cardElevated = CalmTeal_Day_CardElevated,
-    border = CalmTeal_Day_Border,
-    textPrimary = CalmTeal_Day_TextPrimary,
-    textSecondary = CalmTeal_Day_TextSecondary,
-    textDisabled = CalmTeal_Day_TextDisabled,
-    accent = CalmTeal_Day_Accent,
-    accentSoft = CalmTeal_Day_AccentSoft,
-    onAccent = CalmTeal_Day_OnAccent,
-    warning = CalmTeal_Day_Warning,
-    critical = CalmTeal_Day_Critical,
-    cardTopLightGradient = CalmTeal_Day_CardGradient
-)
-
-// ==================== PREMIUM COCKPIT PALETTE ====================
-
-val Premium_Background = Color(0xFF080E1B)
-val Premium_BackgroundSecondary = Color(0xFF0C1424)
-val Premium_CardSurface = Color(0xFF111D30)
-val Premium_CardSurfaceElevated = Color(0xFF16243A)
-val Premium_CardBorder = Color(0xFF243750)
-val Premium_CardBorderGlow = Color(0xFF35BDF5)
-val Premium_PrimaryAccent = Color(0xFF35BDF5)
-val Premium_BlueGlow = Color(0xFF229ED9)
-val Premium_Positive = Color(0xFF22C993)
-val Premium_Warning = Color(0xFFF5B942)
-val Premium_Danger = Color(0xFFF05B67)
-val Premium_TextPrimary = Color(0xFFF3F6FC)
-val Premium_TextSecondary = Color(0xFF91A1B8)
-val Premium_TextTertiary = Color(0xFF5D718C)
-
-val PremiumCockpitColors = CockpitColors(
-    bg = Premium_Background,
-    card = Premium_CardSurface,
-    cardElevated = Premium_CardSurfaceElevated,
-    border = Premium_CardBorder,
-    textPrimary = Premium_TextPrimary,
-    textSecondary = Premium_TextSecondary,
-    textDisabled = Premium_TextTertiary,
-    accent = Premium_PrimaryAccent,
+val ApexCockpitColors = CockpitColors(
+    bg = Apex_Background,
+    card = Apex_CardSurface,
+    cardElevated = Apex_CardSurfaceElevated,
+    border = Apex_CardBorder,
+    textPrimary = Apex_TextPrimary,
+    textSecondary = Apex_TextSecondary,
+    textDisabled = Apex_TextTertiary,
+    accent = Apex_PrimaryAccent,
     accentSoft = Color(0x2935BDF5),
     onAccent = Color(0xFF080E1B),
-    warning = Premium_Warning,
-    critical = Premium_Danger,
+    warning = Apex_Warning,
+    critical = Apex_Danger,
     cardTopLightGradient = Brush.verticalGradient(
-        listOf(Premium_CardSurfaceElevated, Premium_CardSurface)
+        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
     ),
-    greenEco = Premium_Positive,
-    amberWarning = Premium_Warning,
-    redAlert = Premium_Danger
+    greenEco = Apex_Positive,
+    amberWarning = Apex_Warning,
+    redAlert = Apex_Danger
 )
 
-// Classic Cockpit Palette (Backwards compatibility)
-val ClassicCockpitColors = PremiumCockpitColors
+val PremiumCockpitColors = ApexCockpitColors
+val ClassicCockpitColors = ApexCockpitColors
 
 // Compatibility Aliases for components
 val Cockpit_DarkBg = Color(0xFF060A14)
@@ -224,8 +161,8 @@ val Cockpit_TextTertiary = Color(0xFF5A7099)
 val Coolwalk_TealPlay = Color(0xFF2DD4BF)
 
 // Composition Locals
-val LocalCockpitColors = staticCompositionLocalOf { CalmTealNightColors }
-val LocalCockpitThemeMode = staticCompositionLocalOf { CockpitThemeMode.CALM_TEAL }
+val LocalCockpitColors = staticCompositionLocalOf { ApexCockpitColors }
+val LocalCockpitThemeMode = staticCompositionLocalOf { CockpitThemeMode.APEX }
 
 object CockpitTheme {
     val colors: CockpitColors
@@ -241,31 +178,21 @@ object CockpitTheme {
     val isPremium: Boolean
         @Composable
         @ReadOnlyComposable
-        get() = mode == CockpitThemeMode.PREMIUM
+        get() = true
 }
 
 // ==================== DYNAMIC ANIMATED THEME PROVIDER ====================
 
 @Composable
 fun DrivingReportTheme(
-    themeMode: CockpitThemeMode = CockpitThemeMode.CALM_TEAL,
-    appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.AUTO,
-    isDaytimeCalculated: Boolean = false,
+    themeMode: CockpitThemeMode = CockpitThemeMode.APEX,
+    @Suppress("UNUSED_PARAMETER") appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.NIGHT,
+    @Suppress("UNUSED_PARAMETER") isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val isDay = when (appearanceMode) {
-        ThemeAppearanceMode.AUTO -> isDaytimeCalculated
-        ThemeAppearanceMode.DAY -> true
-        ThemeAppearanceMode.NIGHT -> false
-    }
+    val targetBaseColors = ApexCockpitColors
 
-    val targetBaseColors = when (themeMode) {
-        CockpitThemeMode.PREMIUM -> PremiumCockpitColors
-        CockpitThemeMode.CALM_TEAL -> if (isDay) CalmTealDayColors else CalmTealNightColors
-    }
-
-    // 2 to 3 second gradual color fade transition between Day and Night (2400ms)
-    val animSpec = tween<Color>(durationMillis = 2400)
+    val animSpec = tween<Color>(durationMillis = 300)
 
     val animatedBg = animateColorAsState(targetValue = targetBaseColors.bg, animationSpec = animSpec, label = "bg").value
     val animatedCard = animateColorAsState(targetValue = targetBaseColors.card, animationSpec = animSpec, label = "card").value
@@ -280,24 +207,7 @@ fun DrivingReportTheme(
     val animatedWarning = animateColorAsState(targetValue = targetBaseColors.warning, animationSpec = animSpec, label = "warning").value
     val animatedCritical = animateColorAsState(targetValue = targetBaseColors.critical, animationSpec = animSpec, label = "critical").value
 
-    val animatedCardGradient = when (themeMode) {
-        CockpitThemeMode.PREMIUM -> Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-        CockpitThemeMode.CALM_TEAL -> {
-            if (isDay) {
-                Brush.verticalGradient(
-                    0.0f to animatedCardElevated,
-                    0.4f to animatedCard,
-                    1.0f to animatedCard
-                )
-            } else {
-                Brush.verticalGradient(
-                    0.0f to animatedCardElevated,
-                    0.4f to animatedCard,
-                    1.0f to animatedCard
-                )
-            }
-        }
-    }
+    val animatedCardGradient = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
 
     val activeColors = CockpitColors(
         bg = animatedBg,
@@ -313,7 +223,7 @@ fun DrivingReportTheme(
         warning = animatedWarning,
         critical = animatedCritical,
         cardTopLightGradient = animatedCardGradient,
-        isPremium = (themeMode == CockpitThemeMode.PREMIUM)
+        isPremium = true
     )
 
     val materialColors = darkColorScheme(
