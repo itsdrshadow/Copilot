@@ -258,13 +258,13 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
-        private val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+        val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 // Version 1 to 2 migration
             }
         }
 
-        private val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+        val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 try {
                     db.execSQL("ALTER TABLE fuel_events ADD COLUMN odometerKm REAL NOT NULL DEFAULT 0.0")
@@ -275,7 +275,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+        val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 try {
                     db.execSQL("ALTER TABLE fuel_events ADD COLUMN locationName TEXT NOT NULL DEFAULT ''")
@@ -289,7 +289,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
+        val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 try {
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_trips_isQualifying_startTime ON trips (isQualifying, startTime)")
@@ -297,7 +297,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
+        val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 try {
                     db.execSQL("""
@@ -318,7 +318,7 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
+        val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 try {
                     db.execSQL("""
@@ -394,7 +394,6 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        
         val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 try {
@@ -418,6 +417,16 @@ abstract class AppDatabase : RoomDatabase() {
 
         const val DATABASE_SCHEMA_VERSION = 8
 
+        val ALL_MIGRATIONS = arrayOf(
+            MIGRATION_1_2,
+            MIGRATION_2_3,
+            MIGRATION_3_4,
+            MIGRATION_4_5,
+            MIGRATION_5_6,
+            MIGRATION_6_7,
+            MIGRATION_7_8
+        )
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -426,8 +435,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "driving_report.db"
                 )
                     .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
-                    .fallbackToDestructiveMigrationOnDowngrade()
+                    .addMigrations(*ALL_MIGRATIONS)
                     .build()
                 INSTANCE = instance
                 instance

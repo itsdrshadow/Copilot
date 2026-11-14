@@ -2,57 +2,67 @@ package com.antigravity.copilot.core.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
+import androidx.datastore.preferences.core.edit
 import com.antigravity.copilot.core.designsystem.CockpitThemeMode
+import com.antigravity.copilot.core.storage.SettingsDataStore
+import com.antigravity.copilot.core.storage.appDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Enterprise Automotive Infotainment Settings Manager.
  * Persists app-wide configuration parameters and system preferences
- * across app restarts, vehicle reboots, and ROM updates.
+ * across app restarts, vehicle reboots, and ROM updates using DataStore & SharedPreferences dual-backing.
  */
 object AppSettingsManager {
+    private const val TAG = "AppSettingsManager"
     private const val PREFS_NAME = "driving_report_settings_prefs"
 
     // General
-    private const val KEY_SCREEN_ALWAYS_ON = "screen_always_on"
-    private const val KEY_AUTO_MINIMIZE_DRAWER = "auto_minimize_drawer"
-    private const val KEY_LANGUAGE = "app_language"
-    private const val KEY_COCKPIT_THEME = "cockpit_theme"
-    private const val KEY_LAST_STABLE_THEME = "last_stable_cockpit_theme"
-    private const val KEY_THEME_APPEARANCE_MODE = "theme_appearance_mode"
+    const val KEY_SCREEN_ALWAYS_ON = "screen_always_on"
+    const val KEY_AUTO_MINIMIZE_DRAWER = "auto_minimize_drawer"
+    const val KEY_LANGUAGE = "app_language"
+    const val KEY_COCKPIT_THEME = "cockpit_theme"
+    const val KEY_LAST_STABLE_THEME = "last_stable_cockpit_theme"
+    const val KEY_THEME_APPEARANCE_MODE = "theme_appearance_mode"
 
     // Vehicle
-    private const val KEY_CAR_NAME = "car_name"
-    private const val KEY_FUEL_TYPE = "fuel_type"
-    private const val KEY_TANK_CAPACITY = "tank_capacity_liters"
-    private const val KEY_EXPECTED_MILEAGE = "expected_mileage_kmpl"
+    const val KEY_CAR_NAME = "car_name"
+    const val KEY_FUEL_TYPE = "fuel_type"
+    const val KEY_TANK_CAPACITY = "tank_capacity_liters"
+    const val KEY_EXPECTED_MILEAGE = "expected_mileage_kmpl"
 
     // Tracking & Watchdog Thresholds
-    private const val KEY_AUTO_TRIP_DETECTION = "auto_trip_detection"
-    private const val KEY_DEFAULT_GEOFENCE_RADIUS = "default_geofence_radius"
-    private const val KEY_STATIONARY_SPEED_THRESHOLD = "stationary_speed_threshold"
-    private const val KEY_IDLE_DURATION_THRESHOLD = "idle_duration_threshold"
-    private const val KEY_ENGINE_OFF_DETECTION = "engine_off_detection"
-    private const val KEY_STATION_STOP_WATCHDOG = "station_stop_watchdog"
-    private const val KEY_STATION_DWELL_SECONDS = "station_dwell_seconds"
-    private const val KEY_MISSED_REFILL_THRESHOLD = "missed_refill_threshold"
+    const val KEY_AUTO_TRIP_DETECTION = "auto_trip_detection"
+    const val KEY_DEFAULT_GEOFENCE_RADIUS = "default_geofence_radius"
+    const val KEY_STATIONARY_SPEED_THRESHOLD = "stationary_speed_threshold"
+    const val KEY_IDLE_DURATION_THRESHOLD = "idle_duration_threshold"
+    const val KEY_ENGINE_OFF_DETECTION = "engine_off_detection"
+    const val KEY_STATION_STOP_WATCHDOG = "station_stop_watchdog"
+    const val KEY_STATION_DWELL_SECONDS = "station_dwell_seconds"
+    const val KEY_MISSED_REFILL_THRESHOLD = "missed_refill_threshold"
 
     // Speed & Safety
-    private const val KEY_DYNAMIC_SPEED_LIMITS = "dynamic_speed_limits"
-    private const val KEY_OVERSPEED_ALERTS = "overspeed_alerts"
-    private const val KEY_NEAR_LIMIT_WARNING = "near_limit_warning"
-    private const val KEY_DRIVER_SCORING = "driver_scoring_enabled"
+    const val KEY_DYNAMIC_SPEED_LIMITS = "dynamic_speed_limits"
+    const val KEY_OVERSPEED_ALERTS = "overspeed_alerts"
+    const val KEY_NEAR_LIMIT_WARNING = "near_limit_warning"
+    const val KEY_DRIVER_SCORING = "driver_scoring_enabled"
 
     // Maps
-    private const val KEY_MAP_SATELLITE_MODE = "map_satellite_mode"
-    private const val KEY_MAP_DARK_MODE = "map_dark_mode"
-    private const val KEY_MAP_BUILDING_FOOTPRINTS = "map_building_footprints"
-    private const val KEY_AUTO_DAY_NIGHT_SOLAR = "auto_day_night_solar"
-    private const val KEY_VOICE_GREETINGS = "voice_greetings_enabled"
-    private const val KEY_TTS_VOICE_ID = "tts_voice_id"
-    private const val KEY_MEDIA_PILL_ENABLED = "media_pill_enabled"
+    const val KEY_MAP_SATELLITE_MODE = "map_satellite_mode"
+    const val KEY_MAP_DARK_MODE = "map_dark_mode"
+    const val KEY_MAP_BUILDING_FOOTPRINTS = "map_building_footprints"
+    const val KEY_AUTO_DAY_NIGHT_SOLAR = "auto_day_night_solar"
+    const val KEY_VOICE_GREETINGS = "voice_greetings_enabled"
+    const val KEY_TTS_VOICE_ID = "tts_voice_id"
+    const val KEY_MEDIA_PILL_ENABLED = "media_pill_enabled"
 
     data class SettingsState(
         val screenAlwaysOn: Boolean = true,
@@ -94,11 +104,28 @@ object AppSettingsManager {
     private val _settingsState = MutableStateFlow(SettingsState())
     val settingsState: StateFlow<SettingsState> = _settingsState.asStateFlow()
 
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var dataStoreObservationJob: Job? = null
     private var isInitialized = false
 
     fun init(context: Context) {
         if (isInitialized) return
         reload(context)
+        startDataStoreObservation(context)
+        isInitialized = true
+    }
+
+    private fun startDataStoreObservation(context: Context) {
+        dataStoreObservationJob?.cancel()
+        dataStoreObservationJob = scope.launch {
+            try {
+                SettingsDataStore.getSettingsFlow(context).collect { newState ->
+                    _settingsState.value = newState
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "DataStore observation error: ${e.message}")
+            }
+        }
     }
 
     fun reload(context: Context) {
@@ -136,6 +163,35 @@ object AppSettingsManager {
         isInitialized = true
     }
 
+    suspend fun migrateFromLegacyPreferences(context: Context) {
+        val prefs = getPrefs(context)
+        val fuelPrefs = context.getSharedPreferences("driving_report_fuel_prefs", Context.MODE_PRIVATE)
+
+        val current = _settingsState.value
+        val carName = if (prefs.contains(KEY_CAR_NAME)) prefs.getString(KEY_CAR_NAME, current.carName) ?: current.carName else current.carName
+        val fuelType = if (prefs.contains(KEY_FUEL_TYPE)) prefs.getString(KEY_FUEL_TYPE, current.fuelType) ?: current.fuelType else current.fuelType
+        val tankCap = if (prefs.contains(KEY_TANK_CAPACITY)) {
+            prefs.getFloat(KEY_TANK_CAPACITY, current.tankCapacityLiters.toFloat()).toDouble()
+        } else if (fuelPrefs.contains("design_capacity")) {
+            fuelPrefs.getFloat("design_capacity", current.tankCapacityLiters.toFloat()).toDouble()
+        } else current.tankCapacityLiters
+
+        val expMil = if (prefs.contains(KEY_EXPECTED_MILEAGE)) {
+            prefs.getFloat(KEY_EXPECTED_MILEAGE, current.expectedMileageKmpl.toFloat()).toDouble()
+        } else if (fuelPrefs.contains("baseline_vehicle_mileage")) {
+            fuelPrefs.getFloat("baseline_vehicle_mileage", current.expectedMileageKmpl.toFloat()).toDouble()
+        } else current.expectedMileageKmpl
+
+        val migratedState = current.copy(
+            carName = carName,
+            fuelType = fuelType,
+            tankCapacityLiters = tankCap,
+            expectedMileageKmpl = expMil
+        )
+        _settingsState.value = migratedState
+        SettingsDataStore.saveAllSettings(context, migratedState)
+    }
+
     private fun getPrefs(context: Context): SharedPreferences {
         return context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -143,11 +199,17 @@ object AppSettingsManager {
     fun updateScreenAlwaysOn(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_SCREEN_ALWAYS_ON, enabled).apply()
         _settingsState.value = _settingsState.value.copy(screenAlwaysOn = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_SCREEN_ALWAYS_ON] = enabled }
+        }
     }
 
     fun updateAutoMinimizeDrawer(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_AUTO_MINIMIZE_DRAWER, enabled).apply()
         _settingsState.value = _settingsState.value.copy(autoMinimizeDrawer = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_AUTO_MINIMIZE_DRAWER] = enabled }
+        }
     }
 
     fun updateVehicleNameAndFuel(context: Context, name: String, fuelType: String) {
@@ -156,6 +218,12 @@ object AppSettingsManager {
             .putString(KEY_FUEL_TYPE, fuelType)
             .apply()
         _settingsState.value = _settingsState.value.copy(carName = name, fuelType = fuelType)
+        scope.launch {
+            context.appDataStore.edit {
+                it[SettingsDataStore.KEY_CAR_NAME] = name
+                it[SettingsDataStore.KEY_FUEL_TYPE] = fuelType
+            }
+        }
     }
 
     fun updateVehiclePhysicalSpecs(
@@ -179,6 +247,14 @@ object AppSettingsManager {
             tankCapacityLiters = safeCapacity,
             expectedMileageKmpl = safeMileage
         )
+        scope.launch {
+            context.appDataStore.edit {
+                it[SettingsDataStore.KEY_CAR_NAME] = name
+                it[SettingsDataStore.KEY_FUEL_TYPE] = fuelType
+                it[SettingsDataStore.KEY_TANK_CAPACITY] = safeCapacity
+                it[SettingsDataStore.KEY_EXPECTED_MILEAGE] = safeMileage
+            }
+        }
     }
 
     fun updateTrackingThresholds(
@@ -200,6 +276,13 @@ object AppSettingsManager {
             stationarySpeedThresholdKmh = safeSpeed,
             idleDurationThresholdSeconds = safeIdle
         )
+        scope.launch {
+            context.appDataStore.edit {
+                it[SettingsDataStore.KEY_DEFAULT_GEOFENCE_RADIUS] = safeRadius
+                it[SettingsDataStore.KEY_STATIONARY_SPEED_THRESHOLD] = safeSpeed
+                it[SettingsDataStore.KEY_IDLE_DURATION_THRESHOLD] = safeIdle
+            }
+        }
     }
 
     fun updateStationWatchdogParameters(
@@ -217,56 +300,92 @@ object AppSettingsManager {
             stationPromptDwellSeconds = safeDwell,
             missedRefillThresholdLiters = safeMissed
         )
+        scope.launch {
+            context.appDataStore.edit {
+                it[SettingsDataStore.KEY_STATION_DWELL_SECONDS] = safeDwell
+                it[SettingsDataStore.KEY_MISSED_REFILL_THRESHOLD] = safeMissed
+            }
+        }
     }
 
     fun updateAutoTripDetection(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_AUTO_TRIP_DETECTION, enabled).apply()
         _settingsState.value = _settingsState.value.copy(autoTripDetection = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_AUTO_TRIP_DETECTION] = enabled }
+        }
     }
 
     fun updateEngineOffDetection(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_ENGINE_OFF_DETECTION, enabled).apply()
         _settingsState.value = _settingsState.value.copy(engineOffDetection = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_ENGINE_OFF_DETECTION] = enabled }
+        }
     }
 
     fun updateStationStopWatchdog(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_STATION_STOP_WATCHDOG, enabled).apply()
         _settingsState.value = _settingsState.value.copy(stationStopWatchdog = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_STATION_STOP_WATCHDOG] = enabled }
+        }
     }
 
     fun updateDynamicSpeedLimits(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_DYNAMIC_SPEED_LIMITS, enabled).apply()
         _settingsState.value = _settingsState.value.copy(dynamicSpeedLimits = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_DYNAMIC_SPEED_LIMITS] = enabled }
+        }
     }
 
     fun updateOverspeedAlerts(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_OVERSPEED_ALERTS, enabled).apply()
         _settingsState.value = _settingsState.value.copy(overspeedAlerts = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_OVERSPEED_ALERTS] = enabled }
+        }
     }
 
     fun updateNearLimitWarning(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_NEAR_LIMIT_WARNING, enabled).apply()
         _settingsState.value = _settingsState.value.copy(nearLimitWarning = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_NEAR_LIMIT_WARNING] = enabled }
+        }
     }
 
     fun updateDriverScoring(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_DRIVER_SCORING, enabled).apply()
         _settingsState.value = _settingsState.value.copy(driverScoring = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_DRIVER_SCORING] = enabled }
+        }
     }
 
     fun updateMapSatelliteMode(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_MAP_SATELLITE_MODE, enabled).apply()
         _settingsState.value = _settingsState.value.copy(mapSatelliteMode = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_MAP_SATELLITE_MODE] = enabled }
+        }
     }
 
     fun updateMapDarkMode(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_MAP_DARK_MODE, enabled).apply()
         _settingsState.value = _settingsState.value.copy(mapDarkMode = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_MAP_DARK_MODE] = enabled }
+        }
     }
 
     fun updateMapBuildingFootprints(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_MAP_BUILDING_FOOTPRINTS, enabled).apply()
         _settingsState.value = _settingsState.value.copy(mapBuildingFootprints = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_MAP_BUILDING_FOOTPRINTS] = enabled }
+        }
     }
 
     /**
@@ -279,6 +398,12 @@ object AppSettingsManager {
             .putString(KEY_LAST_STABLE_THEME, mode.id)
             .apply()
         _settingsState.value = _settingsState.value.copy(cockpitTheme = mode.id)
+        scope.launch {
+            context.appDataStore.edit {
+                it[SettingsDataStore.KEY_COCKPIT_THEME] = mode.id
+                it[SettingsDataStore.KEY_LAST_STABLE_THEME] = mode.id
+            }
+        }
     }
 
     fun updateThemeAppearanceMode(context: Context, mode: com.antigravity.copilot.core.designsystem.ThemeAppearanceMode) {
@@ -286,6 +411,9 @@ object AppSettingsManager {
             .putString(KEY_THEME_APPEARANCE_MODE, mode.id)
             .apply()
         _settingsState.value = _settingsState.value.copy(themeAppearanceMode = mode.id)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_THEME_APPEARANCE_MODE] = mode.id }
+        }
     }
 
     /**
@@ -298,6 +426,12 @@ object AppSettingsManager {
             .putString(KEY_LAST_STABLE_THEME, CockpitThemeMode.PREMIUM.id)
             .apply()
         _settingsState.value = _settingsState.value.copy(cockpitTheme = CockpitThemeMode.PREMIUM.id)
+        scope.launch {
+            context.appDataStore.edit {
+                it[SettingsDataStore.KEY_COCKPIT_THEME] = CockpitThemeMode.PREMIUM.id
+                it[SettingsDataStore.KEY_LAST_STABLE_THEME] = CockpitThemeMode.PREMIUM.id
+            }
+        }
     }
 
     fun restoreClassicCockpit(context: Context) {
@@ -311,26 +445,41 @@ object AppSettingsManager {
     fun updateAutoDayNightSolar(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_AUTO_DAY_NIGHT_SOLAR, enabled).apply()
         _settingsState.value = _settingsState.value.copy(autoDayNightSolar = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_AUTO_DAY_NIGHT_SOLAR] = enabled }
+        }
     }
 
     fun updateVoiceGreetings(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_VOICE_GREETINGS, enabled).apply()
         _settingsState.value = _settingsState.value.copy(voiceGreetingsEnabled = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_VOICE_GREETINGS] = enabled }
+        }
     }
 
     fun updateTtsVoiceId(context: Context, voiceId: String) {
         getPrefs(context).edit().putString(KEY_TTS_VOICE_ID, voiceId).apply()
         _settingsState.value = _settingsState.value.copy(ttsVoiceId = voiceId)
         com.antigravity.copilot.core.tts.AutomotiveVoiceAssistant.getInstance(context).reconfigureVoice()
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_TTS_VOICE_ID] = voiceId }
+        }
     }
 
     fun updateMediaPillEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_MEDIA_PILL_ENABLED, enabled).apply()
         _settingsState.value = _settingsState.value.copy(mediaPillEnabled = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_MEDIA_PILL_ENABLED] = enabled }
+        }
     }
 
     fun resetToDefaults(context: Context) {
         getPrefs(context).edit().clear().apply()
         _settingsState.value = SettingsState()
+        scope.launch {
+            SettingsDataStore.clear(context)
+        }
     }
 }

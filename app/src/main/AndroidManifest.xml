@@ -32,6 +32,8 @@
     <application
         android:name=".CopilotApp"
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:hasFragileUserData="true"
         android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true"

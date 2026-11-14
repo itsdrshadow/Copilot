@@ -181,7 +181,9 @@ object FullBackupManager {
                 "fuel_ai" to encodePrefs("fuel_ai_model_prefs"),
                 "vehicle_state" to encodePrefs("vehicle_state_prefs"),
                 "trip_lifecycle" to encodePrefs("trip_visual_lifecycle_prefs"),
-                "last_pos" to encodePrefs("driving_report_last_pos")
+                "last_pos" to encodePrefs("driving_report_last_pos"),
+                "last_completed_trip" to encodePrefs("last_completed_trip_prefs"),
+                "india_offline_map" to encodePrefs("india_offline_map_prefs")
             )
 
             // Check for India offline map manifest
@@ -439,6 +441,8 @@ object FullBackupManager {
                             "vehicle_state" -> "vehicle_state_prefs"
                             "trip_lifecycle" -> "trip_visual_lifecycle_prefs"
                             "last_pos" -> "driving_report_last_pos"
+                            "last_completed_trip" -> "last_completed_trip_prefs"
+                            "india_offline_map" -> "india_offline_map_prefs"
                             else -> if (prefKey.startsWith("driving_report_") || prefKey.endsWith("_prefs")) prefKey else "driving_report_${prefKey}_prefs"
                         }
                         val sp = context.getSharedPreferences(targetPrefName, Context.MODE_PRIVATE)
@@ -510,6 +514,7 @@ object FullBackupManager {
             }
             try {
                 AppSettingsManager.reload(context)
+                AppSettingsManager.migrateFromLegacyPreferences(context)
             } catch (e: Exception) {
                 Log.w(TAG, "Error reloading AppSettingsManager: ${e.message}")
             }

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.30.0] - 2026-11-15
+
+### Added
+- **Jetpack DataStore Persistent Settings Engine (`SettingsDataStore`)**: Integrated Jetpack Preferences DataStore providing crash-safe, atomic disk writes, thread-safe transactional updates, and reactive flow emissions for all 27 cockpit configurations and automotive settings.
+- **Enterprise Storage Migration Manager (`StorageMigrationManager`)**: Implemented version-safe startup orchestration maintaining an independent `CURRENT_STORAGE_VERSION = 1` across app updates; handles safe pre-validation, non-destructive schema migrations, database integrity checks (`PRAGMA quick_check`), and guaranteed user settings preservation.
+- **Comprehensive Automotive Backup Snapshotting**: Enhanced `PersistentDataManager` and `FullBackupManager` to mirror all 27 user settings, appearance preferences, vehicle specifications, last completed trip references, and odometer calibrations to durable mirror storage.
+- **Android Auto Backup & Data Extraction XML Rules**: Added `backup_rules.xml` and `data_extraction_rules.xml` defining explicit retention policies for Room databases, DataStore stores, and preferences across OS-level backups and app updates.
+- **Automated Storage & Migration Verification Test Suite (`PersistentStorageAndMigrationTest`)**: Added full unit test coverage validating sequential Room migrations (v1 through v8), storage version independence, preference defaults priority, and DataStore key integrity.
+
+### Changed
+- **Dual-Backed App Settings (`AppSettingsManager`)**: Refactored `AppSettingsManager` to synchronize in-memory StateFlow with Jetpack DataStore asynchronously while maintaining synchronous initial state and backward-compatible SharedPreferences bridging.
+- **Safe Application Startup (`CopilotApp`)**: Orchestrated ordered startup sequence ensuring `StorageMigrationManager` completes migration and settings hydration before the UI renders or foreground tracking services launch, preventing default-value overwrite race conditions.
+
+### Fixed
+- **App Update Data Loss Root Cause**: Permanently eliminated data and settings reset on APK upgrade by eradicating startup race conditions, removing destructive migration fallbacks, and ensuring existing user configurations take strict precedence over initial defaults.
+- **Room Database Destructive Fallback Elimination**: Removed `fallbackToDestructiveMigrationOnDowngrade` in `AppDatabase`, guaranteeing user databases and historical driving records are never wiped or destroyed during version transitions.
+
+---
+
 ## [1.29.1] - 2026-11-15
 
 ### Changed

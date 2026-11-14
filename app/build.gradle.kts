@@ -12,16 +12,16 @@ android {
         applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 52
-        versionName = "1.29.1"
+        versionCode = 53
+        versionName = "1.30.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "VERSION_NAME", "\"1.29.1\"")
-        buildConfigField("int", "VERSION_CODE", "52")
+        buildConfigField("String", "VERSION_NAME", "\"1.30.0\"")
+        buildConfigField("int", "VERSION_CODE", "53")
 
         kapt {
             arguments {
@@ -105,6 +105,9 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
+
+    // Jetpack DataStore (Preferences & Versioned Settings)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     // Map Engine: OSMDroid (Canvas rock-solid offline/online)
     implementation("org.osmdroid:osmdroid-android:6.1.18")

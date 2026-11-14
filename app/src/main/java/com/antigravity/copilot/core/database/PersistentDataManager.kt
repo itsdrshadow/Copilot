@@ -115,6 +115,44 @@ object PersistentDataManager {
                     edit.apply()
                 }
 
+                // 1a. Restore App Settings & Vehicle Profile
+                if (root.has("app_settings")) {
+                    try {
+                        val s = root.getJSONObject("app_settings")
+                        val settingsPrefs = context.getSharedPreferences("driving_report_settings_prefs", Context.MODE_PRIVATE)
+                        val sEdit = settingsPrefs.edit()
+                        for (key in s.keys()) {
+                            val v = s.get(key)
+                            when (v) {
+                                is Boolean -> sEdit.putBoolean(key, v)
+                                is Int -> sEdit.putInt(key, v)
+                                is Long -> sEdit.putLong(key, v)
+                                is Double -> sEdit.putFloat(key, v.toFloat())
+                                is Float -> sEdit.putFloat(key, v)
+                                is String -> sEdit.putString(key, v)
+                            }
+                        }
+                        sEdit.apply()
+                        com.antigravity.copilot.core.settings.AppSettingsManager.reload(context)
+                    } catch (se: Exception) {
+                        Log.w(TAG, "Error restoring app settings: ${se.message}")
+                    }
+                }
+
+                // 1a2. Restore Last Completed Trip Reference
+                if (root.has("last_completed_trip")) {
+                    try {
+                        val lct = root.getJSONObject("last_completed_trip")
+                        val lastTripPrefs = context.getSharedPreferences("last_completed_trip_prefs", Context.MODE_PRIVATE)
+                        lastTripPrefs.edit()
+                            .putLong("last_completed_trip_id", lct.optLong("last_completed_trip_id", -1L))
+                            .putLong("last_completed_trip_time", lct.optLong("last_completed_trip_time", 0L))
+                            .apply()
+                    } catch (le: Exception) {
+                        Log.w(TAG, "Error restoring last completed trip reference: ${le.message}")
+                    }
+                }
+
                 // 1b. Restore Odometer Calibrations
                 val odoPrefs = context.getSharedPreferences("driving_report_odometer_prefs", Context.MODE_PRIVATE)
                 if (root.has("odometer_prefs")) {
@@ -360,6 +398,46 @@ object PersistentDataManager {
                 odoObj.put("baseline_lifetime_km_at_update", baselineLifetime)
                 odoObj.put("is_manually_verified", odoPrefs.getBoolean("is_manually_verified", false))
                 root.put("odometer_prefs", odoObj)
+
+                // 1c. App Settings & Vehicle Profile
+                val settings = com.antigravity.copilot.core.settings.AppSettingsManager.settingsState.value
+                val sObj = JSONObject()
+                sObj.put("screen_always_on", settings.screenAlwaysOn)
+                sObj.put("auto_minimize_drawer", settings.autoMinimizeDrawer)
+                sObj.put("app_language", settings.language)
+                sObj.put("cockpit_theme", settings.cockpitTheme)
+                sObj.put("theme_appearance_mode", settings.themeAppearanceMode)
+                sObj.put("car_name", settings.carName)
+                sObj.put("fuel_type", settings.fuelType)
+                sObj.put("tank_capacity_liters", settings.tankCapacityLiters)
+                sObj.put("expected_mileage_kmpl", settings.expectedMileageKmpl)
+                sObj.put("default_geofence_radius", settings.defaultGeofenceRadiusMeters.toDouble())
+                sObj.put("stationary_speed_threshold", settings.stationarySpeedThresholdKmh.toDouble())
+                sObj.put("idle_duration_threshold", settings.idleDurationThresholdSeconds)
+                sObj.put("auto_trip_detection", settings.autoTripDetection)
+                sObj.put("engine_off_detection", settings.engineOffDetection)
+                sObj.put("station_stop_watchdog", settings.stationStopWatchdog)
+                sObj.put("station_dwell_seconds", settings.stationPromptDwellSeconds)
+                sObj.put("missed_refill_threshold", settings.missedRefillThresholdLiters)
+                sObj.put("dynamic_speed_limits", settings.dynamicSpeedLimits)
+                sObj.put("overspeed_alerts", settings.overspeedAlerts)
+                sObj.put("near_limit_warning", settings.nearLimitWarning)
+                sObj.put("driver_scoring_enabled", settings.driverScoring)
+                sObj.put("map_satellite_mode", settings.mapSatelliteMode)
+                sObj.put("map_dark_mode", settings.mapDarkMode)
+                sObj.put("map_building_footprints", settings.mapBuildingFootprints)
+                sObj.put("auto_day_night_solar", settings.autoDayNightSolar)
+                sObj.put("voice_greetings_enabled", settings.voiceGreetingsEnabled)
+                sObj.put("tts_voice_id", settings.ttsVoiceId)
+                sObj.put("media_pill_enabled", settings.mediaPillEnabled)
+                root.put("app_settings", sObj)
+
+                // 1d. Last Completed Trip Pointer
+                val lastTripPrefs = appContext.getSharedPreferences("last_completed_trip_prefs", Context.MODE_PRIVATE)
+                val lctObj = JSONObject()
+                lctObj.put("last_completed_trip_id", lastTripPrefs.getLong("last_completed_trip_id", -1L))
+                lctObj.put("last_completed_trip_time", lastTripPrefs.getLong("last_completed_trip_time", 0L))
+                root.put("last_completed_trip", lctObj)
 
                 // 2. Trips
                 val trips = db.tripDao().getAllTrips()
