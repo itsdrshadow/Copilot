@@ -1,39 +1,29 @@
 package com.antigravity.copilot.feature.dashboard
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.antigravity.copilot.core.database.TripEntity
-import com.antigravity.copilot.core.designsystem.*
+import com.antigravity.copilot.core.designsystem.CockpitTheme
 import com.antigravity.copilot.core.location.SpeedLimitInfo
 import com.antigravity.copilot.core.model.FuelState
 import com.antigravity.copilot.core.model.TripPoint
 import com.antigravity.copilot.core.model.TripSummary
 import com.antigravity.copilot.core.trip.TripVisualState
 import com.antigravity.copilot.feature.maps.LiveMapPanel
-import java.text.SimpleDateFormat
-import java.util.*
 
 /**
  * Automotive Cockpit Dashboard:
@@ -121,24 +111,26 @@ fun DashboardScreen(
         val isPortrait = screenWidth < screenHeight
         val isVeryCompact = screenHeight < 480.dp || (isPortrait && screenWidth < 500.dp)
         val itemSpacing = if (isVeryCompact) 6.dp else 8.dp
-        val dockHeight = if (isVeryCompact) 54.dp else 78.dp
-        val isNarrow = screenWidth < 700.dp
 
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(if (isVeryCompact) 6.dp else 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures { _, dragAmount ->
+                        if (dragAmount < -25f) {
+                            onOpenAppDrawer()
+                        }
+                    }
+                }
+                .padding(if (isVeryCompact) 6.dp else 8.dp)
         ) {
             if (isPortrait) {
                 // ==================== PORTRAIT VERTICAL COCKPIT ====================
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Map Panel (Top ~38%)
+                    // Map Panel (Top ~40%)
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
@@ -150,7 +142,7 @@ fun DashboardScreen(
                             .clip(RoundedCornerShape(if (isVeryCompact) 14.dp else 18.dp))
                     )
 
-                    // 2x2 Telemetry Cards
+                    // 2x2 Telemetry Cards (Bottom ~60%)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -212,9 +204,7 @@ fun DashboardScreen(
             } else {
                 // ==================== LANDSCAPE AUTOMOTIVE COCKPIT ====================
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
                     // Left Pane: Live Map (~52%)
@@ -290,24 +280,39 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(Modifier.height(if (isVeryCompact) 4.dp else 6.dp))
-
-            // ==================== PREMIUM BOTTOM ACTION DOCK ====================
-            PremiumBottomDock(
-                latestPoint = latestPoint,
-                selectedTab = selectedNavIndex,
-                onSelectCockpit = { onNavItemSelected(0) },
-                onSelectMap = onToggleFullMap,
-                onSelectTrips = { onNavItemSelected(2) },
-                onSelectFuelHistory = { onNavItemSelected(3) },
-                onOpenApps = onOpenAppDrawer,
-                onOpenSettings = onLaunchSettings,
+            // Right-edge subtle swipe affordance (touchable & visual hint for App Drawer)
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(dockHeight),
-                isVeryCompact = isVeryCompact,
-                isNarrow = isNarrow
-            )
+                    .align(Alignment.CenterEnd)
+                    .clip(RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp))
+                    .background(CockpitTheme.colors.card.copy(alpha = 0.85f))
+                    .border(
+                        width = 1.dp,
+                        color = CockpitTheme.colors.border,
+                        shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)
+                    )
+                    .clickable { onOpenAppDrawer() }
+                    .padding(horizontal = 6.dp, vertical = 18.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Apps,
+                        contentDescription = "Apps",
+                        tint = CockpitTheme.colors.accent,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ChevronLeft,
+                        contentDescription = "Swipe left to open all apps",
+                        tint = CockpitTheme.colors.textSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -355,187 +360,3 @@ fun PremiumDashboardScreen(
     onCalibrateMidBar = onCalibrateMidBar,
     modifier = modifier
 )
-
-@Composable
-private fun PremiumBottomDock(
-    @Suppress("UNUSED_PARAMETER") latestPoint: TripPoint?,
-    selectedTab: Int,
-    onSelectCockpit: () -> Unit,
-    @Suppress("UNUSED_PARAMETER") onSelectMap: () -> Unit = {},
-    onSelectTrips: () -> Unit,
-    onSelectFuelHistory: () -> Unit,
-    onOpenApps: () -> Unit,
-    onOpenSettings: () -> Unit,
-    modifier: Modifier = Modifier,
-    isVeryCompact: Boolean = false,
-    isNarrow: Boolean = false
-) {
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(if (isVeryCompact) 14.dp else 22.dp))
-            .background(CockpitTheme.colors.card)
-            .border(1.25.dp, CockpitTheme.colors.border, RoundedCornerShape(if (isVeryCompact) 14.dp else 22.dp))
-            .padding(horizontal = if (isVeryCompact) 10.dp else 16.dp, vertical = if (isVeryCompact) 4.dp else 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Navigation items
-        Row(
-            modifier = if (isNarrow) Modifier.weight(1f, fill = false).horizontalScroll(rememberScrollState()) else Modifier,
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 6.dp else 10.dp)
-        ) {
-            PremiumDockItem(
-                icon = Icons.Default.Dashboard,
-                label = "Cockpit",
-                isSelected = selectedTab == 0,
-                onClick = onSelectCockpit,
-                isVeryCompact = isVeryCompact
-            )
-            PremiumDockItem(
-                icon = Icons.Default.History,
-                label = "Trip History",
-                isSelected = selectedTab == 2,
-                onClick = onSelectTrips,
-                isVeryCompact = isVeryCompact
-            )
-            PremiumDockItem(
-                icon = Icons.Default.LocalGasStation,
-                label = "Fuel History",
-                isSelected = selectedTab == 3,
-                onClick = onSelectFuelHistory,
-                isVeryCompact = isVeryCompact
-            )
-            PremiumDockItem(
-                icon = Icons.Default.Apps,
-                label = "All Apps",
-                isSelected = false,
-                onClick = onOpenApps,
-                isVeryCompact = isVeryCompact
-            )
-            PremiumDockItem(
-                icon = Icons.Default.Settings,
-                label = "Settings",
-                isSelected = false,
-                onClick = onOpenSettings,
-                isVeryCompact = isVeryCompact
-            )
-        }
-
-        // Center Media Playback Pill (Local offline media player controls)
-        val appSettings by com.antigravity.copilot.core.settings.AppSettingsManager.settingsState.collectAsState()
-        if (appSettings.mediaPillEnabled) {
-            MediaPlaybackPill(
-                isVeryCompact = isVeryCompact,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
-        }
-
-        // Right Telemetry: Clock (Self-contained 1-second tick to prevent parent recomposition)
-        PremiumDockClock(isVeryCompact = isVeryCompact)
-    }
-}
-
-@Composable
-private fun PremiumDockClock(isVeryCompact: Boolean) {
-    val currentTime = remember { mutableStateOf(getFormattedTime()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(1000)
-            currentTime.value = getFormattedTime()
-        }
-    }
-    Text(
-        text = currentTime.value,
-        style = MaterialTheme.typography.titleLarge.copy(
-            fontWeight = FontWeight.Black,
-            fontFamily = FontFamily.SansSerif,
-            fontSize = if (isVeryCompact) 16.sp else 23.sp,
-            letterSpacing = (-0.5).sp
-        ),
-        color = CockpitTheme.colors.textPrimary,
-        modifier = Modifier.padding(end = if (isVeryCompact) 4.dp else 8.dp)
-    )
-}
-
-@Composable
-private fun PremiumDockItem(
-    icon: ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    isVeryCompact: Boolean = false,
-    accentColor: Color = CockpitTheme.colors.accent,
-    badgeCount: Int = 0
-) {
-    val bgColor by animateColorAsState(
-        targetValue = if (isSelected) CockpitTheme.colors.accentSoft else Color.Transparent,
-        animationSpec = tween(200),
-        label = "PremiumDockItemBg"
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (isSelected) accentColor else CockpitTheme.colors.textSecondary,
-        animationSpec = tween(200),
-        label = "PremiumDockItemContent"
-    )
-
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(if (isVeryCompact) 8.dp else 12.dp))
-            .background(bgColor)
-            .border(
-                width = 1.2.dp,
-                color = if (isSelected) accentColor.copy(alpha = 0.45f) else Color.Transparent,
-                shape = RoundedCornerShape(if (isVeryCompact) 8.dp else 12.dp)
-            )
-            .clickable { onClick() }
-            .padding(
-                horizontal = if (isVeryCompact) 10.dp else 16.dp,
-                vertical = if (isVeryCompact) 6.dp else 11.dp
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(if (isVeryCompact) 5.dp else 8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = contentColor,
-            modifier = Modifier.size(if (isVeryCompact) 16.dp else 24.dp)
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                fontSize = if (isVeryCompact) 10.5.sp else 16.sp
-            ),
-            color = contentColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        // Badge for due services
-        if (badgeCount > 0) {
-            Box(
-                modifier = Modifier
-                    .size(if (isVeryCompact) 16.dp else 20.dp)
-                    .clip(CircleShape)
-                    .background(CockpitTheme.colors.critical)
-                    .padding(start = if (isVeryCompact) 2.dp else 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = badgeCount.toString(),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Black,
-                        fontSize = if (isVeryCompact) 8.sp else 10.sp
-                    ),
-                    color = CockpitTheme.colors.onAccent
-                )
-            }
-        }
-    }
-}
-
-private fun getFormattedTime(): String {
-    val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
-    return sdf.format(Date())
-}

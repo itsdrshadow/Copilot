@@ -15,9 +15,9 @@ import org.junit.Test
 class DeadCodeCleanupVerificationTest {
 
     @Test
-    fun testAppVersionBumpedToSemVerPatch() {
-        assertEquals("1.23.1", BuildConfig.VERSION_NAME)
-        assertEquals(39, BuildConfig.VERSION_CODE)
+    fun testAppVersionBumpedToSemVerMinor() {
+        assertEquals("1.25.0", BuildConfig.VERSION_NAME)
+        assertEquals(42, BuildConfig.VERSION_CODE)
     }
 
     @Test

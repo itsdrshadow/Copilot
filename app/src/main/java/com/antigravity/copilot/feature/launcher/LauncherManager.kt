@@ -15,7 +15,25 @@ class LauncherManager(private val context: Context) {
     private val packageManager: PackageManager = context.packageManager
 
     companion object {
+        const val APPS_PER_PAGE = 12
+        const val GRID_COLUMNS = 3
+        const val GRID_ROWS = 4
+
         private val iconCache = LruCache<String, Bitmap>(200)
+
+        fun calculatePages(appCount: Int, pageSize: Int = APPS_PER_PAGE): Int {
+            if (appCount <= 0) return 1
+            return (appCount + pageSize - 1) / pageSize
+        }
+
+        fun <T> paginate(items: List<T>, pageSize: Int = APPS_PER_PAGE): List<List<T>> {
+            if (items.isEmpty()) return emptyList()
+            return items.chunked(pageSize)
+        }
+
+        fun clearIconCache() {
+            iconCache.evictAll()
+        }
     }
 
     suspend fun getInstalledApps(): List<AppDrawerItem> = withContext(Dispatchers.IO) {
@@ -60,7 +78,8 @@ class LauncherManager(private val context: Context) {
             )
         }
 
-        appList.sortedBy { it.label.lowercase() }
+        appList.distinctBy { "${it.packageName}/${it.activityName}" }
+            .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
     }
 
     fun launchApp(packageName: String, activityName: String) {

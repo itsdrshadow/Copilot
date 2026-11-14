@@ -45,7 +45,12 @@ import com.antigravity.copilot.feature.dashboard.DashboardScreen
 import com.antigravity.copilot.feature.fuel.FuelEntryDialog
 import com.antigravity.copilot.feature.fuel.FuelHistoryScreen
 import com.antigravity.copilot.feature.fuel.RefuelStationPromptDialog
-import com.antigravity.copilot.feature.launcher.AppDrawerDialog
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import com.antigravity.copilot.feature.launcher.AppDrawerScreen
+import com.antigravity.copilot.feature.launcher.LauncherManager
 import com.antigravity.copilot.feature.maps.LiveMapPanel
 import com.antigravity.copilot.feature.settings.LauncherSettingsDialog
 import com.antigravity.copilot.feature.splash.SplashViewModel
@@ -88,8 +93,25 @@ class MainActivity : ComponentActivity() {
         backupFilePickerLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
     }
 
+    private val packageReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            LauncherManager.clearIconCache()
+            viewModel.loadInstalledApps()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Register package change receiver to dynamically handle app install/uninstall
+        val packageFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_PACKAGE_ADDED)
+            addAction(Intent.ACTION_PACKAGE_REMOVED)
+            addAction(Intent.ACTION_PACKAGE_CHANGED)
+            addAction(Intent.ACTION_PACKAGE_REPLACED)
+            addDataScheme("package")
+        }
+        registerReceiver(packageReceiver, packageFilter)
 
         // Automotive Edge-to-Edge Immersive Sticky Mode (Hides status bar and gesture navigation)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -129,6 +151,14 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         WindowCompat.getInsetsController(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+        viewModel.loadInstalledApps()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(packageReceiver)
+        } catch (_: Exception) {}
     }
 
     private fun checkAndRequestPermissions() {
@@ -294,13 +324,30 @@ private fun MainAppScreen(
             }
         }
 
-        if (isAppDrawerOpen) {
-            AppDrawerDialog(
+        AnimatedVisibility(
+            visible = isAppDrawerOpen,
+            enter = slideInHorizontally(
+                initialOffsetX = { fullWidth -> fullWidth },
+                animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(280)),
+            exit = slideOutHorizontally(
+                targetOffsetX = { fullWidth -> fullWidth },
+                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(220))
+        ) {
+            val appSettings by AppSettingsManager.settingsState.collectAsState()
+            AppDrawerScreen(
                 apps = installedApps,
                 onAppClick = { app ->
                     viewModel.launchApp(app.packageName, app.activityName)
+                    if (appSettings.autoMinimizeDrawer) {
+                        viewModel.setAppDrawerOpen(false)
+                    }
                 },
-                onDismiss = { viewModel.setAppDrawerOpen(false) }
+                onBackToHome = { viewModel.setAppDrawerOpen(false) },
+                onOpenSettings = { viewModel.setSettingsDialogOpen(true) },
+                onOpenTrips = { viewModel.selectTab(2) },
+                onOpenFuel = { viewModel.selectTab(3) }
             )
         }
 
