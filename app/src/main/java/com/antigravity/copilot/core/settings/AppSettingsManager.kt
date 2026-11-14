@@ -3,6 +3,7 @@ package com.antigravity.copilot.core.settings
 import android.content.Context
 import android.content.SharedPreferences
 import com.antigravity.copilot.core.designsystem.CockpitThemeMode
+import com.antigravity.copilot.core.designsystem.UiScaleMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +23,7 @@ object AppSettingsManager {
     private const val KEY_COCKPIT_THEME = "cockpit_theme"
     private const val KEY_LAST_STABLE_THEME = "last_stable_cockpit_theme"
     private const val KEY_THEME_APPEARANCE_MODE = "theme_appearance_mode"
+    private const val KEY_UI_SCALE = "ui_scale_mode"
 
     // Vehicle
     private const val KEY_CAR_NAME = "car_name"
@@ -82,13 +84,20 @@ object AppSettingsManager {
         val autoDayNightSolar: Boolean = true,
         val voiceGreetingsEnabled: Boolean = true,
         val ttsVoiceId: String = "en_in_natural_female",
-        val mediaPillEnabled: Boolean = true
+        val mediaPillEnabled: Boolean = true,
+        val uiScale: String = UiScaleMode.DEFAULT.id
     ) {
         val cockpitThemeMode: CockpitThemeMode
             get() = CockpitThemeMode.fromId(cockpitTheme)
 
         val appearanceMode: com.antigravity.copilot.core.designsystem.ThemeAppearanceMode
             get() = com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.fromId(themeAppearanceMode)
+
+        val uiScaleMode: UiScaleMode
+            get() = UiScaleMode.fromId(uiScale)
+
+        val uiScaleFactor: Float
+            get() = uiScaleMode.scaleFactor
     }
 
     private val _settingsState = MutableStateFlow(SettingsState())
@@ -131,7 +140,8 @@ object AppSettingsManager {
             autoDayNightSolar = prefs.getBoolean(KEY_AUTO_DAY_NIGHT_SOLAR, true),
             voiceGreetingsEnabled = prefs.getBoolean(KEY_VOICE_GREETINGS, true),
             ttsVoiceId = prefs.getString(KEY_TTS_VOICE_ID, "en_in_natural_female") ?: "en_in_natural_female",
-            mediaPillEnabled = prefs.getBoolean(KEY_MEDIA_PILL_ENABLED, true)
+            mediaPillEnabled = prefs.getBoolean(KEY_MEDIA_PILL_ENABLED, true),
+            uiScale = prefs.getString(KEY_UI_SCALE, UiScaleMode.DEFAULT.id) ?: UiScaleMode.DEFAULT.id
         )
         isInitialized = true
     }
@@ -327,6 +337,11 @@ object AppSettingsManager {
     fun updateMediaPillEnabled(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_MEDIA_PILL_ENABLED, enabled).apply()
         _settingsState.value = _settingsState.value.copy(mediaPillEnabled = enabled)
+    }
+
+    fun updateUiScale(context: Context, mode: UiScaleMode) {
+        getPrefs(context).edit().putString(KEY_UI_SCALE, mode.id).apply()
+        _settingsState.value = _settingsState.value.copy(uiScale = mode.id)
     }
 
     fun resetToDefaults(context: Context) {

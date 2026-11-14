@@ -106,8 +106,9 @@ fun DashboardScreen(
         val screenHeight = maxHeight
         val screenWidth = maxWidth
         val isPortrait = screenWidth < screenHeight
-        val isVeryCompact = screenHeight < 480.dp || (isPortrait && screenWidth < 500.dp)
-        val itemSpacing = if (isVeryCompact) 6.dp else 8.dp
+        val scaling = CockpitTheme.scaling
+        val isVeryCompact = screenHeight < 480.dp || (isPortrait && screenWidth < 500.dp) || scaling.mode == com.antigravity.copilot.core.designsystem.UiScaleMode.EXTRA_LARGE
+        val itemSpacing = scaling.itemSpacing
 
         Box(
             modifier = Modifier

@@ -418,6 +418,7 @@ fun SpeedometerCluster(
                                 letterSpacing = 0.4.sp
                             ),
                             maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             softWrap = false,
                             color = when {
                                 !isGpsValid -> textSecondary

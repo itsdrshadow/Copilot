@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -41,7 +42,8 @@ import com.antigravity.copilot.core.settings.AppSettingsManager
 import com.antigravity.copilot.core.util.NumberFormatUtils
 
 enum class SettingsTab(val title: String, val icon: ImageVector, val subtitle: String) {
-    GENERAL("General", Icons.Default.Tune, "Theme, screen & system preferences"),
+    GENERAL("General", Icons.Default.Tune, "Screen & system preferences"),
+    APPEARANCE("Appearance", Icons.Default.Palette, "UI scaling, text size & cockpit theme"),
     VEHICLE("Vehicle", Icons.Default.DirectionsCar, "Vehicle profile, fuel & odometer"),
     TRACKING("Tracking", Icons.Default.GpsFixed, "GPS telemetry, trips & watchdog"),
     GEOFENCES("Trip Geofences", Icons.Default.Place, "Configured locations & automatic lifecycle"),
@@ -265,6 +267,9 @@ fun LauncherSettingsDialog(
                                         state = settingsState,
                                         onToggleScreenAlwaysOn = { AppSettingsManager.updateScreenAlwaysOn(context, it) },
                                         onToggleAutoMinimize = { AppSettingsManager.updateAutoMinimizeDrawer(context, it) }
+                                    )
+                                    SettingsTab.APPEARANCE -> AppearanceSettingsContent(
+                                        state = settingsState
                                     )
                                     SettingsTab.VEHICLE -> VehicleSettingsContent(
                                         currentFuelState = currentFuelState,
@@ -593,6 +598,248 @@ private fun GeneralSettingsContent(
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = Color(0xFF35BDF5)
             )
+        }
+    }
+}
+
+// ==================== TAB: APPEARANCE ====================
+
+@Composable
+private fun AppearanceSettingsContent(
+    state: AppSettingsManager.SettingsState
+) {
+    val context = LocalContext.current
+    val currentMode = state.uiScaleMode
+
+    // 1. UI & TEXT SIZE SETTING
+    SettingsCard(
+        title = "UI & Text Size",
+        icon = Icons.Default.TextFields
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(
+                text = "Scale launcher UI components, typography, cards, and docks for optimal in-car readability.",
+                style = MaterialTheme.typography.bodySmall,
+                color = CockpitTheme.colors.textSecondary
+            )
+
+            // Selector Cards for 4 scaling levels
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                UiScaleMode.values().forEach { mode ->
+                    val isSelected = currentMode == mode
+                    val activeBg = CockpitTheme.colors.accentSoft
+                    val inactiveBg = CockpitTheme.colors.cardElevated
+                    val activeBorder = CockpitTheme.colors.accent
+                    val inactiveBorder = CockpitTheme.colors.border
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isSelected) activeBg else inactiveBg)
+                            .border(
+                                width = if (isSelected) 1.5.dp else 1.dp,
+                                color = if (isSelected) activeBorder else inactiveBorder,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable {
+                                AppSettingsManager.updateUiScale(context, mode)
+                            }
+                            .padding(horizontal = 10.dp, vertical = 12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            // Top Row: Scaled preview glyph + Selected indicator
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Aa",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontSize = (15 * mode.scaleFactor).sp,
+                                        fontWeight = FontWeight.Black
+                                    ),
+                                    color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
+                                )
+
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Selected",
+                                        tint = CockpitTheme.colors.accent,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .clip(CircleShape)
+                                            .border(1.dp, CockpitTheme.colors.border, CircleShape)
+                                    )
+                                }
+                            }
+
+                            // Option Label
+                            Text(
+                                text = mode.displayName,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary,
+                                textAlign = TextAlign.Center
+                            )
+
+                            // Scale Factor Badge
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (isSelected) CockpitTheme.colors.accent.copy(alpha = 0.2f)
+                                        else CockpitTheme.colors.card
+                                    )
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "${String.format(java.util.Locale.US, "%.2f", mode.scaleFactor)}×",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    ),
+                                    color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary
+                                )
+                            }
+
+                            // Subtitle description
+                            Text(
+                                text = when (mode) {
+                                    UiScaleMode.SMALL -> "Small"
+                                    UiScaleMode.DEFAULT -> "Default"
+                                    UiScaleMode.LARGE -> "Large"
+                                    UiScaleMode.EXTRA_LARGE -> "Extra Large"
+                                },
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = CockpitTheme.colors.textSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Live Interactive Preview Box
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(CockpitTheme.colors.cardElevated)
+                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "LIVE SCALING PREVIEW",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp
+                            ),
+                            color = CockpitTheme.colors.accent
+                        )
+                        Text(
+                            text = "Speed 120 km/h • Fuel 48.0 L • Lifetime 1,420 km",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = CockpitTheme.colors.textPrimary
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(CockpitTheme.colors.accentSoft)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Active: ${currentMode.displayName} (${currentMode.scaleFactor}×)",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = CockpitTheme.colors.accent
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. DASHBOARD THEME
+    SettingsCard(title = "Cockpit Color Theme", icon = Icons.Default.Palette) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Cockpit Color Theme",
+                style = MaterialTheme.typography.titleSmall,
+                color = CockpitTheme.colors.textPrimary
+            )
+
+            listOf(
+                Triple(
+                    CockpitThemeMode.APEX,
+                    CockpitThemeMode.APEX.displayName,
+                    listOf(Apex_Background, Apex_CardSurface, Apex_PrimaryAccent)
+                )
+            ).forEach { (mode, name, swatches) ->
+                val isSelected = state.cockpitThemeMode == mode
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSelected) CockpitTheme.colors.accentSoft else CockpitTheme.colors.cardElevated)
+                        .border(
+                            width = 1.2.dp,
+                            color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clickable { AppSettingsManager.updateCockpitTheme(context, mode) }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = name,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
+                        )
+                        Text(
+                            text = mode.subtitle,
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                            color = CockpitTheme.colors.textSecondary
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        swatches.forEach { color ->
+                            Box(
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(1.dp, CockpitTheme.colors.border, CircleShape)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

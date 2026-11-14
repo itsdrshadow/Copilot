@@ -181,16 +181,17 @@ fun AppDrawer3x4Grid(
     modifier: Modifier = Modifier,
     onAppClick: (AppDrawerItem) -> Unit
 ) {
+    val scaling = CockpitTheme.scaling
     Column(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(scaling.appDrawerGridVerticalSpacing)
     ) {
         for (rowIndex in 0 until LauncherManager.GRID_ROWS) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(scaling.appDrawerGridHorizontalSpacing)
             ) {
                 for (colIndex in 0 until LauncherManager.GRID_COLUMNS) {
                     val itemIndex = rowIndex * LauncherManager.GRID_COLUMNS + colIndex
@@ -230,6 +231,7 @@ fun AppGridItem(
     val imageBitmap = remember(app.packageName, app.activityName) {
         app.iconBitmap?.asImageBitmap()
     }
+    val scaling = CockpitTheme.scaling
 
     Box(
         modifier = modifier.fillMaxSize(),
@@ -249,13 +251,13 @@ fun AppGridItem(
                     bitmap = imageBitmap,
                     contentDescription = app.label,
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(scaling.appDrawerIconSize)
                         .clip(RoundedCornerShape(12.dp))
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
+                        .size(scaling.appDrawerIconSize)
                         .clip(RoundedCornerShape(12.dp))
                         .background(CockpitTheme.colors.cardElevated)
                         .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp)),
@@ -265,28 +267,28 @@ fun AppGridItem(
                         text = app.label.take(1).uppercase(),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 20.sp
+                            fontSize = (scaling.appDrawerIconSize.value * 0.44f).sp
                         ),
                         color = CockpitTheme.colors.accent
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(3.dp))
 
             // App Label underneath the icon
             Text(
                 text = app.label,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 11.5.sp,
-                    lineHeight = 14.sp
+                    fontSize = scaling.appDrawerLabelSize,
+                    lineHeight = (scaling.appDrawerLabelSize.value * 1.2f).sp
                 ),
                 color = CockpitTheme.colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(max = 120.dp)
+                modifier = Modifier.widthIn(max = 130.dp)
             )
         }
     }
@@ -308,20 +310,23 @@ fun AppDrawerHeader(
     onOpenFuel: () -> Unit = {},
     isVeryCompact: Boolean = false
 ) {
+    val scaling = CockpitTheme.scaling
+    val isExtraLarge = scaling.mode == UiScaleMode.EXTRA_LARGE
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(CockpitTheme.colors.card)
             .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(16.dp))
-            .padding(horizontal = 16.dp, vertical = if (isVeryCompact) 7.dp else 11.dp),
+            .padding(horizontal = 14.dp, vertical = if (isVeryCompact) 6.dp else 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Left: Cockpit navigation pill + Title & app count
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier
@@ -329,21 +334,24 @@ fun AppDrawerHeader(
                     .background(CockpitTheme.colors.accentSoft)
                     .border(1.2.dp, CockpitTheme.colors.accent.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
                     .clickable { onBackToHome() }
-                    .padding(horizontal = 16.dp, vertical = if (isVeryCompact) 8.dp else 11.dp),
+                    .padding(
+                        horizontal = (scaling.dockPillPaddingHorizontal.value + 1).dp,
+                        vertical = if (isVeryCompact) 7.dp else scaling.dockPillPaddingVertical
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Dashboard,
                     contentDescription = "Cockpit",
                     tint = CockpitTheme.colors.accent,
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size((scaling.dockIconSize.value + 2).dp)
                 )
                 Text(
                     text = "Cockpit",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
-                        fontSize = 15.sp
+                        fontSize = (scaling.dockTextSize.value + 1.5f).sp
                     ),
                     color = CockpitTheme.colors.accent
                 )
@@ -355,23 +363,23 @@ fun AppDrawerHeader(
                         text = "All Applications",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = if (isVeryCompact) 17.sp else 21.sp
+                            fontSize = if (isVeryCompact || isExtraLarge) 18.sp else 21.sp
                         ),
                         color = CockpitTheme.colors.textPrimary
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(CockpitTheme.colors.cardElevated)
                             .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                            .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = "$totalAppsCount apps",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
+                                fontSize = 11.5.sp
                             ),
                             color = CockpitTheme.colors.accent
                         )
@@ -381,7 +389,7 @@ fun AppDrawerHeader(
                     Text(
                         text = "Page ${pageIndex + 1} of $totalPages • Swipe left/right",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Medium
                         ),
                         color = CockpitTheme.colors.textSecondary
@@ -393,7 +401,7 @@ fun AppDrawerHeader(
         // Center / Right: Search & Quick Navigation Pill Buttons (Larger Icon + Text)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedTextField(
                 value = searchQuery,
@@ -402,7 +410,7 @@ fun AppDrawerHeader(
                     Text(
                         "Search apps...",
                         color = CockpitTheme.colors.textDisabled,
-                        fontSize = 13.sp
+                        fontSize = 12.5.sp
                     )
                 },
                 leadingIcon = {
@@ -410,7 +418,7 @@ fun AppDrawerHeader(
                         Icons.Default.Search,
                         contentDescription = null,
                         tint = CockpitTheme.colors.textSecondary,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 },
                 trailingIcon = {
@@ -427,7 +435,7 @@ fun AppDrawerHeader(
                 },
                 singleLine = true,
                 modifier = Modifier
-                    .width(if (isVeryCompact) 170.dp else 230.dp)
+                    .width(if (isVeryCompact || isExtraLarge) 160.dp else 220.dp)
                     .height(if (isVeryCompact) 42.dp else 48.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -447,21 +455,24 @@ fun AppDrawerHeader(
                     .background(CockpitTheme.colors.cardElevated)
                     .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
                     .clickable { onOpenTrips() }
-                    .padding(horizontal = 15.dp, vertical = if (isVeryCompact) 8.dp else 11.dp),
+                    .padding(
+                        horizontal = scaling.dockPillPaddingHorizontal,
+                        vertical = if (isVeryCompact) 7.dp else scaling.dockPillPaddingVertical
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Icon(
                     Icons.Default.History,
                     contentDescription = "Trips",
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(scaling.dockIconSize)
                 )
                 Text(
                     text = "Trips",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.5.sp
+                        fontSize = scaling.dockTextSize
                     ),
                     color = CockpitTheme.colors.textPrimary
                 )
@@ -474,21 +485,24 @@ fun AppDrawerHeader(
                     .background(CockpitTheme.colors.cardElevated)
                     .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
                     .clickable { onOpenFuel() }
-                    .padding(horizontal = 15.dp, vertical = if (isVeryCompact) 8.dp else 11.dp),
+                    .padding(
+                        horizontal = scaling.dockPillPaddingHorizontal,
+                        vertical = if (isVeryCompact) 7.dp else scaling.dockPillPaddingVertical
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Icon(
                     Icons.Default.LocalGasStation,
                     contentDescription = "Fuels",
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(scaling.dockIconSize)
                 )
                 Text(
                     text = "Fuels",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.5.sp
+                        fontSize = scaling.dockTextSize
                     ),
                     color = CockpitTheme.colors.textPrimary
                 )
@@ -501,21 +515,24 @@ fun AppDrawerHeader(
                     .background(CockpitTheme.colors.cardElevated)
                     .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
                     .clickable { onOpenSettings() }
-                    .padding(horizontal = 15.dp, vertical = if (isVeryCompact) 8.dp else 11.dp),
+                    .padding(
+                        horizontal = scaling.dockPillPaddingHorizontal,
+                        vertical = if (isVeryCompact) 7.dp else scaling.dockPillPaddingVertical
+                    ),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 Icon(
                     Icons.Default.Settings,
                     contentDescription = "Settings",
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(19.dp)
+                    modifier = Modifier.size(scaling.dockIconSize)
                 )
                 Text(
                     text = "Settings",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.5.sp
+                        fontSize = scaling.dockTextSize
                     ),
                     color = CockpitTheme.colors.textPrimary
                 )
