@@ -1,7 +1,8 @@
 # Project Rules & Development Discipline
 
-## 1. Mandatory Git Version Control Discipline
+## 1. Mandatory Git Version Control & Tagging Discipline
 - **Strict Requirement**: Koi bhi bug fix ho, patch ho, feature add ho ya remove ho — sabhi changes ke liye Git me commit karna anivarya (mandatory) hai.
+- **Git Tagging Requirement**: Har version release, bump (`versionName`) ya significant milestone ke liye matching Git tag (`vX.Y.Z`) create karna mandatory hai (e.g. `git tag -a v1.23.1 -m "Release v1.23.1"`). Kabhi bhi tag creation miss mat karo.
 - **No Uncommitted Work**: Kabhi bhi completed ya verified task ko uncommitted ya untracked state me mat chhodo. Har change ko proper conventional commit ke sath save karo (`feat`, `fix`, `refactor`, `chore`, `docs`).
 - **Build Verification**: Commit karne se pehle compile ya build check jarur verify karo.
 
