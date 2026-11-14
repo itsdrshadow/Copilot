@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.29.1] - 2026-11-15
+
+### Changed
+- **Current Trip Card Tap Target**: Removed the separate "SUMMARY" pill button from the card header; made the entire `CurrentTripCard` directly clickable (`onClick = onOpenTripSummary`) for effortless one-touch access to trip reports while driving.
+- **Trip Summary Big Numbers Telemetry Redesign**: Re-engineered `SmartTripSummaryScreen` into a high-impact, glanceable automotive dashboard featuring large prominent numbers (`42sp`–`46sp` for Total Distance, Trip Duration, Average Speed, and Peak Speed). Added structured breakdown cards for driving vs stopped motion, driver rating score, fuel burn, and cruising efficiency.
+
+### Removed
+- **Verbose AI Insight Descriptions**: Completely purged paragraph-length text descriptions and explanatory AI cards (`AiTripInsightsCard`) in favor of direct, large-format numerical metrics optimized for automotive head-units.
+
+---
+
 ## [1.29.0] - 2026-11-15
 
 ### Added

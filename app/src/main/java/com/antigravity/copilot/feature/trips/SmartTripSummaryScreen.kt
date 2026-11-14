@@ -94,10 +94,10 @@ fun SmartTripSummaryScreen(
                         .weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Left Column: Interactive Map + Quick Metrics Dock (~48% width)
+                    // Left Column: Interactive Map + Corridor Overview (~46% width)
                     Column(
                         modifier = Modifier
-                            .weight(1.05f)
+                            .weight(1.0f)
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -111,40 +111,48 @@ fun SmartTripSummaryScreen(
                                 .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(16.dp))
                         )
 
-                        // Quick Glance 4-Metric Dock under Map
-                        QuickGlanceDock(
-                            overview = report.overview
+                        // Route Corridor & GPS Quality Under Map
+                        TripCorridorDock(
+                            overview = report.overview,
+                            gpsQuality = report.drivingStats.gpsQuality
                         )
                     }
 
-                    // Right Column: Scrollable Deep-Dive Cards (~52% width)
+                    // Right Column: Big Numbers Telemetry Dashboard (~54% width)
                     LazyColumn(
                         modifier = Modifier
-                            .weight(1.15f)
+                            .weight(1.18f)
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         item {
-                            TripOverviewCard(overview = report.overview)
+                            PrimaryTripMetricsCard(overview = report.overview)
                         }
 
                         item {
-                            AiTripInsightsCard(
-                                insights = report.aiInsights,
-                                score = report.overview.maxSpeedKmh
+                            MotionAndDriverRatingCard(
+                                overview = report.overview,
+                                stats = report.drivingStats
                             )
                         }
 
                         item {
-                            DrivingStatisticsCard(stats = report.drivingStats, overview = report.overview)
+                            FuelAndEfficiencyCard(
+                                fuelReport = report.fuelReport,
+                                stats = report.drivingStats
+                            )
                         }
 
-                        item {
-                            FuelReportCard(fuelReport = report.fuelReport)
+                        if (report.fuelReport.hasRefuel) {
+                            item {
+                                FuelReportCard(fuelReport = report.fuelReport)
+                            }
                         }
 
-                        item {
-                            TripTimelineCard(events = report.timelineEvents)
+                        if (report.timelineEvents.isNotEmpty()) {
+                            item {
+                                TripTimelineCard(events = report.timelineEvents)
+                            }
                         }
                     }
                 }
@@ -169,27 +177,40 @@ fun SmartTripSummaryScreen(
                     }
 
                     item {
-                        QuickGlanceDock(overview = report.overview)
+                        TripCorridorDock(
+                            overview = report.overview,
+                            gpsQuality = report.drivingStats.gpsQuality
+                        )
                     }
 
                     item {
-                        TripOverviewCard(overview = report.overview)
+                        PrimaryTripMetricsCard(overview = report.overview)
                     }
 
                     item {
-                        AiTripInsightsCard(insights = report.aiInsights, score = report.overview.maxSpeedKmh)
+                        MotionAndDriverRatingCard(
+                            overview = report.overview,
+                            stats = report.drivingStats
+                        )
                     }
 
                     item {
-                        DrivingStatisticsCard(stats = report.drivingStats, overview = report.overview)
+                        FuelAndEfficiencyCard(
+                            fuelReport = report.fuelReport,
+                            stats = report.drivingStats
+                        )
                     }
 
-                    item {
-                        FuelReportCard(fuelReport = report.fuelReport)
+                    if (report.fuelReport.hasRefuel) {
+                        item {
+                            FuelReportCard(fuelReport = report.fuelReport)
+                        }
                     }
 
-                    item {
-                        TripTimelineCard(events = report.timelineEvents)
+                    if (report.timelineEvents.isNotEmpty()) {
+                        item {
+                            TripTimelineCard(events = report.timelineEvents)
+                        }
                     }
                 }
             }
@@ -284,7 +305,7 @@ private fun TopSummaryHeader(
                 }
 
                 Text(
-                    text = "${report.overview.startLocation} â†’ ${report.overview.endLocation} â€¢ ${report.overview.timeRangeFormatted}",
+                    text = "${report.overview.startLocation.ifBlank { "Origin" }} - ${report.overview.endLocation.ifBlank { "Destination" }} | ${report.overview.timeRangeFormatted}",
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = 11.5.sp
                     ),
@@ -339,8 +360,9 @@ private fun TopSummaryHeader(
 }
 
 @Composable
-private fun QuickGlanceDock(
-    overview: TripOverviewData
+private fun TripCorridorDock(
+    overview: TripOverviewData,
+    gpsQuality: GpsQualityData
 ) {
     Row(
         modifier = Modifier
@@ -348,288 +370,172 @@ private fun QuickGlanceDock(
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF0F172A))
             .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(14.dp))
-            .padding(vertical = 10.dp, horizontal = 12.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        QuickMetricItem(
-            label = "DISTANCE",
-            value = "%.2f".format(Locale.US, overview.distanceKm),
-            unit = "KM",
-            color = Color(0xFF00E5FF)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.DirectionsCar,
+                contentDescription = null,
+                tint = Color(0xFF38BDF8),
+                modifier = Modifier.size(20.dp)
+            )
+            Column {
+                Text(
+                    text = "${overview.startLocation.ifBlank { "Origin" }} - ${overview.endLocation.ifBlank { "Destination" }}",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    ),
+                    color = Color.White,
+                    maxLines = 1
+                )
+                Text(
+                    text = "${overview.departureTimeFormatted} – ${overview.arrivalTimeFormatted}",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        color = Color(0xFF94A3B8)
+                    ),
+                    maxLines = 1
+                )
+            }
+        }
 
-        Divider(
+        Box(
             modifier = Modifier
-                .height(28.dp)
-                .width(1.dp),
-            color = Color(0xFF1E293B)
-        )
-
-        QuickMetricItem(
-            label = "DURATION",
-            value = overview.durationFormatted,
-            unit = "",
-            color = Color(0xFF38BDF8)
-        )
-
-        Divider(
-            modifier = Modifier
-                .height(28.dp)
-                .width(1.dp),
-            color = Color(0xFF1E293B)
-        )
-
-        QuickMetricItem(
-            label = "AVG SPEED",
-            value = "%.1f".format(Locale.US, overview.avgSpeedKmh),
-            unit = "KM/H",
-            color = Color(0xFF10B981)
-        )
-
-        Divider(
-            modifier = Modifier
-                .height(28.dp)
-                .width(1.dp),
-            color = Color(0xFF1E293B)
-        )
-
-        QuickMetricItem(
-            label = "PEAK SPEED",
-            value = "%.1f".format(Locale.US, overview.maxSpeedKmh),
-            unit = "KM/H",
-            color = Color(0xFFF59E0B)
-        )
+                .clip(RoundedCornerShape(6.dp))
+                .background(Color(0xFF10B981).copy(alpha = 0.16f))
+                .border(1.dp, Color(0xFF10B981).copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = "GPS: ${gpsQuality.qualityRating}",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 10.sp
+                ),
+                color = Color(0xFF10B981)
+            )
+        }
     }
 }
 
 @Composable
-private fun QuickMetricItem(
+private fun PrimaryTripMetricsCard(overview: TripOverviewData) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.verticalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A))))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Row 1: TOTAL TRIP KM & TRIP TIME
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                BigMetricTile(
+                    label = "TOTAL TRIP KM",
+                    value = "%.2f".format(Locale.US, overview.distanceKm),
+                    unit = "KM",
+                    valueColor = Color(0xFF38BDF8),
+                    modifier = Modifier.weight(1f)
+                )
+
+                BigMetricTile(
+                    label = "TRIP TIME",
+                    value = overview.durationFormatted,
+                    unit = "",
+                    valueColor = Color(0xFFFFFFFF),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Row 2: AVG SPEED & MAX SPEED
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                BigMetricTile(
+                    label = "AVG SPEED",
+                    value = "%.1f".format(Locale.US, overview.avgSpeedKmh),
+                    unit = "KM/H",
+                    valueColor = Color(0xFF10B981),
+                    modifier = Modifier.weight(1f)
+                )
+
+                BigMetricTile(
+                    label = "MAX SPEED",
+                    value = "%.1f".format(Locale.US, overview.maxSpeedKmh),
+                    unit = "KM/H",
+                    valueColor = Color(0xFFF59E0B),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BigMetricTile(
     label: String,
     value: String,
     unit: String,
-    color: Color
+    valueColor: Color,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF142036))
+            .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 9.sp,
-                letterSpacing = 0.6.sp
-            ),
-            color = Color(0xFF64748B)
-        )
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium.copy(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Black,
-                    fontSize = 17.sp,
-                    fontFamily = FontFamily.Monospace
+                    fontSize = 11.sp,
+                    letterSpacing = 0.8.sp
                 ),
-                color = color
+                color = Color(0xFF94A3B8),
+                maxLines = 1
             )
-            if (unit.isNotBlank()) {
-                Text(
-                    text = unit,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp
-                    ),
-                    color = Color(0xFF94A3B8),
-                    modifier = Modifier.padding(bottom = 2.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TripOverviewCard(overview: TripOverviewData) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.verticalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A))))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "TRIP ROUTE & DWELL OVERVIEW",
-                    style = MaterialTheme.typography.labelMedium.copy(
+                    text = value,
+                    style = MaterialTheme.typography.displaySmall.copy(
                         fontWeight = FontWeight.Black,
-                        fontSize = 10.5.sp,
-                        letterSpacing = 0.8.sp
+                        fontSize = 42.sp,
+                        fontFamily = FontFamily.Monospace
                     ),
-                    color = Color(0xFF38BDF8)
+                    color = valueColor,
+                    maxLines = 1
                 )
-                Text(
-                    text = "${overview.stopCount} STOPS DETECTED",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.5.sp,
-                        color = Color(0xFFF59E0B)
-                    )
-                )
-            }
-
-            // Route Corridor
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFF1E293B).copy(alpha = 0.5f))
-                    .padding(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsCar,
-                    contentDescription = null,
-                    tint = Color(0xFF00E5FF),
-                    modifier = Modifier.size(24.dp)
-                )
-                Column(modifier = Modifier.weight(1f)) {
+                if (unit.isNotBlank()) {
                     Text(
-                        text = "FROM: ${overview.startLocation}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
-                    )
-                    Text(
-                        text = "TO: ${overview.endLocation}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF00E676)
-                    )
-                }
-            }
-
-            // Moving vs Stopped Time Progress Split Bar
-            val movingMin = overview.drivingDurationMs / 60000L
-            val stoppedMin = overview.stationaryDurationMs / 60000L
-            val totalMin = kotlin.math.max(1L, movingMin + stoppedMin)
-            val movingRatio = (movingMin.toFloat() / totalMin.toFloat()).coerceIn(0.05f, 0.95f)
-
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Moving: ${movingMin}m",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF10B981)
-                    )
-                    Text(
-                        text = "Stopped: ${stoppedMin}m",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFFF59E0B)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(movingRatio)
-                            .fillMaxHeight()
-                            .background(Color(0xFF10B981))
-                    )
-                    Box(
-                        modifier = Modifier
-                            .weight(1f - movingRatio)
-                            .fillMaxHeight()
-                            .background(Color(0xFFF59E0B))
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AiTripInsightsCard(
-    insights: List<AiInsightItem>,
-    score: Double
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B132B)),
-        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.horizontalGradient(listOf(Color(0xFF00E5FF).copy(alpha = 0.4f), Color(0xFF6366F1).copy(alpha = 0.4f))))
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = "AI",
-                        tint = Color(0xFF00E5FF),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "AI SMART TRIP INSIGHTS",
+                        text = unit,
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
-                            letterSpacing = 0.8.sp
+                            fontSize = 14.sp
                         ),
-                        color = Color(0xFF00E5FF)
+                        color = valueColor.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(bottom = 6.dp)
                     )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFF6366F1).copy(alpha = 0.25f))
-                        .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "DETERMINISTIC EDGE AI",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 8.5.sp
-                        ),
-                        color = Color(0xFF818CF8)
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                insights.forEach { item ->
-                    InsightRowItem(item = item)
                 }
             }
         }
@@ -637,89 +543,18 @@ private fun AiTripInsightsCard(
 }
 
 @Composable
-private fun InsightRowItem(item: AiInsightItem) {
-    val categoryIcon = when (item.category) {
-        InsightCategory.EFFICIENCY -> Icons.Default.EnergySavingsLeaf
-        InsightCategory.SPEED -> Icons.Default.Speed
-        InsightCategory.STATIONARY -> Icons.Default.HourglassBottom
-        InsightCategory.HISTORICAL -> Icons.Default.QueryStats
-        InsightCategory.TERRAIN -> Icons.Default.Terrain
-        InsightCategory.RECOMMENDATION -> Icons.Default.TipsAndUpdates
-    }
-
-    val iconTint = if (item.isPositive) Color(0xFF10B981) else Color(0xFFF59E0B)
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF0F172A).copy(alpha = 0.7f))
-            .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(10.dp))
-            .padding(10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(iconTint.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = categoryIcon,
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
-                )
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(iconTint.copy(alpha = 0.18f))
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                ) {
-                    Text(
-                        text = item.badgeLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 9.sp
-                        ),
-                        color = iconTint
-                    )
-                }
-            }
-
-            Text(
-                text = item.description,
-                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 15.sp),
-                color = Color(0xFF94A3B8)
-            )
-        }
-    }
-}
-
-@Composable
-private fun DrivingStatisticsCard(
-    stats: DrivingStatsData,
-    overview: TripOverviewData
+private fun MotionAndDriverRatingCard(
+    overview: TripOverviewData,
+    stats: DrivingStatsData
 ) {
+    val movingMin = overview.drivingDurationMs / 60000L
+    val stoppedMin = overview.stationaryDurationMs / 60000L
+    val totalMin = kotlin.math.max(1L, movingMin + stoppedMin)
+    val driverScore = (100 - (overview.stationaryDurationMs.toFloat() / (totalMin * 60000L) * 30).toInt()).coerceIn(65, 100)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
         border = CardDefaults.outlinedCardBorder().copy(brush = Brush.verticalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A))))
     ) {
@@ -729,125 +564,155 @@ private fun DrivingStatisticsCard(
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            Text(
+                text = "MOTION & TIME BREAKDOWN",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 11.sp,
+                    letterSpacing = 0.8.sp
+                ),
+                color = Color(0xFF38BDF8)
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text(
-                    text = "DRIVING TELEMETRY & GPS INTEGRITY",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Black,
-                        fontSize = 10.5.sp,
-                        letterSpacing = 0.8.sp
-                    ),
-                    color = Color(0xFF38BDF8)
+                MediumMetricTile(
+                    label = "DRIVING TIME",
+                    value = "${movingMin}m",
+                    sub = "${stats.movingPercentage}% moving",
+                    valueColor = Color(0xFF10B981),
+                    modifier = Modifier.weight(1f)
                 )
 
-                // GPS Quality Rating Pill
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFF10B981).copy(alpha = 0.18f))
-                        .border(1.dp, Color(0xFF10B981).copy(alpha = 0.45f), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = "GPS: ${stats.gpsQuality.qualityRating} (${stats.gpsQuality.highAccuracyPercentage}%)",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 8.5.sp
-                        ),
-                        color = Color(0xFF10B981)
-                    )
-                }
-            }
-
-            // Speed Distribution Bands
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "SPEED DISTRIBUTION PROFILE",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 9.sp,
-                        color = Color(0xFF64748B)
-                    )
+                MediumMetricTile(
+                    label = "STOPPED / IDLE",
+                    value = "${stoppedMin}m",
+                    sub = "${overview.stopCount} stops (${stats.stoppedPercentage}%)",
+                    valueColor = Color(0xFFF59E0B),
+                    modifier = Modifier.weight(1f)
                 )
 
-                stats.speedBands.forEach { band ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "${band.label} (${band.speedRangeKmh})",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp),
-                            color = Color(0xFFCBD5E1)
-                        )
-                        Text(
-                            text = "${band.percentage}%",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 11.sp
-                            ),
-                            color = Color(0xFF38BDF8)
-                        )
-                    }
-
-                    LinearProgressIndicator(
-                        progress = { band.percentage / 100f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(3.dp)),
-                        color = Color(0xFF38BDF8),
-                        trackColor = Color(0xFF1E293B)
-                    )
-                }
+                MediumMetricTile(
+                    label = "DRIVER SCORE",
+                    value = "$driverScore",
+                    sub = "/ 100 score",
+                    valueColor = Color(0xFF00E5FF),
+                    modifier = Modifier.weight(1f)
+                )
             }
+        }
+    }
+}
 
-            // Elevation and Missing GPS row
+@Composable
+private fun FuelAndEfficiencyCard(
+    fuelReport: FuelReportData,
+    stats: DrivingStatsData
+) {
+    val cruisingBand = stats.speedBands.firstOrNull { it.label.contains("Cruising", ignoreCase = true) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+        border = CardDefaults.outlinedCardBorder().copy(brush = Brush.verticalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A))))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "FUEL CONSUMPTION & CRUISING",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 11.sp,
+                    letterSpacing = 0.8.sp
+                ),
+                color = Color(0xFFF59E0B)
+            )
+
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF1E293B).copy(alpha = 0.4f))
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column {
-                    Text(
-                        text = "ELEVATION PROFILE",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, color = Color(0xFF64748B))
-                    )
-                    if (stats.isElevationAvailable) {
-                        Text(
-                            text = "+%.0fm / -%.0fm".format(Locale.US, stats.elevationGainMeters ?: 0.0, stats.elevationLossMeters ?: 0.0),
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
-                        )
-                    } else {
-                        Text(
-                            text = "Flat / Unreliable",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Normal),
-                            color = Color(0xFF94A3B8)
-                        )
-                    }
-                }
+                MediumMetricTile(
+                    label = "EST. FUEL USED",
+                    value = "%.2fL".format(Locale.US, fuelReport.estimatedFuelConsumedLiters),
+                    sub = "Estimated burn",
+                    valueColor = Color(0xFFFB923C),
+                    modifier = Modifier.weight(1f)
+                )
 
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "SIGNAL COVERAGE",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, color = Color(0xFF64748B))
-                    )
-                    Text(
-                        text = if (stats.gpsQuality.hasMissingSegments) "Tunnel / Outages Detected" else "100% Continuous Fixes",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (stats.gpsQuality.hasMissingSegments) Color(0xFFF59E0B) else Color(0xFF10B981)
-                    )
-                }
+                MediumMetricTile(
+                    label = "EST. TRIP COST",
+                    value = "₹%.1f".format(Locale.US, fuelReport.estimatedTripCost),
+                    sub = "Running cost",
+                    valueColor = Color(0xFFFBBF24),
+                    modifier = Modifier.weight(1f)
+                )
+
+                MediumMetricTile(
+                    label = "CRUISING RATIO",
+                    value = "${cruisingBand?.percentage ?: 0}%",
+                    sub = cruisingBand?.speedRangeKmh ?: "Optimal band",
+                    valueColor = Color(0xFF38BDF8),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MediumMetricTile(
+    label: String,
+    value: String,
+    sub: String,
+    valueColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF142036))
+            .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 10.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 10.sp,
+                    letterSpacing = 0.6.sp
+                ),
+                color = Color(0xFF94A3B8),
+                maxLines = 1
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 28.sp,
+                    fontFamily = FontFamily.Monospace
+                ),
+                color = valueColor,
+                maxLines = 1
+            )
+            if (sub.isNotBlank()) {
+                Text(
+                    text = sub,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = Color(0xFF64748B),
+                    maxLines = 1
+                )
             }
         }
     }

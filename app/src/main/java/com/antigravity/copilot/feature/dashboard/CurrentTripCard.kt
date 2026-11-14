@@ -218,20 +218,7 @@ fun CurrentTripCard(
                 color = if (flashColor != Color.Transparent) flashColor else cardBorder,
                 shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
             )
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = { isUserInteracting = true },
-                    onDragEnd = { isUserInteracting = false },
-                    onDragCancel = { isUserInteracting = false },
-                    onHorizontalDrag = { _, dragAmount ->
-                        if (dragAmount > 25) {
-                            activeMetricIndex = if (activeMetricIndex == 0) metrics.size - 1 else activeMetricIndex - 1
-                        } else if (dragAmount < -25) {
-                            activeMetricIndex = (activeMetricIndex + 1) % metrics.size
-                        }
-                    }
-                )
-            }
+            .clickable(onClick = onOpenTripSummary)
             .padding(14.dp)
     ) {
         Column(
@@ -274,55 +261,17 @@ fun CurrentTripCard(
                     )
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                // Automotive Status Icon Telltale (Active vs Completed vs Parked)
+                Box(
+                    modifier = Modifier
+                        .height(32.dp)
+                        .defaultMinSize(minWidth = 32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(statusColor.copy(alpha = 0.14f))
+                        .border(1.dp, statusColor.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Smart Trip Summary Pill
-                    Box(
-                        modifier = Modifier
-                            .height(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(cyanAccent.copy(alpha = 0.12f))
-                            .border(1.dp, cyanAccent.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                            .clickable { onOpenTripSummary() }
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Assessment,
-                                contentDescription = "Summary",
-                                tint = cyanAccent,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "SUMMARY",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp,
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = cyanAccent
-                            )
-                        }
-                    }
-
-                    // Automotive Status Icon Telltale (Active vs Completed vs Parked)
-                    Box(
-                        modifier = Modifier
-                            .height(32.dp)
-                            .defaultMinSize(minWidth = 32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(statusColor.copy(alpha = 0.14f))
-                            .border(1.dp, statusColor.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
-                            .clickable { onOpenTripSummary() }
-                            .padding(horizontal = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp)
@@ -345,7 +294,6 @@ fun CurrentTripCard(
                     }
                 }
             }
-        }
 
             // ==================== 2. ROTATING TRIP METRIC HERO ====================
             AnimatedContent(
