@@ -12,7 +12,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,7 +38,6 @@ import com.antigravity.drivingreport.core.designsystem.*
 import com.antigravity.drivingreport.core.util.NumberFormatUtils
 import com.antigravity.drivingreport.core.map.IndiaOfflineMapManager
 import com.antigravity.drivingreport.core.map.OfflineMapManager
-import java.util.Locale
 
 @Composable
 fun IndiaOfflineMapDialog(

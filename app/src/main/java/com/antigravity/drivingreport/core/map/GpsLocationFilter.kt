@@ -1,6 +1,5 @@
 package com.antigravity.drivingreport.core.map
 
-import android.location.Location
 import kotlin.math.*
 
 /**

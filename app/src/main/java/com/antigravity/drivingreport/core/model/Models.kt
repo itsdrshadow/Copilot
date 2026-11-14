@@ -1,6 +1,5 @@
 package com.antigravity.drivingreport.core.model
 
-import java.util.Locale
 
 enum class TripStatus {
     IDLE,
@@ -111,15 +110,6 @@ data class FuelState(
     val aiDrivingStyle: String = "OPTIMAL DRIVE",
     val confidenceLabel: String = "CONFIRMED",
     val explanation: String = ""
-)
-
-data class DrivingScoreReport(
-    val overallScore: Int = 100,
-    val harshBrakeCount: Int = 0,
-    val rapidAccelCount: Int = 0,
-    val overspeedCount: Int = 0,
-    val topSpeedKmh: Double = 0.0,
-    val averageSpeedKmh: Double = 0.0
 )
 
 @androidx.compose.runtime.Immutable

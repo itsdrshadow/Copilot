@@ -2,7 +2,6 @@ package com.antigravity.drivingreport
 
 import com.antigravity.drivingreport.core.fuel.intelligence.EventConfidence
 import com.antigravity.drivingreport.core.fuel.intelligence.FuelGaugeCalibrationEngine
-import com.antigravity.drivingreport.core.fuel.intelligence.FuelMath
 import com.antigravity.drivingreport.core.fuel.intelligence.FuelStateEstimator
 import com.antigravity.drivingreport.core.fuel.intelligence.MissedEntryIntelligence
 import com.antigravity.drivingreport.core.trip.TimeFormatUtils

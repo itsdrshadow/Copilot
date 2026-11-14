@@ -5,7 +5,6 @@ import com.antigravity.drivingreport.core.fuel.intelligence.AdaptiveMileageEngin
 import com.antigravity.drivingreport.core.trip.TripDetectionEngine
 import org.junit.Assert.*
 import org.junit.Test
-import kotlin.math.abs
 
 class FuelCalculationConsistencyTest {
 

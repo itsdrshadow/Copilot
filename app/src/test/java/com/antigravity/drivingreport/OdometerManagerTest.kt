@@ -1,8 +1,6 @@
 package com.antigravity.drivingreport
 
-import com.antigravity.drivingreport.core.odometer.OdometerManager
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OdometerManagerTest {

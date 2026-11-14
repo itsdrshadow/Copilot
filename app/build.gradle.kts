@@ -12,16 +12,16 @@ android {
         applicationId = "com.antigravity.drivingreport"
         minSdk = 26
         targetSdk = 30
-        versionCode = 38
-        versionName = "1.23.0"
+        versionCode = 39
+        versionName = "1.23.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "VERSION_NAME", "\"1.23.0\"")
-        buildConfigField("int", "VERSION_CODE", "38")
+        buildConfigField("String", "VERSION_NAME", "\"1.23.1\"")
+        buildConfigField("int", "VERSION_CODE", "39")
 
         kapt {
             arguments {
@@ -106,9 +106,8 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
 
-    // Map Engines: OSMDroid (Canvas rock-solid offline/online) + MapLibre
+    // Map Engine: OSMDroid (Canvas rock-solid offline/online)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
-    implementation("org.maplibre.gl:android-sdk:11.0.0")
 
     // Location (Fused Location + Fallback to native LocationManager)
     implementation("com.google.android.gms:play-services-location:21.1.0")

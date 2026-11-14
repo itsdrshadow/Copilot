@@ -15,14 +15,12 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.modules.SqlTileWriter
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.MapTileIndex
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong

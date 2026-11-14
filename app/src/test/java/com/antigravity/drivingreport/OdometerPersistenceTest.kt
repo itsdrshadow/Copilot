@@ -1,6 +1,5 @@
 package com.antigravity.drivingreport
 
-import com.antigravity.drivingreport.core.odometer.OdometerManager
 import org.junit.Assert.*
 import org.junit.Test
 

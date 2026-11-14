@@ -1,7 +1,6 @@
 package com.antigravity.drivingreport
 
 import com.antigravity.drivingreport.core.fuel.intelligence.AdaptiveMileageEngine
-import com.antigravity.drivingreport.core.fuel.intelligence.FuelMath
 import com.antigravity.drivingreport.core.fuel.intelligence.FuelStateEstimator
 import org.junit.Assert.*
 import org.junit.Test

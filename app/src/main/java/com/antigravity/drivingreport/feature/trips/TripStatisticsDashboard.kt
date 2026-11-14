@@ -2,19 +2,12 @@ package com.antigravity.drivingreport.feature.trips
 
 import android.graphics.Paint
 import android.graphics.Typeface
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,10 +37,8 @@ import com.antigravity.drivingreport.core.database.TripEntity
 import com.antigravity.drivingreport.core.util.NumberFormatUtils
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
 
 /**
  * Modern High-Fidelity Automotive Trip Statistics Dashboard.

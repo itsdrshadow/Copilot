@@ -2,17 +2,13 @@ package com.antigravity.drivingreport
 
 import com.antigravity.drivingreport.core.fuel.intelligence.*
 import com.antigravity.drivingreport.core.map.GpsLocationFilter
-import com.antigravity.drivingreport.core.model.TripPoint
 import com.antigravity.drivingreport.core.persistence.FullBackupManager
-import com.antigravity.drivingreport.core.util.NumberFormatUtils
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonSyntaxException
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.io.InputStreamReader
-import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 import kotlin.math.*

@@ -2,7 +2,6 @@ package com.antigravity.drivingreport.feature.fuel
 
 import android.graphics.Paint
 import android.graphics.Typeface
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import com.antigravity.drivingreport.core.database.FuelEventEntity
 import com.antigravity.drivingreport.core.database.TripEntity
 import com.antigravity.drivingreport.core.util.NumberFormatUtils
-import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.max
 import kotlin.math.min

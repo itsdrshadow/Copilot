@@ -37,11 +37,7 @@ import com.antigravity.drivingreport.core.recovery.CrashGuardian
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.ui.unit.sp
 import com.antigravity.drivingreport.core.designsystem.CockpitTheme
-import com.antigravity.drivingreport.core.designsystem.CockpitThemeMode
 import com.antigravity.drivingreport.core.designsystem.DrivingReportTheme
 import com.antigravity.drivingreport.core.settings.AppSettingsManager
 import com.antigravity.drivingreport.core.location.DrivingTrackingService

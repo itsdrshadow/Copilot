@@ -1,10 +1,8 @@
 package com.antigravity.drivingreport.core.fuel.intelligence
 
 import com.antigravity.drivingreport.core.model.MileageLearningState
-import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * Observation interval between two reliable points.

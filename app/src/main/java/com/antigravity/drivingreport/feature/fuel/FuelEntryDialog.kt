@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Backspace
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,11 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import kotlin.math.roundToInt
 import com.antigravity.drivingreport.core.designsystem.Cockpit_AmberWarning
 import com.antigravity.drivingreport.core.designsystem.Cockpit_GreenEco
 import com.antigravity.drivingreport.core.designsystem.Cockpit_RedAlert
-import com.antigravity.drivingreport.core.designsystem.Cockpit_TextSecondary
 import com.antigravity.drivingreport.core.designsystem.Premium_PrimaryAccent
 import com.antigravity.drivingreport.core.fuel.StationPriceManager
 import com.antigravity.drivingreport.core.location.LocationNameResolver

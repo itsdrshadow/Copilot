@@ -2,7 +2,6 @@ package com.antigravity.drivingreport.core.media
 
 import android.content.ComponentName
 import android.content.Context
-import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification

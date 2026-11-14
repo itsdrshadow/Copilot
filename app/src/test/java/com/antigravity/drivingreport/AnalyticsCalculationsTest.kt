@@ -3,7 +3,6 @@ package com.antigravity.drivingreport
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.math.max
 
 class AnalyticsCalculationsTest {
 

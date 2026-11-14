@@ -9,7 +9,6 @@ import com.antigravity.drivingreport.core.database.TripEntity
 import com.antigravity.drivingreport.core.database.TripPointEntity
 import com.antigravity.drivingreport.core.fuel.FuelRepository
 import com.antigravity.drivingreport.core.fuel.intelligence.MissedRefuelDetectionResult
-import com.antigravity.drivingreport.core.location.DrivingTrackingService
 import com.antigravity.drivingreport.core.location.SpeedLimitEngine
 import com.antigravity.drivingreport.core.location.SpeedLimitInfo
 import com.antigravity.drivingreport.core.model.AppDrawerItem

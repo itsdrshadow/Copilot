@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,7 +38,6 @@ import com.antigravity.drivingreport.core.location.SpeedLimitInfo
 import com.antigravity.drivingreport.core.location.StoppingDistanceEngine
 import com.antigravity.drivingreport.core.location.StoppingDistanceEstimate
 import com.antigravity.drivingreport.core.model.TripPoint
-import com.antigravity.drivingreport.core.util.NumberFormatUtils
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.roundToInt

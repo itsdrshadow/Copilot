@@ -1,7 +1,6 @@
 package com.antigravity.drivingreport
 
 import com.antigravity.drivingreport.core.fuel.intelligence.FuelGaugeCalibrationEngine
-import com.antigravity.drivingreport.core.fuel.intelligence.FuelMath
 import com.antigravity.drivingreport.core.fuel.intelligence.MissedEntryIntelligence
 import org.junit.Assert.*
 import org.junit.Test

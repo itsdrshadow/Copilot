@@ -61,7 +61,6 @@ import com.antigravity.drivingreport.core.location.SpeedLimitInfo
 import com.antigravity.drivingreport.core.map.GpsLocationFilter
 import com.antigravity.drivingreport.core.map.IndiaOfflineMapManager
 import com.antigravity.drivingreport.core.map.OfflineMapManager
-import com.antigravity.drivingreport.core.settings.AppSettingsManager
 import kotlinx.coroutines.delay
 import com.antigravity.drivingreport.core.model.TripPoint
 import org.osmdroid.util.GeoPoint

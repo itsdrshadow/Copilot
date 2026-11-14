@@ -3,10 +3,7 @@ package com.antigravity.drivingreport
 import com.antigravity.drivingreport.core.database.TripEntity
 import com.antigravity.drivingreport.core.database.TripGeofenceEntity
 import com.antigravity.drivingreport.core.fuel.intelligence.*
-import com.antigravity.drivingreport.core.map.GpsLocationFilter
-import com.antigravity.drivingreport.core.model.TripPoint
 import com.antigravity.drivingreport.core.model.TripStatus
-import com.antigravity.drivingreport.core.model.TripSummary
 import com.antigravity.drivingreport.core.trip.TripLifecycleState
 import org.junit.Assert.*
 import org.junit.Test

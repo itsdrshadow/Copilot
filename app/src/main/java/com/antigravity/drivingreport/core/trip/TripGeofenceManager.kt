@@ -1,7 +1,6 @@
 package com.antigravity.drivingreport.core.trip
 
 import android.content.Context
-import android.location.Location
 import com.antigravity.drivingreport.core.database.AppDatabase
 import com.antigravity.drivingreport.core.database.TripGeofenceEntity
 import kotlinx.coroutines.CoroutineScope

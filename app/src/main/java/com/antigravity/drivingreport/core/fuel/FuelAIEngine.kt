@@ -4,15 +4,10 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.antigravity.drivingreport.core.database.FuelEventEntity
 import com.antigravity.drivingreport.core.database.TripEntity
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.exp
-import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
 
 /**
  * FuelAIEngine: Multi-Source Telemetry Fusion & Adaptive Machine Learning Estimation Model.

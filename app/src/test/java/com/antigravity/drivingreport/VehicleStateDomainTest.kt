@@ -1,6 +1,5 @@
 package com.antigravity.drivingreport
 
-import com.antigravity.drivingreport.core.model.StateConfidence
 import com.antigravity.drivingreport.core.model.VehicleState
 import com.antigravity.drivingreport.core.model.VehicleStateMetrics
 import org.junit.Assert.*

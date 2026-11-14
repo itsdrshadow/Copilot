@@ -2,8 +2,6 @@ package com.antigravity.drivingreport
 
 import com.antigravity.drivingreport.core.map.OfflineMapManager
 import com.antigravity.drivingreport.core.model.TripPoint
-import com.antigravity.drivingreport.core.model.TripStatus
-import com.antigravity.drivingreport.core.model.TripSummary
 import com.antigravity.drivingreport.core.trip.TripVisualLifecycleEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
