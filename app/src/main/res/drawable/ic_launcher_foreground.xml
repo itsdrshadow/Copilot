@@ -1,11 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Steering wheel / Dashboard Gauge icon in One UI Samsung Blue (#4E8CFF) -->
+
+    <!-- Outer Cockpit Telemetry Ring Arc -->
     <path
-        android:fillColor="#4E8CFF"
-        android:pathData="M54,20 C35.2,20 20,35.2 20,54 C20,72.8 35.2,88 54,88 C72.8,88 88,72.8 88,54 C88,35.2 72.8,20 54,20 Z M54,26 C68.8,26 81,37.6 81.9,52 L67.3,52 C65.8,45.8 60.5,41.2 54,41.2 C47.5,41.2 42.2,45.8 40.7,52 L26.1,52 C27,37.6 39.2,26 54,26 Z M26.1,56 L40.7,56 C41.6,60.1 44.4,63.4 48.2,65.1 L37.4,79.5 C31.6,74.1 27.6,65.8 26.1,56 Z M54,58 C51.8,58 50,56.2 50,54 C50,51.8 51.8,50 54,50 C56.2,50 58,51.8 58,54 C58,56.2 56.2,58 54,58 Z M70.6,79.5 L59.8,65.1 C63.6,63.4 66.4,60.1 67.3,56 L81.9,56 C80.4,65.8 76.4,74.1 70.6,79.5 Z"/>
+        android:pathData="M 28,54 A 26,26 0 1,1 80,54"
+        android:strokeWidth="2.5"
+        android:strokeColor="#38BDF8"
+        android:strokeLineCap="round"/>
+
+    <!-- Bottom Telemetry Accent Arc -->
+    <path
+        android:pathData="M 33,63 A 26,26 0 0,0 75,63"
+        android:strokeWidth="1.8"
+        android:strokeColor="#0A58CA"
+        android:strokeLineCap="round"/>
+
+    <!-- Left Aero Wing Blade -->
+    <path
+        android:pathData="M 54,34 L 32,50 C 31,56 34,64 42,65 L 50,56 L 54,44 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="32"
+                android:startY="34"
+                android:endX="54"
+                android:endY="65">
+                <item android:color="#00F0FF" android:offset="0.0"/>
+                <item android:color="#0284C7" android:offset="0.6"/>
+                <item android:color="#0369A1" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Right Aero Wing Blade -->
+    <path
+        android:pathData="M 54,34 L 76,50 C 77,56 74,64 66,65 L 58,56 L 54,44 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="76"
+                android:startY="34"
+                android:endX="54"
+                android:endY="65">
+                <item android:color="#00D2FF" android:offset="0.0"/>
+                <item android:color="#0284C7" android:offset="0.6"/>
+                <item android:color="#0369A1" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Lower Aero Diffuser Struts -->
+    <path
+        android:pathData="M 45,68 L 47,76 M 54,68 L 54,78 M 63,68 L 61,76"
+        android:strokeWidth="2"
+        android:strokeColor="#38BDF8"
+        android:strokeLineCap="round"/>
+
+    <!-- Center Apex Cockpit Needle / Diamond Crest -->
+    <path
+        android:pathData="M 54,24 L 60,48 L 54,74 L 48,48 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="54"
+                android:startY="24"
+                android:endX="54"
+                android:endY="74">
+                <item android:color="#FFFFFF" android:offset="0.0"/>
+                <item android:color="#7DD3FC" android:offset="0.45"/>
+                <item android:color="#0284C7" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Center Core Glow Point -->
+    <path
+        android:pathData="M 54,48 m -3.5,0 a 3.5,3.5 0 1,1 7,0 a 3.5,3.5 0 1,1 -7,0"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Apex Tip Flare Dot -->
+    <path
+        android:pathData="M 54,23 m -1.5,0 a 1.5,1.5 0 1,1 3,0 a 1.5,1.5 0 1,1 -3,0"
+        android:fillColor="#00F0FF"/>
 </vector>

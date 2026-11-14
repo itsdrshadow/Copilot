@@ -61,15 +61,25 @@ fun WelcomeSplashScreen(
 
     val currentMs = masterAnim.value * config.totalDurationMs
 
-    // Blue light trails
+    // 1. Stage 1: Brand Logo reveal and graceful fade-out
+    val logoFadeOutRaw = ((currentMs - config.logoVisibleDurationMs).toFloat() / config.logoFadeOutDurationMs).coerceIn(0f, 1f)
+    val logoAlpha = if (currentMs < config.logoVisibleDurationMs) {
+        val enterProgress = (currentMs.toFloat() / 350f).coerceIn(0f, 1f)
+        0.5f + 0.5f * FastOutSlowInEasing.transform(enterProgress)
+    } else {
+        1f - FastOutSlowInEasing.transform(logoFadeOutRaw)
+    }
+    val logoScale = 0.95f + (0.05f * (currentMs.toFloat() / config.logoVisibleDurationMs).coerceIn(0f, 1f))
+
+    // 2. Stage 2: Blue light trails
     val trailsRaw = ((currentMs - config.trailsStartMs).toFloat() / config.trailsDurationMs).coerceIn(0f, 1f)
     val trailsProgress = FastOutSlowInEasing.transform(trailsRaw)
 
-    // Silhouette line drawing
+    // 3. Stage 2: Silhouette line drawing
     val silRaw = ((currentMs - config.silhouetteStartMs).toFloat() / config.silhouetteDurationMs).coerceIn(0f, 1f)
     val silhouetteProgress = FastOutSlowInEasing.transform(silRaw)
 
-    // "Welcome" typography fade & scale
+    // 4. Stage 3: "Welcome" typography fade & scale
     val welcomeRaw = ((currentMs - config.welcomeStartMs).toFloat() / config.welcomeDurationMs).coerceIn(0f, 1f)
     val welcomeProgress = FastOutSlowInEasing.transform(welcomeRaw)
     val welcomeAlpha = welcomeProgress
@@ -91,7 +101,7 @@ fun WelcomeSplashScreen(
     // Specular reflection
     val reflectionAlpha = silhouetteProgress * welcomeAlpha
 
-    // Exit transition
+    // 5. Stage 4: Exit transition into dashboard
     val exitAlpha = if (currentMs >= config.exitTransitionStartMs) {
         val exitRaw = ((currentMs - config.exitTransitionStartMs).toFloat() / config.exitTransitionDurationMs).coerceIn(0f, 1f)
         val trans = FastOutSlowInEasing.transform(exitRaw)
@@ -131,23 +141,41 @@ fun WelcomeSplashScreen(
                 }
             }
     ) {
-        CarSilhouetteCanvas(
-            trailsProgress = trailsProgress,
-            silhouetteProgress = silhouetteProgress,
-            reflectionAlpha = reflectionAlpha,
-            glowIntensity = glowIntensity,
-            modifier = Modifier.fillMaxSize()
-        )
+        // Stage 1: Brand Logo Presentation
+        if (logoAlpha > 0.005f) {
+            AutomotiveBrandLogo(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        alpha = logoAlpha
+                        scaleX = logoScale
+                        scaleY = logoScale
+                    },
+                glowIntensity = glowIntensity
+            )
+        }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 60.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (welcomeAlpha > 0.01f) {
+        // Stage 2: Car Silhouette & Neon Light Trails
+        if (silhouetteProgress > 0.005f || trailsProgress > 0.005f) {
+            CarSilhouetteCanvas(
+                trailsProgress = trailsProgress,
+                silhouetteProgress = silhouetteProgress,
+                reflectionAlpha = reflectionAlpha,
+                glowIntensity = glowIntensity,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // Stage 3: Welcome Typography
+        if (welcomeAlpha > 0.005f) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 60.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = "WELCOME",
                         style = TextStyle(
@@ -162,42 +190,42 @@ fun WelcomeSplashScreen(
                             .scale(welcomeScale * 1.02f)
                             .alpha(welcomeAlpha)
                     )
+
+                    Text(
+                        text = "WELCOME",
+                        style = TextStyle(
+                            fontFamily = FontFamily.SansSerif,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 44.sp,
+                            letterSpacing = 16.sp,
+                            color = Color(0xFFF4FAFF),
+                            shadow = Shadow(
+                                color = Color(0xFF00F0FF).copy(alpha = (welcomeAlpha * 0.85f * glowIntensity).coerceIn(0f, 0.85f)),
+                                blurRadius = 14f
+                            ),
+                            textAlign = TextAlign.Center
+                        ),
+                        modifier = Modifier
+                            .scale(welcomeScale)
+                            .alpha(welcomeAlpha)
+                    )
                 }
 
+                Spacer(modifier = Modifier.height(14.dp))
+
                 Text(
-                    text = "WELCOME",
+                    text = "ENJOY YOUR DRIVE",
                     style = TextStyle(
                         fontFamily = FontFamily.SansSerif,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 44.sp,
-                        letterSpacing = 16.sp,
-                        color = Color(0xFFF4FAFF),
-                        shadow = Shadow(
-                            color = Color(0xFF00F0FF).copy(alpha = (welcomeAlpha * 0.85f * glowIntensity).coerceIn(0f, 0.85f)),
-                            blurRadius = 14f
-                        ),
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 13.sp,
+                        letterSpacing = 9.sp,
+                        color = Color(0xFF7FAEE8).copy(alpha = subtitleAlpha),
                         textAlign = TextAlign.Center
                     ),
-                    modifier = Modifier
-                        .scale(welcomeScale)
-                        .alpha(welcomeAlpha)
+                    modifier = Modifier.alpha(subtitleAlpha)
                 )
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            Text(
-                text = "ENJOY YOUR DRIVE",
-                style = TextStyle(
-                    fontFamily = FontFamily.SansSerif,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp,
-                    letterSpacing = 9.sp,
-                    color = Color(0xFF7FAEE8).copy(alpha = subtitleAlpha),
-                    textAlign = TextAlign.Center
-                ),
-                modifier = Modifier.alpha(subtitleAlpha)
-            )
         }
     }
 }
