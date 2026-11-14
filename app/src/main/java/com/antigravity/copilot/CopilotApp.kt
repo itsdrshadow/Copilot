@@ -1,0 +1,30 @@
+package com.antigravity.copilot
+
+import android.app.Application
+import com.antigravity.copilot.core.database.PersistentDataManager
+import com.antigravity.copilot.core.location.DrivingTrackingService
+import com.antigravity.copilot.core.map.OfflineMapManager
+import com.antigravity.copilot.core.recovery.CrashGuardian
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+class CopilotApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        // 1. Initialize Automotive CrashGuardian first to capture any runtime/init errors
+        CrashGuardian.init(this)
+
+        // 2. Restore all lifetime trips, fuel ledger & odometer calibrations asynchronously off main UI thread
+        CoroutineScope(Dispatchers.IO).launch {
+            PersistentDataManager.restoreIfNeeded(this@CopilotApp)
+        }
+
+        // 3. Initialize OSMDroid 100% Offline-First Map Engine with 10-year SQLite persistence
+        OfflineMapManager.initOfflineConfiguration(this)
+
+        // 5. Auto-start continuous tracking service on app launch
+        DrivingTrackingService.start(this)
+    }
+}
+
+typealias DrivingReportApp = CopilotApp

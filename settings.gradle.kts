@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DrivingReport"
+rootProject.name = "Copilot"
 include(":app")

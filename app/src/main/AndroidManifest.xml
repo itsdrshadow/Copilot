@@ -30,7 +30,7 @@
     <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
 
     <application
-        android:name=".DrivingReportApp"
+        android:name=".CopilotApp"
         android:allowBackup="true"
         android:hasFragileUserData="true"
         android:requestLegacyExternalStorage="true"
@@ -39,7 +39,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DrivingReport"
+        android:theme="@style/Theme.Copilot"
         android:largeHeap="true"
         android:hardwareAccelerated="true">
 
@@ -54,7 +54,7 @@
             android:resumeWhilePausing="true"
             android:screenOrientation="sensorLandscape"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
-            android:theme="@style/Theme.DrivingReport">
+            android:theme="@style/Theme.Copilot">
 
             <!-- Launcher Home intents -->
             <intent-filter android:priority="1">
@@ -74,7 +74,7 @@
             android:excludeFromRecents="true"
             android:stateNotNeeded="true"
             android:screenOrientation="fullSensor"
-            android:theme="@style/Theme.DrivingReport" />
+            android:theme="@style/Theme.Copilot" />
 
         <!-- Continuous Foreground Driving & Trip Engine Service -->
         <service

@@ -5,23 +5,23 @@ plugins {
 }
 
 android {
-    namespace = "com.antigravity.drivingreport"
+    namespace = "com.antigravity.copilot"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.antigravity.drivingreport"
+        applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 39
-        versionName = "1.23.1"
+        versionCode = 40
+        versionName = "1.24.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "VERSION_NAME", "\"1.23.1\"")
-        buildConfigField("int", "VERSION_CODE", "39")
+        buildConfigField("String", "VERSION_NAME", "\"1.24.0\"")
+        buildConfigField("int", "VERSION_CODE", "40")
 
         kapt {
             arguments {
