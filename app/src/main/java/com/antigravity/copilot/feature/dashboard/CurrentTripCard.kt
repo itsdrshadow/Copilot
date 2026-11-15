@@ -107,38 +107,96 @@ fun CurrentTripCard(
         com.antigravity.copilot.core.trip.TimeFormatUtils.formatLiveTripTimer(elapsedDurationMs)
     }
 
-    // Dynamic Rotating Trip Metrics Carousel
-    val metrics = remember(currentTrip, baselineMileage) {
+    val hasTripMoved = (isTripActive || isTripCompleted) && currentTrip.distanceMeters >= 50.0
+
+    // Dynamic Rotating Trip Metrics Carousel (Expanded driver telemetry suite)
+    val metrics = remember(currentTrip, baselineMileage, hasTripMoved, isTripActive, isTripCompleted) {
         listOf(
             PremiumRotatingMetric(
                 id = "trip_distance",
                 title = "TRIP DISTANCE",
                 value = NumberFormatUtils.formatDistance(currentTrip.distanceMeters / 1000.0),
                 unit = "KM",
-                subtitle = "Distance covered in current trip",
+                subtitle = if (isTripActive) "Distance covered in current trip" else if (isTripCompleted) "Total journey distance" else "Ready for journey",
                 icon = Icons.Default.Route,
+                accentColor = cyanAccent
+            ),
+            PremiumRotatingMetric(
+                id = "avg_speed",
+                title = "AVERAGE SPEED",
+                value = if (hasTripMoved && currentTrip.avgSpeedKmh > 0.0) "${currentTrip.avgSpeedKmh.toInt()}" else "--",
+                unit = "KM/H",
+                subtitle = "Average moving velocity",
+                icon = Icons.Default.Speed,
                 accentColor = cyanAccent
             ),
             PremiumRotatingMetric(
                 id = "max_speed",
                 title = "MAX SPEED",
-                value = "${currentTrip.maxSpeedKmh.toInt()}",
+                value = if (currentTrip.maxSpeedKmh > 0.0) "${currentTrip.maxSpeedKmh.toInt()}" else "--",
                 unit = "KM/H",
                 subtitle = "Peak velocity during current journey",
-                icon = Icons.Default.Speed,
+                icon = Icons.Default.TrendingUp,
                 accentColor = cyanAccent
             ),
             PremiumRotatingMetric(
                 id = "trip_mileage",
                 title = "TRIP ECONOMY",
-                value = NumberFormatUtils.formatMileage(
-                    if (currentTrip.calculatedMileageKmpl > 0.0) currentTrip.calculatedMileageKmpl else baselineMileage,
-                    2
-                ),
+                value = if (hasTripMoved) {
+                    val effMileage = if (currentTrip.calculatedMileageKmpl > 0.0) currentTrip.calculatedMileageKmpl else baselineMileage
+                    if (effMileage > 0.0) NumberFormatUtils.formatMileage(effMileage, 2) else "--"
+                } else {
+                    "--"
+                },
                 unit = "KM/L",
-                subtitle = "Estimated efficiency for this trip",
+                subtitle = if (hasTripMoved) "Estimated efficiency for this trip" else "Available once trip starts",
                 icon = Icons.Default.Eco,
                 accentColor = positiveAccent
+            ),
+            PremiumRotatingMetric(
+                id = "fuel_consumed",
+                title = "FUEL CONSUMED",
+                value = if (hasTripMoved && currentTrip.estimatedFuelConsumedLiters > 0.0) {
+                    NumberFormatUtils.formatFuelLiters(currentTrip.estimatedFuelConsumedLiters, 2)
+                } else if (hasTripMoved) {
+                    "0.00"
+                } else {
+                    "--"
+                },
+                unit = "L",
+                subtitle = if (hasTripMoved) "Fuel burned during current trip" else "Awaiting trip start",
+                icon = Icons.Default.LocalGasStation,
+                accentColor = warningAccent
+            ),
+            PremiumRotatingMetric(
+                id = "trip_cost",
+                title = "TRIP EXPENSE",
+                value = if (hasTripMoved && currentTrip.estimatedTripCost > 0.0) {
+                    NumberFormatUtils.formatPrecision(currentTrip.estimatedTripCost, 1)
+                } else if (hasTripMoved) {
+                    "0.0"
+                } else {
+                    "--"
+                },
+                unit = "₹",
+                subtitle = "Estimated fuel cost for this journey",
+                icon = Icons.Default.Payments,
+                accentColor = warningAccent
+            ),
+            PremiumRotatingMetric(
+                id = "driver_score",
+                title = "DRIVE SCORE",
+                value = if (hasTripMoved) "${currentTrip.driverScore}" else "--",
+                unit = "PTS",
+                subtitle = if (hasTripMoved && (currentTrip.harshBrakeCount + currentTrip.rapidAccelCount > 0)) {
+                    "${currentTrip.harshBrakeCount} hard brakes • ${currentTrip.rapidAccelCount} rapid accels"
+                } else if (hasTripMoved) {
+                    "Smooth driving performance"
+                } else {
+                    "Driving safety & smoothness"
+                },
+                icon = Icons.Default.Security,
+                accentColor = if (currentTrip.driverScore >= 85) positiveAccent else if (currentTrip.driverScore >= 70) warningAccent else dangerAccent
             ),
             PremiumRotatingMetric(
                 id = "peak_braking",
@@ -153,15 +211,11 @@ fun CurrentTripCard(
     }
 
     var activeMetricIndex by remember { mutableIntStateOf(0) }
-    var isUserInteracting by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isUserInteracting) {
-        if (!isUserInteracting) {
-            while (true) {
-                delay(7000L)
-                activeMetricIndex = (activeMetricIndex + 1) % metrics.size
-            }
-        }
+    // Auto-cycle every 30 seconds; tapping or selecting resets timer for full 30 seconds on the new metric
+    LaunchedEffect(activeMetricIndex) {
+        delay(30_000L)
+        activeMetricIndex = (activeMetricIndex + 1) % metrics.size
     }
 
     // Trip lifecycle flash animations (Start / End)
@@ -304,6 +358,10 @@ fun CurrentTripCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable {
+                        activeMetricIndex = (activeMetricIndex + 1) % metrics.size
+                    }
                     .padding(vertical = 2.dp)
             ) { targetIndex ->
                 val target = metrics.getOrElse(targetIndex) { metrics[0] }
@@ -370,15 +428,14 @@ fun CurrentTripCard(
                 metrics.forEachIndexed { index, _ ->
                     val isSelected = index == activeMetricIndex
                     val dotWidth by animateDpAsState(
-                        targetValue = if (isSelected) 14.dp else 4.dp,
+                        targetValue = if (isSelected) 12.dp else 4.dp,
                         animationSpec = tween(220),
                         label = "PremiumTripDotWidth"
                     )
                     Box(
                         modifier = Modifier
-                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                            .defaultMinSize(minWidth = 20.dp, minHeight = 24.dp)
                             .clickable {
-                                isUserInteracting = true
                                 activeMetricIndex = index
                             },
                         contentAlignment = Alignment.Center

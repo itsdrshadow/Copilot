@@ -39,7 +39,7 @@ data class TripSummary(
     val maxDecelMss: Float = 0f,
     val estimatedFuelConsumedLiters: Double = 0.0,
     val estimatedTripCost: Double = 0.0,
-    val calculatedMileageKmpl: Double = 15.0,
+    val calculatedMileageKmpl: Double = 0.0,
     val driverScore: Int = 100,
     val harshBrakeCount: Int = 0,
     val rapidAccelCount: Int = 0,

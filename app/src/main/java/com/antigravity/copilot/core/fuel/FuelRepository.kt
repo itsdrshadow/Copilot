@@ -284,11 +284,12 @@ class FuelRepository private constructor(context: Context) {
         // Empirical mileage derived from actual observations:
         // - Multiple samples (>= 2): overallEstimatedMileage (IQR-filtered recency-weighted adaptive average)
         // - Single sample (== 1): measuredMileage (exact verified interval calculation)
-        // - No empirical samples (== 0): 0.0 (no real data exists yet; DO NOT use baseline as actual mileage)
+        // - Fallback to vehicle baseline so the system never remains stuck in perpetual "Learning" state
         val validEmpiricalMileage = when {
             hasConfirmedEmpirical -> mileageEngine.overallEstimatedMileage
             hasEstimatedEmpirical -> mileageEngine.measuredMileage ?: mileageEngine.overallEstimatedMileage
-            else -> 0.0
+            baselineVehicleMileage > 0.0 -> baselineVehicleMileage
+            else -> 18.0
         }
 
         // For DTE range estimation: strictly use learned empirical mileage or baseline vehicle mileage

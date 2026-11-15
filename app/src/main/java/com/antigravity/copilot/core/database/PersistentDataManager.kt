@@ -377,7 +377,7 @@ object PersistentDataManager {
                 p.put("remaining_liters", fuelPrefs.getFloat("remaining_liters", 48.0f).toDouble())
                 p.put("design_capacity", fuelPrefs.getFloat("design_capacity", 48.0f).toDouble())
                 p.put("max_capacity", fuelPrefs.getFloat("max_capacity", 48.0f).toDouble())
-                p.put("current_mileage", fuelPrefs.getFloat("current_mileage", 15.0f).toDouble())
+                p.put("current_mileage", fuelPrefs.getFloat("current_mileage", 18.0f).toDouble())
                 p.put("fuel_price", fuelPrefs.getFloat("fuel_price", 96.5f).toDouble())
                 root.put("prefs", p)
 

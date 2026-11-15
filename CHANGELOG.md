@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.33.0] - 2026-11-15
+
+### Added
+- **Expanded Rotating Trip Metrics (8 Driver Telemetry Cards)**: Added Average Speed (`KM/H`), Fuel Consumed (`L`), Trip Expense (`₹`), and Driving Safety Score (`PTS`) alongside Trip Distance, Max Speed, Trip Economy, and Peak Braking for a comprehensive in-cockpit telemetry suite.
+- **Tap-to-Advance Metric Carousel**: Made the `CurrentTripCard` hero metric card and indicator dots tap-interactive, advancing immediately to the next metric and resetting the 30-second dwell timer.
+
+### Changed
+- **Extended Carousel Rotation Timing**: Increased the automatic rotating metrics dwell time from 7-10 seconds to 30 seconds (`30_000L`) for safer, distraction-free reading while driving.
+- **Responsive Telemetry Dots**: Adjusted dot indicators to cleanly accommodate all 8 metrics with ergonomic touch targets on automotive displays.
+
+### Fixed
+- **Pre-Trip Mileage Display Bug**: Fixed `TripSummary.calculatedMileageKmpl` default from hardcoded `15.0` to `0.0`, ensuring pre-trip and stationary state displays `--` instead of an erroneous 15.0 km/L.
+- **Fuel System Perpetual "Learning" State**: Fixed `FuelRepository` and `FuelTankCard` so the fuel system resolves vehicle baseline mileage labeled `EST. MILEAGE` when zero tank refuels are recorded, preventing the perpetual "Learning" display.
+
 ## [1.32.0] - 2026-11-15
 
 ### Removed

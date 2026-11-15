@@ -338,22 +338,22 @@ fun FuelTankCard(
                 ) {
                     val isConfirmed = fuelState.mileageLearningState == com.antigravity.copilot.core.model.MileageLearningState.LEARNED && fuelState.currentMileageKmpl > 0.0
                     val isEstimated = (fuelState.mileageLearningState == com.antigravity.copilot.core.model.MileageLearningState.LEARNING || fuelState.isRealMileageDerived) && fuelState.currentMileageKmpl > 0.0
-                    val hasActualMileage = isConfirmed || isEstimated
 
-                    val mileageText = if (hasActualMileage) {
-                        String.format(Locale.US, "%.1f km/L", fuelState.currentMileageKmpl)
-                    } else {
-                        "Learning"
+                    val displayMileage = when {
+                        fuelState.currentMileageKmpl > 0.0 -> fuelState.currentMileageKmpl
+                        fuelState.expectedMileageKmpl > 0.0 -> fuelState.expectedMileageKmpl
+                        else -> 18.0
                     }
+                    val mileageText = String.format(Locale.US, "%.1f km/L", displayMileage)
                     val mileageColor = when {
                         isConfirmed -> positiveAccent
                         isEstimated -> cyanAccent
-                        else -> textSecondary
+                        else -> cyanAccent
                     }
                     val mileageLabel = when {
                         isConfirmed -> "CURRENT MILEAGE"
                         isEstimated -> "EST. MILEAGE"
-                        else -> "CURRENT MILEAGE"
+                        else -> "EST. MILEAGE"
                     }
 
                     Text(
