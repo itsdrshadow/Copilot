@@ -14,9 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced Fuel & Running Cost Readouts**: Integrated `TRIP MILEAGE` (KM/L) directly into `FuelAndEfficiencyCard` alongside estimated fuel burnt (L) and trip cost (₹), complemented by cruising ratio telemetry and measurement method indicators.
 - **Unified Corridor & Timeline Milestones**: Consolidated route departure/arrival times, stops count, GPS accuracy rating, refuel highlights, and chronological milestones into a streamlined card (`TripCorridorAndDetailsCard`).
 
-### Removed
-- **SmartTripMapView & Embedded Map**: Eliminated the static embedded MapView from Current Trip summary, freeing up 50% of the screen width for automotive driver telemetry and preventing heavy tile loading/memory allocation on 2GB RAM head units.
-- **Dead Code Cleanup**: Safely removed `SmartTripMapView.kt` and all obsolete map references from `SmartTripSummaryScreen`.
+### Fixed
+- **DrivingTrackingService Cached Location Query Guard**: Wrapped cached location manager queries (`queryLocationManagerCachedFix`) with a `SecurityException` handler to prevent crashes on fresh device setups or emulators before runtime location permissions are granted.
+
+### Added
+- **10.1-inch Tablet Android Virtual Device (AVD)**: Created and verified an Android 11 (API 30, x86_64) tablet emulator (`Tablet_10_1_API_30`) running WXGA 1280x800 landscape resolution at 160 dpi with KVM hardware acceleration and 2048 MB RAM.
+- **Linux Android Development Environment**: Configured Eclipse Temurin OpenJDK 17, Android Studio IDE with system desktop launcher, Android SDK Platforms 34 & 30, Build-Tools 34.0.0, Platform-Tools, and Android Emulator.
 
 ---
 

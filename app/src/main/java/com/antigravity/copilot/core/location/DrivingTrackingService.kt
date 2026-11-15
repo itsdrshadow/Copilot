@@ -615,17 +615,21 @@ class DrivingTrackingService : Service(), LocationListener {
     @SuppressLint("MissingPermission")
     private fun queryLocationManagerCachedFix(now: Long) {
         if (lastCachedFixTimestamp > 0L) return
-        val lastGps = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-        val lastNet = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
-        val lastPass = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
-        val bestInitial = lastGps ?: lastNet ?: lastPass
+        try {
+            val lastGps = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            val lastNet = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            val lastPass = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)
+            val bestInitial = lastGps ?: lastNet ?: lastPass
 
-        if (bestInitial != null && (now - bestInitial.time) < 5000L) {
-            lastCachedFixTimestamp = bestInitial.time
-            com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(
-                applicationContext, bestInitial.latitude, bestInitial.longitude
-            )
-            filterAndDispatchLocation(bestInitial)
+            if (bestInitial != null && (now - bestInitial.time) < 5000L) {
+                lastCachedFixTimestamp = bestInitial.time
+                com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(
+                    applicationContext, bestInitial.latitude, bestInitial.longitude
+                )
+                filterAndDispatchLocation(bestInitial)
+            }
+        } catch (e: SecurityException) {
+            android.util.Log.w("DrivingTrackingService", "Location permission missing for cached fix query: ${e.message}")
         }
     }
 
