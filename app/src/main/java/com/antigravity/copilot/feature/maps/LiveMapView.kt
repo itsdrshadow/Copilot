@@ -825,7 +825,7 @@ fun LiveMapPanel(
                     zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
                     isTilesScaledToDpi = true
                     maxZoomLevel = 20.0
-                    minZoomLevel = 4.0
+                    minZoomLevel = 0.0
                     controller.setZoom(17.5)
                     overlayManager.tilesOverlay.setColorFilter(null)
 

@@ -66,8 +66,8 @@ object IndiaOfflineMapManager {
         val id: String,
         val name: String,
         val description: String,
-        val minZoom: Int,
-        val maxZoom: Int,
+        val minZoom: Int = 0,
+        val maxZoom: Int = 15,
         val north: Double,
         val east: Double,
         val south: Double,
@@ -76,81 +76,91 @@ object IndiaOfflineMapManager {
     ) {
         val boundingBox: BoundingBox
             get() = BoundingBox(north, east, south, west)
+
+        fun getEstimatedSizeMb(targetMaxZoom: Int = maxZoom): Int {
+            val count = calculateTileCount(boundingBox, minZoom, targetMaxZoom)
+            val mb = (count * 30L) / 1024L
+            return mb.coerceAtLeast(1L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        }
     }
+
+    const val MIN_POSSIBLE_ZOOM = 0
+    const val MAX_POSSIBLE_ZOOM = 20
+    const val DEFAULT_MAX_ZOOM = 16
 
     // Tiered Geographic Partitioning of India (High-Resolution Satellite HD Imagery)
     val INDIA_REGIONS = listOf(
         RegionPack(
             id = "india_national",
             name = "All-India Satellite Arterials HD",
-            description = "Subcontinent highways, expressways, state corridors & cities (Zooms 4-11)",
-            minZoom = 4,
-            maxZoom = 11,
+            description = "Subcontinent highways, expressways, state corridors & cities (Zooms 0-14+)",
+            minZoom = 0,
+            maxZoom = 14,
             north = 37.5,
             east = 97.5,
             south = 6.5,
             west = 68.0,
-            estimatedSizeMb = 1100
+            estimatedSizeMb = 1288
         ),
         RegionPack(
             id = "india_central",
             name = "Central India HD Satellite (CG & MP)",
-            description = "Raipur, Bilaspur, Durg, Bhilai, Bhopal, Indore high-res satellite (Zooms 8-13)",
-            minZoom = 8,
-            maxZoom = 13,
+            description = "Raipur, Bilaspur, Durg, Bhilai, Bhopal, Indore high-res satellite (Zooms 0-15+)",
+            minZoom = 0,
+            maxZoom = 15,
             north = 24.5,
             east = 84.5,
             south = 17.5,
             west = 74.0,
-            estimatedSizeMb = 1450
+            estimatedSizeMb = 1620
         ),
         RegionPack(
             id = "india_north",
             name = "North India HD Satellite (Delhi NCR & North)",
-            description = "Delhi, Punjab, Haryana, UP, Rajasthan, UK, HP high-res satellite (Zooms 8-13)",
-            minZoom = 8,
-            maxZoom = 13,
+            description = "Delhi, Punjab, Haryana, UP, Rajasthan, UK, HP high-res satellite (Zooms 0-15+)",
+            minZoom = 0,
+            maxZoom = 15,
             north = 37.5,
             east = 84.5,
             south = 26.5,
             west = 73.0,
-            estimatedSizeMb = 2100
+            estimatedSizeMb = 3050
         ),
         RegionPack(
             id = "india_west",
             name = "West India HD Satellite (MH & Gujarat)",
-            description = "Mumbai, Pune, Ahmedabad, Surat, Goa high-res satellite (Zooms 8-13)",
-            minZoom = 8,
-            maxZoom = 13,
+            description = "Mumbai, Pune, Ahmedabad, Surat, Goa high-res satellite (Zooms 0-15+)",
+            minZoom = 0,
+            maxZoom = 15,
             north = 24.5,
             east = 74.5,
             south = 15.5,
             west = 68.5,
-            estimatedSizeMb = 1950
+            estimatedSizeMb = 1180
         ),
         RegionPack(
             id = "india_south",
             name = "South India HD Satellite (KA, TN, KL, AP, TS)",
-            description = "Bengaluru, Hyderabad, Chennai, Kochi, Coimbatore high-res satellite (Zooms 8-13)",
-            minZoom = 8,
-            maxZoom = 13,
+            description = "Bengaluru, Hyderabad, Chennai, Kochi, Coimbatore high-res satellite (Zooms 0-15+)",
+            minZoom = 0,
+            maxZoom = 15,
             north = 19.0,
             east = 80.5,
             south = 8.0,
             west = 74.0,
-            estimatedSizeMb = 2250
+            estimatedSizeMb = 1520
         ),
         RegionPack(
             id = "india_east",
             name = "East & NE India HD Satellite",
-            description = "Kolkata, Bhubaneswar, Patna, Guwahati & NE highways (Zooms 8-13)",
-            minZoom = 8,
-            maxZoom = 13,
+            description = "Kolkata, Bhubaneswar, Patna, Guwahati & NE highways (Zooms 0-15+)",
+            minZoom = 0,
+            maxZoom = 15,
             north = 28.5,
             east = 97.5,
             south = 20.0,
             west = 83.5,
-            estimatedSizeMb = 1700
+            estimatedSizeMb = 2670
         )
     )
 
@@ -200,6 +210,20 @@ object IndiaOfflineMapManager {
     private val _updateStatusMessage = MutableStateFlow<String?>(null)
     val updateStatusMessage: StateFlow<String?> = _updateStatusMessage.asStateFlow()
 
+    private val _selectedMaxZoom = MutableStateFlow(DEFAULT_MAX_ZOOM)
+    val selectedMaxZoom: StateFlow<Int> = _selectedMaxZoom.asStateFlow()
+
+    fun setSelectedMaxZoom(context: Context, zoom: Int) {
+        val clamped = zoom.coerceIn(MIN_POSSIBLE_ZOOM, MAX_POSSIBLE_ZOOM)
+        _selectedMaxZoom.value = clamped
+        try {
+            val prefs = context.applicationContext.getSharedPreferences("india_offline_map_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putInt("selected_max_zoom", clamped).apply()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error saving selected_max_zoom: ${e.message}")
+        }
+    }
+
     private var manifest = Manifest()
     private val gson = Gson()
     private var isNetworkAvailable = false
@@ -230,6 +254,12 @@ object IndiaOfflineMapManager {
     fun init(context: Context) {
         applicationContext = context.applicationContext
         val appContext = applicationContext!!
+        try {
+            val prefs = appContext.getSharedPreferences("india_offline_map_prefs", Context.MODE_PRIVATE)
+            _selectedMaxZoom.value = prefs.getInt("selected_max_zoom", DEFAULT_MAX_ZOOM).coerceIn(MIN_POSSIBLE_ZOOM, MAX_POSSIBLE_ZOOM)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error restoring selected_max_zoom: ${e.message}")
+        }
         loadManifest(appContext)
         refreshStorageSize(appContext)
         registerNetworkCallback(appContext)
@@ -328,13 +358,15 @@ object IndiaOfflineMapManager {
     /**
      * Downloads an individual region or the complete India package.
      */
-    fun startDownload(context: Context, regionId: String = "ALL_INDIA") {
+    fun startDownload(context: Context, regionId: String = "ALL_INDIA", maxZoomOverride: Int? = null) {
         if (_downloadState.value == DownloadState.DOWNLOADING) return
 
         _downloadState.value = DownloadState.DOWNLOADING
         _updateStatusMessage.value = null
         manifest.activeRegionId = regionId
         saveManifest(context)
+
+        val targetMax = (maxZoomOverride ?: _selectedMaxZoom.value).coerceIn(MIN_POSSIBLE_ZOOM, MAX_POSSIBLE_ZOOM)
 
         downloadJob?.cancel()
         downloadJob = scope.launch {
@@ -351,7 +383,7 @@ object IndiaOfflineMapManager {
                 }
 
                 _activeRegionName.value = region.name
-                val success = downloadRegionTiles(context, region)
+                val success = downloadRegionTiles(context, region, targetMax)
                 if (!success) {
                     if (!isActive || !isNetworkAvailable) {
                         return@launch
@@ -490,15 +522,22 @@ object IndiaOfflineMapManager {
 
     /**
      * High-speed parallel tile downloader.
+     * - Streams tiles zoom-by-zoom into coroutines without giant heap allocations
      * - Uses 6 concurrent coroutine workers
      * - Uses HTTP Keep-Alive connection pooling (reusing TCP/TLS sockets)
-     * - Distributes requests across OSM subdomains
+     * - Distributes requests across OSM/Google subdomains
      * - Synchronizes SQLite tile storage
      * - Throttles UI progress updates for smooth 60 FPS performance
      */
-    private suspend fun downloadRegionTiles(context: Context, region: RegionPack): Boolean = withContext(Dispatchers.IO) {
-        val tileList = calculateTileIndices(region.boundingBox, region.minZoom, region.maxZoom)
-        val totalTiles = tileList.size
+    private suspend fun downloadRegionTiles(
+        context: Context,
+        region: RegionPack,
+        targetMaxZoom: Int = _selectedMaxZoom.value
+    ): Boolean = withContext(Dispatchers.IO) {
+        val minZoom = region.minZoom.coerceIn(MIN_POSSIBLE_ZOOM, MAX_POSSIBLE_ZOOM)
+        val maxZoom = targetMaxZoom.coerceIn(minZoom, MAX_POSSIBLE_ZOOM)
+        val totalTilesLong = calculateTileCount(region.boundingBox, minZoom, maxZoom)
+        val totalTiles = totalTilesLong.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         _progressTotalTiles.value = totalTiles
         manifest.totalTilesTarget = totalTiles
 
@@ -534,26 +573,40 @@ object IndiaOfflineMapManager {
         val isFailed = AtomicBoolean(false)
 
         try {
-            // Producer coroutine to feed tiles without ANY upfront blocking delay
+            // Producer coroutine to stream tiles zoom-by-zoom without upfront blocking delay or heap exhaustion
             val producer = launch {
-                for (tileIndex in tileList) {
-                    if (!isActive || isFailed.get()) break
+                for (zoom in minZoom..maxZoom) {
+                    val minX = lon2TileX(region.boundingBox.lonWest, zoom)
+                    val maxX = lon2TileX(region.boundingBox.lonEast, zoom)
+                    val minY = lat2TileY(region.boundingBox.latNorth, zoom)
+                    val maxY = lat2TileY(region.boundingBox.latSouth, zoom)
 
-                    // Auto-pause if network lost
-                    while (!isNetworkAvailable) {
-                        _downloadState.value = DownloadState.PAUSED_NETWORK_LOST
-                        delay(2000L)
-                        if (!isActive || isFailed.get()) return@launch
+                    val startX = min(minX, maxX)
+                    val endX = max(minX, maxX)
+                    val startY = min(minY, maxY)
+                    val endY = max(minY, maxY)
+
+                    for (x in startX..endX) {
+                        for (y in startY..endY) {
+                            if (!isActive || isFailed.get()) break
+
+                            // Auto-pause if network lost
+                            while (!isNetworkAvailable) {
+                                _downloadState.value = DownloadState.PAUSED_NETWORK_LOST
+                                delay(2000L)
+                                if (!isActive || isFailed.get()) return@launch
+                            }
+
+                            // Battery conservation
+                            val batteryStatus = getBatteryPercentage(context)
+                            if (batteryStatus.first < 15 && !batteryStatus.second) {
+                                Log.w(TAG, "Low battery (${batteryStatus.first}%). Throttling download...")
+                                delay(4000L)
+                            }
+
+                            tileChannel.send(MapTileIndex.getTileIndex(zoom, x, y))
+                        }
                     }
-
-                    // Battery conservation
-                    val batteryStatus = getBatteryPercentage(context)
-                    if (batteryStatus.first < 15 && !batteryStatus.second) {
-                        Log.w(TAG, "Low battery (${batteryStatus.first}%). Throttling download...")
-                        delay(4000L)
-                    }
-
-                    tileChannel.send(tileIndex)
                 }
                 tileChannel.close()
             }
@@ -680,11 +733,39 @@ object IndiaOfflineMapManager {
     }
 
     /**
+     * Calculates the exact number of tiles within the bounding box for specified zoom range.
+     * Evaluates in O(zoom_count) without allocating collections.
+     */
+    fun calculateTileCount(box: BoundingBox, minZoom: Int, maxZoom: Int): Long {
+        val clampedMin = minZoom.coerceIn(MIN_POSSIBLE_ZOOM, MAX_POSSIBLE_ZOOM)
+        val clampedMax = maxZoom.coerceIn(clampedMin, MAX_POSSIBLE_ZOOM)
+        var total = 0L
+        for (zoom in clampedMin..clampedMax) {
+            val minX = lon2TileX(box.lonWest, zoom)
+            val maxX = lon2TileX(box.lonEast, zoom)
+            val minY = lat2TileY(box.latNorth, zoom)
+            val maxY = lat2TileY(box.latSouth, zoom)
+
+            val startX = min(minX, maxX)
+            val endX = max(minX, maxX)
+            val startY = min(minY, maxY)
+            val endY = max(minY, maxY)
+
+            val countX = (endX - startX + 1L).coerceAtLeast(0L)
+            val countY = (endY - startY + 1L).coerceAtLeast(0L)
+            total += (countX * countY)
+        }
+        return total
+    }
+
+    /**
      * Computes all tile indices within the geographic bounding box for specified zoom range.
      */
-    private fun calculateTileIndices(box: BoundingBox, minZoom: Int, maxZoom: Int): List<Long> {
+    fun calculateTileIndices(box: BoundingBox, minZoom: Int, maxZoom: Int): List<Long> {
         val indices = ArrayList<Long>()
-        for (zoom in minZoom..maxZoom) {
+        val clampedMin = minZoom.coerceIn(MIN_POSSIBLE_ZOOM, MAX_POSSIBLE_ZOOM)
+        val clampedMax = maxZoom.coerceIn(clampedMin, MAX_POSSIBLE_ZOOM)
+        for (zoom in clampedMin..clampedMax) {
             val minX = lon2TileX(box.lonWest, zoom)
             val maxX = lon2TileX(box.lonEast, zoom)
             val minY = lat2TileY(box.latNorth, zoom)

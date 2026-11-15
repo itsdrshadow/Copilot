@@ -136,6 +136,39 @@ class Milestone3MapTileAndLifecycleTest {
     }
 
     @Test
+    fun testIndiaOfflineMapRegionsZoomRangeMinZeroToMaxTwenty() {
+        assertEquals(0, IndiaOfflineMapManager.MIN_POSSIBLE_ZOOM)
+        assertEquals(20, IndiaOfflineMapManager.MAX_POSSIBLE_ZOOM)
+
+        for (region in IndiaOfflineMapManager.INDIA_REGIONS) {
+            assertEquals("Region ${region.name} minZoom must be 0", 0, region.minZoom)
+            assertTrue("Region ${region.name} maxZoom must be <= 20", region.maxZoom <= 20)
+            assertTrue("Region ${region.name} maxZoom must be >= 11", region.maxZoom >= 11)
+        }
+    }
+
+    @Test
+    fun testCalculateTileCountForZoomZeroToMax() {
+        val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
+
+        // At Zoom 0, entire world is 1 tile
+        val countZoomZero = IndiaOfflineMapManager.calculateTileCount(nationalPack.boundingBox, 0, 0)
+        assertEquals(1L, countZoomZero)
+
+        // At Zoom 0..4
+        val countZoomZeroToFour = IndiaOfflineMapManager.calculateTileCount(nationalPack.boundingBox, 0, 4)
+        assertTrue("Cumulative tiles for Z0-Z4 must be >= 10", countZoomZeroToFour >= 10L)
+
+        // At Zoom 0..11, India arterial coverage
+        val countZoomZeroToEleven = IndiaOfflineMapManager.calculateTileCount(nationalPack.boundingBox, 0, 11)
+        assertTrue("Cumulative tiles for Z0-Z11 should be ~43,980", countZoomZeroToEleven in 40000L..50000L)
+
+        // Estimated size dynamically updates
+        val estMbZoom11 = nationalPack.getEstimatedSizeMb(11)
+        assertTrue("Estimated size for Z0-Z11 must be approx 1200-1400 MB", estMbZoom11 in 1000..1600)
+    }
+
+    @Test
     fun testDrivingReportAppDoesNotRequireMapLibre() {
         // Feature 28: Verify DrivingReportApp loads without MapLibre dependencies
         val appClass = DrivingReportApp::class.java
