@@ -9,8 +9,8 @@ class LauncherNavigationAndSpaceReclaimTest {
 
     @Test
     fun testVersionBumpToSemVerMinor() {
-        assertEquals("1.31.0", BuildConfig.VERSION_NAME)
-        assertEquals(54, BuildConfig.VERSION_CODE)
+        assertEquals("1.31.1", BuildConfig.VERSION_NAME)
+        assertEquals(55, BuildConfig.VERSION_CODE)
     }
 
     @Test

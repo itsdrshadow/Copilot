@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.31.1] - 2026-11-15
+
+### Changed
+- **Current Trip Telemetry Display (Single-Page Automotive View)**: Replaced the split-screen layout in `SmartTripSummaryScreen` with a clean, unified, high-density telemetry layout optimized for 10.1-inch landscape cockpit displays. Telemetry data now presents in a balanced two-column dashboard (Primary Telemetry & Motion Breakdown on the left, Fuel & Running Cost with Route Corridor & Milestones on the right) fitting completely on a single page without cramped scrolling.
+- **Enhanced Fuel & Running Cost Readouts**: Integrated `TRIP MILEAGE` (KM/L) directly into `FuelAndEfficiencyCard` alongside estimated fuel burnt (L) and trip cost (₹), complemented by cruising ratio telemetry and measurement method indicators.
+- **Unified Corridor & Timeline Milestones**: Consolidated route departure/arrival times, stops count, GPS accuracy rating, refuel highlights, and chronological milestones into a streamlined card (`TripCorridorAndDetailsCard`).
+
+### Removed
+- **SmartTripMapView & Embedded Map**: Eliminated the static embedded MapView from Current Trip summary, freeing up 50% of the screen width for automotive driver telemetry and preventing heavy tile loading/memory allocation on 2GB RAM head units.
+- **Dead Code Cleanup**: Safely removed `SmartTripMapView.kt` and all obsolete map references from `SmartTripSummaryScreen`.
+
+---
+
 ## [1.31.0] - 2026-11-15
 
 ### Added

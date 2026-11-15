@@ -16,8 +16,20 @@ class DeadCodeCleanupVerificationTest {
 
     @Test
     fun testAppVersionBumpedToSemVerMinor() {
-        assertEquals("1.31.0", BuildConfig.VERSION_NAME)
-        assertEquals(54, BuildConfig.VERSION_CODE)
+        assertEquals("1.31.1", BuildConfig.VERSION_NAME)
+        assertEquals(55, BuildConfig.VERSION_CODE)
+    }
+
+    @Test
+    fun testSmartTripMapViewEliminated() {
+        var mapViewLoaded = false
+        try {
+            Class.forName("com.antigravity.copilot.feature.trips.SmartTripMapViewKt")
+            mapViewLoaded = true
+        } catch (_: ClassNotFoundException) {
+            mapViewLoaded = false
+        }
+        assertFalse("SmartTripMapView should be removed from trips package", mapViewLoaded)
     }
 
     @Test
