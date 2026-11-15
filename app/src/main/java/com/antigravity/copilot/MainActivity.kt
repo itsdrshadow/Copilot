@@ -395,18 +395,6 @@ private fun MainAppScreen(
                     viewModel.setAppDrawerOpen(false)
                     viewModel.selectTab(0)
                 },
-                onOpenSettings = {
-                    viewModel.setAppDrawerOpen(false)
-                    viewModel.setSettingsDialogOpen(true)
-                },
-                onOpenTrips = {
-                    viewModel.setAppDrawerOpen(false)
-                    viewModel.selectTab(2)
-                },
-                onOpenFuel = {
-                    viewModel.setAppDrawerOpen(false)
-                    viewModel.selectTab(3)
-                },
                 onOpenTripSummary = {
                     viewModel.setAppDrawerOpen(false)
                     viewModel.openTripSummary()

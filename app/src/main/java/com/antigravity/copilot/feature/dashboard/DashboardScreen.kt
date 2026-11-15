@@ -3,10 +3,17 @@ package com.antigravity.copilot.feature.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,7 +48,7 @@ fun DashboardScreen(
     speedLimitInfo: SpeedLimitInfo = SpeedLimitInfo(),
     onNavItemSelected: (Int) -> Unit,
     onOpenFuelDialog: () -> Unit,
-    @Suppress("UNUSED_PARAMETER") onOpenFuelHistory: () -> Unit = {},
+    onOpenFuelHistory: () -> Unit = {},
     onOpenAppDrawer: () -> Unit,
     @Suppress("UNUSED_PARAMETER") onLaunchNavi: () -> Unit = {},
     onLaunchSettings: () -> Unit,
@@ -82,22 +89,16 @@ fun DashboardScreen(
         val isPortrait = screenWidth < screenHeight
         val itemSpacing = AutomotiveDesignTokens.Spacing.extraSmall
 
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures { _, dragAmount ->
-                        if (dragAmount < -25f) {
-                            onOpenAppDrawer()
-                        }
-                    }
-                }
-                .padding(AutomotiveDesignTokens.Spacing.extraSmall)
+                .padding(itemSpacing),
+            verticalArrangement = Arrangement.spacedBy(itemSpacing)
         ) {
             if (isPortrait) {
                 // ==================== PORTRAIT VERTICAL COCKPIT ====================
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
                     // Map Panel (Top ~40%)
@@ -165,7 +166,7 @@ fun DashboardScreen(
             } else {
                 // ==================== LANDSCAPE AUTOMOTIVE COCKPIT ====================
                 Row(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
                     // Left Pane: Live Map (~52%)
@@ -231,7 +232,57 @@ fun DashboardScreen(
                     }
                 }
             }
+            CockpitDock(
+                onOpenTrips = { onNavItemSelected(2) },
+                onOpenFuel = onOpenFuelHistory,
+                onOpenApps = onOpenAppDrawer,
+                onOpenSettings = onLaunchSettings
+            )
         }
+    }
+}
+
+@Composable
+private fun CockpitDock(
+    onOpenTrips: () -> Unit,
+    onOpenFuel: () -> Unit,
+    onOpenApps: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AutomotiveDesignTokens.Spacing.extraSmall)
+    ) {
+        DockAction("Trips", Icons.Default.History, onOpenTrips, Modifier.weight(1f))
+        DockAction("Fuels", Icons.Default.LocalGasStation, onOpenFuel, Modifier.weight(1f))
+        DockAction("Apps", Icons.Default.Apps, onOpenApps, Modifier.weight(1f))
+        DockAction("Settings", Icons.Default.Settings, onOpenSettings, Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier) {
+    val shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.container)
+    val dock = AutomotiveDesignTokens.Dock
+    Row(
+        modifier = modifier
+            .height(dock.height)
+            .clip(shape)
+            .background(CockpitTheme.colors.cardElevated)
+            .border(1.dp, CockpitTheme.colors.border, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(dock.iconSize))
+        Text(
+            text = label,
+            color = CockpitTheme.colors.textPrimary,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = dock.textSize),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

@@ -43,9 +43,6 @@ fun AppDrawerScreen(
     modifier: Modifier = Modifier,
     onAppClick: (AppDrawerItem) -> Unit,
     onBackToHome: () -> Unit,
-    onOpenSettings: () -> Unit = {},
-    onOpenTrips: () -> Unit = {},
-    onOpenFuel: () -> Unit = {},
     onOpenTripSummary: () -> Unit = {}
 ) {
     BackHandler(onBack = onBackToHome)
@@ -95,9 +92,6 @@ fun AppDrawerScreen(
                 totalPages = totalPages,
                 totalAppsCount = filteredApps.size,
                 onBackToHome = onBackToHome,
-                onOpenSettings = onOpenSettings,
-                onOpenTrips = onOpenTrips,
-                onOpenFuel = onOpenFuel,
                 onOpenTripSummary = onOpenTripSummary
             )
 
@@ -304,9 +298,6 @@ fun AppDrawerHeader(
     totalPages: Int,
     totalAppsCount: Int,
     onBackToHome: () -> Unit,
-    onOpenSettings: () -> Unit = {},
-    onOpenTrips: () -> Unit = {},
-    onOpenFuel: () -> Unit = {},
     onOpenTripSummary: () -> Unit = {}
 ) {
     Row(
@@ -441,60 +432,6 @@ fun AppDrawerHeader(
                 )
             )
 
-            // Trips Pill (Icon + Text)
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(CockpitTheme.colors.cardElevated)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
-                    .clickable { onOpenTrips() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Icon(
-                    Icons.Default.History,
-                    contentDescription = "Trips",
-                    tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Trips",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.5.sp
-                    ),
-                    color = CockpitTheme.colors.textPrimary
-                )
-            }
-
-            // Fuels Pill (Icon + Text)
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(CockpitTheme.colors.cardElevated)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
-                    .clickable { onOpenFuel() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Icon(
-                    Icons.Default.LocalGasStation,
-                    contentDescription = "Fuels",
-                    tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Fuels",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.5.sp
-                    ),
-                    color = CockpitTheme.colors.textPrimary
-                )
-            }
-
             // Summary Pill (Icon + Text)
             Row(
                 modifier = Modifier
@@ -514,33 +451,6 @@ fun AppDrawerHeader(
                 )
                 Text(
                     text = "Summary",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.5.sp
-                    ),
-                    color = CockpitTheme.colors.textPrimary
-                )
-            }
-
-            // Settings Pill (Icon + Text)
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(CockpitTheme.colors.cardElevated)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
-                    .clickable { onOpenSettings() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
-            ) {
-                Icon(
-                    Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Settings",
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 13.5.sp
