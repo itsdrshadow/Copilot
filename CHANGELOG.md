@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.34.0] - 2026-11-15
+
+### Added
+- **Full-Screen Automotive Settings Screen**: Replaced the floating 92% dialog container with a responsive, 100% full-screen layout featuring fluid slide-and-fade entrance/exit animations, hardware back handler, and a prominent 48dp circular back button.
+- **Dedicated Automotive Navigation Rail**: Rebuilt the settings navigation rail (270dp width, 60dp touch target height, 18sp bold text) providing ergonomic access to essential automotive preferences.
+
+### Changed
+- **Enlarged Glanceable Typography**: Rebuilt the settings interface adopting cockpit typography standards ("bada bada dikhe"): Screen Title scaled to 24sp Black, card titles to 20sp Bold, setting labels to 17-18sp Bold, action buttons to 52-54dp height with 16-17sp Bold text, and large input fields.
+- **Streamlined General Settings**: Consolidated the General tab into a high-contrast Cockpit Color Theme selector (Apex Studio) and an Automotive Runtime Environment status card.
+
+### Removed
+- **Display & Screen Behavior**: Removed display timeout and auto-minimize drawer toggles from the General settings tab; screen always remains on by default for in-vehicle driving.
+- **Localization Section**: Removed redundant measurement unit options from the General settings tab; metric system (km, km/h, km/L) remains standard.
+- **Appearance Tab**: Completely removed the dedicated Appearance tab.
+- **Expected Baseline Mileage**: Completely removed the redundant Expected Mileage text field from the Vehicle settings tab.
+- **Tracking Settings Tab**: Completely removed the Tracking tab; kinematics, auto trip detection, and 1Hz sensor fusion remain always active in the background.
+- **Maps Settings Tab**: Completely removed the Maps settings tab; satellite hybrid maps, building footprints, and permanent caching remain always enabled.
+- **Speed & Safety Tab**: Completely removed the Speed & Safety tab; dynamic speed limits, overspeed visual warnings, and driver safety scoring remain always active in the background.
+
 ## [1.33.0] - 2026-11-15
 
 ### Added

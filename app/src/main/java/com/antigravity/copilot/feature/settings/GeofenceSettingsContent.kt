@@ -85,7 +85,7 @@ fun GeofenceSettingsContent() {
                             text = "AUTOMATIC TRIP GEOFENCES",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                fontSize = 18.sp
                             ),
                             color = Color.White
                         )
@@ -93,7 +93,7 @@ fun GeofenceSettingsContent() {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Departing an enabled geofence starts a journey (including departure distance). Entering an enabled geofence ends the trip. Journeys persist across days and power cycles.",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
                         color = Color(0xFF94A3B8)
                     )
                 }
@@ -106,15 +106,16 @@ fun GeofenceSettingsContent() {
                         isAddEditDialogOpen = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.height(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.AddLocationAlt,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Geofence", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Add Geofence", fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         }
@@ -210,9 +211,9 @@ fun GeofenceSettingsContent() {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = gf.name,
-                                        style = MaterialTheme.typography.titleSmall.copy(
+                                        style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
+                                            fontSize = 18.sp
                                         ),
                                         color = if (gf.isEnabled) Color.White else Color(0xFF64748B)
                                     )
@@ -220,14 +221,14 @@ fun GeofenceSettingsContent() {
                                     // Radius pill
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
+                                            .clip(RoundedCornerShape(8.dp))
                                             .background(Color(0xFF0369A1).copy(alpha = 0.25f))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
                                         Text(
                                             text = "${gf.radiusMeters.toInt()}m radius",
                                             style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 11.5.sp,
+                                                fontSize = 13.5.sp,
                                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                                 fontFeatureSettings = "tnum",
                                                 fontWeight = FontWeight.Bold

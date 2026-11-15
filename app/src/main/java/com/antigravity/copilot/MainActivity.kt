@@ -421,7 +421,17 @@ private fun MainAppScreen(
             )
         }
 
-        if (isSettingsDialogOpen) {
+        AnimatedVisibility(
+            visible = isSettingsDialogOpen,
+            enter = slideInHorizontally(
+                initialOffsetX = { fullWidth -> fullWidth },
+                animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(280)),
+            exit = slideOutHorizontally(
+                targetOffsetX = { fullWidth -> fullWidth },
+                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(220))
+        ) {
             LauncherSettingsDialog(
                 currentFuelState = fuelState,
                 recordedLifetimeKm = recordedDistanceKm,
