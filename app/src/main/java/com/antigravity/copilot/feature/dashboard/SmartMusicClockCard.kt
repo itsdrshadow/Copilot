@@ -224,8 +224,9 @@ private fun ClockOnlyState(
                 Text(
                     text = timeString,
                     style = MaterialTheme.typography.displayLarge.copy(
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                         fontWeight = FontWeight.Black,
+                        fontFeatureSettings = "tnum",
                         fontSize = AutomotiveDesignTokens.Typography.clockValue,
                         letterSpacing = (-1).sp
                     ),
@@ -346,8 +347,9 @@ private fun ClockWithMusicState(
                     Text(
                         text = if (amPmString.isNotBlank()) "$timeString $amPmString" else timeString,
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontWeight = FontWeight.Black,
+                            fontFeatureSettings = "tnum",
                             fontSize = 18.sp
                         ),
                         color = CockpitTheme.colors.textPrimary
@@ -355,7 +357,7 @@ private fun ClockWithMusicState(
                     Text(
                         text = dateString,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.5.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Medium
                         ),
                         color = CockpitTheme.colors.textSecondary
@@ -467,16 +469,18 @@ private fun ClockWithMusicState(
                 Text(
                     text = formattedCurrentTime,
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                        fontFeatureSettings = "tnum",
+                        fontSize = 12.5.sp
                     ),
                     color = CockpitTheme.colors.textSecondary
                 )
                 Text(
                     text = formattedTotalTime,
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                        fontFeatureSettings = "tnum",
+                        fontSize = 12.5.sp
                     ),
                     color = CockpitTheme.colors.textSecondary
                 )

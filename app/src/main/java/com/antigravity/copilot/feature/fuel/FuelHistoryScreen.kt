@@ -210,7 +210,7 @@ fun FuelHistoryScreen(
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Black,
                                             fontSize = 12.5.sp,
-                                            fontFamily = FontFamily.Monospace
+                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                         ),
                                         color = Color(0xFF38BDF8)
                                     )
@@ -259,7 +259,7 @@ fun FuelHistoryScreen(
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                             fontSize = 15.sp,
-                                            fontFamily = FontFamily.Monospace
+                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                         ),
                                         color = if (isSelected) Color.White else Color(0xFF87929A)
                                     )
@@ -438,7 +438,7 @@ private fun FuelStatBadgeCard(
                         fontWeight = FontWeight.Black,
                         fontSize = 19.sp,
                         lineHeight = 20.sp,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
                     color = color
@@ -451,7 +451,7 @@ private fun FuelStatBadgeCard(
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             lineHeight = 12.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         ),
                         color = Color(0xFF87929A),
@@ -655,7 +655,7 @@ private fun PillBadge(text: String, color: Color) {
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 9.5.sp,
-                fontFamily = FontFamily.Monospace
+                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
             ),
             color = color
         )
@@ -705,7 +705,7 @@ private fun FuelEventCard(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = 9.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF38BDF8)
                         )
@@ -743,7 +743,7 @@ private fun FuelEventCard(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 8.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFFCBD5E1)
                             )
@@ -755,7 +755,7 @@ private fun FuelEventCard(
                     text = dateStr,
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
                     color = Color(0xFF87929A)
                 )
@@ -778,7 +778,7 @@ private fun FuelEventCard(
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = 21.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                 letterSpacing = (-0.5).sp
                             ),
                             color = Color(0xFF38BDF8)
@@ -789,7 +789,7 @@ private fun FuelEventCard(
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF87929A),
                             modifier = Modifier.padding(bottom = 2.dp)
@@ -799,7 +799,7 @@ private fun FuelEventCard(
                             text = "@ ${NumberFormatUtils.formatCurrencyWithSymbol(event.pricePerLiter, 2)}/L",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontSize = 11.5.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF87929A),
                             modifier = Modifier.padding(bottom = 2.dp)
@@ -834,7 +834,7 @@ private fun FuelEventCard(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 19.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFF59E0B)
                     )
@@ -856,7 +856,7 @@ private fun FuelEventCard(
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color.White
                                 )
@@ -876,7 +876,7 @@ private fun FuelEventCard(
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 10.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF10B981)
                                 )

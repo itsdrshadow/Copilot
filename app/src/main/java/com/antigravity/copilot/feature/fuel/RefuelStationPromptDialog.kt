@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.CockpitTheme
 import com.antigravity.copilot.core.fuel.FuelRepository
 import com.antigravity.copilot.core.util.NumberFormatUtils
@@ -161,20 +162,22 @@ fun RefuelStationPromptDialog(
                                     Text(
                                         text = "Odometer: ${NumberFormatUtils.formatOdometer(promptData.currentOdometerKm, 2)} km",
                                         style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 10.5.sp,
-                                            fontFamily = FontFamily.Monospace
+                                            fontSize = 12.sp,
+                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                            fontFeatureSettings = "tnum"
                                         ),
                                         color = CockpitTheme.colors.textSecondary
                                     )
-                                    Text("•", color = CockpitTheme.colors.textDisabled, fontSize = 10.sp)
+                                    Text("•", color = CockpitTheme.colors.textDisabled, fontSize = 11.sp)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Schedule, contentDescription = null, tint = CockpitTheme.colors.textSecondary, modifier = Modifier.size(11.dp))
+                                        Icon(Icons.Default.Schedule, contentDescription = null, tint = CockpitTheme.colors.textSecondary, modifier = Modifier.size(12.dp))
                                         Spacer(Modifier.width(3.dp))
                                         Text(
                                             text = formattedTime,
                                             style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 10.5.sp,
-                                                fontFamily = FontFamily.Monospace
+                                                fontSize = 12.sp,
+                                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                                fontFeatureSettings = "tnum"
                                             ),
                                             color = CockpitTheme.colors.textSecondary
                                         )

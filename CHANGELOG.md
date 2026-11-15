@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.31.0] - 2026-11-15
+
+### Added
+- **Speedometer-Style Numeric Typography Tokens (`AutomotiveDesignTokens.NumericTypography`)**: Created centralized typography tokens standardizing automotive font family (`FontFamily.SansSerif`), `FontWeight.Black`, and tabular figures (`fontFeatureSettings = "tnum"`) across the launcher.
+- **Unified Telemetry Readouts**: Applied standardized speedometer-style numeric typography to live speed, odometer readings, delta since calibration, stopping distance calculations, fuel quantities and tank levels, estimated driving range, trip distance, duration timers, digital clock, and trip summary statistics.
+- **Standardized Numeric Typography Test Suite**: Added verification unit tests in `AutomotiveDesignTokensTest` ensuring strict enforcement of tabular figures, typography weights, and token geometry.
+
+### Changed
+- **Driver-Legible Automotive Typography & Touch Targets**: Eliminated undersized micro-typography across cards (increased secondary labels from 8.5sp–9.5sp to 11.5sp–13sp) to ensure effortless readability at 10.1-inch landscape driving distance.
+- **Adaptive Number Text & Metric Value Standardization**: Updated `AdaptiveNumberText` and `AdaptiveMetricValueText` to automatically inherit speedometer font family and tabular numerals by default.
+- **App Drawer & Cockpit Docks Polish**: Enhanced touch target dimensions, icon alignment, and visual hierarchy across telemetry docks and quick-action navigation pills.
+
+### Fixed
+- **Inconsistent Numeral Styling**: Permanently eradicated font-family mismatch between monospace and sans-serif digits across fuel dialogs, trip summaries, timeline playback, and odometer dialogs.
+- **Dead Code & Compiler Warnings**: Removed unused variables (`isCurrent`), replaced deprecated icons with `Icons.AutoMirrored` variants, and upgraded deprecated dividers to Compose M3 layout standards.
+
+---
+
 ## [1.30.0] - 2026-11-15
 
 ### Added

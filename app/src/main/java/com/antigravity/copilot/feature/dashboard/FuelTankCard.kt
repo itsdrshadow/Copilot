@@ -173,7 +173,8 @@ fun FuelTankCard(
                             text = NumberFormatUtils.formatFuelLiters(currentLiters, 1),
                             style = MaterialTheme.typography.displayMedium.copy(
                                 fontWeight = FontWeight.Black,
-                                fontFamily = FontFamily.SansSerif,
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                fontFeatureSettings = "tnum",
                                 fontSize = 34.sp
                             ),
                             color = textPrimary
@@ -206,7 +207,8 @@ fun FuelTankCard(
                         text = "${tankPct.toInt()}%",
                         style = MaterialTheme.typography.displayMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.SansSerif,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
                             fontSize = 32.sp
                         ),
                         color = primaryStatusColor
@@ -216,7 +218,7 @@ fun FuelTankCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp,
-                            fontSize = 11.5.sp
+                            fontSize = 12.sp
                         ),
                         color = textSecondary
                     )
@@ -302,7 +304,8 @@ fun FuelTankCard(
                         text = if (rangeKm > 0) "${rangeKm.toInt()} km" else "--- km",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.SansSerif,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
                             fontSize = 19.sp
                         ),
                         maxLines = 1,
@@ -313,7 +316,7 @@ fun FuelTankCard(
                         text = "EST. RANGE",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.5.sp
+                            fontSize = 12.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -357,7 +360,8 @@ fun FuelTankCard(
                         text = mileageText,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.SansSerif,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
                             fontSize = 19.sp
                         ),
                         maxLines = 1,
@@ -368,7 +372,7 @@ fun FuelTankCard(
                         text = mileageLabel,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.5.sp
+                            fontSize = 12.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -447,8 +451,9 @@ fun FuelTankCard(
                                 text = "$tempSelectedBar / 10 BARS • ${tempSelectedBar * 10}%",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = 13.sp
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                    fontFeatureSettings = "tnum",
+                                    fontSize = 13.5.sp
                                 ),
                                 color = activeColor
                             )
@@ -471,7 +476,7 @@ fun FuelTankCard(
                             text = "ESTIMATED FUEL LEVEL",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = CockpitTheme.colors.textSecondary
@@ -481,7 +486,8 @@ fun FuelTankCard(
                                 text = NumberFormatUtils.formatPrecision(estLiters, 1),
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                    fontFeatureSettings = "tnum",
                                     fontSize = 24.sp
                                 ),
                                 color = CockpitTheme.colors.textPrimary
@@ -537,7 +543,8 @@ fun FuelTankCard(
                                         text = "$bar",
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Black,
-                                            fontFamily = FontFamily.Monospace,
+                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                            fontFeatureSettings = "tnum",
                                             fontSize = 17.sp
                                         ),
                                         color = if (isSelected) CockpitTheme.colors.onAccent else CockpitTheme.colors.textSecondary
@@ -546,7 +553,7 @@ fun FuelTankCard(
                                         text = "${bar * 10}%",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 9.sp
+                                            fontSize = 11.5.sp
                                         ),
                                         color = if (isSelected) CockpitTheme.colors.onAccent.copy(alpha = 0.8f) else CockpitTheme.colors.textDisabled
                                     )

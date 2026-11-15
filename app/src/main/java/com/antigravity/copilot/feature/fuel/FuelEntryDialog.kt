@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.Cockpit_AmberWarning
 import com.antigravity.copilot.core.designsystem.Cockpit_GreenEco
 import com.antigravity.copilot.core.designsystem.Cockpit_RedAlert
@@ -412,7 +413,7 @@ fun FuelEntryDialog(
                                                         style = MaterialTheme.typography.titleLarge.copy(
                                                             fontWeight = FontWeight.Black,
                                                             fontSize = 22.sp,
-                                                            fontFamily = FontFamily.Monospace,
+                                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                                             letterSpacing = (-0.5).sp,
                                                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                                                         ),
@@ -471,7 +472,7 @@ fun FuelEntryDialog(
                                                         style = MaterialTheme.typography.titleLarge.copy(
                                                             fontWeight = FontWeight.Black,
                                                             fontSize = 20.sp,
-                                                            fontFamily = FontFamily.Monospace,
+                                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                                             letterSpacing = (-0.5).sp,
                                                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                                                         ),
@@ -526,7 +527,7 @@ fun FuelEntryDialog(
                                                         style = MaterialTheme.typography.labelSmall.copy(
                                                             fontWeight = FontWeight.Black,
                                                             fontSize = 9.5.sp,
-                                                            fontFamily = FontFamily.Monospace
+                                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                                         ),
                                                         color = Cockpit_RedAlert
                                                     )
@@ -536,7 +537,7 @@ fun FuelEntryDialog(
                                                         style = MaterialTheme.typography.labelSmall.copy(
                                                             fontWeight = FontWeight.Black,
                                                             fontSize = 10.sp,
-                                                            fontFamily = FontFamily.Monospace
+                                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                                         ),
                                                         color = Color(0xFFC084FC)
                                                     )
@@ -549,7 +550,7 @@ fun FuelEntryDialog(
                                                     style = MaterialTheme.typography.titleLarge.copy(
                                                         fontWeight = FontWeight.Black,
                                                         fontSize = 22.sp,
-                                                        fontFamily = FontFamily.Monospace,
+                                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                                         letterSpacing = (-0.5).sp,
                                                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                                                     ),
@@ -841,7 +842,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF94A3B8)
                     )
@@ -863,7 +864,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = if (additionalBars > 0) Color(0xFF00B0FF) else Color(0xFF94A3B8)
                         )
@@ -885,7 +886,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             style = MaterialTheme.typography.headlineLarge.copy(
                                 fontWeight = FontWeight.Black,
                                 fontSize = 34.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                 letterSpacing = (-1).sp,
                                 platformStyle = PlatformTextStyle(includeFontPadding = false)
                             ),
@@ -924,7 +925,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 34.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         ),
                         color = pctColor
@@ -934,7 +935,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = if (isOverfill) Cockpit_AmberWarning else Color(0xFF64748B)
                     )
@@ -953,7 +954,6 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     (1..10).forEach { bar ->
-                        val isCurrent = bar <= currentBar
                         val isAdded = bar in (currentBar + 1)..postRefillBar
                         val isFilled = bar <= postRefillBar
                         val isSelected = bar == postRefillBar
@@ -1010,7 +1010,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 10.5.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFEF4444)
                     )
@@ -1019,7 +1019,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFFF9100)
                     )
@@ -1028,7 +1028,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFEAB308)
                     )
@@ -1037,7 +1037,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF22C55E)
                     )
@@ -1046,7 +1046,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 10.5.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF10B981)
                     )
@@ -1083,7 +1083,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
                                     fontSize = 22.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color.White
                             )
@@ -1133,7 +1133,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
                                     fontSize = 22.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFF10B981)
                             )
@@ -1173,7 +1173,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
                                     fontSize = 22.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFFF59E0B)
                             )
@@ -1223,7 +1223,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Black,
                                     fontSize = 22.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFF38BDF8)
                             )
@@ -1289,7 +1289,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF94A3B8)
                     )
@@ -1298,7 +1298,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = if (isOverfill) Cockpit_AmberWarning else Color(0xFF00F5FF)
                     )
@@ -1376,7 +1376,7 @@ fun AutoCalculatedTelemetryCard(
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 10.5.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
                     color = Color(0xFF94A3B8)
                 )
@@ -1417,7 +1417,7 @@ fun AutoCalculatedTelemetryCard(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 18.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color.White
                                 )
@@ -1467,7 +1467,7 @@ fun AutoCalculatedTelemetryCard(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 18.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Cockpit_GreenEco
                                 )
@@ -1513,7 +1513,7 @@ fun AutoCalculatedTelemetryCard(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 18.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFFF59E0B)
                                 )
@@ -1563,7 +1563,7 @@ fun AutoCalculatedTelemetryCard(
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 18.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF00E5FF)
                                 )
@@ -1630,7 +1630,7 @@ fun AutoCalculatedTelemetryCard(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF94A3B8)
                     )
@@ -1639,7 +1639,7 @@ fun AutoCalculatedTelemetryCard(
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = if (isOverfill) Cockpit_AmberWarning else Color(0xFF38BDF8)
                     )
@@ -1721,7 +1721,7 @@ private fun TactileKeypadButton(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 14.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             letterSpacing = 0.5.sp
                         ),
                         color = accentColor

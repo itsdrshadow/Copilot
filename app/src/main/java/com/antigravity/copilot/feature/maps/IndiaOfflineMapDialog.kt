@@ -234,7 +234,7 @@ fun IndiaOfflineMapDialog(
                                             style = MaterialTheme.typography.labelSmall.copy(
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.sp,
-                                                fontFamily = FontFamily.Monospace
+                                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                             ),
                                             color = Cockpit_Cyan
                                         )
@@ -300,7 +300,7 @@ fun IndiaOfflineMapDialog(
                                                 text = "$currentTiles / $totalTiles tiles ($progressPercent%)",
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontSize = 11.5.sp,
-                                                    fontFamily = FontFamily.Monospace
+                                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                                 ),
                                                 color = Color.White
                                             )
@@ -308,7 +308,7 @@ fun IndiaOfflineMapDialog(
                                                 text = "${NumberFormatUtils.formatPrecision(speedKbs, 2)} KB/s",
                                                 style = MaterialTheme.typography.labelSmall.copy(
                                                     fontSize = 11.5.sp,
-                                                    fontFamily = FontFamily.Monospace
+                                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                                 ),
                                                 color = Cockpit_TextSecondary
                                             )
@@ -619,7 +619,7 @@ private fun RegionalPackCard(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.5.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Cockpit_Cyan
                         )
@@ -642,7 +642,7 @@ private fun RegionalPackCard(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.5.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Cockpit_TextSecondary
                         )

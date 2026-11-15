@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontFamily
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -942,8 +943,9 @@ fun LiveMapPanel(
                         text = "\u00B1${latestPoint.accuracy.toInt()}m",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontSize = 11.sp,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum"
                         ),
                         color = Cockpit_Cyan
                     )
@@ -1079,7 +1081,8 @@ fun LiveMapPanel(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 28.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum"
                         ),
                         color = if (speedLimitInfo.isOverspeed) Cockpit_RedAlert else Color.White
                     )

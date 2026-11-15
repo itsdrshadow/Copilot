@@ -83,6 +83,19 @@ class AutomotiveDesignTokensTest {
     }
 
     @Test
+    fun testStandardizedNumericTypographyTokens() {
+        assertEquals(androidx.compose.ui.text.font.FontFamily.SansSerif, AutomotiveDesignTokens.NumericTypography.fontFamily)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveDesignTokens.NumericTypography.fontWeightHero)
+        assertEquals("tnum", AutomotiveDesignTokens.NumericTypography.fontFeatureSettings)
+        assertEquals((-0.5).sp, AutomotiveDesignTokens.NumericTypography.letterSpacing)
+
+        val heroStyle = AutomotiveDesignTokens.NumericTypography.hero()
+        assertEquals(AutomotiveDesignTokens.Typography.heroMetric, heroStyle.fontSize)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, heroStyle.fontWeight)
+        assertEquals("tnum", heroStyle.fontFeatureSettings)
+    }
+
+    @Test
     fun testAppSettingsManagerCleanStateWithoutScaling() {
         val state = AppSettingsManager.SettingsState()
         // Ensure default settings exist cleanly without scaling fields

@@ -12,16 +12,16 @@ android {
         applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 53
-        versionName = "1.30.0"
+        versionCode = 54
+        versionName = "1.31.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "VERSION_NAME", "\"1.30.0\"")
-        buildConfigField("int", "VERSION_CODE", "53")
+        buildConfigField("String", "VERSION_NAME", "\"1.31.0\"")
+        buildConfigField("int", "VERSION_CODE", "54")
 
         kapt {
             arguments {

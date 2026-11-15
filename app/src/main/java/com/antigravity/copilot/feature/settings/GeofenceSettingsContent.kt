@@ -28,6 +28,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.database.TripGeofenceEntity
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.trip.TripGeofenceManager
 import com.antigravity.copilot.core.util.NumberFormatUtils
@@ -225,9 +226,12 @@ fun GeofenceSettingsContent() {
                                     ) {
                                         Text(
                                             text = "${gf.radiusMeters.toInt()}m radius",
-                                            fontSize = 10.sp,
-                                            fontFamily = FontFamily.Monospace,
-                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 11.5.sp,
+                                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                                fontFeatureSettings = "tnum",
+                                                fontWeight = FontWeight.Bold
+                                            ),
                                             color = Color(0xFF38BDF8)
                                         )
                                     }
@@ -244,7 +248,7 @@ fun GeofenceSettingsContent() {
                                         ) {
                                             Text(
                                                 text = "INSIDE GEOFENCE",
-                                                fontSize = 10.sp,
+                                                fontSize = 11.sp,
                                                 fontWeight = FontWeight.Black,
                                                 color = Color(0xFF34D399)
                                             )
@@ -263,8 +267,11 @@ fun GeofenceSettingsContent() {
                                             }
                                             Text(
                                                 text = distText,
-                                                fontSize = 10.sp,
-                                                fontFamily = FontFamily.Monospace,
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontSize = 11.5.sp,
+                                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                                    fontFeatureSettings = "tnum"
+                                                ),
                                                 color = Color(0xFF94A3B8)
                                             )
                                         }
@@ -276,8 +283,9 @@ fun GeofenceSettingsContent() {
                                 Text(
                                     text = String.format(Locale.US, "GPS: %.5f, %.5f", gf.latitude, gf.longitude),
                                     style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 11.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontSize = 11.5.sp,
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                        fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF64748B)
                                 )

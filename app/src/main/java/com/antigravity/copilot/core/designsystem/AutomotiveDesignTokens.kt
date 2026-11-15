@@ -3,6 +3,11 @@ package com.antigravity.copilot.core.designsystem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -63,6 +68,60 @@ object AutomotiveDesignTokens {
         val bodyText: TextUnit = 14.sp
         val caption: TextUnit = 11.5.sp
         val badgeText: TextUnit = 11.sp
+    }
+
+    /**
+     * Standardized Speedometer-Style Numeric Typography Tokens.
+     * Enforces uniform automotive font family, tabular figures ("tnum"),
+     * and high-contrast font weights across all telemetry displays.
+     */
+    object NumericTypography {
+        val fontFamily: FontFamily = FontFamily.SansSerif
+        val fontWeightHero: FontWeight = FontWeight.Black
+        val fontWeightMedium: FontWeight = FontWeight.Bold
+        const val fontFeatureSettings: String = "tnum"
+        val letterSpacing: TextUnit = (-0.5).sp
+
+        fun hero(
+            fontSize: TextUnit = Typography.heroMetric,
+            color: Color = Color.Unspecified
+        ): TextStyle = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = fontWeightHero,
+            fontSize = fontSize,
+            fontFeatureSettings = fontFeatureSettings,
+            letterSpacing = letterSpacing,
+            color = color,
+            platformStyle = PlatformTextStyle(includeFontPadding = false)
+        )
+
+        fun metric(
+            fontSize: TextUnit = Typography.largeMetric,
+            color: Color = Color.Unspecified,
+            fontWeight: FontWeight = FontWeight.Black
+        ): TextStyle = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = fontWeight,
+            fontSize = fontSize,
+            fontFeatureSettings = fontFeatureSettings,
+            letterSpacing = letterSpacing,
+            color = color,
+            platformStyle = PlatformTextStyle(includeFontPadding = false)
+        )
+
+        fun readout(
+            fontSize: TextUnit = 18.sp,
+            color: Color = Color.Unspecified,
+            fontWeight: FontWeight = FontWeight.Bold
+        ): TextStyle = TextStyle(
+            fontFamily = fontFamily,
+            fontWeight = fontWeight,
+            fontSize = fontSize,
+            fontFeatureSettings = fontFeatureSettings,
+            letterSpacing = 0.sp,
+            color = color,
+            platformStyle = PlatformTextStyle(includeFontPadding = false)
+        )
     }
 
     object AppDrawer {

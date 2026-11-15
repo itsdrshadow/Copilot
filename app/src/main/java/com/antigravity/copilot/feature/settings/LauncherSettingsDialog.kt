@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -1048,7 +1050,7 @@ private fun SpeedSafetySettingsContent(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.VolumeUp,
+                            imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                             contentDescription = "Test voice",
                             tint = if (isSelected) CockpitTheme.colors.onAccent else CockpitTheme.colors.textPrimary,
                             modifier = Modifier.size(16.dp)
@@ -1176,7 +1178,7 @@ private fun AboutSettingsContent() {
                     shape = RoundedCornerShape(8.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
                 ) {
-                    Icon(Icons.Default.ExitToApp, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF38BDF8))
+                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color(0xFF38BDF8))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Switch to Stock", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
@@ -1271,7 +1273,8 @@ private fun AboutSettingsContent() {
                     text = "v$appVersionName",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                        fontFeatureSettings = "tnum"
                     ),
                     color = CockpitTheme.colors.accent
                 )

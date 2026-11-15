@@ -448,8 +448,9 @@ fun CurrentTripCard(
                         text = liveTripTimerText,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 18.sp
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
+                            fontSize = 18.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -459,7 +460,7 @@ fun CurrentTripCard(
                         text = timerLabelText,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.5.sp
+                            fontSize = 12.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -491,8 +492,9 @@ fun CurrentTripCard(
                         text = movingText,
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 16.sp
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
+                            fontSize = 17.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -502,7 +504,7 @@ fun CurrentTripCard(
                         text = "DRIVING TIME",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.5.sp
+                            fontSize = 12.sp
                         ),
                         maxLines = 1,
                         softWrap = false,

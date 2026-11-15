@@ -276,12 +276,14 @@ val CockpitTypography = Typography(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Black,
         fontSize = 64.sp,
-        letterSpacing = (-1.0).sp
+        letterSpacing = (-1.0).sp,
+        fontFeatureSettings = "tnum"
     ),
     displayMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
-        fontSize = 36.sp
+        fontSize = 36.sp,
+        fontFeatureSettings = "tnum"
     ),
     headlineMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,

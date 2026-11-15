@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.antigravity.copilot.R
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.database.TripEntity
 import com.antigravity.copilot.core.database.VehicleStateTransitionEntity
 import com.antigravity.copilot.core.database.FuelLedgerEntity
@@ -343,7 +344,7 @@ fun TripHistoryScreen(
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 12.5.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF38BDF8)
                                 )
@@ -392,7 +393,7 @@ fun TripHistoryScreen(
                                     style = MaterialTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                         fontSize = 15.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = if (isSelected) Color.White else Color(0xFF87929A)
                                 )
@@ -675,7 +676,7 @@ private fun TripStatTile(
                         fontWeight = FontWeight.Black,
                         fontSize = 19.sp,
                         lineHeight = 20.sp,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
                     color = color
@@ -688,7 +689,7 @@ private fun TripStatTile(
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
                             lineHeight = 12.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         ),
                         color = Color(0xFF87929A),
@@ -927,7 +928,7 @@ private fun TripCardItem(
                         text = dateDisplayStr,
                         style = MaterialTheme.typography.bodySmall.copy(
                             fontSize = 10.5.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF87929A)
                     )
@@ -940,7 +941,7 @@ private fun TripCardItem(
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
                         fontSize = 17.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
                     color = if (isSelected) Color(0xFF38BDF8) else Color.White
                 )
@@ -960,7 +961,7 @@ private fun TripCardItem(
                         text = "⏱️ $durationText",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             fontWeight = FontWeight.Bold
                         ),
                         color = Color(0xFFCBD5E1)
@@ -970,7 +971,7 @@ private fun TripCardItem(
                         text = "${NumberFormatUtils.formatSpeed(trip.avgSpeedKmh, 2)} km/h avg",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             fontWeight = FontWeight.Bold
                         ),
                         color = Color(0xFFCBD5E1)
@@ -981,7 +982,7 @@ private fun TripCardItem(
                             text = "max ${NumberFormatUtils.formatSpeed(trip.maxSpeedKmh, 2)}",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace,
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                 fontWeight = FontWeight.Bold
                             ),
                             color = Color(0xFFA855F7)
@@ -1006,7 +1007,7 @@ private fun TripCardItem(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 9.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = scoreColor
                     )
@@ -1134,7 +1135,7 @@ private fun TripDetailContainer(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF38BDF8)
                         )
@@ -1369,7 +1370,7 @@ private fun TripMapReplayView(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
                             fontSize = 8.5.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = statusDotColor
                     )
@@ -1379,7 +1380,7 @@ private fun TripMapReplayView(
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 9.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color.White
                     )
@@ -1388,7 +1389,7 @@ private fun TripMapReplayView(
                         text = "• ${formatDurationShort(elapsedMs)} / ${formatDurationShort(totalDurationMs)}",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 9.sp,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF87929A)
                     )
@@ -1468,7 +1469,7 @@ private fun TripMapReplayView(
                                 text = "Pt ${currentIndex + 1}/${points.size}",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 9.5.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFF87929A)
                             )
@@ -1487,7 +1488,7 @@ private fun TripMapReplayView(
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 9.5.sp,
-                                        fontFamily = FontFamily.Monospace
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF38BDF8)
                                 )
@@ -1601,7 +1602,7 @@ private fun TripTimelineView(
                                 text = timeStr,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 10.5.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = event.accentColor
                             )
@@ -1671,7 +1672,7 @@ private fun TripChartsView(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color.White
                         )
@@ -1718,7 +1719,7 @@ private fun TripChartsView(
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color.White
                         )
@@ -1835,7 +1836,7 @@ private fun TripChartsView(
                                         style = MaterialTheme.typography.titleSmall.copy(
                                             fontWeight = FontWeight.Black,
                                             fontSize = 14.sp,
-                                            fontFamily = FontFamily.Monospace
+                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                         ),
                                         color = band.color
                                     )
@@ -1878,7 +1879,7 @@ private fun TripChartsView(
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.5.sp,
-                                fontFamily = FontFamily.Monospace
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color.White
                         )
@@ -1897,7 +1898,7 @@ private fun TripChartsView(
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
                                     fontSize = 11.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFF10B981)
                             )
@@ -2859,7 +2860,7 @@ private fun PillBadge(text: String, color: Color) {
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 9.sp,
-                fontFamily = FontFamily.Monospace
+                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
             ),
             color = color
         )

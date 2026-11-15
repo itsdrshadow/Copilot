@@ -39,7 +39,8 @@ fun AdaptiveNumberText(
     style: TextStyle = LocalTextStyle.current,
     color: Color = CockpitTheme.colors.textPrimary,
     fontWeight: FontWeight = FontWeight.Black,
-    fontFamily: FontFamily? = null,
+    fontFamily: FontFamily? = AutomotiveDesignTokens.NumericTypography.fontFamily,
+    fontFeatureSettings: String? = AutomotiveDesignTokens.NumericTypography.fontFeatureSettings,
     letterSpacing: TextUnit = TextUnit.Unspecified,
     textAlign: TextAlign = TextAlign.Center,
     alignment: Alignment = Alignment.Center,
@@ -54,13 +55,14 @@ fun AdaptiveNumberText(
         val maxW = constraints.maxWidth
         val maxH = constraints.maxHeight
 
-        val baseStyle = remember(style, color, fontWeight, fontFamily, letterSpacing, textAlign) {
+        val baseStyle = remember(style, color, fontWeight, fontFamily, letterSpacing, textAlign, fontFeatureSettings) {
             style.copy(
                 color = color,
                 fontWeight = fontWeight,
-                fontFamily = fontFamily ?: style.fontFamily,
+                fontFamily = fontFamily ?: AutomotiveDesignTokens.NumericTypography.fontFamily,
                 letterSpacing = letterSpacing,
                 textAlign = textAlign,
+                fontFeatureSettings = fontFeatureSettings ?: AutomotiveDesignTokens.NumericTypography.fontFeatureSettings,
                 platformStyle = PlatformTextStyle(includeFontPadding = false)
             )
         }
@@ -141,7 +143,8 @@ fun AdaptiveMetricValueText(
     valueColor: Color = CockpitTheme.colors.textPrimary,
     unitColor: Color = CockpitTheme.colors.textSecondary,
     fontWeight: FontWeight = FontWeight.Black,
-    fontFamily: FontFamily? = null,
+    fontFamily: FontFamily? = AutomotiveDesignTokens.NumericTypography.fontFamily,
+    fontFeatureSettings: String? = AutomotiveDesignTokens.NumericTypography.fontFeatureSettings,
     letterSpacing: TextUnit = (-0.5).sp,
     alignment: Alignment = Alignment.Center,
     textAlign: TextAlign = TextAlign.Center
@@ -155,12 +158,13 @@ fun AdaptiveMetricValueText(
         val maxW = constraints.maxWidth
         val maxH = constraints.maxHeight
 
-        val baseStyle = remember(style, fontWeight, fontFamily, letterSpacing, textAlign) {
+        val baseStyle = remember(style, fontWeight, fontFamily, letterSpacing, textAlign, fontFeatureSettings) {
             style.copy(
                 fontWeight = fontWeight,
-                fontFamily = fontFamily ?: style.fontFamily,
+                fontFamily = fontFamily ?: AutomotiveDesignTokens.NumericTypography.fontFamily,
                 letterSpacing = letterSpacing,
                 textAlign = textAlign,
+                fontFeatureSettings = fontFeatureSettings ?: AutomotiveDesignTokens.NumericTypography.fontFeatureSettings,
                 platformStyle = PlatformTextStyle(includeFontPadding = false)
             )
         }
@@ -172,7 +176,7 @@ fun AdaptiveMetricValueText(
                         fontSize = valSizeSp.sp,
                         color = valueColor,
                         fontWeight = fontWeight,
-                        fontFamily = fontFamily ?: style.fontFamily,
+                        fontFamily = fontFamily ?: AutomotiveDesignTokens.NumericTypography.fontFamily,
                         letterSpacing = letterSpacing
                     )
                 ) {
@@ -185,7 +189,7 @@ fun AdaptiveMetricValueText(
                             fontSize = unitSizeSp.sp,
                             color = unitColor,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = fontFamily ?: style.fontFamily
+                            fontFamily = fontFamily ?: AutomotiveDesignTokens.NumericTypography.fontFamily
                         )
                     ) {
                         append(unit)

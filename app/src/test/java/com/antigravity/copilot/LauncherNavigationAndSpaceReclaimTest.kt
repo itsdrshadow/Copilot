@@ -9,8 +9,8 @@ class LauncherNavigationAndSpaceReclaimTest {
 
     @Test
     fun testVersionBumpToSemVerMinor() {
-        assertEquals("1.30.0", BuildConfig.VERSION_NAME)
-        assertEquals(53, BuildConfig.VERSION_CODE)
+        assertEquals("1.31.0", BuildConfig.VERSION_NAME)
+        assertEquals(54, BuildConfig.VERSION_CODE)
     }
 
     @Test
@@ -53,6 +53,7 @@ class LauncherNavigationAndSpaceReclaimTest {
         val TAB_MAP = 1
         val TAB_TRIP_HISTORY = 2
         val TAB_FUEL_HISTORY = 3
+        assertEquals(1, TAB_MAP)
 
         var drawerOpen = true
         var currentTab = TAB_DASHBOARD

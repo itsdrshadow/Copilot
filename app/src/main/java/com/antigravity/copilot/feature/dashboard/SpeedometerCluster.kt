@@ -430,8 +430,9 @@ fun SpeedometerCluster(
                             },
                             style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = FontWeight.Black,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.5.sp,
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                fontFeatureSettings = "tnum",
+                                fontSize = 13.5.sp,
                                 letterSpacing = 0.4.sp
                             ),
                             maxLines = 1,
@@ -472,8 +473,9 @@ fun SpeedometerCluster(
                         text = String.format(Locale.US, "%,.1f km", currentOdometerKm),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.SansSerif,
-                            fontSize = 16.5.sp
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
+                            fontSize = 17.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -484,7 +486,7 @@ fun SpeedometerCluster(
                         text = "ODOMETER",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -516,8 +518,9 @@ fun SpeedometerCluster(
                         text = deltaText,
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.SansSerif,
-                            fontSize = 16.5.sp
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
+                            fontSize = 17.5.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -528,7 +531,7 @@ fun SpeedometerCluster(
                         text = "SINCE CAL.",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                            fontSize = 12.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -768,7 +771,8 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 text = diffText,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                    fontFeatureSettings = "tnum"
                                 ),
                                 color = diffColor
                             )
@@ -800,7 +804,8 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 text = textValue.ifEmpty { "0.0" },
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontFamily = FontFamily.Monospace,
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                    fontFeatureSettings = "tnum",
                                     fontSize = 28.sp
                                 ),
                                 color = CockpitTheme.colors.textPrimary
@@ -846,7 +851,8 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 text = sign,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace
+                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                    fontFeatureSettings = "tnum"
                                 ),
                                 color = if (delta > 0) CockpitTheme.colors.accent else CockpitTheme.colors.critical
                             )
@@ -893,7 +899,8 @@ private fun SpeedometerOdometerCalibrationDialog(
                                         text = key,
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = FontFamily.Monospace
+                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                            fontFeatureSettings = "tnum"
                                         ),
                                         color = if (key == "DEL") CockpitTheme.colors.critical else CockpitTheme.colors.textPrimary
                                     )

@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antigravity.copilot.core.trip.*
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.CockpitTheme
 import java.util.Locale
 
@@ -253,7 +255,7 @@ private fun TopSummaryHeader(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = Color(0xFF38BDF8),
                         modifier = Modifier.size(16.dp)
@@ -521,7 +523,8 @@ private fun BigMetricTile(
                     style = MaterialTheme.typography.displaySmall.copy(
                         fontWeight = FontWeight.Black,
                         fontSize = 42.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                        fontFeatureSettings = "tnum"
                     ),
                     color = valueColor,
                     maxLines = 1
@@ -687,7 +690,7 @@ private fun MediumMetricTile(
                 text = label,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Black,
-                    fontSize = 10.sp,
+                    fontSize = 11.5.sp,
                     letterSpacing = 0.6.sp
                 ),
                 color = Color(0xFF94A3B8),
@@ -698,7 +701,8 @@ private fun MediumMetricTile(
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Black,
                     fontSize = 28.sp,
-                    fontFamily = FontFamily.Monospace
+                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                    fontFeatureSettings = "tnum"
                 ),
                 color = valueColor,
                 maxLines = 1
@@ -707,7 +711,7 @@ private fun MediumMetricTile(
                 Text(
                     text = sub,
                     style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 10.sp,
+                        fontSize = 11.5.sp,
                         fontWeight = FontWeight.SemiBold
                     ),
                     color = Color(0xFF64748B),
@@ -830,48 +834,63 @@ private fun FuelReportCard(fuelReport: FuelReportData) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "EST. FUEL BURNT",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, color = Color(0xFF64748B))
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
                     )
                     Text(
                         text = "%.2f L".format(Locale.US, fuelReport.estimatedFuelConsumedLiters),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
+                            fontSize = 17.sp
+                        ),
                         color = Color.White
                     )
                 }
 
-                Divider(modifier = Modifier.height(28.dp).width(1.dp), color = Color(0xFF334155))
+                Box(modifier = Modifier.height(28.dp).width(1.dp).background(Color(0xFF334155)))
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "TRIP MILEAGE",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, color = Color(0xFF64748B))
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
                     )
                     Text(
                         text = "%.1f KM/L".format(Locale.US, fuelReport.calculatedMileageKmpl),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
+                            fontSize = 17.sp
+                        ),
                         color = Color(0xFF10B981)
                     )
                 }
 
-                Divider(modifier = Modifier.height(28.dp).width(1.dp), color = Color(0xFF334155))
+                Box(modifier = Modifier.height(28.dp).width(1.dp).background(Color(0xFF334155)))
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "EST. TRIP COST",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.5.sp, color = Color(0xFF64748B))
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
                     )
                     Text(
-                        text = "â‚¹%.0f".format(Locale.US, fuelReport.estimatedTripCost),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontFamily = FontFamily.Monospace),
+                        text = "₹%.0f".format(Locale.US, fuelReport.estimatedTripCost),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Black,
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                            fontFeatureSettings = "tnum",
+                            fontSize = 17.sp
+                        ),
                         color = Color(0xFFF59E0B)
                     )
                 }
             }
 
             Text(
-                text = "â€¢ ${fuelReport.measurementMethodLabel}",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                color = Color(0xFF64748B)
+                text = "• ${fuelReport.measurementMethodLabel}",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp),
+                color = Color(0xFF94A3B8)
             )
         }
     }
@@ -895,7 +914,7 @@ private fun TripTimelineCard(events: List<TripTimelineItem>) {
                 text = "CHRONOLOGICAL TRIP TIMELINE",
                 style = MaterialTheme.typography.labelMedium.copy(
                     fontWeight = FontWeight.Black,
-                    fontSize = 10.5.sp,
+                    fontSize = 12.sp,
                     letterSpacing = 0.8.sp
                 ),
                 color = Color(0xFF38BDF8)
@@ -903,7 +922,7 @@ private fun TripTimelineCard(events: List<TripTimelineItem>) {
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val timeFmt = remember { java.text.SimpleDateFormat("hh:mm a", Locale.US) }
-                events.forEachIndexed { idx, item ->
+                events.forEachIndexed { _, item ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -913,11 +932,12 @@ private fun TripTimelineCard(events: List<TripTimelineItem>) {
                             text = timeFmt.format(java.util.Date(item.timestamp)),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 9.5.sp
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                fontFeatureSettings = "tnum",
+                                fontSize = 11.5.sp
                             ),
-                            color = Color(0xFF64748B),
-                            modifier = Modifier.width(62.dp)
+                            color = Color(0xFF94A3B8),
+                            modifier = Modifier.width(68.dp)
                         )
 
                         val dotColor = when (item.type) {
