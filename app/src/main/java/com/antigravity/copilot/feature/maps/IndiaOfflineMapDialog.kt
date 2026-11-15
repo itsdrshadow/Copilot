@@ -55,7 +55,6 @@ fun IndiaOfflineMapDialog(
     val totalStorageBytes by IndiaOfflineMapManager.totalStorageSizeBytes.collectAsState()
     val isCheckingUpdates by IndiaOfflineMapManager.isCheckingUpdates.collectAsState()
     val updateStatusMessage by IndiaOfflineMapManager.updateStatusMessage.collectAsState()
-    val selectedMaxZoom by IndiaOfflineMapManager.selectedMaxZoom.collectAsState()
 
     val isAllIndiaDownloaded = downloadedRegions.containsAll(IndiaOfflineMapManager.INDIA_REGIONS.map { it.id })
 
@@ -330,102 +329,6 @@ fun IndiaOfflineMapDialog(
                                     )
                                 }
 
-                                // Zoom Resolution Selector (0 to MAX)
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "DOWNLOAD RESOLUTION (0 TO MAX)",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontWeight = FontWeight.Black,
-                                                fontSize = 10.5.sp,
-                                                letterSpacing = 0.8.sp
-                                            ),
-                                            color = Cockpit_TextSecondary
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(Cockpit_Cyan.copy(alpha = 0.15f))
-                                                .border(1.dp, Cockpit_Cyan.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                                        ) {
-                                            Text(
-                                                text = "Z0 → Z$selectedMaxZoom ${if (selectedMaxZoom == 20) "(MAX)" else ""}",
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 10.sp,
-                                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                                    fontFeatureSettings = "tnum"
-                                                ),
-                                                color = Cockpit_Cyan
-                                            )
-                                        }
-                                    }
-
-                                    // Quick presets: 11, 13, 15, 17, 20 (MAX)
-                                    val presets = listOf(
-                                        Pair(11, "Z0-Z11"),
-                                        Pair(13, "Z0-Z13"),
-                                        Pair(15, "Z0-Z15"),
-                                        Pair(17, "Z0-Z17"),
-                                        Pair(20, "Z0-Z20 (MAX)")
-                                    )
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        presets.forEach { (zoom, label) ->
-                                            val isSelected = selectedMaxZoom == zoom
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(if (isSelected) Cockpit_Cyan else Color(0xFF0F1E38))
-                                                    .border(
-                                                        1.dp,
-                                                        if (isSelected) Cockpit_Cyan else Cockpit_CardBorder.copy(alpha = 0.6f),
-                                                        RoundedCornerShape(8.dp)
-                                                    )
-                                                    .clickable(enabled = downloadState != IndiaOfflineMapManager.DownloadState.DOWNLOADING) {
-                                                        IndiaOfflineMapManager.setSelectedMaxZoom(context, zoom)
-                                                    }
-                                                    .padding(vertical = 7.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = label,
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                                        fontSize = 9.5.sp,
-                                                        letterSpacing = 0.2.sp
-                                                    ),
-                                                    color = if (isSelected) Color.Black else Color.White
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    val zoomDescription = when (selectedMaxZoom) {
-                                        in 0..11 -> "Zoom 0 to 11: Continental view, national highways, expressways & major corridors."
-                                        in 12..13 -> "Zoom 0 to 13: State corridors, all district headquarters, arterial bypasses & regional roads."
-                                        in 14..15 -> "Zoom 0 to 15: Sub-districts, towns, city streets, bridges & rural road networks."
-                                        in 16..17 -> "Zoom 0 to 17: High-definition residential streets, landmarks, building clusters & terrain."
-                                        else -> "Zoom 0 to 20: Absolute maximum optical resolution, rooftop level, lanes & precise topography (0 to MAX)."
-                                    }
-                                    Text(
-                                        text = zoomDescription,
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 11.sp,
-                                            lineHeight = 15.sp
-                                        ),
-                                        color = Cockpit_TextSecondary
-                                    )
-                                }
-
                                 // Master Action Buttons
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -437,7 +340,7 @@ fun IndiaOfflineMapDialog(
                                                 IndiaOfflineMapManager.DownloadState.DOWNLOADING -> IndiaOfflineMapManager.pauseDownload(context)
                                                 IndiaOfflineMapManager.DownloadState.PAUSED_USER,
                                                 IndiaOfflineMapManager.DownloadState.PAUSED_NETWORK_LOST -> IndiaOfflineMapManager.resumeDownload(context)
-                                                else -> IndiaOfflineMapManager.startDownload(context, "ALL_INDIA", selectedMaxZoom)
+                                                else -> IndiaOfflineMapManager.startDownload(context, "ALL_INDIA")
                                             }
                                         },
                                         modifier = Modifier
@@ -648,11 +551,10 @@ fun IndiaOfflineMapDialog(
 
                                 RegionalPackCard(
                                     region = region,
-                                    targetMaxZoom = selectedMaxZoom,
                                     isDownloaded = isDownloaded,
                                     isCurrentlyDownloading = isCurrentlyDownloading,
                                     onDownload = {
-                                        IndiaOfflineMapManager.startDownload(context, region.id, selectedMaxZoom)
+                                        IndiaOfflineMapManager.startDownload(context, region.id)
                                     }
                                 )
                             }
@@ -668,7 +570,6 @@ fun IndiaOfflineMapDialog(
 @Composable
 private fun RegionalPackCard(
     region: IndiaOfflineMapManager.RegionPack,
-    targetMaxZoom: Int,
     isDownloaded: Boolean,
     isCurrentlyDownloading: Boolean,
     onDownload: () -> Unit
@@ -715,7 +616,7 @@ private fun RegionalPackCard(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "Z${region.minZoom}-Z$targetMaxZoom",
+                            text = "Z${region.minZoom}-Z${region.maxZoom}",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 9.5.sp,
@@ -725,8 +626,8 @@ private fun RegionalPackCard(
                         )
                     }
 
-                    // Estimated Size Pill Badge dynamically based on targetMaxZoom
-                    val estMb = region.getEstimatedSizeMb(targetMaxZoom)
+                    // Estimated Size Pill Badge dynamically based on region.maxZoom
+                    val estMb = region.getEstimatedSizeMb()
                     val sizeLabel = if (estMb >= 1024) {
                         "~${NumberFormatUtils.formatPrecision(estMb / 1024.0, 1)} GB"
                     } else {

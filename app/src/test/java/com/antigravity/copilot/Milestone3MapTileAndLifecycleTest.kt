@@ -136,14 +136,21 @@ class Milestone3MapTileAndLifecycleTest {
     }
 
     @Test
-    fun testIndiaOfflineMapRegionsZoomRangeMinZeroToMaxTwenty() {
+    fun testIndiaOfflineMapRegionsZoomRangeMinZeroToMaxThirteen() {
         assertEquals(0, IndiaOfflineMapManager.MIN_POSSIBLE_ZOOM)
-        assertEquals(20, IndiaOfflineMapManager.MAX_POSSIBLE_ZOOM)
+        assertEquals(13, IndiaOfflineMapManager.MAX_POSSIBLE_ZOOM)
+
+        val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
+        assertEquals("All-India minZoom must be 0", 0, nationalPack.minZoom)
+        assertEquals("All-India maxZoom must be 11", 11, nationalPack.maxZoom)
 
         for (region in IndiaOfflineMapManager.INDIA_REGIONS) {
             assertEquals("Region ${region.name} minZoom must be 0", 0, region.minZoom)
-            assertTrue("Region ${region.name} maxZoom must be <= 20", region.maxZoom <= 20)
-            assertTrue("Region ${region.name} maxZoom must be >= 11", region.maxZoom >= 11)
+            if (region.id == "india_national") {
+                assertEquals(11, region.maxZoom)
+            } else {
+                assertEquals("Region ${region.name} maxZoom must be 13", 13, region.maxZoom)
+            }
         }
     }
 

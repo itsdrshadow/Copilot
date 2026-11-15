@@ -85,17 +85,17 @@ object IndiaOfflineMapManager {
     }
 
     const val MIN_POSSIBLE_ZOOM = 0
-    const val MAX_POSSIBLE_ZOOM = 20
-    const val DEFAULT_MAX_ZOOM = 16
+    const val MAX_POSSIBLE_ZOOM = 13
+    const val DEFAULT_MAX_ZOOM = 13
 
     // Tiered Geographic Partitioning of India (High-Resolution Satellite HD Imagery)
     val INDIA_REGIONS = listOf(
         RegionPack(
             id = "india_national",
             name = "All-India Satellite Arterials HD",
-            description = "Subcontinent highways, expressways, state corridors & cities (Zooms 0-14+)",
+            description = "Subcontinent highways, expressways, state corridors & cities (Zooms 0-11)",
             minZoom = 0,
-            maxZoom = 14,
+            maxZoom = 11,
             north = 37.5,
             east = 97.5,
             south = 6.5,
@@ -105,9 +105,9 @@ object IndiaOfflineMapManager {
         RegionPack(
             id = "india_central",
             name = "Central India HD Satellite (CG & MP)",
-            description = "Raipur, Bilaspur, Durg, Bhilai, Bhopal, Indore high-res satellite (Zooms 0-15+)",
+            description = "Raipur, Bilaspur, Durg, Bhilai, Bhopal, Indore high-res satellite (Zooms 0-13)",
             minZoom = 0,
-            maxZoom = 15,
+            maxZoom = 13,
             north = 24.5,
             east = 84.5,
             south = 17.5,
@@ -117,9 +117,9 @@ object IndiaOfflineMapManager {
         RegionPack(
             id = "india_north",
             name = "North India HD Satellite (Delhi NCR & North)",
-            description = "Delhi, Punjab, Haryana, UP, Rajasthan, UK, HP high-res satellite (Zooms 0-15+)",
+            description = "Delhi, Punjab, Haryana, UP, Rajasthan, UK, HP high-res satellite (Zooms 0-13)",
             minZoom = 0,
-            maxZoom = 15,
+            maxZoom = 13,
             north = 37.5,
             east = 84.5,
             south = 26.5,
@@ -129,9 +129,9 @@ object IndiaOfflineMapManager {
         RegionPack(
             id = "india_west",
             name = "West India HD Satellite (MH & Gujarat)",
-            description = "Mumbai, Pune, Ahmedabad, Surat, Goa high-res satellite (Zooms 0-15+)",
+            description = "Mumbai, Pune, Ahmedabad, Surat, Goa high-res satellite (Zooms 0-13)",
             minZoom = 0,
-            maxZoom = 15,
+            maxZoom = 13,
             north = 24.5,
             east = 74.5,
             south = 15.5,
@@ -141,9 +141,9 @@ object IndiaOfflineMapManager {
         RegionPack(
             id = "india_south",
             name = "South India HD Satellite (KA, TN, KL, AP, TS)",
-            description = "Bengaluru, Hyderabad, Chennai, Kochi, Coimbatore high-res satellite (Zooms 0-15+)",
+            description = "Bengaluru, Hyderabad, Chennai, Kochi, Coimbatore high-res satellite (Zooms 0-13)",
             minZoom = 0,
-            maxZoom = 15,
+            maxZoom = 13,
             north = 19.0,
             east = 80.5,
             south = 8.0,
@@ -153,9 +153,9 @@ object IndiaOfflineMapManager {
         RegionPack(
             id = "india_east",
             name = "East & NE India HD Satellite",
-            description = "Kolkata, Bhubaneswar, Patna, Guwahati & NE highways (Zooms 0-15+)",
+            description = "Kolkata, Bhubaneswar, Patna, Guwahati & NE highways (Zooms 0-13)",
             minZoom = 0,
-            maxZoom = 15,
+            maxZoom = 13,
             north = 28.5,
             east = 97.5,
             south = 20.0,
@@ -366,8 +366,6 @@ object IndiaOfflineMapManager {
         manifest.activeRegionId = regionId
         saveManifest(context)
 
-        val targetMax = (maxZoomOverride ?: _selectedMaxZoom.value).coerceIn(MIN_POSSIBLE_ZOOM, MAX_POSSIBLE_ZOOM)
-
         downloadJob?.cancel()
         downloadJob = scope.launch {
             val targets = if (regionId == "ALL_INDIA") {
@@ -383,6 +381,7 @@ object IndiaOfflineMapManager {
                 }
 
                 _activeRegionName.value = region.name
+                val targetMax = maxZoomOverride?.coerceAtMost(region.maxZoom) ?: region.maxZoom
                 val success = downloadRegionTiles(context, region, targetMax)
                 if (!success) {
                     if (!isActive || !isNetworkAvailable) {
@@ -532,10 +531,10 @@ object IndiaOfflineMapManager {
     private suspend fun downloadRegionTiles(
         context: Context,
         region: RegionPack,
-        targetMaxZoom: Int = _selectedMaxZoom.value
+        targetMaxZoom: Int = region.maxZoom
     ): Boolean = withContext(Dispatchers.IO) {
         val minZoom = region.minZoom.coerceIn(MIN_POSSIBLE_ZOOM, MAX_POSSIBLE_ZOOM)
-        val maxZoom = targetMaxZoom.coerceIn(minZoom, MAX_POSSIBLE_ZOOM)
+        val maxZoom = targetMaxZoom.coerceIn(minZoom, region.maxZoom)
         val totalTilesLong = calculateTileCount(region.boundingBox, minZoom, maxZoom)
         val totalTiles = totalTilesLong.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         _progressTotalTiles.value = totalTiles

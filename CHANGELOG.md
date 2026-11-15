@@ -9,15 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **Full Zoom Spectrum Offline Map Architecture (Zoom 0 to Max 20)**: Expanded the India HD Satellite Offline Map System to support the complete zoom range from global/continental overview (Zoom 0) to maximum optical satellite resolution (Zoom 20).
-- **Interactive Download Resolution Profile Selector**: Integrated a quick-selection preset bar (`Z0-Z11`, `Z0-Z13`, `Z0-Z15`, `Z0-Z17`, `Z0-Z20 (MAX)`) with dynamic descriptive telemetry and persistent user preference storage.
-- **Dynamic Real-Time Storage & Tile Estimation**: Added `calculateTileCount` and `getEstimatedSizeMb` mathematical estimation models that evaluate storage requirements in O(zoom_count) with zero upfront collection allocations.
-- **OOM-Proof Coroutine Streaming Tile Pipeline**: Re-architected `downloadRegionTiles` from upfront array allocations to a bounded coroutine channel stream, preventing heap exhaustion even when targeting millions of tiles up to Zoom 20.
-
 ### Changed
-- **All-India & Regional Pack Min Zoom**: Updated all regional and national satellite packs (`india_national`, `india_central`, `india_north`, `india_west`, `india_south`, `india_east`) to initiate from minimum zoom level 0.
-- **LiveMapView Full Zoom Capabilities**: Lowered `minZoomLevel` in `LiveMapView` from 4.0 to 0.0, enabling continuous pinch and button zooming from global planet scale (0.0) up to maximum street and building optical zoom (20.0).
+- **Curated Offline Map Zoom Ranges**:
+  - Set `All-India Satellite Arterials HD` (`india_national`) to strictly Zoom 0 through Zoom 11 (`minZoom = 0`, `maxZoom = 11`, ~1288 MB) for continental highways, expressways, and major city corridors.
+  - Set all regional map packs (`india_central`, `india_north`, `india_west`, `india_south`, `india_east`) to strictly Zoom 0 through Zoom 13 (`minZoom = 0`, `maxZoom = 13`) for state corridors, district headquarters, and regional arterial bypasses.
+  - Updated region download logic in `IndiaOfflineMapManager` to download up to each pack's defined `maxZoom`.
+
+### Removed
+- **Redundant Download Resolution Profiles**: Removed higher zoom presets (`Z0-Z15`, `Z0-Z17`, `Z0-Z20 MAX`) and manual zoom selector from `IndiaOfflineMapDialog`, ensuring lean storage usage and preventing device memory exhaustion from excessive tile downloads.
 
 ## [1.34.0] - 2026-11-15
 
