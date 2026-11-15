@@ -153,10 +153,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openTripSummary(tripId: Long? = null) {
-        val targetId = tripId ?: tripRepository.getLastCompletedTripId()
-        if (targetId > 0L) {
-            loadSmartTripReport(targetId)
-            selectTab(4)
+        viewModelScope.launch {
+            var targetId = tripId ?: tripRepository.getLastCompletedTripId()
+            if (targetId <= 0L) {
+                targetId = tripRepository.getLastCompletedTrip()?.id ?: 0L
+            }
+            if (targetId > 0L) {
+                loadSmartTripReport(targetId)
+                selectTab(4)
+            }
         }
     }
 
