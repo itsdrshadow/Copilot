@@ -101,7 +101,7 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Map Panel (Top 35%)
+                    // Map Panel (Top 45%)
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
@@ -109,15 +109,15 @@ fun DashboardScreen(
                         onToggleFullScreen = onToggleFullMap,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.35f)
+                            .weight(0.45f)
                             .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
                     )
 
-                    // Telemetry Area (Bottom 65%)
+                    // Telemetry Area (Bottom 55%)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.65f),
+                            .weight(0.55f),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
                         // Row 1: Speedometer + Fuel Tank
@@ -169,22 +169,22 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Left Pane: Live Map (35%)
+                    // Left Pane: Live Map (45%)
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
                         speedLimitInfo = speedLimitInfo,
                         onToggleFullScreen = onToggleFullMap,
                         modifier = Modifier
-                            .weight(0.35f)
+                            .weight(0.45f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
                     )
 
-                    // Right Pane: Telemetry Area (65%)
+                    // Right Pane: Telemetry Area (55%)
                     Column(
                         modifier = Modifier
-                            .weight(0.65f)
+                            .weight(0.55f)
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {

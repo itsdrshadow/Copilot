@@ -48,11 +48,11 @@ class LauncherNavigationAndSpaceReclaimTest {
 
     @Test
     fun testCockpitLayoutSplitAndDockHeight() {
-        val mapWeight = 0.35f
-        val telemetryWeight = 0.65f
+        val mapWeight = 0.45f
+        val telemetryWeight = 0.55f
         assertEquals(1.0f, mapWeight + telemetryWeight, 0.001f)
-        assertEquals(0.35f, mapWeight, 0.001f)
-        assertEquals(0.65f, telemetryWeight, 0.001f)
+        assertEquals(0.45f, mapWeight, 0.001f)
+        assertEquals(0.55f, telemetryWeight, 0.001f)
 
         // Ensure dock height is at least 64dp for automotive driver tap usability
         val dockHeight = com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens.Dock.height
