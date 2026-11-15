@@ -132,11 +132,11 @@ object AutomotiveDesignTokens {
     }
 
     object Dock {
-        val height: Dp = 48.dp
-        val pillPaddingHorizontal: Dp = 14.dp
-        val pillPaddingVertical: Dp = 10.dp
-        val iconSize: Dp = 20.dp
-        val textSize: TextUnit = 13.5.sp
+        val height: Dp = 64.dp
+        val pillPaddingHorizontal: Dp = 16.dp
+        val pillPaddingVertical: Dp = 12.dp
+        val iconSize: Dp = 28.dp
+        val textSize: TextUnit = 17.sp
     }
 }
 

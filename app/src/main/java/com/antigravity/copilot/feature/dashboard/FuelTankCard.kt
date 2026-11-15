@@ -175,7 +175,7 @@ fun FuelTankCard(
                                 fontWeight = FontWeight.Black,
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                 fontFeatureSettings = "tnum",
-                                fontSize = 34.sp
+                                fontSize = 38.sp
                             ),
                             color = textPrimary
                         )
@@ -184,7 +184,7 @@ fun FuelTankCard(
                             text = "L",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
+                                fontSize = 20.sp
                             ),
                             color = primaryStatusColor
                         )
@@ -192,7 +192,7 @@ fun FuelTankCard(
                     Text(
                         text = "OEM Capacity ${capacity.toInt()} L",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 12.5.sp
+                            fontSize = 13.sp
                         ),
                         color = textSecondary
                     )
@@ -209,7 +209,7 @@ fun FuelTankCard(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                             fontFeatureSettings = "tnum",
-                            fontSize = 32.sp
+                            fontSize = 36.sp
                         ),
                         color = primaryStatusColor
                     )
@@ -289,7 +289,7 @@ fun FuelTankCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(52.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(CockpitTheme.colors.cardElevated)
                     .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
@@ -306,7 +306,7 @@ fun FuelTankCard(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                             fontFeatureSettings = "tnum",
-                            fontSize = 19.sp
+                            fontSize = 20.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -362,7 +362,7 @@ fun FuelTankCard(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                             fontFeatureSettings = "tnum",
-                            fontSize = 19.sp
+                            fontSize = 20.sp
                         ),
                         maxLines = 1,
                         softWrap = false,

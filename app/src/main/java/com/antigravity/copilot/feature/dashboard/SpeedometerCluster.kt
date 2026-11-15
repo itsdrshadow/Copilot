@@ -453,7 +453,7 @@ fun SpeedometerCluster(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(52.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(CockpitTheme.colors.cardElevated)
                     .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
@@ -475,7 +475,7 @@ fun SpeedometerCluster(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                             fontFeatureSettings = "tnum",
-                            fontSize = 17.5.sp
+                            fontSize = 20.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -520,7 +520,7 @@ fun SpeedometerCluster(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                             fontFeatureSettings = "tnum",
-                            fontSize = 17.5.sp
+                            fontSize = 20.sp
                         ),
                         maxLines = 1,
                         softWrap = false,

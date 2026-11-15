@@ -75,11 +75,11 @@ class AutomotiveDesignTokensTest {
 
     @Test
     fun testDockGeometryTokens() {
-        assertEquals(48.dp, AutomotiveDesignTokens.Dock.height)
-        assertEquals(14.dp, AutomotiveDesignTokens.Dock.pillPaddingHorizontal)
-        assertEquals(10.dp, AutomotiveDesignTokens.Dock.pillPaddingVertical)
-        assertEquals(20.dp, AutomotiveDesignTokens.Dock.iconSize)
-        assertEquals(13.5.sp, AutomotiveDesignTokens.Dock.textSize)
+        assertEquals(64.dp, AutomotiveDesignTokens.Dock.height)
+        assertEquals(16.dp, AutomotiveDesignTokens.Dock.pillPaddingHorizontal)
+        assertEquals(12.dp, AutomotiveDesignTokens.Dock.pillPaddingVertical)
+        assertEquals(28.dp, AutomotiveDesignTokens.Dock.iconSize)
+        assertEquals(17.sp, AutomotiveDesignTokens.Dock.textSize)
     }
 
     @Test

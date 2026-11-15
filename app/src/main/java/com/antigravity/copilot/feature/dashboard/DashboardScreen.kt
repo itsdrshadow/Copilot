@@ -101,7 +101,7 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Map Panel (Top ~40%)
+                    // Map Panel (Top 35%)
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
@@ -109,15 +109,15 @@ fun DashboardScreen(
                         onToggleFullScreen = onToggleFullMap,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1.05f)
+                            .weight(0.35f)
                             .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
                     )
 
-                    // Telemetry Area (Bottom ~60%)
+                    // Telemetry Area (Bottom 65%)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1.5f),
+                            .weight(0.65f),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
                         // Row 1: Speedometer + Fuel Tank
@@ -169,22 +169,22 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Left Pane: Live Map (~52%)
+                    // Left Pane: Live Map (35%)
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
                         speedLimitInfo = speedLimitInfo,
                         onToggleFullScreen = onToggleFullMap,
                         modifier = Modifier
-                            .weight(1.08f)
+                            .weight(0.35f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
                     )
 
-                    // Right Pane: Telemetry Area (~48%)
+                    // Right Pane: Telemetry Area (65%)
                     Column(
                         modifier = Modifier
-                            .weight(1.0f)
+                            .weight(0.65f)
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
@@ -251,7 +251,7 @@ private fun CockpitDock(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AutomotiveDesignTokens.Spacing.extraSmall)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         DockAction("Trips", Icons.Default.History, onOpenTrips, Modifier.weight(1f))
         DockAction("Fuels", Icons.Default.LocalGasStation, onOpenFuel, Modifier.weight(1f))
@@ -269,17 +269,17 @@ private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, mo
             .height(dock.height)
             .clip(shape)
             .background(CockpitTheme.colors.cardElevated)
-            .border(1.dp, CockpitTheme.colors.border, shape)
+            .border(1.25.dp, CockpitTheme.colors.border, shape)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+            .padding(horizontal = dock.pillPaddingHorizontal, vertical = dock.pillPaddingVertical),
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, contentDescription = null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(dock.iconSize))
         Text(
             text = label,
             color = CockpitTheme.colors.textPrimary,
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold, fontSize = dock.textSize),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = dock.textSize),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

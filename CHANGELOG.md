@@ -10,7 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Cockpit Layout & Touch Usability**: Expanded the bottom navigation dock height to 64dp with 28dp icons, 17sp bold text, and 16dp horizontal padding for effortless driver tapping while driving.
+- **Cockpit 35/65 Proportion & Telemetry Sizing**: Rebalanced the cockpit screen proportion to allocate 35% to Live Map and 65% to Driver Telemetry. Enlarged primary metric readouts across all cards (Fuel liters to 38sp, Tank percentage to 36sp, Odometer & Range to 20sp, and expanded Speedometer gauge radius).
 - **Cockpit Navigation**: Added a bottom dock with Trips, Fuels, Apps, and Settings. Moved the Trips, Fuels, and Settings shortcuts out of the app drawer and removed the cockpit swipe-left shortcut for opening All Apps.
+
+### Fixed
+- **Settings SharedPreferences Type Safety**: Added safe float parsing in `AppSettingsManager` to prevent `ClassCastException` when upgrading preferences where numeric values were previously saved as integer types.
 
 ## [1.31.1] - 2026-11-15
 

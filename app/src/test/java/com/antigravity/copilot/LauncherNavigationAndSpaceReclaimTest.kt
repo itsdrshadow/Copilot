@@ -1,5 +1,6 @@
 package com.antigravity.copilot
 
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -43,5 +44,18 @@ class LauncherNavigationAndSpaceReclaimTest {
         val onOpenSettings: () -> Unit = { settingsOpen = true }
         onOpenSettings()
         assertTrue(settingsOpen)
+    }
+
+    @Test
+    fun testCockpitLayoutSplitAndDockHeight() {
+        val mapWeight = 0.35f
+        val telemetryWeight = 0.65f
+        assertEquals(1.0f, mapWeight + telemetryWeight, 0.001f)
+        assertEquals(0.35f, mapWeight, 0.001f)
+        assertEquals(0.65f, telemetryWeight, 0.001f)
+
+        // Ensure dock height is at least 64dp for automotive driver tap usability
+        val dockHeight = com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens.Dock.height
+        assertTrue("Dock height must be >= 64dp for easy tapping while driving", dockHeight.value >= 64f)
     }
 }

@@ -128,6 +128,22 @@ object AppSettingsManager {
         }
     }
 
+    private fun SharedPreferences.getSafeFloat(key: String, defValue: Float): Float {
+        return try {
+            getFloat(key, defValue)
+        } catch (_: ClassCastException) {
+            try {
+                getInt(key, defValue.toInt()).toFloat()
+            } catch (_: ClassCastException) {
+                try {
+                    getString(key, null)?.toFloatOrNull() ?: defValue
+                } catch (_: Throwable) {
+                    defValue
+                }
+            }
+        }
+    }
+
     fun reload(context: Context) {
         val prefs = getPrefs(context)
         _settingsState.value = SettingsState(
@@ -138,16 +154,16 @@ object AppSettingsManager {
             themeAppearanceMode = prefs.getString(KEY_THEME_APPEARANCE_MODE, "auto") ?: "auto",
             carName = prefs.getString(KEY_CAR_NAME, "My Car") ?: "My Car",
             fuelType = prefs.getString(KEY_FUEL_TYPE, "Petrol") ?: "Petrol",
-            tankCapacityLiters = prefs.getFloat(KEY_TANK_CAPACITY, 48.0f).toDouble(),
-            expectedMileageKmpl = prefs.getFloat(KEY_EXPECTED_MILEAGE, 18.0f).toDouble(),
-            defaultGeofenceRadiusMeters = prefs.getFloat(KEY_DEFAULT_GEOFENCE_RADIUS, 200.0f),
-            stationarySpeedThresholdKmh = prefs.getFloat(KEY_STATIONARY_SPEED_THRESHOLD, 2.5f),
+            tankCapacityLiters = prefs.getSafeFloat(KEY_TANK_CAPACITY, 48.0f).toDouble(),
+            expectedMileageKmpl = prefs.getSafeFloat(KEY_EXPECTED_MILEAGE, 18.0f).toDouble(),
+            defaultGeofenceRadiusMeters = prefs.getSafeFloat(KEY_DEFAULT_GEOFENCE_RADIUS, 200.0f),
+            stationarySpeedThresholdKmh = prefs.getSafeFloat(KEY_STATIONARY_SPEED_THRESHOLD, 2.5f),
             idleDurationThresholdSeconds = prefs.getInt(KEY_IDLE_DURATION_THRESHOLD, 30),
             autoTripDetection = prefs.getBoolean(KEY_AUTO_TRIP_DETECTION, true),
             engineOffDetection = prefs.getBoolean(KEY_ENGINE_OFF_DETECTION, true),
             stationStopWatchdog = prefs.getBoolean(KEY_STATION_STOP_WATCHDOG, true),
             stationPromptDwellSeconds = prefs.getInt(KEY_STATION_DWELL_SECONDS, 30),
-            missedRefillThresholdLiters = prefs.getFloat(KEY_MISSED_REFILL_THRESHOLD, 3.0f).toDouble(),
+            missedRefillThresholdLiters = prefs.getSafeFloat(KEY_MISSED_REFILL_THRESHOLD, 3.0f).toDouble(),
             dynamicSpeedLimits = prefs.getBoolean(KEY_DYNAMIC_SPEED_LIMITS, true),
             overspeedAlerts = prefs.getBoolean(KEY_OVERSPEED_ALERTS, true),
             nearLimitWarning = prefs.getBoolean(KEY_NEAR_LIMIT_WARNING, true),
@@ -171,15 +187,15 @@ object AppSettingsManager {
         val carName = if (prefs.contains(KEY_CAR_NAME)) prefs.getString(KEY_CAR_NAME, current.carName) ?: current.carName else current.carName
         val fuelType = if (prefs.contains(KEY_FUEL_TYPE)) prefs.getString(KEY_FUEL_TYPE, current.fuelType) ?: current.fuelType else current.fuelType
         val tankCap = if (prefs.contains(KEY_TANK_CAPACITY)) {
-            prefs.getFloat(KEY_TANK_CAPACITY, current.tankCapacityLiters.toFloat()).toDouble()
+            prefs.getSafeFloat(KEY_TANK_CAPACITY, current.tankCapacityLiters.toFloat()).toDouble()
         } else if (fuelPrefs.contains("design_capacity")) {
-            fuelPrefs.getFloat("design_capacity", current.tankCapacityLiters.toFloat()).toDouble()
+            fuelPrefs.getSafeFloat("design_capacity", current.tankCapacityLiters.toFloat()).toDouble()
         } else current.tankCapacityLiters
 
         val expMil = if (prefs.contains(KEY_EXPECTED_MILEAGE)) {
-            prefs.getFloat(KEY_EXPECTED_MILEAGE, current.expectedMileageKmpl.toFloat()).toDouble()
+            prefs.getSafeFloat(KEY_EXPECTED_MILEAGE, current.expectedMileageKmpl.toFloat()).toDouble()
         } else if (fuelPrefs.contains("baseline_vehicle_mileage")) {
-            fuelPrefs.getFloat("baseline_vehicle_mileage", current.expectedMileageKmpl.toFloat()).toDouble()
+            fuelPrefs.getSafeFloat("baseline_vehicle_mileage", current.expectedMileageKmpl.toFloat()).toDouble()
         } else current.expectedMileageKmpl
 
         val migratedState = current.copy(

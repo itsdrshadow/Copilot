@@ -434,7 +434,7 @@ fun CurrentTripCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(52.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(dockBg)
                     .border(dockBorderWidth, dockBorderColor, RoundedCornerShape(10.dp))
@@ -450,7 +450,7 @@ fun CurrentTripCard(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                             fontFeatureSettings = "tnum",
-                            fontSize = 18.5.sp
+                            fontSize = 20.sp
                         ),
                         maxLines = 1,
                         softWrap = false,
