@@ -427,8 +427,6 @@ object PersistentDataManager {
                 sObj.put("map_dark_mode", settings.mapDarkMode)
                 sObj.put("map_building_footprints", settings.mapBuildingFootprints)
                 sObj.put("auto_day_night_solar", settings.autoDayNightSolar)
-                sObj.put("voice_greetings_enabled", settings.voiceGreetingsEnabled)
-                sObj.put("tts_voice_id", settings.ttsVoiceId)
                 sObj.put("media_pill_enabled", settings.mediaPillEnabled)
                 root.put("app_settings", sObj)
 

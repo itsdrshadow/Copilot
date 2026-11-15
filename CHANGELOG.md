@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [1.32.0] - 2026-11-15
+
+### Removed
+- **Voice Guidance & Smart Audio**: Completely eradicated `AutomotiveVoiceAssistant`, TextToSpeech hooks, spoken greeting / arrival / fatigue / refuel announcements, and the "Voice Guidance & Smart Audio" configuration card from settings and background tracking services.
+- **Trip Summary Screen & Auto-Transitions**: Completely removed `SmartTripSummaryScreen`, navigation tab 4, auto-switching jobs on trip completion, and smart summary action triggers from `TripHistoryScreen` and `AppDrawerScreen`.
+- **Current Trip Tap Interaction**: Removed tap navigation and clickable behavior on `CurrentTripCard`, ensuring it functions purely as an in-cockpit telemetry instrument card.
 
 ### Changed
+- **App Drawer Header Navigation**: Replaced the summary button inside the App Drawer with a dedicated back button styled identically to the settings dialog close/back button (`Icons.Default.Close` in circular container) to seamlessly navigate back to the Cockpit dashboard.
 - **Cockpit Layout & Touch Usability**: Expanded the bottom navigation dock height to 64dp with 28dp icons, 17sp bold text, and 16dp horizontal padding for effortless driver tapping while driving.
 - **Cockpit 45/55 Proportion & Telemetry Sizing**: Rebalanced the cockpit screen proportion to allocate 45% to Live Map and 55% to Driver Telemetry. Enlarged primary metric readouts across all cards (Fuel liters to 38sp, Tank percentage to 36sp, Odometer & Range to 20sp, and expanded Speedometer gauge radius).
 - **Cockpit Navigation**: Added a bottom dock with Trips, Fuels, Apps, and Settings. Moved the Trips, Fuels, and Settings shortcuts out of the app drawer and removed the cockpit swipe-left shortcut for opening All Apps.

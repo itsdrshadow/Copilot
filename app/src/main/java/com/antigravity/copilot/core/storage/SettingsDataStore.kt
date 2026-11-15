@@ -43,8 +43,6 @@ object SettingsDataStore {
     val KEY_MAP_DARK_MODE = booleanPreferencesKey("map_dark_mode")
     val KEY_MAP_BUILDING_FOOTPRINTS = booleanPreferencesKey("map_building_footprints")
     val KEY_AUTO_DAY_NIGHT_SOLAR = booleanPreferencesKey("auto_day_night_solar")
-    val KEY_VOICE_GREETINGS = booleanPreferencesKey("voice_greetings_enabled")
-    val KEY_TTS_VOICE_ID = stringPreferencesKey("tts_voice_id")
     val KEY_MEDIA_PILL_ENABLED = booleanPreferencesKey("media_pill_enabled")
 
     val KEY_STORAGE_SCHEMA_VERSION = intPreferencesKey("storage_schema_version")
@@ -91,8 +89,6 @@ object SettingsDataStore {
             mapDarkMode = prefs[KEY_MAP_DARK_MODE] ?: fallback.mapDarkMode,
             mapBuildingFootprints = prefs[KEY_MAP_BUILDING_FOOTPRINTS] ?: fallback.mapBuildingFootprints,
             autoDayNightSolar = prefs[KEY_AUTO_DAY_NIGHT_SOLAR] ?: fallback.autoDayNightSolar,
-            voiceGreetingsEnabled = prefs[KEY_VOICE_GREETINGS] ?: fallback.voiceGreetingsEnabled,
-            ttsVoiceId = prefs[KEY_TTS_VOICE_ID] ?: fallback.ttsVoiceId,
             mediaPillEnabled = prefs[KEY_MEDIA_PILL_ENABLED] ?: fallback.mediaPillEnabled
         )
     }
@@ -124,8 +120,6 @@ object SettingsDataStore {
             prefs[KEY_MAP_DARK_MODE] = state.mapDarkMode
             prefs[KEY_MAP_BUILDING_FOOTPRINTS] = state.mapBuildingFootprints
             prefs[KEY_AUTO_DAY_NIGHT_SOLAR] = state.autoDayNightSolar
-            prefs[KEY_VOICE_GREETINGS] = state.voiceGreetingsEnabled
-            prefs[KEY_TTS_VOICE_ID] = state.ttsVoiceId
             prefs[KEY_MEDIA_PILL_ENABLED] = state.mediaPillEnabled
         }
     }

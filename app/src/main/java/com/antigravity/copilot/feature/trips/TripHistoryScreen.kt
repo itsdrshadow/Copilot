@@ -176,7 +176,6 @@ fun TripHistoryScreen(
     onLoadTripFuelEvents: (suspend (Long, Long) -> List<FuelLedgerEntity>)? = null,
     onBackToCockpit: () -> Unit,
     onDeleteTrip: ((Long) -> Unit)? = null,
-    onOpenSmartSummary: ((Long) -> Unit)? = null,
     fuelPrice: Double = 96.5,
     modifier: Modifier = Modifier
 ) {
@@ -443,7 +442,6 @@ fun TripHistoryScreen(
                             playbackStatus = playbackStatus,
                             currentIndex = currentIndex,
                             playbackSpeed = playbackSpeedMultiplier,
-                            onOpenSmartSummary = onOpenSmartSummary,
                             onPlayPause = {
                                 playbackStatus = when (playbackStatus) {
                                     PlaybackStatus.PLAYING -> PlaybackStatus.PAUSED
@@ -540,7 +538,6 @@ fun TripHistoryScreen(
                             playbackStatus = playbackStatus,
                             currentIndex = currentIndex,
                             playbackSpeed = playbackSpeedMultiplier,
-                            onOpenSmartSummary = onOpenSmartSummary,
                             onPlayPause = {
                                 playbackStatus = when (playbackStatus) {
                                     PlaybackStatus.PLAYING -> PlaybackStatus.PAUSED
@@ -1036,7 +1033,6 @@ private fun TripDetailContainer(
     onSeek: (Int) -> Unit,
     onCycleSpeed: () -> Unit,
     onDeleteTrip: ((Long) -> Unit)? = null,
-    onOpenSmartSummary: ((Long) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -1139,39 +1135,6 @@ private fun TripDetailContainer(
                             ),
                             color = Color(0xFF38BDF8)
                         )
-
-                        if (onOpenSmartSummary != null) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0xFF00E5FF).copy(alpha = 0.15f))
-                                    .border(1.dp, Color(0xFF00E5FF).copy(alpha = 0.45f), RoundedCornerShape(6.dp))
-                                    .clickable { onOpenSmartSummary(trip.id) }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = "Smart Summary",
-                                        tint = Color(0xFF00E5FF),
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                    Text(
-                                        text = "SMART SUMMARY",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 9.sp,
-                                            letterSpacing = 0.5.sp
-                                        ),
-                                        color = Color(0xFF00E5FF)
-                                    )
-                                }
-                            }
-                        }
 
                         if (onDeleteTrip != null) {
                             IconButton(

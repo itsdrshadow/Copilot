@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -42,8 +43,7 @@ fun AppDrawerScreen(
     apps: List<AppDrawerItem>,
     modifier: Modifier = Modifier,
     onAppClick: (AppDrawerItem) -> Unit,
-    onBackToHome: () -> Unit,
-    onOpenTripSummary: () -> Unit = {}
+    onBackToHome: () -> Unit
 ) {
     BackHandler(onBack = onBackToHome)
 
@@ -91,8 +91,7 @@ fun AppDrawerScreen(
                 pageIndex = pagerState.currentPage,
                 totalPages = totalPages,
                 totalAppsCount = filteredApps.size,
-                onBackToHome = onBackToHome,
-                onOpenTripSummary = onOpenTripSummary
+                onBackToHome = onBackToHome
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -297,8 +296,7 @@ fun AppDrawerHeader(
     pageIndex: Int,
     totalPages: Int,
     totalAppsCount: Int,
-    onBackToHome: () -> Unit,
-    onOpenTripSummary: () -> Unit = {}
+    onBackToHome: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -432,30 +430,20 @@ fun AppDrawerHeader(
                 )
             )
 
-            // Summary Pill (Icon + Text)
-            Row(
+            // Automotive Back Button (matches settings header back button)
+            IconButton(
+                onClick = onBackToHome,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(CockpitTheme.colors.cardElevated)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
-                    .clickable { onOpenTripSummary() }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF162030))
+                    .border(1.dp, Color(0xFF26354A), CircleShape)
             ) {
                 Icon(
-                    Icons.Default.Assessment,
-                    contentDescription = "Summary",
-                    tint = CockpitTheme.colors.accent,
-                    modifier = Modifier.size(20.dp)
-                )
-                Text(
-                    text = "Summary",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.5.sp
-                    ),
-                    color = CockpitTheme.colors.textPrimary
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }

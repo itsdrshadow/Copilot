@@ -60,8 +60,6 @@ object AppSettingsManager {
     const val KEY_MAP_DARK_MODE = "map_dark_mode"
     const val KEY_MAP_BUILDING_FOOTPRINTS = "map_building_footprints"
     const val KEY_AUTO_DAY_NIGHT_SOLAR = "auto_day_night_solar"
-    const val KEY_VOICE_GREETINGS = "voice_greetings_enabled"
-    const val KEY_TTS_VOICE_ID = "tts_voice_id"
     const val KEY_MEDIA_PILL_ENABLED = "media_pill_enabled"
 
     data class SettingsState(
@@ -90,8 +88,6 @@ object AppSettingsManager {
         val mapDarkMode: Boolean = true,
         val mapBuildingFootprints: Boolean = true,
         val autoDayNightSolar: Boolean = true,
-        val voiceGreetingsEnabled: Boolean = true,
-        val ttsVoiceId: String = "en_in_natural_female",
         val mediaPillEnabled: Boolean = true
     ) {
         val cockpitThemeMode: CockpitThemeMode
@@ -172,8 +168,6 @@ object AppSettingsManager {
             mapDarkMode = prefs.getBoolean(KEY_MAP_DARK_MODE, true),
             mapBuildingFootprints = prefs.getBoolean(KEY_MAP_BUILDING_FOOTPRINTS, true),
             autoDayNightSolar = prefs.getBoolean(KEY_AUTO_DAY_NIGHT_SOLAR, true),
-            voiceGreetingsEnabled = prefs.getBoolean(KEY_VOICE_GREETINGS, true),
-            ttsVoiceId = prefs.getString(KEY_TTS_VOICE_ID, "en_in_natural_female") ?: "en_in_natural_female",
             mediaPillEnabled = prefs.getBoolean(KEY_MEDIA_PILL_ENABLED, true)
         )
         isInitialized = true
@@ -463,23 +457,6 @@ object AppSettingsManager {
         _settingsState.value = _settingsState.value.copy(autoDayNightSolar = enabled)
         scope.launch {
             context.appDataStore.edit { it[SettingsDataStore.KEY_AUTO_DAY_NIGHT_SOLAR] = enabled }
-        }
-    }
-
-    fun updateVoiceGreetings(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_VOICE_GREETINGS, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(voiceGreetingsEnabled = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_VOICE_GREETINGS] = enabled }
-        }
-    }
-
-    fun updateTtsVoiceId(context: Context, voiceId: String) {
-        getPrefs(context).edit().putString(KEY_TTS_VOICE_ID, voiceId).apply()
-        _settingsState.value = _settingsState.value.copy(ttsVoiceId = voiceId)
-        com.antigravity.copilot.core.tts.AutomotiveVoiceAssistant.getInstance(context).reconfigureVoice()
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_TTS_VOICE_ID] = voiceId }
         }
     }
 

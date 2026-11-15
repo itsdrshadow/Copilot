@@ -53,8 +53,7 @@ fun CurrentTripCard(
     currentTrip: TripSummary,
     tripVisualState: TripVisualState = TripVisualState(),
     modifier: Modifier = Modifier,
-    baselineMileage: Double = 18.0,
-    onOpenTripSummary: () -> Unit = {}
+    baselineMileage: Double = 18.0
 ) {
     val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
@@ -218,7 +217,6 @@ fun CurrentTripCard(
                 color = if (flashColor != Color.Transparent) flashColor else cardBorder,
                 shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
             )
-            .clickable(onClick = onOpenTripSummary)
             .padding(14.dp)
     ) {
         Column(

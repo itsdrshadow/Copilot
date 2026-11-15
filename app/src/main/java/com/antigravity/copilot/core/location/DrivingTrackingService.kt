@@ -26,7 +26,6 @@ import com.antigravity.copilot.core.trip.TripRepository
 import com.antigravity.copilot.core.trip.VehicleStateManager
 import com.antigravity.copilot.core.trip.GeofenceTripLifecycleEngine
 import com.antigravity.copilot.core.trip.TripGeofenceManager
-import com.antigravity.copilot.core.tts.AutomotiveVoiceAssistant
 import com.antigravity.copilot.core.settings.AppSettingsManager
 import com.antigravity.copilot.core.model.TripStatus
 
@@ -168,9 +167,6 @@ class DrivingTrackingService : Service(), LocationListener {
                 lastRecordedDistanceMeters = departureDistMeters
                 tripRepository.attachDeparturePoints(startTime, departurePoints)
                 tripRepository.updateTripOrigin(startTime, originName)
-                if (AppSettingsManager.settingsState.value.voiceGreetingsEnabled) {
-                    AutomotiveVoiceAssistant.getInstance(applicationContext).speakWelcomeDeparture(originName)
-                }
                 if (departureDistMeters > 0.0) {
                     fuelRepository.consumeLiveFuel(
                         deltaDistanceMeters = departureDistMeters,
@@ -182,12 +178,6 @@ class DrivingTrackingService : Service(), LocationListener {
             onTripActiveTelemetry = { _ -> },
             onTripArrivalConfirmed = { endTime, destName ->
                 val activeTripId = engine.currentTripId
-                val durationMin = if (activeTripId > 0L) ((endTime - activeTripId) / 60000L).toInt().coerceAtLeast(1) else 1
-                val distKm = engine.totalDistanceMeters / 1000.0
-                val mileageKmpl = engine.fuelTelemetryProvider?.invoke()?.mileageKmpl ?: 18.0
-                if (AppSettingsManager.settingsState.value.voiceGreetingsEnabled) {
-                    AutomotiveVoiceAssistant.getInstance(applicationContext).speakArrival(destName, distKm, mileageKmpl, durationMin)
-                }
                 engine.completeGeofenceTrip(endTime, destName)
                 if (activeTripId > 0L) {
                     serviceScope.launch {
@@ -283,13 +273,6 @@ class DrivingTrackingService : Service(), LocationListener {
                         }
                     }
                 }
-                if (AppSettingsManager.settingsState.value.voiceGreetingsEnabled && summary.distanceMeters >= 500.0) {
-                    val durationMin = ((summary.endTime - summary.startTime) / 60000L).toInt().coerceAtLeast(1)
-                    val distKm = summary.distanceMeters / 1000.0
-                    val mileageKmpl = if (summary.calculatedMileageKmpl > 0.0) summary.calculatedMileageKmpl else 18.0
-                    val destName = summary.endLocationName.ifBlank { "Destination" }
-                    AutomotiveVoiceAssistant.getInstance(applicationContext).speakArrival(destName, distKm, mileageKmpl, durationMin)
-                }
                 tripRepository.onTripCompleted(summary)
                 fuelRepository.onTripCompleted()
                 lastRecordedDistanceMeters = 0.0
@@ -382,15 +365,6 @@ class DrivingTrackingService : Service(), LocationListener {
                 engine.processStationaryWatchdog(now)
                 vehicleStateManager.onPeriodicTick(now)
 
-                // Continuous driving fatigue watchdog (warns every 45 min after 2.5 hours)
-                if (engine.currentStatus == TripStatus.ACTIVE_TRIP && AppSettingsManager.settingsState.value.voiceGreetingsEnabled) {
-                    val drivingHours = engine.drivingDurationMs / 3600000.0
-                    if (drivingHours >= 2.5 && (now - lastFatigueAlertTime > 45 * 60 * 1000L)) {
-                        lastFatigueAlertTime = now
-                        AutomotiveVoiceAssistant.getInstance(applicationContext).speakFatigueWarning(drivingHours)
-                    }
-                }
-
                 // Background Fuel Station Stop Intelligence (> 30s):
                 // Strictly triggers only at confirmed Fuel Station POIs. Prevents false triggers at traffic lights or normal parking.
                 // Enforces 30-minute / 200-meter cooldown between prompts at the same station.
@@ -435,9 +409,6 @@ class DrivingTrackingService : Service(), LocationListener {
                                     lastPromptStationTime = System.currentTimeMillis()
                                     lastPromptStationLat = currentPt.latitude
                                     lastPromptStationLon = currentPt.longitude
-                                    if (AppSettingsManager.settingsState.value.voiceGreetingsEnabled) {
-                                        AutomotiveVoiceAssistant.getInstance(applicationContext).speakRefuelPrompt(detection.stationName)
-                                    }
                                     val currentOdo = fuelRepository.fuelState.value.odometerKm
                                     fuelRepository.triggerRefuelPrompt(
                                         locationName = detection.stationName,
@@ -466,9 +437,6 @@ class DrivingTrackingService : Service(), LocationListener {
                                     lastPromptStationTime = System.currentTimeMillis()
                                     lastPromptStationLat = currentPt.latitude
                                     lastPromptStationLon = currentPt.longitude
-                                    if (AppSettingsManager.settingsState.value.voiceGreetingsEnabled) {
-                                        AutomotiveVoiceAssistant.getInstance(applicationContext).speakRefuelPrompt(station.stationName)
-                                    }
                                     serviceScope.launch {
                                         val currentOdo = fuelRepository.fuelState.value.odometerKm
                                         fuelRepository.triggerRefuelPrompt(
