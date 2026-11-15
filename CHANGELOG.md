@@ -15,7 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Current Trip Tap Interaction**: Removed tap navigation and clickable behavior on `CurrentTripCard`, ensuring it functions purely as an in-cockpit telemetry instrument card.
 
 ### Changed
-- **App Drawer Header Navigation**: Replaced the summary button inside the App Drawer with a dedicated back button styled identically to the settings dialog close/back button (`Icons.Default.Close` in circular container) to seamlessly navigate back to the Cockpit dashboard.
+- **App Drawer Header & Back Navigation**: Replaced the "Cockpit" text button on the top-left with a circular back button (`ArrowBack`) and removed the close button beside the search bar, leaving a clean search layout and intuitive back navigation.
+- **Speedometer Delta Distance Readout**: Replaced the "Synced" label in the Speedometer gauge with the exact extra kilometers driven since the last odometer sync/calibration (`+X.X km`).
 - **Cockpit Layout & Touch Usability**: Expanded the bottom navigation dock height to 64dp with 28dp icons, 17sp bold text, and 16dp horizontal padding for effortless driver tapping while driving.
 - **Cockpit 45/55 Proportion & Telemetry Sizing**: Rebalanced the cockpit screen proportion to allocate 45% to Live Map and 55% to Driver Telemetry. Enlarged primary metric readouts across all cards (Fuel liters to 38sp, Tank percentage to 36sp, Odometer & Range to 20sp, and expanded Speedometer gauge radius).
 - **Cockpit Navigation**: Added a bottom dock with Trips, Fuels, Apps, and Settings. Moved the Trips, Fuels, and Settings shortcuts out of the app drawer and removed the cockpit swipe-left shortcut for opening All Apps.

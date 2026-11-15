@@ -15,6 +15,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -308,34 +309,24 @@ fun AppDrawerHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: Cockpit navigation pill + Title & app count
+        // Left: Round back button + Title & app count
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Row(
+            IconButton(
+                onClick = onBackToHome,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(CockpitTheme.colors.accentSoft)
-                    .border(1.2.dp, CockpitTheme.colors.accent.copy(alpha = 0.55f), RoundedCornerShape(12.dp))
-                    .clickable { onBackToHome() }
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF162030))
+                    .border(1.dp, Color(0xFF26354A), CircleShape)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Dashboard,
-                    contentDescription = "Cockpit",
-                    tint = CockpitTheme.colors.accent,
-                    modifier = Modifier.size(22.dp)
-                )
-                Text(
-                    text = "Cockpit",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Black,
-                        fontSize = 15.sp
-                    ),
-                    color = CockpitTheme.colors.accent
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
@@ -380,73 +371,51 @@ fun AppDrawerHeader(
             }
         }
 
-        // Center / Right: Search & Quick Navigation Pill Buttons (Larger Icon + Text)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                placeholder = {
-                    Text(
-                        "Search apps...",
-                        color = CockpitTheme.colors.textDisabled,
-                        fontSize = 12.5.sp
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        tint = CockpitTheme.colors.textSecondary,
-                        modifier = Modifier.size(17.dp)
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { onSearchQueryChange("") }, modifier = Modifier.size(24.dp)) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = CockpitTheme.colors.textSecondary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier
-                    .width(200.dp)
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = CockpitTheme.colors.textPrimary,
-                    unfocusedTextColor = CockpitTheme.colors.textPrimary,
-                    focusedBorderColor = CockpitTheme.colors.accent,
-                    unfocusedBorderColor = CockpitTheme.colors.border,
-                    focusedContainerColor = CockpitTheme.colors.cardElevated,
-                    unfocusedContainerColor = CockpitTheme.colors.cardElevated
+        // Right: Search Input
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            placeholder = {
+                Text(
+                    "Search apps...",
+                    color = CockpitTheme.colors.textDisabled,
+                    fontSize = 12.5.sp
                 )
-            )
-
-            // Automotive Back Button (matches settings header back button)
-            IconButton(
-                onClick = onBackToHome,
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF162030))
-                    .border(1.dp, Color(0xFF26354A), CircleShape)
-            ) {
+            },
+            leadingIcon = {
                 Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    tint = CockpitTheme.colors.textSecondary,
+                    modifier = Modifier.size(17.dp)
                 )
-            }
-        }
+            },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { onSearchQueryChange("") }, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = CockpitTheme.colors.textSecondary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            },
+            singleLine = true,
+            modifier = Modifier
+                .width(220.dp)
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = CockpitTheme.colors.textPrimary,
+                unfocusedTextColor = CockpitTheme.colors.textPrimary,
+                focusedBorderColor = CockpitTheme.colors.accent,
+                unfocusedBorderColor = CockpitTheme.colors.border,
+                focusedContainerColor = CockpitTheme.colors.cardElevated,
+                unfocusedContainerColor = CockpitTheme.colors.cardElevated
+            )
+        )
     }
 }
 

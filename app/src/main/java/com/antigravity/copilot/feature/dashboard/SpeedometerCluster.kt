@@ -509,11 +509,7 @@ fun SpeedometerCluster(
                         .clickable { showOdometerDialog = true },
                     horizontalAlignment = Alignment.End
                 ) {
-                    val deltaText = if (deltaKmSinceCalibration > 0.05) {
-                        String.format(Locale.US, "+%.1f km", deltaKmSinceCalibration)
-                    } else {
-                        "Synced"
-                    }
+                    val deltaText = String.format(Locale.US, "+%.1f km", deltaKmSinceCalibration.coerceAtLeast(0.0))
                     Text(
                         text = deltaText,
                         style = MaterialTheme.typography.titleMedium.copy(
