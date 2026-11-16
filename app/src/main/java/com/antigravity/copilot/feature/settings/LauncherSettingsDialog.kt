@@ -494,11 +494,6 @@ private fun GeneralSettingsContent(
 
             listOf(
                 Triple(
-                    CockpitThemeMode.GRADIENT_GLASS,
-                    CockpitThemeMode.GRADIENT_GLASS.displayName,
-                    listOf(Glass_Background, Glass_BackgroundSecondary, Glass_PrimaryAccent)
-                ),
-                Triple(
                     CockpitThemeMode.APEX,
                     CockpitThemeMode.APEX.displayName,
                     listOf(Apex_Background, Apex_CardSurface, Apex_PrimaryAccent)

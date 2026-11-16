@@ -269,7 +269,7 @@ fun GeofenceSettingsContent() {
                                             Text(
                                                 text = distText,
                                                 style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 11.5.sp,
+                                                    fontSize = 13.5.sp,
                                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                                     fontFeatureSettings = "tnum"
                                                 ),
@@ -279,12 +279,12 @@ fun GeofenceSettingsContent() {
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(3.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
 
                                 Text(
                                     text = String.format(Locale.US, "GPS: %.5f, %.5f", gf.latitude, gf.longitude),
                                     style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 11.5.sp,
+                                        fontSize = 13.5.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                         fontFeatureSettings = "tnum"
                                     ),
@@ -310,32 +310,42 @@ fun GeofenceSettingsContent() {
                                 )
                             )
 
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
 
                             IconButton(
                                 onClick = {
                                     selectedGeofenceForEdit = gf
                                     isAddEditDialogOpen = true
                                 },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF0F2642))
+                                    .border(1.2.dp, Color(0xFF38BDF8).copy(alpha = 0.55f), CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = "Edit Geofence",
                                     tint = Color(0xFF38BDF8),
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
 
+                            Spacer(modifier = Modifier.width(8.dp))
+
                             IconButton(
                                 onClick = { geofenceToDelete = gf },
-                                modifier = Modifier.size(36.dp)
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF3B151E))
+                                    .border(1.2.dp, Color(0xFFF43F5E).copy(alpha = 0.55f), CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.DeleteOutline,
                                     contentDescription = "Delete Geofence",
                                     tint = Color(0xFFF43F5E),
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }

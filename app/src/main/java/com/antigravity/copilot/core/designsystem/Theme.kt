@@ -18,11 +18,6 @@ import androidx.compose.ui.unit.sp
 // ==================== THEME ENUMS & CONTRACTS ====================
 
 enum class CockpitThemeMode(val id: String, val displayName: String, val subtitle: String) {
-    GRADIENT_GLASS(
-        id = "gradient_glass",
-        displayName = "Gradient Glass",
-        subtitle = "Frosted glassmorphism with splash cyan & deep sapphire reflections"
-    ),
     APEX(
         id = "apex",
         displayName = "Apex Studio",
@@ -35,11 +30,8 @@ enum class CockpitThemeMode(val id: String, val displayName: String, val subtitl
 
         fun fromId(id: String): CockpitThemeMode {
             return when (id.lowercase().trim()) {
-                "gradient_glass", "glass", "splash_glass", "gradient" -> GRADIENT_GLASS
-                "apex" -> APEX
-                "premium" -> PREMIUM
-                "classic", "calm_teal" -> APEX
-                else -> GRADIENT_GLASS
+                "apex", "premium", "classic", "calm_teal", "gradient_glass", "glass", "splash_glass", "gradient" -> APEX
+                else -> APEX
             }
         }
     }
@@ -97,99 +89,6 @@ data class CockpitColors(
     val dockBrush: Brush = cardTopLightGradient,
     val dockActionBrush: Brush = cardTopLightGradient,
     val isPremium: Boolean = true
-)
-
-// ==================== GRADIENT GLASS COCKPIT PALETTE ====================
-// Derived from the Welcome Splash screen automotive aesthetic:
-// Deep midnight sapphire gradient backdrop, luminous electric cyan telemetry,
-// and frosted glass cards with top specular sheen and glowing translucent borders.
-
-val Glass_Background = Color(0xFF02040A)
-val Glass_BackgroundSecondary = Color(0xFF071026)
-val Glass_CardSurface = Color(0xD908142A)         // 85% frosted midnight sapphire glass
-val Glass_CardSurfaceElevated = Color(0xE60E2142) // 90% elevated frosted glass
-val Glass_CardBorder = Color(0x4D00F0FF)          // Translucent neon cyan glass border
-val Glass_CardBorderGlow = Color(0xFF00F0FF)      // Splash electric cyan glow
-val Glass_PrimaryAccent = Color(0xFF00F0FF)       // Splash electric cyan
-val Glass_AccentSoft = Color(0x2800F0FF)          // Soft cyan glass glow pill
-val Glass_BlueGlow = Color(0xFF00D2FF)            // Mid cyan glow
-val Glass_Positive = Color(0xFF00E5FF)            // Luminous cyan-teal
-val Glass_Warning = Color(0xFFFBBF24)             // Luminous amber
-val Glass_Danger = Color(0xFFF43F5E)              // Luminous crimson
-val Glass_TextPrimary = Color(0xFFF4FAFF)         // Splash typography primary ice white
-val Glass_TextSecondary = Color(0xFF7FAEE8)       // Splash subtitle aerospace blue
-val Glass_TextTertiary = Color(0xFF4C6B99)        // Subdued muted blue-gray
-
-val GradientGlassBackgroundBrush = Brush.verticalGradient(
-    colors = listOf(
-        Color(0xFF02040A),
-        Color(0xFF071026),
-        Color(0xFF040A18),
-        Color(0xFF010307)
-    )
-)
-
-val GradientGlassCardBrush = Brush.verticalGradient(
-    colors = listOf(
-        Color(0x3300F0FF), // Top edge specular cyan reflection on glass
-        Color(0xDD08142A), // Frosted dark sapphire body
-        Color(0xF2030918)  // Deep midnight foundation
-    )
-)
-
-val GradientGlassDockBrush = Brush.verticalGradient(
-    colors = listOf(
-        Color(0x3500F0FF), // Specular cyan reflection on dock top
-        Color(0xCC07132B), // Frosted sapphire glass body
-        Color(0xF2020510)  // Deep midnight base
-    )
-)
-
-val GradientGlassDockActionBrush = Brush.verticalGradient(
-    colors = listOf(
-        Color(0x2800F0FF), // Soft glass sheen
-        Color(0xD90A1A36), // Frosted sapphire pill body
-        Color(0xEE040A18)  // Midnight foundation
-    )
-)
-
-val GradientGlassCockpitColors = CockpitColors(
-    bg = Glass_Background,
-    card = Glass_CardSurface,
-    cardElevated = Glass_CardSurfaceElevated,
-    border = Glass_CardBorder,
-    textPrimary = Glass_TextPrimary,
-    textSecondary = Glass_TextSecondary,
-    textDisabled = Glass_TextTertiary,
-    accent = Glass_PrimaryAccent,
-    accentSoft = Glass_AccentSoft,
-    onAccent = Color(0xFF010612),
-    warning = Glass_Warning,
-    critical = Glass_Danger,
-    cardTopLightGradient = GradientGlassCardBrush,
-    backgroundBrush = GradientGlassBackgroundBrush,
-    background = Glass_Background,
-    backgroundSecondary = Glass_BackgroundSecondary,
-    cardSurface = Glass_CardSurface,
-    cardSurfaceElevated = Glass_CardSurfaceElevated,
-    cardBorder = Glass_CardBorder,
-    cardBorderGlow = Glass_CardBorderGlow,
-    primaryAccent = Glass_PrimaryAccent,
-    blueGlow = Glass_BlueGlow,
-    greenEco = Glass_Positive,
-    amberWarning = Glass_Warning,
-    redAlert = Glass_Danger,
-    textTertiary = Glass_TextTertiary,
-    cardGradientOdo = GradientGlassCardBrush,
-    cardGradientFuel = GradientGlassCardBrush,
-    cardGradientTrip = GradientGlassCardBrush,
-    cardGradientSpeedo = GradientGlassCardBrush,
-    activeCardBrush = GradientGlassCardBrush,
-    dockBackground = Glass_CardSurfaceElevated,
-    dockBorder = Glass_CardBorder,
-    dockBrush = GradientGlassDockBrush,
-    dockActionBrush = GradientGlassDockActionBrush,
-    isPremium = true
 )
 
 // ==================== APEX STUDIO COCKPIT PALETTE ====================
@@ -275,8 +174,8 @@ val Cockpit_TextTertiary = Color(0xFF5A7099)
 val Coolwalk_TealPlay = Color(0xFF2DD4BF)
 
 // Composition Locals
-val LocalCockpitColors = staticCompositionLocalOf { GradientGlassCockpitColors }
-val LocalCockpitThemeMode = staticCompositionLocalOf { CockpitThemeMode.GRADIENT_GLASS }
+val LocalCockpitColors = staticCompositionLocalOf { ApexCockpitColors }
+val LocalCockpitThemeMode = staticCompositionLocalOf { CockpitThemeMode.APEX }
 
 object CockpitTheme {
     val colors: CockpitColors
@@ -304,15 +203,12 @@ object CockpitTheme {
 
 @Composable
 fun CopilotTheme(
-    themeMode: CockpitThemeMode = CockpitThemeMode.GRADIENT_GLASS,
+    themeMode: CockpitThemeMode = CockpitThemeMode.APEX,
     @Suppress("UNUSED_PARAMETER") appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.NIGHT,
     @Suppress("UNUSED_PARAMETER") isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val targetBaseColors = when (themeMode) {
-        CockpitThemeMode.GRADIENT_GLASS -> GradientGlassCockpitColors
-        CockpitThemeMode.APEX -> ApexCockpitColors
-    }
+    val targetBaseColors = ApexCockpitColors
 
     val animSpec = tween<Color>(durationMillis = 300)
 
@@ -329,25 +225,10 @@ fun CopilotTheme(
     val animatedWarning = animateColorAsState(targetValue = targetBaseColors.warning, animationSpec = animSpec, label = "warning").value
     val animatedCritical = animateColorAsState(targetValue = targetBaseColors.critical, animationSpec = animSpec, label = "critical").value
 
-    val animatedCardGradient = when (themeMode) {
-        CockpitThemeMode.GRADIENT_GLASS -> GradientGlassCardBrush
-        CockpitThemeMode.APEX -> Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-    }
-
-    val activeBackgroundBrush = when (themeMode) {
-        CockpitThemeMode.GRADIENT_GLASS -> GradientGlassBackgroundBrush
-        CockpitThemeMode.APEX -> Brush.verticalGradient(listOf(animatedBg, animatedBg))
-    }
-
-    val activeDockBrush = when (themeMode) {
-        CockpitThemeMode.GRADIENT_GLASS -> GradientGlassDockBrush
-        CockpitThemeMode.APEX -> Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-    }
-
-    val activeDockActionBrush = when (themeMode) {
-        CockpitThemeMode.GRADIENT_GLASS -> GradientGlassDockActionBrush
-        CockpitThemeMode.APEX -> Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-    }
+    val animatedCardGradient = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    val activeBackgroundBrush = Brush.verticalGradient(listOf(animatedBg, animatedBg))
+    val activeDockBrush = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    val activeDockActionBrush = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
 
     val activeColors = CockpitColors(
         bg = animatedBg,
@@ -444,31 +325,31 @@ val CockpitTypography = Typography(
     headlineMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
-        fontSize = 22.sp
+        fontSize = 24.sp
     ),
     titleLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
-        fontSize = 18.sp
+        fontSize = 20.sp
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 15.sp
+        fontSize = 17.sp
     ),
     bodyLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp
+        fontSize = 16.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Medium,
-        fontSize = 12.sp
+        fontSize = 14.5.sp
     ),
     labelSmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 10.sp
+        fontSize = 13.sp
     )
 )

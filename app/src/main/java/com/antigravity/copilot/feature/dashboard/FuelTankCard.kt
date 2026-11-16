@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -124,33 +126,37 @@ fun FuelTankCard(
                 // Dedicated Tactile "+ ADD FUEL" Button
                 Box(
                     modifier = Modifier
-                        .height(32.dp)
+                        .defaultMinSize(minWidth = 108.dp, minHeight = 44.dp)
                         .graphicsLayer {
                             scaleX = addScale
                             scaleY = addScale
                         }
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(cyanAccent)
-                        .clickable(interactionSource = addButtonInteraction, indication = null) { onClick() }
-                        .padding(horizontal = 12.dp),
+                        .clickable(
+                            interactionSource = addButtonInteraction,
+                            indication = rememberRipple(bounded = true, color = Color.White),
+                            role = Role.Button
+                        ) { onClick() }
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
                             tint = Color.Black,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "ADD FUEL",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 0.5.sp,
-                                fontSize = 12.sp
+                                fontSize = 13.5.sp
                             ),
                             color = Color.Black
                         )
@@ -231,8 +237,11 @@ fun FuelTankCard(
                     .fillMaxWidth()
                     .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { showGaugeDialog = true }
-                    .padding(vertical = 2.dp),
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = rememberRipple(bounded = true, color = cyanAccent)
+                    ) { showGaugeDialog = true }
+                    .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.Center
             ) {
                 Row(

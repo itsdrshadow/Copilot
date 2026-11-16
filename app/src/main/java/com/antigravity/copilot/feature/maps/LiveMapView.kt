@@ -1154,7 +1154,7 @@ private fun AutomotiveMapButton(
 
     Box(
         modifier = modifier
-            .size(48.dp)
+            .size(52.dp)
             .clip(CircleShape)
             .background(bgColor)
             .border(1.2.dp, borderColor, CircleShape)
@@ -1170,7 +1170,7 @@ private fun AutomotiveMapButton(
             contentDescription = contentDescription,
             tint = if (isActive) activeColor else Color.White,
             modifier = Modifier
-                .size(24.dp)
+                .size(26.dp)
                 .rotate(iconRotation)
         )
     }

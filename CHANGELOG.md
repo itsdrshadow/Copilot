@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-11-16
+
+### Removed
+- **Complete Elimination of Gradient Glass Theme**:
+  - Completely stripped legacy Gradient Glass theme across the entire application codebase (`Theme.kt`, `AppSettingsManager.kt`, `LauncherSettingsDialog.kt`, tests).
+  - Removed `CockpitThemeMode.GRADIENT_GLASS`, glass background/card/dock brushes, and obsolete glass tokens.
+  - Default cockpit theme is permanently consolidated onto **Apex Studio** (`APEX`), with automatic migration and sanitization for saved legacy user preferences.
+
+### Changed
+- **Balanced 50%/50% Automotive Cockpit Layout**:
+  - Configured landscape dashboard to an exact 50% split (`weight(0.50f)` for live osmdroid Map panel on the left, `weight(0.50f)` for Telemetry metrics cluster on the right) providing equal visual prominence for road navigation and real-time driving gauges.
+  - Rebalanced portrait layout to 50%/50% vertical split.
+- **Automotive Typography Scaling for In-Dash Display (1280x800 Rockchip RK3326 @ 148 DPI)**:
+  - Scaled typography across all non-homescreen screens to meet statutory automotive legibility standards (subtending $\ge 16'$ arcminutes at 60–90 cm viewing distance):
+    - **Trip History Screen**: Scaled telemetry summary tile metrics to $22\text{sp}$, units to $13\text{sp}$, labels to $12\text{sp}$, trip card locations to $15.5\text{sp}$ bold, distances to $19\text{sp}$, and durations/speeds to $12.5\text{sp}$.
+    - **Fuel Records Screen**: Scaled fuel stat badge values to $22\text{sp}$, total cost to $22\text{sp}$, liters to $17.5\text{sp}$, locations to $13.5\text{sp}$, and action button icons to $24\text{dp}$.
+    - **App Drawer Screen**: Scaled app grid labels to $14.5\text{sp}$ bold, application icons to $58\text{dp}$, drawer header title to $22\text{sp}$, and search bar height to $50\text{dp}$.
+    - **Fuel Entry Dialog**: Enlarged dialog bounding box (`1120x670.dp`), scaled action buttons (CANCEL & CONFIRM REFUEL) to $50\text{dp}$ height with $15\text{sp}$ bold text, and metric readouts to $12\text{--}15\text{sp}$.
+    - **Geofence & System Settings**: Scaled distance values, coordinate text, and action buttons across settings dialog.
+
+### Fixed
+- **Touch Target Optimization & Tactile Feedback**:
+  - Enlarged all interactive buttons and pills to automotive safety standards $\ge 48\text{dp}$ (dock pills at $64\text{dp}$, map controls at $52\text{dp}$, add fuel button at $44\text{dp}$, list edit/delete actions at $48\text{dp}$) to eliminate touch miss rates on the capacitive 60–100Hz digitizer.
+  - Added tactile press animation (`graphicsLayer` scaling to $0.94\text{--}0.96$), dynamic glow border/background tint, and ripple feedback (`rememberRipple`) across all dock items, action pills, fuel gauge calibration bars, and app icons.
+  - Removed root horizontal drag interception modifier (`detectHorizontalDragGestures`) from `AppDrawerScreen` that was stealing touch taps intended for application grid items.
+
 ## [1.37.0] - 2026-11-16
 
 ### Fixed

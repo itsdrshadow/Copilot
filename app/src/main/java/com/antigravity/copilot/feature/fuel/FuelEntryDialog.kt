@@ -206,9 +206,9 @@ fun FuelEntryDialog(
                 .background(Color(0xFF030712).copy(alpha = 0.88f)),
             contentAlignment = Alignment.Center
         ) {
-            // Sized ~15% smaller than the screen for an elegant, focused centered cockpit modal
-            val dialogMaxWidth = if (maxWidth > 1200.dp) 1000.dp else if (maxWidth > 950.dp) 910.dp else maxWidth * 0.86f
-            val dialogMaxHeight = if (maxHeight > 700.dp) 590.dp else if (maxHeight > 550.dp) 540.dp else maxHeight * 0.86f
+            // Calibrated for 1280x800 landscape automotive head unit
+            val dialogMaxWidth = if (maxWidth > 1200.dp) 1120.dp else if (maxWidth > 950.dp) 1020.dp else maxWidth * 0.94f
+            val dialogMaxHeight = if (maxHeight > 700.dp) 670.dp else if (maxHeight > 550.dp) 610.dp else maxHeight * 0.94f
 
             AnimatedVisibility(
                 visible = isVisible,
@@ -593,8 +593,8 @@ fun FuelEntryDialog(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(44.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        .height(50.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Button(
@@ -602,7 +602,7 @@ fun FuelEntryDialog(
                                         modifier = Modifier
                                             .weight(0.35f)
                                             .fillMaxHeight(),
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color(0xFF1E293B),
                                             contentColor = Color(0xFFCBD5E1)
@@ -612,7 +612,7 @@ fun FuelEntryDialog(
                                             text = "CANCEL",
                                             style = MaterialTheme.typography.labelMedium.copy(
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 13.5.sp
+                                                fontSize = 15.sp
                                             )
                                         )
                                     }
@@ -644,7 +644,7 @@ fun FuelEntryDialog(
                                         modifier = Modifier
                                             .weight(0.65f)
                                             .fillMaxHeight(),
-                                        shape = RoundedCornerShape(10.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color(0xFF0284C7),
                                             contentColor = Color.White,
@@ -655,14 +655,14 @@ fun FuelEntryDialog(
                                         Icon(
                                             imageVector = Icons.Default.CheckCircle,
                                             contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(20.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "CONFIRM REFUEL",
                                             style = MaterialTheme.typography.labelMedium.copy(
                                                 fontWeight = FontWeight.Black,
-                                                fontSize = 13.5.sp,
+                                                fontSize = 15.sp,
                                                 letterSpacing = 0.5.sp
                                             )
                                         )
@@ -1100,7 +1100,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         }
                         Text(
                             text = if (addedPct > 0) "+$addedPct% tank boost" else "0% added",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
                             color = if (addedPct > 0) Color(0xFF00F5FF) else Color(0xFF64748B),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1122,7 +1122,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             text = "RANGE GAIN",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 10.5.sp,
+                                fontSize = 12.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF94A3B8)
@@ -1140,7 +1140,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         }
                         Text(
                             text = "@ ${NumberFormatUtils.formatMileage(effectiveMileage, 1)} km/L",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
                             color = Color(0xFF10B981).copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1162,7 +1162,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             text = "RUNNING COST",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 10.5.sp,
+                                fontSize = 12.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF94A3B8)
@@ -1190,7 +1190,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         }
                         Text(
                             text = "Real-time cost rate",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
                             color = Color(0xFFF59E0B).copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1212,7 +1212,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             text = "TOTAL RANGE",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 10.5.sp,
+                                fontSize = 12.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF94A3B8)
@@ -1230,7 +1230,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         }
                         Text(
                             text = "${postRefillLiters.toInt()}L post-refill",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
                             color = Color(0xFF38BDF8).copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis

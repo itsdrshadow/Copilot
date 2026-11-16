@@ -1,14 +1,18 @@
 package com.antigravity.copilot.feature.launcher
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -17,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -65,20 +71,10 @@ fun AppDrawerScreen(
     val pagerState = rememberPagerState(initialPage = 0) { totalPages }
     val coroutineScope = rememberCoroutineScope()
 
-    // Detect right swipe on page 0 to return to Home Screen
-    val swipeBackModifier = Modifier.pointerInput(pagerState.currentPage) {
-        detectHorizontalDragGestures { _, dragAmount ->
-            if (dragAmount > 35f && pagerState.currentPage == 0) {
-                onBackToHome()
-            }
-        }
-    }
-
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(CockpitTheme.colors.backgroundBrush)
-            .then(swipeBackModifier)
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Column(
@@ -212,7 +208,7 @@ fun AppDrawer3x4Grid(
 
 /**
  * Clean 1x1 automotive app icon without heavy card background.
- * Compact centered icon with app title below in 6x5 layout.
+ * Full-cell clickable tile with tactile bounce animation & ripple feedback.
  */
 @Composable
 fun AppGridItem(
@@ -223,51 +219,69 @@ fun AppGridItem(
     val imageBitmap = remember(app.packageName, app.activityName) {
         app.iconBitmap?.asImageBitmap()
     }
-    val iconSize = AutomotiveDesignTokens.AppDrawer.iconSize
-    val labelSize = AutomotiveDesignTokens.AppDrawer.labelSize
+    val iconSize = 58.dp
+    val labelSize = 14.5.sp
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1.0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "AppItemScale"
+    )
 
     Box(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .padding(4.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isPressed) CockpitTheme.colors.cardElevated.copy(alpha = 0.8f) else Color.Transparent)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),
+                role = Role.Button,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier
-                .clip(RoundedCornerShape(14.dp))
-                .clickable(onClick = onClick)
-                .padding(horizontal = 4.dp, vertical = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // App Icon (clean 1x1 icon without card background)
+            // App Icon
             if (imageBitmap != null) {
                 Image(
                     bitmap = imageBitmap,
                     contentDescription = app.label,
                     modifier = Modifier
                         .size(iconSize)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .size(iconSize)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(CockpitTheme.colors.cardElevated)
-                        .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp)),
+                        .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(14.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = app.label.take(1).uppercase(),
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 20.sp
+                            fontSize = 24.sp
                         ),
                         color = CockpitTheme.colors.accent
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
             // App Label underneath the icon
             Text(
@@ -275,13 +289,13 @@ fun AppGridItem(
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = labelSize,
-                    lineHeight = 15.sp
+                    lineHeight = 17.sp
                 ),
                 color = CockpitTheme.colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(max = 130.dp)
+                modifier = Modifier.widthIn(max = 140.dp)
             )
         }
     }
@@ -317,16 +331,16 @@ fun AppDrawerHeader(
             IconButton(
                 onClick = onBackToHome,
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(CockpitTheme.colors.cardElevated)
-                    .border(1.dp, CockpitTheme.colors.border, CircleShape)
+                    .border(1.2.dp, CockpitTheme.colors.border, CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = CockpitTheme.colors.textPrimary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -336,23 +350,23 @@ fun AppDrawerHeader(
                         text = "All Applications",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 20.sp
+                            fontSize = 22.sp
                         ),
                         color = CockpitTheme.colors.textPrimary
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(CockpitTheme.colors.cardElevated)
                             .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(6.dp))
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = "$totalAppsCount apps",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.5.sp
+                                fontSize = 13.5.sp
                             ),
                             color = CockpitTheme.colors.accent
                         )
@@ -362,7 +376,7 @@ fun AppDrawerHeader(
                     Text(
                         text = "Page ${pageIndex + 1} of $totalPages • Swipe left/right",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 11.5.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         ),
                         color = CockpitTheme.colors.textSecondary
@@ -379,7 +393,7 @@ fun AppDrawerHeader(
                 Text(
                     "Search apps...",
                     color = CockpitTheme.colors.textDisabled,
-                    fontSize = 12.5.sp
+                    fontSize = 14.5.sp
                 )
             },
             leadingIcon = {
@@ -387,25 +401,25 @@ fun AppDrawerHeader(
                     Icons.Default.Search,
                     contentDescription = null,
                     tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(17.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChange("") }, modifier = Modifier.size(24.dp)) {
+                    IconButton(onClick = { onSearchQueryChange("") }, modifier = Modifier.size(28.dp)) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = "Clear",
                             tint = CockpitTheme.colors.textSecondary,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
             },
             singleLine = true,
             modifier = Modifier
-                .width(220.dp)
-                .height(48.dp),
+                .width(260.dp)
+                .height(50.dp),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = CockpitTheme.colors.textPrimary,

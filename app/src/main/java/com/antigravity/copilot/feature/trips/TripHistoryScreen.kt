@@ -354,7 +354,7 @@ fun TripHistoryScreen(
                             text = "GPS TELEMETRY ARCHIVE • ANIMATED ROUTE REPLAY • DRIVING INSIGHTS",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                fontSize = 13.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF87929A)
@@ -671,8 +671,8 @@ private fun TripStatTile(
                     text = value,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
-                        fontSize = 19.sp,
-                        lineHeight = 20.sp,
+                        fontSize = 22.sp,
+                        lineHeight = 24.sp,
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
@@ -684,23 +684,23 @@ private fun TripStatTile(
                         text = unit,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            lineHeight = 12.sp,
+                            fontSize = 13.sp,
+                            lineHeight = 14.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         ),
                         color = Color(0xFF87929A),
-                        modifier = Modifier.padding(bottom = 0.5.dp)
+                        modifier = Modifier.padding(bottom = 1.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.5.sp,
-                    lineHeight = 12.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 13.sp,
                     letterSpacing = 0.4.sp,
                     platformStyle = PlatformTextStyle(includeFontPadding = false)
                 ),
@@ -915,7 +915,7 @@ private fun TripCardItem(
                         text = "${trip.startLocationName.ifBlank { "Trip Origin" }} ➔ ${trip.endLocationName.ifBlank { "Destination" }}",
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                            fontSize = 15.5.sp
                         ),
                         color = Color.White,
                         maxLines = 1,
@@ -924,7 +924,7 @@ private fun TripCardItem(
                     Text(
                         text = dateDisplayStr,
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 10.5.sp,
+                            fontSize = 13.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF87929A)
@@ -937,7 +937,7 @@ private fun TripCardItem(
                     text = "$distanceKm km",
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
-                        fontSize = 17.sp,
+                        fontSize = 19.sp,
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
                     color = if (isSelected) Color(0xFF38BDF8) else Color.White
@@ -952,33 +952,33 @@ private fun TripCardItem(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = "⏱️ $durationText",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
+                            fontSize = 12.5.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             fontWeight = FontWeight.Bold
                         ),
                         color = Color(0xFFCBD5E1)
                     )
-                    Text(text = "•", fontSize = 9.sp, color = Color(0xFF475569))
+                    Text(text = "•", fontSize = 11.sp, color = Color(0xFF475569))
                     Text(
                         text = "${NumberFormatUtils.formatSpeed(trip.avgSpeedKmh, 2)} km/h avg",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 10.sp,
+                            fontSize = 12.5.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             fontWeight = FontWeight.Bold
                         ),
                         color = Color(0xFFCBD5E1)
                     )
                     if (trip.maxSpeedKmh > 0) {
-                        Text(text = "•", fontSize = 9.sp, color = Color(0xFF475569))
+                        Text(text = "•", fontSize = 11.sp, color = Color(0xFF475569))
                         Text(
                             text = "max ${NumberFormatUtils.formatSpeed(trip.maxSpeedKmh, 2)}",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
+                                fontSize = 12.5.sp,
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                 fontWeight = FontWeight.Bold
                             ),
@@ -994,16 +994,16 @@ private fun TripCardItem(
                 }
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(5.dp))
+                        .clip(RoundedCornerShape(6.dp))
                         .background(scoreColor.copy(alpha = 0.15f))
-                        .border(1.dp, scoreColor.copy(alpha = 0.35f), RoundedCornerShape(5.dp))
-                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                        .border(1.dp, scoreColor.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = "Score ${trip.driverScore}",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 9.sp,
+                            fontSize = 12.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = scoreColor
@@ -1083,36 +1083,37 @@ private fun TripDetailContainer(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Tab Selector
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TripDetailTab.values().forEach { tab ->
                             val isSelected = tab == selectedTab
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) Color(0xFF1E3A5F) else Color.Transparent)
+                                    .defaultMinSize(minHeight = 44.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSelected) Color(0xFF1E3A5F) else Color(0xFF0F1726))
                                     .border(
-                                        width = 1.dp,
-                                        color = if (isSelected) Color(0xFF38BDF8) else Color.Transparent,
-                                        shape = RoundedCornerShape(8.dp)
+                                        width = 1.2.dp,
+                                        color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E2838),
+                                        shape = RoundedCornerShape(10.dp)
                                     )
                                     .clickable { onSelectTab(tab) }
-                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(
                                         imageVector = tab.icon,
                                         contentDescription = null,
                                         tint = if (isSelected) Color(0xFF38BDF8) else Color(0xFF87929A),
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(18.dp)
                                     )
                                     Text(
                                         text = tab.title,
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                            fontSize = 11.5.sp
+                                            fontSize = 14.sp
                                         ),
                                         color = if (isSelected) Color.White else Color(0xFF87929A)
                                     )
@@ -1124,13 +1125,13 @@ private fun TripDetailContainer(
                     // Trip quick badge + Delete Option
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
                             text = "${NumberFormatUtils.formatDistanceWithUnit(trip.distanceMeters / 1000.0, 2)} • ${NumberFormatUtils.formatSpeedWithUnit(trip.avgSpeedKmh, 2)}",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                fontSize = 13.5.sp,
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF38BDF8)
@@ -1140,15 +1141,16 @@ private fun TripDetailContainer(
                             IconButton(
                                 onClick = { showDeleteConfirm = true },
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(44.dp)
                                     .clip(CircleShape)
                                     .background(Color(0xFF261010))
+                                    .border(1.2.dp, Color(0xFFEF4444).copy(alpha = 0.5f), CircleShape)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.DeleteOutline,
                                     contentDescription = "Delete Trip",
                                     tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(15.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                         }

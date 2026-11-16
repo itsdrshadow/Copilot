@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -572,30 +573,36 @@ private fun AutomotiveMusicPill(
     label: String,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
+            .defaultMinSize(minHeight = 44.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(CockpitTheme.colors.cardElevated)
             .border(
-                1.dp,
+                1.2.dp,
                 if (isPlaying) CockpitTheme.colors.accent.copy(alpha = 0.6f) else CockpitTheme.colors.border,
                 RoundedCornerShape(12.dp)
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),
+                onClick = onClick
+            )
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Icon(
             imageVector = Icons.Default.GraphicEq,
             contentDescription = "Media Player",
             tint = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary,
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(18.dp)
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 12.sp,
+                fontSize = 13.5.sp,
                 fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
             ),
             color = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary

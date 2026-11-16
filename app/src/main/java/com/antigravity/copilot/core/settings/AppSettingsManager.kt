@@ -66,7 +66,7 @@ object AppSettingsManager {
         val screenAlwaysOn: Boolean = true,
         val autoMinimizeDrawer: Boolean = false,
         val language: String = "English (Automotive Standard)",
-        val cockpitTheme: String = "gradient_glass",
+        val cockpitTheme: String = "apex",
         val themeAppearanceMode: String = "auto",
         val carName: String = "My Car",
         val fuelType: String = "Petrol",
@@ -146,7 +146,7 @@ object AppSettingsManager {
             screenAlwaysOn = prefs.getBoolean(KEY_SCREEN_ALWAYS_ON, true),
             autoMinimizeDrawer = prefs.getBoolean(KEY_AUTO_MINIMIZE_DRAWER, false),
             language = prefs.getString(KEY_LANGUAGE, "English (Automotive Standard)") ?: "English",
-            cockpitTheme = prefs.getString(KEY_COCKPIT_THEME, "gradient_glass") ?: "gradient_glass",
+            cockpitTheme = prefs.getString(KEY_COCKPIT_THEME, "apex")?.let { if (it.contains("glass", ignoreCase = true)) "apex" else it } ?: "apex",
             themeAppearanceMode = prefs.getString(KEY_THEME_APPEARANCE_MODE, "auto") ?: "auto",
             carName = prefs.getString(KEY_CAR_NAME, "My Car") ?: "My Car",
             fuelType = prefs.getString(KEY_FUEL_TYPE, "Petrol") ?: "Petrol",
@@ -426,8 +426,8 @@ object AppSettingsManager {
         }
     }
 
-    fun restoreGradientGlassCockpit(context: Context) {
-        updateCockpitTheme(context, CockpitThemeMode.GRADIENT_GLASS)
+    fun restoreApexCockpit(context: Context) {
+        updateCockpitTheme(context, CockpitThemeMode.APEX)
     }
 
     /**

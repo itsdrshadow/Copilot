@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -221,7 +223,7 @@ fun FuelHistoryScreen(
                                 text = "HISTORICAL LOGS • TANK-TO-TANK TELEMETRY • ACCURATE CONSUMPTION",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
+                                    fontSize = 13.5.sp,
                                     letterSpacing = 0.5.sp
                                 ),
                                 color = Color(0xFF87929A)
@@ -436,8 +438,8 @@ private fun FuelStatBadgeCard(
                     text = value,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
-                        fontSize = 19.sp,
-                        lineHeight = 20.sp,
+                        fontSize = 22.sp,
+                        lineHeight = 24.sp,
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
@@ -449,23 +451,23 @@ private fun FuelStatBadgeCard(
                         text = unit,
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            lineHeight = 12.sp,
+                            fontSize = 13.sp,
+                            lineHeight = 14.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         ),
                         color = Color(0xFF87929A),
-                        modifier = Modifier.padding(bottom = 0.5.dp)
+                        modifier = Modifier.padding(bottom = 1.dp)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.5.sp,
-                    lineHeight = 12.sp,
+                    fontSize = 12.sp,
+                    lineHeight = 13.sp,
                     letterSpacing = 0.4.sp,
                     platformStyle = PlatformTextStyle(includeFontPadding = false)
                 ),
@@ -798,7 +800,7 @@ private fun FuelEventCard(
                         Text(
                             text = "@ ${NumberFormatUtils.formatCurrencyWithSymbol(event.pricePerLiter, 2)}/L",
                             style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 11.5.sp,
+                                fontSize = 14.sp,
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF87929A),
@@ -808,13 +810,13 @@ private fun FuelEventCard(
 
                     if (event.locationName.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "📍", fontSize = 10.sp)
-                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(text = "📍", fontSize = 12.sp)
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = event.locationName,
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
+                                    fontSize = 13.5.sp
                                 ),
                                 color = Color(0xFF94A3B8),
                                 maxLines = 1
@@ -833,7 +835,7 @@ private fun FuelEventCard(
                         text = NumberFormatUtils.formatCurrencyWithSymbol(event.totalCost, 2, useGrouping = true),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 19.sp,
+                            fontSize = 22.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFF59E0B)
@@ -846,16 +848,16 @@ private fun FuelEventCard(
                         if (event.odometerKm > 0) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(5.dp))
+                                    .clip(RoundedCornerShape(6.dp))
                                     .background(Color(0xFF141A24))
-                                    .border(1.dp, Color(0xFF262A31), RoundedCornerShape(5.dp))
-                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                                    .border(1.dp, Color(0xFF262A31), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 6.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     text = "🚗 ${NumberFormatUtils.formatOdometer(event.odometerKm, 2)} km",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
+                                        fontSize = 12.5.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color.White
@@ -866,16 +868,16 @@ private fun FuelEventCard(
                         if (event.calculatedMileageKmpl > 0) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(5.dp))
+                                    .clip(RoundedCornerShape(6.dp))
                                     .background(Color(0xFF10B981).copy(alpha = 0.15f))
-                                    .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(5.dp))
-                                    .padding(horizontal = 5.dp, vertical = 2.dp)
+                                    .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 6.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     text = "⚡ ${NumberFormatUtils.formatMileageWithUnit(event.calculatedMileageKmpl, 2)}",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 10.sp,
+                                        fontSize = 12.5.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF10B981)
@@ -894,35 +896,43 @@ private fun FuelEventCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF0F2642))
                             .border(1.2.dp, Color(0xFF38BDF8).copy(alpha = 0.55f), CircleShape)
-                            .clickable(onClick = onEdit),
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(bounded = true, color = Color(0xFF38BDF8)),
+                                onClick = onEdit
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Refuel",
                             tint = Color(0xFF38BDF8),
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
 
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF3B151E))
                             .border(1.2.dp, Color(0xFFEF4444).copy(alpha = 0.55f), CircleShape)
-                            .clickable(onClick = onDelete),
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(bounded = true, color = Color(0xFFEF4444)),
+                                onClick = onDelete
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Refuel",
                             tint = Color(0xFFEF4444),
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }

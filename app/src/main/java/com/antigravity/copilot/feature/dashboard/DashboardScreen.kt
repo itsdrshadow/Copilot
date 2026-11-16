@@ -1,8 +1,13 @@
 package com.antigravity.copilot.feature.dashboard
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,6 +16,8 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -102,7 +109,7 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Map Panel (Top 45%)
+                    // Map Panel (Top 50%)
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
@@ -110,15 +117,15 @@ fun DashboardScreen(
                         onToggleFullScreen = onToggleFullMap,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.45f)
+                            .weight(0.50f)
                             .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
                     )
 
-                    // Telemetry Area (Bottom 55%)
+                    // Telemetry Area (Bottom 50%)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.55f),
+                            .weight(0.50f),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
                         // Row 1: Speedometer + Fuel Tank
@@ -169,22 +176,22 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Left Pane: Live Map (45%)
+                    // Left Pane: Live Map (50%)
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
                         speedLimitInfo = speedLimitInfo,
                         onToggleFullScreen = onToggleFullMap,
                         modifier = Modifier
-                            .weight(0.45f)
+                            .weight(0.50f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
                     )
 
-                    // Right Pane: Telemetry Area (55%)
+                    // Right Pane: Telemetry Area (50%)
                     Column(
                         modifier = Modifier
-                            .weight(0.55f)
+                            .weight(0.50f)
                             .fillMaxHeight(),
                         verticalArrangement = Arrangement.spacedBy(itemSpacing)
                     ) {
@@ -273,23 +280,52 @@ private fun CockpitDock(
 private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier) {
     val shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.container)
     val dock = AutomotiveDesignTokens.Dock
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else 1.0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "DockActionScale"
+    )
+
+    val dockActionBg = if (isPressed) {
+        androidx.compose.ui.graphics.Brush.verticalGradient(
+            listOf(CockpitTheme.colors.accentSoft, CockpitTheme.colors.accentSoft)
+        )
+    } else {
+        CockpitTheme.colors.dockActionBrush
+    }
+
     Row(
         modifier = modifier
             .height(dock.height)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(shape)
-            .background(CockpitTheme.colors.dockActionBrush)
-            .border(1.2.dp, CockpitTheme.colors.border.copy(alpha = 0.6f), shape)
-            .clickable(role = Role.Button, onClick = onClick)
+            .background(dockActionBg)
+            .border(
+                1.5.dp,
+                if (isPressed) CockpitTheme.colors.accent else CockpitTheme.colors.border.copy(alpha = 0.6f),
+                shape
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),
+                role = Role.Button,
+                onClick = onClick
+            )
             .padding(horizontal = dock.pillPaddingHorizontal, vertical = dock.pillPaddingVertical),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(38.dp)
                 .clip(CircleShape)
                 .background(CockpitTheme.colors.accentSoft)
-                .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.45f), CircleShape),
+                .border(1.2.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
