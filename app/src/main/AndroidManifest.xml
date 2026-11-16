@@ -111,6 +111,45 @@
             </intent-filter>
         </receiver>
 
+        <!-- Universal Automotive Media & Bluetooth Broadcast Receiver -->
+        <receiver
+            android:name=".core.media.AutomotiveMediaBroadcastReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter android:priority="1000">
+                <!-- Standard Android Music Player Broadcasts -->
+                <action android:name="com.android.music.metachanged" />
+                <action android:name="com.android.music.playstatechanged" />
+                <action android:name="com.android.music.playbackcomplete" />
+                <action android:name="com.android.music.queuechanged" />
+                <action android:name="com.htc.music.metachanged" />
+                <action android:name="fm.last.android.metachanged" />
+                <action android:name="com.sec.android.app.music.metachanged" />
+                <action android:name="com.nullsoft.Winamp.metachanged" />
+                <action android:name="com.amazon.mp3.metachanged" />
+                <action android:name="com.miui.player.metachanged" />
+                <action android:name="com.real.AndroidPlayer.metachanged" />
+                <!-- Bluetooth A2DP & Sink Broadcasts -->
+                <action android:name="android.bluetooth.a2dp.profile.action.PLAYING_STATE_CHANGED" />
+                <action android:name="android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED" />
+                <action android:name="android.bluetooth.a2dp-sink.profile.action.PLAYING_STATE_CHANGED" />
+                <action android:name="android.bluetooth.a2dp-sink.profile.action.CONNECTION_STATE_CHANGED" />
+                <action android:name="android.bluetooth.avrcp-controller.profile.action.TRACK_CHANGED" />
+                <action android:name="android.bluetooth.adapter.action.STATE_CHANGED" />
+                <action android:name="android.bluetooth.adapter.action.CONNECTION_STATE_CHANGED" />
+                <!-- Common Head Unit Bluetooth Vendor Broadcasts (FYT, TS10, Microntek) -->
+                <action android:name="com.syu.bt.music.title" />
+                <action android:name="com.syu.bt.music.artist" />
+                <action android:name="com.syu.bt.music.play" />
+                <action android:name="com.syu.bt.music.pause" />
+                <action android:name="com.syu.music" />
+                <action android:name="com.ts.bt.music" />
+                <action android:name="com.microntek.btmusic" />
+                <action android:name="com.microntek.music.play" />
+                <action android:name="com.microntek.music.title" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

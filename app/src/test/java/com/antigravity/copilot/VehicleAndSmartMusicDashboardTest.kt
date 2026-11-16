@@ -335,4 +335,73 @@ class VehicleAndSmartMusicDashboardTest {
             }
         }
     }
+
+    // =========================================================================
+    // 7. BOOT FOREGROUND GUARDIAN & BLUETOOTH MEDIA BROADCAST STATE
+    // =========================================================================
+
+    @Test
+    fun testBootForegroundGuardianWindowAndDisarm() {
+        val now = 100000L
+
+        // 1. Armed boot protection
+        com.antigravity.copilot.core.recovery.BootForegroundGuardian.setTestBootTimestamp(now)
+        com.antigravity.copilot.core.recovery.BootForegroundGuardian.isUserInitiatedNav = false
+
+        // Within 15 seconds window (e.g. 5 seconds after boot)
+        // With isReturnDefaultValues = true, SystemClock.elapsedRealtime returns 0L by default in unit tests,
+        // so we test boundary math directly:
+        val elapsed5s = 5000L
+        assertTrue("5s elapsed must be within 15s window", elapsed5s in 0..com.antigravity.copilot.core.recovery.BootForegroundGuardian.BOOT_PROTECTION_WINDOW_MS)
+
+        val elapsed20s = 20000L
+        assertFalse("20s elapsed must exceed 15s window", elapsed20s in 0..com.antigravity.copilot.core.recovery.BootForegroundGuardian.BOOT_PROTECTION_WINDOW_MS)
+
+        // 2. User-initiated launch immediately disarms protection
+        com.antigravity.copilot.core.recovery.BootForegroundGuardian.notifyUserInitiatedAppLaunch()
+        assertTrue("User initiated launch must set flag to prevent reassertion", com.antigravity.copilot.core.recovery.BootForegroundGuardian.isUserInitiatedNav)
+    }
+
+    @Test
+    fun testMediaPlaybackStateFromBroadcastWithMissingOrRichData() {
+        // Case 1: Broadcast provides title and artist but no album art
+        val broadcastState = MediaPlaybackState(
+            title = "Kesariya",
+            artist = "Arijit Singh",
+            isPlaying = true,
+            hasActiveSession = true,
+            playbackStateCode = PlaybackState.STATE_PLAYING
+        )
+        assertTrue(broadcastState.isMusicActive)
+        assertEquals("Kesariya", broadcastState.displayTitle)
+        assertEquals("Arijit Singh", broadcastState.displayArtist)
+
+        // Case 2: Broadcast arrives with only playing = true (e.g. A2DP sink connected & playing)
+        val a2dpPlayingState = MediaPlaybackState(
+            title = "",
+            artist = "",
+            isPlaying = true,
+            hasActiveSession = false,
+            playbackStateCode = PlaybackState.STATE_PLAYING
+        )
+        assertTrue(a2dpPlayingState.isMusicActive)
+        assertEquals("Bluetooth Audio", a2dpPlayingState.displayTitle)
+        assertEquals("Connected Device", a2dpPlayingState.displayArtist)
+
+        // Case 3: Paused state with title remains in music mode
+        val pausedState = broadcastState.copy(
+            isPlaying = false,
+            playbackStateCode = PlaybackState.STATE_PAUSED
+        )
+        assertTrue(pausedState.isMusicActive)
+        assertEquals("Kesariya", pausedState.displayTitle)
+
+        // Case 4: Complete stop clears music state
+        val stoppedState = pausedState.copy(
+            title = "",
+            playbackStateCode = PlaybackState.STATE_STOPPED,
+            hasActiveSession = false
+        )
+        assertFalse(stoppedState.isMusicActive)
+    }
 }

@@ -17,6 +17,7 @@ class BootReceiver : BroadcastReceiver() {
             )
         ) {
             Log.i("BootReceiver", "Received boot trigger ($action). Starting telemetry engine & bringing up Cockpit.")
+            com.antigravity.copilot.core.recovery.BootForegroundGuardian.onBootOrWake(context)
             DrivingTrackingService.start(context)
 
             try {

@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-11-16
+
+### Added
+- **Universal Automotive Media Broadcast Receiver (`AutomotiveMediaBroadcastReceiver`)**:
+  - Automatically captures track titles, artists, album names, duration, and live playback states from Chinese Car Head Unit Bluetooth apps (FYT/Syu, Microntek, TS10, Topway) and standard Android AVRCP broadcasts (`com.android.music.metachanged`, Bluetooth A2DP Sink `PLAYING_STATE_CHANGED`, etc.).
+  - Bypasses traditional Android `MediaSession` limitations, ensuring Bluetooth Music details display in real-time on Copilot's Cockpit homescreen even if the head unit's stock BT app does not provide a standard media session.
+  - Added dual broadcast command dispatching (`com.syu.bt.music.*`, `com.microntek.btmusic.*`, `com.ts.bt.music.*`) alongside `KeyEvent` media dispatch for reliable track skipping and play/pause toggling from the homescreen card.
+- **Car Boot & Ignition Auto-Foreground Guardian (`BootForegroundGuardian`)**:
+  - Implemented 15-second post-ignition foreground watchdog that detects when head unit ROM autostart scripts force-launch stock BT Music into the foreground.
+  - Automatically reasserts Copilot Cockpit to the front after a 1200ms grace period (allowing Bluetooth stack to initialize without audio cut-off), keeping BT Music streaming smoothly in the background without requiring user to press Back.
+  - Automatically disarms whenever user intentionally launches an application from the App Drawer, Navigation, or Settings.
+- **Ignition & BT Media System Setting**:
+  - Added `autoForegroundOnBoot` persistent preference in `AppSettingsManager`, DataStore, and `LauncherSettingsDialog` under General Settings.
+- **One-Tap Notification Access Setup Toast**:
+  - Added guided Toast notification when tapping the Media pill if Android Notification Access permission is not yet enabled for Copilot.
+
 ## [1.39.0] - 2026-11-16
 
 ### Added

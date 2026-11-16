@@ -181,8 +181,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        com.antigravity.copilot.core.recovery.BootForegroundGuardian.onMainActivityResumed()
         WindowCompat.getInsetsController(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
         viewModel.loadInstalledApps()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        com.antigravity.copilot.core.recovery.BootForegroundGuardian.onMainActivityPaused(this)
     }
 
     override fun onDestroy() {

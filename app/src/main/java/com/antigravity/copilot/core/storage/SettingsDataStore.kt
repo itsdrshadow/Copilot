@@ -44,6 +44,7 @@ object SettingsDataStore {
     val KEY_MAP_BUILDING_FOOTPRINTS = booleanPreferencesKey("map_building_footprints")
     val KEY_AUTO_DAY_NIGHT_SOLAR = booleanPreferencesKey("auto_day_night_solar")
     val KEY_MEDIA_PILL_ENABLED = booleanPreferencesKey("media_pill_enabled")
+    val KEY_AUTO_FOREGROUND_ON_BOOT = booleanPreferencesKey("auto_foreground_on_boot")
 
     val KEY_STORAGE_SCHEMA_VERSION = intPreferencesKey("storage_schema_version")
     val KEY_LAST_MIGRATION_TIMESTAMP = longPreferencesKey("last_migration_timestamp")
@@ -89,7 +90,8 @@ object SettingsDataStore {
             mapDarkMode = prefs[KEY_MAP_DARK_MODE] ?: fallback.mapDarkMode,
             mapBuildingFootprints = prefs[KEY_MAP_BUILDING_FOOTPRINTS] ?: fallback.mapBuildingFootprints,
             autoDayNightSolar = prefs[KEY_AUTO_DAY_NIGHT_SOLAR] ?: fallback.autoDayNightSolar,
-            mediaPillEnabled = prefs[KEY_MEDIA_PILL_ENABLED] ?: fallback.mediaPillEnabled
+            mediaPillEnabled = prefs[KEY_MEDIA_PILL_ENABLED] ?: fallback.mediaPillEnabled,
+            autoForegroundOnBoot = prefs[KEY_AUTO_FOREGROUND_ON_BOOT] ?: fallback.autoForegroundOnBoot
         )
     }
 
@@ -108,6 +110,7 @@ object SettingsDataStore {
             prefs[KEY_STATIONARY_SPEED_THRESHOLD] = state.stationarySpeedThresholdKmh
             prefs[KEY_IDLE_DURATION_THRESHOLD] = state.idleDurationThresholdSeconds
             prefs[KEY_AUTO_TRIP_DETECTION] = state.autoTripDetection
+            prefs[KEY_AUTO_FOREGROUND_ON_BOOT] = state.autoForegroundOnBoot
             prefs[KEY_ENGINE_OFF_DETECTION] = state.engineOffDetection
             prefs[KEY_STATION_STOP_WATCHDOG] = state.stationStopWatchdog
             prefs[KEY_STATION_DWELL_SECONDS] = state.stationPromptDwellSeconds

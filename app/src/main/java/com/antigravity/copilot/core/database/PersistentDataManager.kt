@@ -428,6 +428,7 @@ object PersistentDataManager {
                 sObj.put("map_building_footprints", settings.mapBuildingFootprints)
                 sObj.put("auto_day_night_solar", settings.autoDayNightSolar)
                 sObj.put("media_pill_enabled", settings.mediaPillEnabled)
+                sObj.put("auto_foreground_on_boot", settings.autoForegroundOnBoot)
                 root.put("app_settings", sObj)
 
                 // 1d. Last Completed Trip Pointer

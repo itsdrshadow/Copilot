@@ -61,6 +61,7 @@ object AppSettingsManager {
     const val KEY_MAP_BUILDING_FOOTPRINTS = "map_building_footprints"
     const val KEY_AUTO_DAY_NIGHT_SOLAR = "auto_day_night_solar"
     const val KEY_MEDIA_PILL_ENABLED = "media_pill_enabled"
+    const val KEY_AUTO_FOREGROUND_ON_BOOT = "auto_foreground_on_boot"
 
     data class SettingsState(
         val screenAlwaysOn: Boolean = true,
@@ -88,7 +89,8 @@ object AppSettingsManager {
         val mapDarkMode: Boolean = true,
         val mapBuildingFootprints: Boolean = true,
         val autoDayNightSolar: Boolean = true,
-        val mediaPillEnabled: Boolean = true
+        val mediaPillEnabled: Boolean = true,
+        val autoForegroundOnBoot: Boolean = true
     ) {
         val cockpitThemeMode: CockpitThemeMode
             get() = CockpitThemeMode.fromId(cockpitTheme)
@@ -168,7 +170,8 @@ object AppSettingsManager {
             mapDarkMode = prefs.getBoolean(KEY_MAP_DARK_MODE, true),
             mapBuildingFootprints = prefs.getBoolean(KEY_MAP_BUILDING_FOOTPRINTS, true),
             autoDayNightSolar = prefs.getBoolean(KEY_AUTO_DAY_NIGHT_SOLAR, true),
-            mediaPillEnabled = prefs.getBoolean(KEY_MEDIA_PILL_ENABLED, true)
+            mediaPillEnabled = prefs.getBoolean(KEY_MEDIA_PILL_ENABLED, true),
+            autoForegroundOnBoot = prefs.getBoolean(KEY_AUTO_FOREGROUND_ON_BOOT, true)
         )
         isInitialized = true
     }
@@ -395,6 +398,14 @@ object AppSettingsManager {
         _settingsState.value = _settingsState.value.copy(mapBuildingFootprints = enabled)
         scope.launch {
             context.appDataStore.edit { it[SettingsDataStore.KEY_MAP_BUILDING_FOOTPRINTS] = enabled }
+        }
+    }
+
+    fun updateAutoForegroundOnBoot(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_AUTO_FOREGROUND_ON_BOOT, enabled).apply()
+        _settingsState.value = _settingsState.value.copy(autoForegroundOnBoot = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_AUTO_FOREGROUND_ON_BOOT] = enabled }
         }
     }
 

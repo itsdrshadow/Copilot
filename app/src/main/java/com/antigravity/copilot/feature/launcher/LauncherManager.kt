@@ -83,6 +83,7 @@ class LauncherManager(private val context: Context) {
     }
 
     fun launchApp(packageName: String, activityName: String) {
+        com.antigravity.copilot.core.recovery.BootForegroundGuardian.notifyUserInitiatedAppLaunch()
         try {
             val intent = if (activityName.isNotBlank()) {
                 Intent(Intent.ACTION_MAIN).apply {
@@ -104,6 +105,7 @@ class LauncherManager(private val context: Context) {
     }
 
     fun launchNavigation() {
+        com.antigravity.copilot.core.recovery.BootForegroundGuardian.notifyUserInitiatedAppLaunch()
         val navIntent = Intent(Intent.ACTION_VIEW).apply {
             data = android.net.Uri.parse("geo:0,0?q=")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -146,6 +148,7 @@ class LauncherManager(private val context: Context) {
     }
 
     fun launchSettings() {
+        com.antigravity.copilot.core.recovery.BootForegroundGuardian.notifyUserInitiatedAppLaunch()
         val intent = Intent(android.provider.Settings.ACTION_SETTINGS).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }

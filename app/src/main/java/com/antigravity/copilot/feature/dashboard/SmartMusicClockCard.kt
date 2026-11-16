@@ -130,6 +130,11 @@ fun SmartMusicClockCard(
                     dateString = dateString,
                     onOpenMusicApp = {
                         if (!MediaPlaybackManager.isNotificationAccessGranted(context)) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "Please allow Notification Access for Copilot to sync Bluetooth Music details",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
                             MediaPlaybackManager.openNotificationAccessSettings(context)
                         } else {
                             MediaPlaybackManager.openActivePlayerApp(context)

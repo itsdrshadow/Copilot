@@ -24,6 +24,7 @@ object MediaPlaybackManager {
     private var activeController: MediaController? = null
     private var appContext: Context? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var broadcastReceiver: AutomotiveMediaBroadcastReceiver? = null
 
     private val controllerCallback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) {
@@ -47,6 +48,63 @@ object MediaPlaybackManager {
     fun init(context: Context) {
         appContext = context.applicationContext
         refreshActiveSessions()
+        registerBroadcastReceiver(context.applicationContext)
+    }
+
+    private fun registerBroadcastReceiver(context: Context) {
+        if (broadcastReceiver == null) {
+            broadcastReceiver = AutomotiveMediaBroadcastReceiver()
+            val filter = AutomotiveMediaBroadcastReceiver.createIntentFilter()
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    context.registerReceiver(broadcastReceiver, filter, Context.RECEIVER_EXPORTED)
+                } else {
+                    context.registerReceiver(broadcastReceiver, filter)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun updateFromBroadcast(
+        title: String?,
+        artist: String?,
+        album: String? = null,
+        isPlaying: Boolean? = null,
+        durationMs: Long? = null,
+        positionMs: Long? = null,
+        packageName: String? = null
+    ) {
+        mainHandler.post {
+            val current = _playbackState.value
+
+            val newTitle = title?.trim()?.takeIf { it.isNotEmpty() } ?: current.title
+            val newArtist = artist?.trim()?.takeIf { it.isNotEmpty() } ?: current.artist
+            val newAlbum = album?.trim()?.takeIf { it.isNotEmpty() } ?: current.album
+            val newPlaying = isPlaying ?: current.isPlaying
+            val newDuration = durationMs?.takeIf { it > 0L } ?: current.durationMs
+            val newPosition = positionMs?.takeIf { it >= 0L } ?: current.positionMs
+
+            val stateCode = when {
+                newPlaying -> PlaybackState.STATE_PLAYING
+                newTitle.isNotBlank() -> PlaybackState.STATE_PAUSED
+                else -> PlaybackState.STATE_STOPPED
+            }
+
+            _playbackState.value = current.copy(
+                title = newTitle,
+                artist = newArtist,
+                album = newAlbum,
+                isPlaying = newPlaying,
+                durationMs = newDuration,
+                positionMs = newPosition,
+                playbackStateCode = stateCode,
+                hasActiveSession = newPlaying || newTitle.isNotBlank() || current.hasActiveSession,
+                packageName = packageName ?: current.packageName,
+                lastPositionUpdateTime = android.os.SystemClock.elapsedRealtime()
+            )
+        }
     }
 
     fun setActiveController(controller: MediaController?) {
@@ -158,10 +216,12 @@ object MediaPlaybackManager {
                 } else {
                     controller.transportControls.play()
                 }
+                broadcastHeadUnitCommand("PLAY_PAUSE")
                 return
             } catch (_: Exception) {}
         }
         dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+        broadcastHeadUnitCommand("PLAY_PAUSE")
     }
 
     fun skipToNext() {
@@ -169,10 +229,12 @@ object MediaPlaybackManager {
         if (controller != null) {
             try {
                 controller.transportControls.skipToNext()
+                broadcastHeadUnitCommand("NEXT")
                 return
             } catch (_: Exception) {}
         }
         dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
+        broadcastHeadUnitCommand("NEXT")
     }
 
     fun skipToPrevious() {
@@ -180,10 +242,35 @@ object MediaPlaybackManager {
         if (controller != null) {
             try {
                 controller.transportControls.skipToPrevious()
+                broadcastHeadUnitCommand("PREV")
                 return
             } catch (_: Exception) {}
         }
         dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+        broadcastHeadUnitCommand("PREV")
+    }
+
+    private fun broadcastHeadUnitCommand(command: String) {
+        val ctx = appContext ?: return
+        try {
+            when (command) {
+                "PLAY_PAUSE" -> {
+                    ctx.sendBroadcast(Intent("com.syu.bt.music.playpause"))
+                    ctx.sendBroadcast(Intent("com.microntek.btmusic.play"))
+                    ctx.sendBroadcast(Intent("com.ts.bt.music.play"))
+                }
+                "NEXT" -> {
+                    ctx.sendBroadcast(Intent("com.syu.bt.music.next"))
+                    ctx.sendBroadcast(Intent("com.microntek.btmusic.next"))
+                    ctx.sendBroadcast(Intent("com.ts.bt.music.next"))
+                }
+                "PREV" -> {
+                    ctx.sendBroadcast(Intent("com.syu.bt.music.prev"))
+                    ctx.sendBroadcast(Intent("com.microntek.btmusic.prev"))
+                    ctx.sendBroadcast(Intent("com.ts.bt.music.prev"))
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     private fun dispatchMediaKey(keyCode: Int) {

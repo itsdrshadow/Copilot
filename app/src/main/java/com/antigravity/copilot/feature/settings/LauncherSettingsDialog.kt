@@ -532,6 +532,55 @@ private fun GeneralSettingsContent(
         }
     }
 
+    // CAR STARTUP & BLUETOOTH MEDIA CARD
+    SettingsCard(title = "Car Ignition & Bluetooth Media", icon = Icons.Default.DirectionsCar) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text(
+                text = "Controls whether Copilot stays in front when car ignition turns on, allowing stock BT Music to run in the background without audio cut-off.",
+                style = CockpitTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
+                color = CockpitTheme.colors.textSecondary
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (state.autoForegroundOnBoot) CockpitTheme.colors.accentSoft else CockpitTheme.colors.cardElevated)
+                    .border(
+                        width = 1.5.dp,
+                        color = if (state.autoForegroundOnBoot) CockpitTheme.colors.accent else CockpitTheme.colors.border,
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .clickable {
+                        AppSettingsManager.updateAutoForegroundOnBoot(context, !state.autoForegroundOnBoot)
+                    }
+                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Auto-Foreground on Ignition",
+                        style = CockpitTheme.typography.titleMedium,
+                        color = if (state.autoForegroundOnBoot) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
+                    )
+                    Text(
+                        text = if (state.autoForegroundOnBoot)
+                            "ACTIVE • Keeps Copilot visible & runs BT Music in background"
+                        else
+                            "DISABLED • Allows external apps to take foreground on startup",
+                        style = CockpitTheme.typography.bodySmall,
+                        color = CockpitTheme.colors.textSecondary
+                    )
+                }
+
+                StatusBadge(
+                    text = if (state.autoForegroundOnBoot) "ENABLED" else "DISABLED"
+                )
+            }
+        }
+    }
+
     // AUTOMOTIVE RUNTIME SPECIFICATION CARD
     SettingsCard(title = "Automotive Runtime Environment", icon = Icons.Default.Tune) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

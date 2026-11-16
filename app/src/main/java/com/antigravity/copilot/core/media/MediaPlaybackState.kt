@@ -18,17 +18,18 @@ data class MediaPlaybackState(
     val hasActiveSession: Boolean = false
 ) {
     val displayTitle: String
-        get() = if (title.isNotBlank()) title else if (hasActiveSession) "Audio Playing" else "Media Idle"
+        get() = if (title.isNotBlank()) title else if (hasActiveSession) "Audio Playing" else if (isPlaying) "Bluetooth Audio" else "Media Idle"
 
     val displayArtist: String
-        get() = if (artist.isNotBlank()) artist else if (hasActiveSession) "Car Audio" else "Tap to Play Music"
+        get() = if (artist.isNotBlank()) artist else if (hasActiveSession) "Car Audio" else if (isPlaying) "Connected Device" else "Tap to Play Music"
 
     /**
      * True when music is actively playing or actively loaded in a valid paused/buffering session.
      * Automatically returns false when media is stopped, none, or session is inactive.
      */
     val isMusicActive: Boolean
-        get() = hasActiveSession && (isPlaying || (title.isNotBlank() &&
+        get() = (hasActiveSession || isPlaying || title.isNotBlank()) &&
+                (isPlaying || (title.isNotBlank() &&
                 playbackStateCode != PlaybackState.STATE_STOPPED &&
                 playbackStateCode != PlaybackState.STATE_NONE &&
                 playbackStateCode != PlaybackState.STATE_ERROR))
