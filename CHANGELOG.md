@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.2] - 2026-11-16
+
+### Changed
+- **Unified Cockpit Telemetry Card Header Alignment & Color Synchronization**:
+  - Aligned "SPEEDOMETER", "FUEL TANK", "CURRENT TRIP", and "DIGITAL CLOCK" card headers across the 2x2 cockpit dashboard grid with a standardized `44.dp` header height.
+  - Harmonized typography across all 4 card headings using `CockpitTheme.typography.headlineSmall` with `FontWeight.Black`, `1.1.sp` letter spacing, and single-line restriction.
+  - Standardized card heading text color to `CockpitTheme.colors.textSecondary` across all four quadrants (updating Digital Clock from standalone cyan accent).
+  - Standardized telemetry icon container dimensions to `28.dp` with `6.dp` rounded corners, `18.dp` icon glyphs, and consistent `6.dp` spacing across Speedometer, Fuel Tank, Current Trip, and Digital Clock / Media cards.
+
 ## [1.40.1] - 2026-11-16
 
 ### Fixed

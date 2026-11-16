@@ -90,7 +90,9 @@ fun FuelTankCard(
         ) {
             // ==================== 1. CARD HEADER ====================
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -118,7 +120,8 @@ fun FuelTankCard(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.1.sp
                         ),
-                        color = textSecondary
+                        color = textSecondary,
+                        maxLines = 1
                     )
                 }
 

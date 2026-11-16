@@ -177,7 +177,9 @@ private fun ClockOnlyState(
     ) {
         // Top Header: System Time Label & Quick Launch Music Pill
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -187,25 +189,26 @@ private fun ClockOnlyState(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(24.dp)
+                        .size(28.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(CockpitTheme.colors.accentSoft),
+                        .background(CockpitTheme.colors.accent.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = null,
                         tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
                 Text(
                     text = "DIGITAL CLOCK",
                     style = CockpitTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.1.sp
                     ),
-                    color = CockpitTheme.colors.accent
+                    color = CockpitTheme.colors.textSecondary,
+                    maxLines = 1
                 )
             }
 
@@ -315,7 +318,9 @@ private fun ClockWithMusicState(
     ) {
         // ==================== 1. PERMANENT CLOCK BANNER ====================
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -326,16 +331,16 @@ private fun ClockWithMusicState(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(22.dp)
+                        .size(28.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(CockpitTheme.colors.accentSoft),
+                        .background(CockpitTheme.colors.accent.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = null,
                         tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 

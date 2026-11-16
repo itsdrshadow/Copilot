@@ -284,7 +284,9 @@ fun CurrentTripCard(
         ) {
             // ==================== 1. CARD HEADER ====================
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

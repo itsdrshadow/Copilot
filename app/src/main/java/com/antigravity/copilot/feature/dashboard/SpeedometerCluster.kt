@@ -225,7 +225,9 @@ fun SpeedometerCluster(
         ) {
             // ==================== 1. SPEED LIMIT SIGN & CLUSTER HEADER ====================
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -253,7 +255,8 @@ fun SpeedometerCluster(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.1.sp
                         ),
-                        color = textSecondary
+                        color = textSecondary,
+                        maxLines = 1
                     )
                 }
 
