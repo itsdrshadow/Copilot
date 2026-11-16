@@ -7,6 +7,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.MediaMetadata
+import android.os.Build
+import android.os.Bundle
 import android.util.Log
 
 /**
@@ -111,18 +114,27 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
 
         try {
             // 1. Extract Title
-            val title = extractTitle(intent)
+            var title = extractTitle(intent)
 
             // 2. Extract Artist
-            val artist = extractArtist(intent)
+            var artist = extractArtist(intent)
 
-            // 3. Extract Album
+            // 3. Fallback: Parse "Artist - Title" or "Title - Artist" if one contains delimiter and other is blank
+            if (artist.isNullOrBlank() && title != null && title.contains(" - ")) {
+                val parts = title.split(" - ", limit = 2)
+                if (parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
+                    title = parts[0].trim()
+                    artist = parts[1].trim()
+                }
+            }
+
+            // 4. Extract Album
             val album = extractAlbum(intent)
 
-            // 4. Extract Playing State
+            // 5. Extract Playing State
             val isPlaying = extractPlayingState(intent, action)
 
-            // 5. Extract Duration and Position
+            // 6. Extract Duration and Position with automatic seconds-to-millis scaling
             val durationMs = extractDuration(intent)
             val positionMs = extractPosition(intent)
 
@@ -130,7 +142,7 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
 
             // Dispatch update if we got meaningful metadata or playback state change
             if (!title.isNullOrBlank() || !artist.isNullOrBlank() || isPlaying != null) {
-                Log.i(TAG, "Parsed Media Broadcast -> Title: '$title', Artist: '$artist', isPlaying: $isPlaying")
+                Log.i(TAG, "Parsed Media Broadcast -> Title: '$title', Artist: '$artist', DurationMs: $durationMs, PosMs: $positionMs, isPlaying: $isPlaying")
                 MediaPlaybackManager.updateFromBroadcast(
                     title = title,
                     artist = artist,
@@ -147,36 +159,107 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
     }
 
     fun extractTitle(intent: Intent): String? {
-        val keys = listOf(
-            "track", "title", "song", "name", "music_name",
-            "com.syu.bt.music.title", "EXTRA_TRACK", "track_name",
-            "com.microntek.music.title"
-        )
-        for (key in keys) {
-            val v = intent.getStringExtra(key)?.trim()
-            if (!v.isNullOrEmpty()) return v
+        val bundle = intent.extras
+
+        // 1. Check for MediaMetadata object (standard in Android AVRCP controller)
+        if (bundle != null) {
+            val mediaMetadata = try {
+                bundle.getParcelable<MediaMetadata>("android.bluetooth.avrcp-controller.profile.extra.METADATA")
+                    ?: bundle.getParcelable<MediaMetadata>("android.media.MediaMetadata")
+                    ?: bundle.getParcelable<MediaMetadata>("EXTRA_METADATA")
+            } catch (_: Exception) { null }
+
+            if (mediaMetadata != null) {
+                val t = mediaMetadata.getString(MediaMetadata.METADATA_KEY_TITLE)
+                    ?: mediaMetadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
+                if (!t.isNullOrBlank() && !isIgnoredPlaceholder(t)) return t.trim()
+            }
         }
+
+        // 2. High-priority exact keys (using bundle.get to support CharSequence, String, Spanned)
+        val priorityKeys = listOf(
+            "track", "title", "song", "name", "music_name", "song_name", "track_name",
+            "com.syu.bt.music.title", "com.syu.music.title", "com.microntek.music.title",
+            "com.ts.bt.music.title", "com.ts.bt.title", "ts_track", "ts_title",
+            "EXTRA_TRACK", "EXTRA_TITLE", "a2dp_title", "bt_title", "bt_music_title",
+            "trackTitle", "SongTitle", "MediaTitle", "android.media.metadata.TITLE",
+            "android.intent.extra.TITLE"
+        )
+        if (bundle != null) {
+            for (key in priorityKeys) {
+                val v = bundle.get(key)?.toString()?.trim()
+                if (!v.isNullOrBlank() && !isIgnoredPlaceholder(v)) return v
+            }
+
+            // 3. Dynamic search across all bundle keys
+            for (key in bundle.keySet()) {
+                val lower = key.lowercase()
+                if ((lower.contains("title") || lower.contains("track") || lower.contains("song")) &&
+                    !lower.contains("package") && !lower.contains("class") && !lower.contains("id")
+                ) {
+                    val v = bundle.get(key)?.toString()?.trim()
+                    if (!v.isNullOrBlank() && !isIgnoredPlaceholder(v)) return v
+                }
+            }
+        }
+
         return null
     }
 
     fun extractArtist(intent: Intent): String? {
-        val keys = listOf(
-            "artist", "singer", "author",
-            "com.syu.bt.music.artist", "EXTRA_ARTIST", "artist_name",
-            "com.microntek.music.artist"
-        )
-        for (key in keys) {
-            val v = intent.getStringExtra(key)?.trim()
-            if (!v.isNullOrEmpty()) return v
+        val bundle = intent.extras
+
+        // 1. Check for MediaMetadata object
+        if (bundle != null) {
+            val mediaMetadata = try {
+                bundle.getParcelable<MediaMetadata>("android.bluetooth.avrcp-controller.profile.extra.METADATA")
+                    ?: bundle.getParcelable<MediaMetadata>("android.media.MediaMetadata")
+                    ?: bundle.getParcelable<MediaMetadata>("EXTRA_METADATA")
+            } catch (_: Exception) { null }
+
+            if (mediaMetadata != null) {
+                val a = mediaMetadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
+                    ?: mediaMetadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
+                    ?: mediaMetadata.getString(MediaMetadata.METADATA_KEY_AUTHOR)
+                if (!a.isNullOrBlank() && !isIgnoredPlaceholder(a)) return a.trim()
+            }
         }
+
+        // 2. High-priority exact keys
+        val priorityKeys = listOf(
+            "artist", "singer", "author", "singer_name", "artist_name",
+            "com.syu.bt.music.artist", "com.syu.music.artist", "com.microntek.music.artist",
+            "com.ts.bt.music.artist", "com.ts.bt.artist", "ts_artist", "ts_singer",
+            "EXTRA_ARTIST", "a2dp_artist", "bt_artist", "bt_music_artist",
+            "trackArtist", "SingerName", "android.media.metadata.ARTIST"
+        )
+        if (bundle != null) {
+            for (key in priorityKeys) {
+                val v = bundle.get(key)?.toString()?.trim()
+                if (!v.isNullOrBlank() && !isIgnoredPlaceholder(v)) return v
+            }
+
+            // 3. Dynamic search across all bundle keys
+            for (key in bundle.keySet()) {
+                val lower = key.lowercase()
+                if ((lower.contains("artist") || lower.contains("singer") || lower.contains("author")) &&
+                    !lower.contains("package") && !lower.contains("class")
+                ) {
+                    val v = bundle.get(key)?.toString()?.trim()
+                    if (!v.isNullOrBlank() && !isIgnoredPlaceholder(v)) return v
+                }
+            }
+        }
+
         return null
     }
 
     fun extractAlbum(intent: Intent): String? {
-        val keys = listOf("album", "EXTRA_ALBUM", "com.microntek.music.album")
+        val bundle = intent.extras ?: return null
+        val keys = listOf("album", "EXTRA_ALBUM", "com.microntek.music.album", "album_name", "android.media.metadata.ALBUM")
         for (key in keys) {
-            val v = intent.getStringExtra(key)?.trim()
-            if (!v.isNullOrEmpty()) return v
+            val v = bundle.get(key)?.toString()?.trim()
+            if (!v.isNullOrBlank() && !isIgnoredPlaceholder(v)) return v
         }
         return null
     }
@@ -197,15 +280,21 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
             }
         }
 
-        // Boolean / Int extras
-        val boolKeys = listOf("playing", "isplaying", "playstate", "state")
+        val bundle = intent.extras ?: return null
+        val boolKeys = listOf("playing", "isplaying", "playstate", "state", "isPlaying")
         for (key in boolKeys) {
-            if (intent.hasExtra(key)) {
-                return try {
-                    intent.getBooleanExtra(key, false)
-                } catch (_: Exception) {
-                    val intVal = intent.getIntExtra(key, -1)
-                    if (intVal >= 0) (intVal == 1 || intVal == 10) else null
+            if (bundle.containsKey(key)) {
+                val raw = bundle.get(key)
+                when (raw) {
+                    is Boolean -> return raw
+                    is Number -> {
+                        val intVal = raw.toInt()
+                        if (intVal >= 0) return intVal == 1 || intVal == 10
+                    }
+                    is String -> {
+                        if (raw.equals("true", ignoreCase = true) || raw == "1") return true
+                        if (raw.equals("false", ignoreCase = true) || raw == "0") return false
+                    }
                 }
             }
         }
@@ -214,28 +303,68 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
     }
 
     fun extractDuration(intent: Intent): Long? {
-        val keys = listOf("duration", "total_time", "totaltime", "max_time")
+        val bundle = intent.extras ?: return null
+
+        // 1. MediaMetadata
+        try {
+            val mediaMetadata = bundle.getParcelable<MediaMetadata>("android.bluetooth.avrcp-controller.profile.extra.METADATA")
+                ?: bundle.getParcelable<MediaMetadata>("android.media.MediaMetadata")
+            if (mediaMetadata != null) {
+                val d = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
+                if (d > 0L) return normalizeToMillis(d)
+            }
+        } catch (_: Exception) {}
+
+        // 2. Bundle keys
+        val keys = listOf("duration", "total_time", "totaltime", "max_time", "duration_ms", "time", "length")
         for (key in keys) {
-            if (intent.hasExtra(key)) {
-                val l = intent.getLongExtra(key, -1L)
-                if (l > 0L) return l
-                val i = intent.getIntExtra(key, -1)
-                if (i > 0) return i.toLong()
+            if (bundle.containsKey(key)) {
+                val raw = bundle.get(key)
+                val num = when (raw) {
+                    is Number -> raw.toLong()
+                    is String -> raw.toLongOrNull() ?: -1L
+                    else -> -1L
+                }
+                if (num > 0L) return normalizeToMillis(num)
             }
         }
         return null
     }
 
     fun extractPosition(intent: Intent): Long? {
-        val keys = listOf("position", "current_time", "currenttime", "cur_time")
+        val bundle = intent.extras ?: return null
+
+        val keys = listOf("position", "current_time", "currenttime", "cur_time", "position_ms", "progress")
         for (key in keys) {
-            if (intent.hasExtra(key)) {
-                val l = intent.getLongExtra(key, -1L)
-                if (l >= 0L) return l
-                val i = intent.getIntExtra(key, -1)
-                if (i >= 0) return i.toLong()
+            if (bundle.containsKey(key)) {
+                val raw = bundle.get(key)
+                val num = when (raw) {
+                    is Number -> raw.toLong()
+                    is String -> raw.toLongOrNull() ?: -1L
+                    else -> -1L
+                }
+                if (num >= 0L) return normalizeToMillis(num)
             }
         }
         return null
+    }
+
+    /**
+     * Normalizes duration or position values to milliseconds.
+     * Many Chinese car head units send duration/position in seconds (e.g. 240 for 4 mins).
+     * If value is in 1..7200 (less than 2 hours in seconds), scale by 1000 to milliseconds.
+     */
+    fun normalizeToMillis(value: Long): Long {
+        if (value <= 0L) return 0L
+        return if (value in 1..7200) value * 1000L else value
+    }
+
+    fun isIgnoredPlaceholder(value: String): Boolean {
+        val lower = value.trim().lowercase()
+        return lower in listOf(
+            "unknown", "null", "none", "title", "track", "no title", "<unknown>",
+            "unknown artist", "unknown title", "unknown track", "audio playing", "car audio",
+            "bluetooth audio", "connected device"
+        )
     }
 }

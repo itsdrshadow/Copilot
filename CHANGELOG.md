@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.1] - 2026-11-16
+
+### Fixed
+- **Bluetooth Music Timer & Position Drift Resolution**:
+  - Eliminated continuous position resetting where periodic keepalive/state broadcasts with `position = 0` or missing timestamps continually reset the playback timer back to `0:00`.
+  - Added smart track transition detection: resets playback timer only when a new song begins, while maintaining smooth monotonic advancing position via `SystemClock.elapsedRealtime()` during ongoing playback.
+  - Implemented automatic duration & position scale normalization: seamlessly converts seconds-based telemetry (common in Chinese car head units) to milliseconds (`1..7200` seconds $\rightarrow$ `x1000` ms).
+  - Added indeterminate active progress indicator and `"Live BT"` duration badge for Bluetooth streams without fixed duration metadata.
+- **Enhanced Automotive Song Title & Artist Extraction**:
+  - Implemented direct parcel extraction of `MediaMetadata` from Android Bluetooth AVRCP controller intents (`android.bluetooth.avrcp-controller.profile.extra.METADATA`).
+  - Switched from fragile `intent.getStringExtra` to universal `bundle.get(...)?.toString()` across all intent extras, resolving null returns when head units pass metadata as `CharSequence` or `SpannableString`.
+  - Added dynamic fallback extraction across all bundle keys containing `title`, `track`, `song`, `artist`, `singer`, or `author`.
+  - Added automatic hyphenated delimiter parsing (`"Artist - Title"` / `"Title - Artist"`) when one field contains combined track metadata and the other is blank.
+  - Added status bar notification extraction in `CarMediaNotificationListener` (`Notification.EXTRA_TITLE` and `Notification.EXTRA_TEXT`) as high-fidelity source of truth.
+  - Added placeholder string filtering to prevent `"unknown"`, `"null"`, or `"Bluetooth Audio"` from overwriting genuine song titles.
+
 ## [1.40.0] - 2026-11-16
 
 ### Added

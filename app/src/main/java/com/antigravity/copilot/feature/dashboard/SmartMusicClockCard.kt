@@ -305,7 +305,9 @@ private fun ClockWithMusicState(
     } else 0f
 
     val formattedCurrentTime = remember(liveProgressMs) { formatDuration(liveProgressMs) }
-    val formattedTotalTime = remember(durationMs) { if (durationMs > 0L) formatDuration(durationMs) else "--:--" }
+    val formattedTotalTime = remember(durationMs, playbackState.isPlaying) {
+        if (durationMs > 0L) formatDuration(durationMs) else if (playbackState.isPlaying) "Live BT" else "--:--"
+    }
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -439,15 +441,34 @@ private fun ClockWithMusicState(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            LinearProgressIndicator(
-                progress = { progressFraction },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp)),
-                color = CockpitTheme.colors.accent,
-                trackColor = CockpitTheme.colors.cardElevated
-            )
+            if (durationMs > 0L) {
+                LinearProgressIndicator(
+                    progress = { progressFraction },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = CockpitTheme.colors.accent,
+                    trackColor = CockpitTheme.colors.cardElevated
+                )
+            } else if (playbackState.isPlaying) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = CockpitTheme.colors.accent,
+                    trackColor = CockpitTheme.colors.cardElevated
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(CockpitTheme.colors.cardElevated)
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

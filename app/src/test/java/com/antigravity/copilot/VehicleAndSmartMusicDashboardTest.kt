@@ -404,4 +404,29 @@ class VehicleAndSmartMusicDashboardTest {
         )
         assertFalse(stoppedState.isMusicActive)
     }
+
+    @Test
+    fun testDurationAndPositionNormalizationFromSecondsToMillis() {
+        val receiver = com.antigravity.copilot.core.media.AutomotiveMediaBroadcastReceiver()
+
+        // 240 seconds (4 mins) sent by Chinese head unit should be normalized to 240,000 ms
+        assertEquals(240000L, receiver.normalizeToMillis(240L))
+        assertEquals(35000L, receiver.normalizeToMillis(35L))
+
+        // Large values already in millis (> 7200) should remain unchanged
+        assertEquals(180000L, receiver.normalizeToMillis(180000L))
+        assertEquals(0L, receiver.normalizeToMillis(0L))
+        assertEquals(0L, receiver.normalizeToMillis(-10L))
+    }
+
+    @Test
+    fun testPlaceholderMetadataFiltering() {
+        val receiver = com.antigravity.copilot.core.media.AutomotiveMediaBroadcastReceiver()
+        assertTrue(receiver.isIgnoredPlaceholder("unknown"))
+        assertTrue(receiver.isIgnoredPlaceholder("null"))
+        assertTrue(receiver.isIgnoredPlaceholder("<unknown>"))
+        assertTrue(receiver.isIgnoredPlaceholder("Bluetooth Audio"))
+        assertFalse(receiver.isIgnoredPlaceholder("Tum Hi Ho"))
+        assertFalse(receiver.isIgnoredPlaceholder("Coldplay"))
+    }
 }

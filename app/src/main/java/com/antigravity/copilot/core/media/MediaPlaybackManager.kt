@@ -79,12 +79,53 @@ object MediaPlaybackManager {
         mainHandler.post {
             val current = _playbackState.value
 
-            val newTitle = title?.trim()?.takeIf { it.isNotEmpty() } ?: current.title
-            val newArtist = artist?.trim()?.takeIf { it.isNotEmpty() } ?: current.artist
-            val newAlbum = album?.trim()?.takeIf { it.isNotEmpty() } ?: current.album
+            val cleanTitle = title?.trim()?.takeIf { it.isNotEmpty() && !isIgnoredPlaceholder(it) }
+            val cleanArtist = artist?.trim()?.takeIf { it.isNotEmpty() && !isIgnoredPlaceholder(it) }
+
+            val newTitle = cleanTitle ?: current.title
+            val newArtist = cleanArtist ?: current.artist
+            val newAlbum = album?.trim()?.takeIf { it.isNotEmpty() && !isIgnoredPlaceholder(it) } ?: current.album
             val newPlaying = isPlaying ?: current.isPlaying
-            val newDuration = durationMs?.takeIf { it > 0L } ?: current.durationMs
-            val newPosition = positionMs?.takeIf { it >= 0L } ?: current.positionMs
+
+            // Duration: normalize if sent in seconds (<= 7200)
+            val normalizedDuration = durationMs?.let { if (it in 1..7200) it * 1000L else it }
+            val newDuration = normalizedDuration?.takeIf { it > 0L } ?: current.durationMs
+
+            // Position: normalize if sent in seconds (<= 7200)
+            val normalizedPosition = positionMs?.let { if (it in 1..7200) it * 1000L else it }
+
+            val isNewTrack = cleanTitle != null && !cleanTitle.equals(current.title, ignoreCase = true)
+            val nowElapsed = android.os.SystemClock.elapsedRealtime()
+
+            val newPosition: Long
+            val lastUpdate: Long
+
+            if (isNewTrack) {
+                // Track changed: reset playback position to start
+                newPosition = normalizedPosition ?: 0L
+                lastUpdate = nowElapsed
+            } else if (normalizedPosition != null && normalizedPosition > 0L) {
+                // Incoming broadcast has an explicit non-zero timestamp
+                val estimatedLive = current.calculateLivePositionMs(nowElapsed)
+                if (Math.abs(normalizedPosition - estimatedLive) > 2500L) {
+                    newPosition = normalizedPosition
+                    lastUpdate = nowElapsed
+                } else {
+                    newPosition = estimatedLive
+                    lastUpdate = nowElapsed
+                }
+            } else {
+                // Position is 0 or null (e.g. keepalive broadcast):
+                // DO NOT reset to 0! Keep smoothly advancing live position
+                if (newPlaying) {
+                    val estimatedLive = current.calculateLivePositionMs(nowElapsed)
+                    newPosition = estimatedLive
+                    lastUpdate = nowElapsed
+                } else {
+                    newPosition = current.positionMs
+                    lastUpdate = if (current.lastPositionUpdateTime > 0L) current.lastPositionUpdateTime else nowElapsed
+                }
+            }
 
             val stateCode = when {
                 newPlaying -> PlaybackState.STATE_PLAYING
@@ -102,9 +143,53 @@ object MediaPlaybackManager {
                 playbackStateCode = stateCode,
                 hasActiveSession = newPlaying || newTitle.isNotBlank() || current.hasActiveSession,
                 packageName = packageName ?: current.packageName,
-                lastPositionUpdateTime = android.os.SystemClock.elapsedRealtime()
+                lastPositionUpdateTime = lastUpdate
             )
         }
+    }
+
+    fun updateFromNotification(
+        title: String?,
+        artist: String?,
+        album: String? = null,
+        albumArt: android.graphics.Bitmap? = null,
+        packageName: String? = null
+    ) {
+        mainHandler.post {
+            val current = _playbackState.value
+
+            val cleanTitle = title?.trim()?.takeIf { it.isNotEmpty() && !isIgnoredPlaceholder(it) }
+            val cleanArtist = artist?.trim()?.takeIf { it.isNotEmpty() && !isIgnoredPlaceholder(it) }
+
+            if (cleanTitle != null || cleanArtist != null) {
+                val isNewTrack = cleanTitle != null && !cleanTitle.equals(current.title, ignoreCase = true)
+                val nowElapsed = android.os.SystemClock.elapsedRealtime()
+
+                val newPosition = if (isNewTrack) 0L else current.calculateLivePositionMs(nowElapsed)
+
+                _playbackState.value = current.copy(
+                    title = cleanTitle ?: current.title,
+                    artist = cleanArtist ?: current.artist,
+                    album = album?.trim()?.takeIf { it.isNotEmpty() && !isIgnoredPlaceholder(it) } ?: current.album,
+                    albumArt = albumArt ?: current.albumArt,
+                    isPlaying = true,
+                    hasActiveSession = true,
+                    playbackStateCode = PlaybackState.STATE_PLAYING,
+                    packageName = packageName ?: current.packageName,
+                    positionMs = newPosition,
+                    lastPositionUpdateTime = nowElapsed
+                )
+            }
+        }
+    }
+
+    private fun isIgnoredPlaceholder(value: String): Boolean {
+        val lower = value.trim().lowercase()
+        return lower in listOf(
+            "unknown", "null", "none", "title", "track", "no title", "<unknown>",
+            "unknown artist", "unknown title", "unknown track", "audio playing", "car audio",
+            "bluetooth audio", "connected device"
+        )
     }
 
     fun setActiveController(controller: MediaController?) {
