@@ -793,7 +793,9 @@ fun GeofenceMiniMapView(
             MapView(ctx).apply {
                 setTileSource(OfflineMapManager.SATELLITE_SOURCE)
                 setMultiTouchControls(true)
-                val initialZoom = if (radiusMeters <= 75f) 17.8 else if (radiusMeters <= 120f) 17.2 else 16.8
+                minZoomLevel = 0.0
+                maxZoomLevel = 13.0
+                val initialZoom = 13.0
                 controller.setZoom(initialZoom)
                 controller.setCenter(GeoPoint(centerLat, centerLon))
                 overlayManager.tilesOverlay.setColorFilter(null)

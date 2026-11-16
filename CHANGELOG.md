@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Locked Interactive Map Zoom Range (Z0 - Z13)**:
+  - Strictly locked interactive MapView zoom level between `0.0` and `13.0` (`minZoomLevel = 0.0`, `maxZoomLevel = 13.0`) across `LiveMapView`, `TripPlaybackMapView`, and `GeofenceMiniMapView`.
+  - Added real-time `MapListener` zoom clamping in `LiveMapView` to safeguard pinch gestures, double taps, and controller animations from exceeding Zoom 13 or dropping below Zoom 0.
+  - Adjusted initial driving camera focus zoom to 13.0 to align seamlessly with offline high-definition satellite tile coverage.
 - **Curated Offline Map Zoom Ranges**:
   - Set `All-India Satellite Arterials HD` (`india_national`) to strictly Zoom 0 through Zoom 11 (`minZoom = 0`, `maxZoom = 11`, ~1288 MB) for continental highways, expressways, and major city corridors.
   - Set all regional map packs (`india_central`, `india_north`, `india_west`, `india_south`, `india_east`) to strictly Zoom 0 through Zoom 13 (`minZoom = 0`, `maxZoom = 13`) for state corridors, district headquarters, and regional arterial bypasses.

@@ -2487,6 +2487,8 @@ fun TripPlaybackMapView(
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 setMultiTouchControls(true)
+                minZoomLevel = 0.0
+                maxZoomLevel = 13.0
                 zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
                 setTileSource(OfflineMapManager.SATELLITE_SOURCE)
                 overlayManager.tilesOverlay.setColorFilter(null)

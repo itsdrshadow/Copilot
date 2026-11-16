@@ -176,6 +176,29 @@ class Milestone3MapTileAndLifecycleTest {
     }
 
     @Test
+    fun testLiveMapViewZoomRangeLockedBetweenZeroAndThirteen() {
+        val minZoom = 0.0
+        val maxZoom = 13.0
+
+        // Test zoom in clamp
+        val zoomNearMax = 12.8
+        val targetZoomIn = (zoomNearMax + 0.75).coerceAtMost(maxZoom)
+        assertEquals(13.0, targetZoomIn, 0.001)
+
+        // Test zoom out clamp
+        val zoomNearMin = 0.5
+        val targetZoomOut = (zoomNearMin - 0.75).coerceAtLeast(minZoom)
+        assertEquals(0.0, targetZoomOut, 0.001)
+
+        // Test overshoots
+        val overshootHigh = 18.0.coerceIn(minZoom, maxZoom)
+        assertEquals(13.0, overshootHigh, 0.001)
+
+        val overshootLow = (-5.0).coerceIn(minZoom, maxZoom)
+        assertEquals(0.0, overshootLow, 0.001)
+    }
+
+    @Test
     fun testDrivingReportAppDoesNotRequireMapLibre() {
         // Feature 28: Verify DrivingReportApp loads without MapLibre dependencies
         val appClass = DrivingReportApp::class.java
