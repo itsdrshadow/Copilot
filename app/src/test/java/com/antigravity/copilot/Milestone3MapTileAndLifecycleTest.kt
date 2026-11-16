@@ -148,14 +148,14 @@ class Milestone3MapTileAndLifecycleTest {
 
         val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
         assertEquals("All-India minZoom must be 0", 0, nationalPack.minZoom)
-        assertEquals("All-India maxZoom must be 14", 14, nationalPack.maxZoom)
+        assertEquals("All-India maxZoom must be 12 (optimized for nationwide highway coverage)", 12, nationalPack.maxZoom)
 
         for (region in IndiaOfflineMapManager.INDIA_REGIONS) {
             assertEquals("Region ${region.name} minZoom must be 0", 0, region.minZoom)
             if (region.id == "india_national") {
-                assertEquals(14, region.maxZoom)
+                assertEquals(12, region.maxZoom)
             } else {
-                assertEquals("Region ${region.name} maxZoom must be 16", 16, region.maxZoom)
+                assertEquals("Region ${region.name} maxZoom must be 13 (district & street coverage)", 13, region.maxZoom)
             }
         }
     }
@@ -176,9 +176,26 @@ class Milestone3MapTileAndLifecycleTest {
         val countZoomZeroToEleven = IndiaOfflineMapManager.calculateTileCount(nationalPack.boundingBox, 0, 11)
         assertTrue("Cumulative tiles for Z0-Z11 should be ~43,980", countZoomZeroToEleven in 40000L..50000L)
 
-        // Estimated size dynamically updates
+        // Estimated size dynamically updates with ~22KB roadmap tile average
         val estMbZoom11 = nationalPack.getEstimatedSizeMb(11)
-        assertTrue("Estimated size for Z0-Z11 must be approx 1200-1400 MB", estMbZoom11 in 1000..1600)
+        assertTrue("Estimated size for Z0-Z11 must be approx 800-1200 MB", estMbZoom11 in 800..1200)
+    }
+
+    @Test
+    fun testIndiaOfflineMapStorageBudgetUnderTenGb() {
+        val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
+        // All-India package (Zooms 0-12) must fit well under 4 GB (3,747 MB), respecting the 10 GB budget
+        assertTrue("All-India pack must be < 4000 MB", nationalPack.estimatedSizeMb < 4000)
+
+        // Regional packs (Zooms 0-13) must each be under 3 GB
+        for (region in IndiaOfflineMapManager.INDIA_REGIONS.filter { it.id != "india_national" }) {
+            assertTrue("Region ${region.id} estimated size must be < 3000 MB", region.estimatedSizeMb < 3000)
+        }
+    }
+
+    @Test
+    fun testDarkModeColorFilterNotNull() {
+        assertNotNull("OfflineMapManager.DARK_MODE_FILTER must be non-null", com.antigravity.copilot.core.map.OfflineMapManager.DARK_MODE_FILTER)
     }
 
     @Test

@@ -62,6 +62,7 @@ import com.antigravity.copilot.core.location.SpeedLimitInfo
 import com.antigravity.copilot.core.map.GpsLocationFilter
 import com.antigravity.copilot.core.map.IndiaOfflineMapManager
 import com.antigravity.copilot.core.map.OfflineMapManager
+import com.antigravity.copilot.core.settings.AppSettingsManager
 import kotlinx.coroutines.delay
 import com.antigravity.copilot.core.model.TripPoint
 import org.osmdroid.util.GeoPoint
@@ -658,12 +659,18 @@ fun LiveMapPanel(
         }
     }
 
-    LaunchedEffect(mapViewInstance) {
+    // Map Lighting Theme Observation (Dark Mode Cockpit vs Light Mode Daytime)
+    val appSettings by AppSettingsManager.settingsState.collectAsState()
+    val isMapDarkMode = appSettings.mapDarkMode
+
+    LaunchedEffect(mapViewInstance, isMapDarkMode) {
         mapViewInstance?.let { mv ->
             mv.minZoomLevel = MAP_MIN_ZOOM_LEVEL
             mv.maxZoomLevel = MAP_MAX_ZOOM_LEVEL
             mv.setTileSource(OfflineMapManager.NORMAL_ROADMAP_SOURCE)
-            mv.overlayManager.tilesOverlay.setColorFilter(null)
+            mv.overlayManager.tilesOverlay.setColorFilter(
+                if (isMapDarkMode) OfflineMapManager.DARK_MODE_FILTER else null
+            )
             mv.invalidate()
         }
     }
@@ -836,7 +843,9 @@ fun LiveMapPanel(
                     minZoomLevel = MAP_MIN_ZOOM_LEVEL
                     maxZoomLevel = MAP_MAX_ZOOM_LEVEL
                     controller.setZoom(MAP_DEFAULT_DRIVING_ZOOM)
-                    overlayManager.tilesOverlay.setColorFilter(null)
+                    overlayManager.tilesOverlay.setColorFilter(
+                        if (isMapDarkMode) OfflineMapManager.DARK_MODE_FILTER else null
+                    )
 
                     val (initialLat, initialLon) = if (latestPoint != null) {
                         Pair(latestPoint.latitude, latestPoint.longitude)
@@ -1033,6 +1042,17 @@ fun LiveMapPanel(
                     } else {
                         latestPoint?.let { navigator?.updateTarget(it, isFollowMode) }
                     }
+                }
+            )
+
+            // Dark / Light Mode Map Toggle (Cockpit Dark vs Daytime Road)
+            AutomotiveMapButton(
+                icon = if (isMapDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                contentDescription = if (isMapDarkMode) "Switch to Light Mode" else "Switch to Dark Mode",
+                isActive = isMapDarkMode,
+                activeColor = Cockpit_Cyan,
+                onClick = {
+                    AppSettingsManager.updateMapDarkMode(context, !isMapDarkMode)
                 }
             )
 

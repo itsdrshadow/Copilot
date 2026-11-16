@@ -34,6 +34,21 @@ object OfflineMapManager {
     private const val TAG = "OfflineMapManager"
 
     /**
+     * Dark Cockpit Night Filter:
+     * High-contrast inverted matrix with midnight-blue tone.
+     * Prevents cockpit glare and eye fatigue during night driving while maintaining
+     * high-contrast visibility of roads, highways, street names, and building contours.
+     */
+    val DARK_MODE_FILTER = android.graphics.ColorMatrixColorFilter(
+        android.graphics.ColorMatrix(floatArrayOf(
+            -0.75f, 0f, 0f, 0f, 200f,
+            0f, -0.75f, 0f, 0f, 210f,
+            0f, 0f, -0.75f, 0f, 230f,
+            0f, 0f, 0f, 1f, 0f
+        ))
+    )
+
+    /**
      * Standard High-Contrast Normal Roadmap:
      * High-definition vector-styled road tiles with ultra-clear roads, highways, street names,
      * landmarks, and building footprints. Much easier to read while driving than dark satellite imagery.
@@ -152,8 +167,8 @@ object OfflineMapManager {
             // 10-Year retention: Cached tiles in SQLite are permanently valid offline
             config.expirationExtendedDuration = 1000L * 60 * 60 * 24 * 365 * 10
             config.cacheMapTileCount = 5000.toShort()
-            config.tileFileSystemCacheMaxBytes = 25000L * 1024 * 1024 // 25 GB local offline storage limit for multi-GB satellite packs
-            config.tileFileSystemCacheTrimBytes = 22000L * 1024 * 1024
+            config.tileFileSystemCacheMaxBytes = 10000L * 1024 * 1024 // 10 GB strict local offline storage limit
+            config.tileFileSystemCacheTrimBytes = 9000L * 1024 * 1024  // 9 GB trim threshold
             config.tileFileSystemThreads = 6
             config.tileDownloadThreads = 8
             config.userAgentValue = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Copilot-Automotive/1.0"

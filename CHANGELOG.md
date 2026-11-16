@@ -10,9 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **On-Map Dark Mode / Light Mode Toggle Icon**: Added an interactive lighting mode button (`Icons.Default.DarkMode` / `Icons.Default.LightMode`) directly to the right-hand ergonomic map controls column in `LiveMapView`, enabling the driver to switch with one tap between daytime bright roadmap and anti-glare cockpit dark mode.
+- **High-Contrast Dark Cockpit Map Filter (`DARK_MODE_FILTER`)**: Integrated midnight-blue inverted color matrix filter in `OfflineMapManager` that preserves road and highway legibility while matching cockpit aesthetic and preventing eye fatigue during night driving.
 - **High-Contrast Normal Road Map Engine (`Google_Roadmap`)**: Added `OfflineMapManager.NORMAL_ROADMAP_SOURCE` delivering high-contrast vector-styled road tiles with clear highways, local streets, road names, and town labels, replacing dark satellite imagery for superior driving legibility.
 
 ### Changed
+- **Optimized All-India Offline Road Map System for Strict <= 10 GB Budget**:
+  - Enforced a strict 10 GB hard cache limit (`tileFileSystemCacheMaxBytes = 10000L * 1024 * 1024`) and 9 GB trim threshold in `OfflineMapManager`.
+  - Partitioned `india_national` package to Zooms 0–12 (~3.66 GB, 174,399 tiles), covering complete national highways, expressways, state corridors, and city networks across entire India without internet.
+  - Optimized regional packages (Central, North, West, South, East) to Zooms 0–13 (~0.85 GB to ~2.2 GB each) for fine district and street navigation.
+  - Updated tile estimation model to reflect ~22 KB average roadmap tile size for accurate storage telemetry.
+  - Updated `IndiaOfflineMapDialog` storage status indicator to display `STORAGE: X MB / 10 GB MAX`.
 - **Switched to Normal Road Map System**:
   - Replaced satellite imagery with standard high-visibility road map tiles across `LiveMapView`, `TripPlaybackMapView`, `GeofenceMiniMapView`, and `IndiaOfflineMapManager`.
   - Updated offline map download tile pipeline to stream Google Normal Road Map tiles with fallback to OpenStreetMap Mapnik and Humanitarian HOT tiles.
