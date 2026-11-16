@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.antigravity.copilot.core.designsystem.CockpitTheme
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -178,10 +179,7 @@ fun WelcomeSplashScreen(
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = "WELCOME",
-                        style = TextStyle(
-                            fontFamily = FontFamily.SansSerif,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 44.sp,
+                        style = CockpitTheme.typography.displayMedium.copy(
                             letterSpacing = 16.sp,
                             color = Color(0xFF00E5FF).copy(alpha = (welcomeAlpha * 0.40f * glowIntensity).coerceIn(0f, 0.40f)),
                             textAlign = TextAlign.Center
@@ -193,10 +191,7 @@ fun WelcomeSplashScreen(
 
                     Text(
                         text = "WELCOME",
-                        style = TextStyle(
-                            fontFamily = FontFamily.SansSerif,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 44.sp,
+                        style = CockpitTheme.typography.displayMedium.copy(
                             letterSpacing = 16.sp,
                             color = Color(0xFFF4FAFF),
                             shadow = Shadow(
@@ -215,10 +210,7 @@ fun WelcomeSplashScreen(
 
                 Text(
                     text = "ENJOY YOUR DRIVE",
-                    style = TextStyle(
-                        fontFamily = FontFamily.SansSerif,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
+                    style = CockpitTheme.typography.labelSmall.copy(
                         letterSpacing = 9.sp,
                         color = Color(0xFF7FAEE8).copy(alpha = subtitleAlpha),
                         textAlign = TextAlign.Center

@@ -150,16 +150,12 @@ fun LauncherSettingsDialog(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = "Automotive System Settings",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 24.sp
-                            ),
+                            style = CockpitTheme.typography.headlineLarge,
                             color = CockpitTheme.colors.textPrimary
                         )
                         Text(
                             text = "${selectedTab.title} • ${selectedTab.subtitle}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 15.sp,
+                            style = CockpitTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Medium
                             ),
                             color = CockpitTheme.colors.textSecondary
@@ -233,9 +229,8 @@ fun LauncherSettingsDialog(
                             }
                             Text(
                                 text = tab.title,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                    fontSize = 18.sp
+                                style = CockpitTheme.typography.titleMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold
                                 ),
                                 color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
                             )
@@ -336,9 +331,8 @@ fun LauncherSettingsDialog(
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Factory Reset App Data",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 22.sp
+                        style = CockpitTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Black
                         ),
                         color = Cockpit_RedAlert
                     )
@@ -348,16 +342,12 @@ fun LauncherSettingsDialog(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = "Are you sure you want to perform a factory data reset?",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        ),
+                        style = CockpitTheme.typography.titleLarge,
                         color = Color.White
                     )
                     Text(
                         text = "This will permanently erase all recorded trips, driving GPS breadcrumbs, fuel refill history, and reset odometer counters to 0.0 km.\n\nNOTE: Existing portable backup files (*.zip) in storage will NOT be deleted.",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 15.sp,
+                        style = CockpitTheme.typography.bodyMedium.copy(
                             lineHeight = 22.sp
                         ),
                         color = Color(0xFFCBD5E1)
@@ -376,12 +366,12 @@ fun LauncherSettingsDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(48.dp)
                 ) {
-                    Text("Proceed to Confirmation", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Proceed to Confirmation", style = CockpitTheme.typography.labelLarge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { isResetWarningOpen = false }) {
-                    Text("Cancel", color = Color.White, fontSize = 16.sp)
+                    Text("Cancel", color = Color.White, style = CockpitTheme.typography.labelLarge)
                 }
             }
         )
@@ -398,10 +388,7 @@ fun LauncherSettingsDialog(
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "Admin Authentication",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp
-                        ),
+                        style = CockpitTheme.typography.headlineMedium,
                         color = Color.White
                     )
                 }
@@ -410,7 +397,7 @@ fun LauncherSettingsDialog(
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(
                         text = "Enter master admin password to confirm factory reset:",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
+                        style = CockpitTheme.typography.bodyMedium,
                         color = Color(0xFF87929A)
                     )
 
@@ -424,23 +411,20 @@ fun LauncherSettingsDialog(
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(12.dp),
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
+                        textStyle = CockpitTheme.typography.bodyLarge,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = Color(0xFF38BDF8),
                             unfocusedBorderColor = Color(0xFF1E2838)
                         ),
-                        placeholder = { Text("Enter password", color = Color(0xFF64748B), fontSize = 16.sp) }
+                        placeholder = { Text("Enter password", color = Color(0xFF64748B), style = CockpitTheme.typography.bodyMedium) }
                     )
 
                     passwordError?.let { err ->
                         Text(
                             text = err,
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            ),
+                            style = CockpitTheme.typography.labelLarge,
                             color = Cockpit_RedAlert
                         )
                     }
@@ -463,12 +447,12 @@ fun LauncherSettingsDialog(
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(48.dp)
                 ) {
-                    Text("Confirm Factory Reset", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Confirm Factory Reset", style = CockpitTheme.typography.labelLarge)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { isPasswordPromptOpen = false }) {
-                    Text("Cancel", color = Color.White, fontSize = 16.sp)
+                    Text("Cancel", color = Color.White, style = CockpitTheme.typography.labelLarge)
                 }
             }
         )
@@ -488,7 +472,7 @@ private fun GeneralSettingsContent(
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
                 text = "Select high-contrast cockpit styling calibrated for day and night driving:",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                style = CockpitTheme.typography.bodyMedium,
                 color = CockpitTheme.colors.textSecondary
             )
 
@@ -518,15 +502,12 @@ private fun GeneralSettingsContent(
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             text = name,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            ),
+                            style = CockpitTheme.typography.titleMedium,
                             color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
                         )
                         Text(
                             text = mode.subtitle,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                            style = CockpitTheme.typography.bodySmall,
                             color = CockpitTheme.colors.textSecondary
                         )
                     }
@@ -536,7 +517,7 @@ private fun GeneralSettingsContent(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        swatches.forEach { color ->
+                        for (color in swatches) {
                             Box(
                                 modifier = Modifier
                                     .size(24.dp)
@@ -556,7 +537,7 @@ private fun GeneralSettingsContent(
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 text = "Infotainment display is calibrated for 10.1\" landscape (1280x800). Features driver-safe touch zones (64–88dp), an 8dp spatial grid, high-contrast glanceable telemetry, and automatic hardware acceleration.",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 22.sp),
+                style = CockpitTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                 color = CockpitTheme.colors.textSecondary
             )
 
@@ -584,9 +565,8 @@ private fun StatusBadge(text: String, modifier: Modifier = Modifier) {
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Black,
-                fontSize = 13.5.sp
+            style = CockpitTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Black
             ),
             color = CockpitTheme.colors.accent
         )
@@ -612,10 +592,7 @@ private fun VehicleSettingsContent(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Vehicle Name / Model",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
-                    ),
+                    style = CockpitTheme.typography.titleMedium,
                     color = Color.White
                 )
                 OutlinedTextField(
@@ -623,7 +600,7 @@ private fun VehicleSettingsContent(
                     onValueChange = onCarNameChange,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
+                    textStyle = CockpitTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
@@ -632,7 +609,7 @@ private fun VehicleSettingsContent(
                         focusedContainerColor = Color(0xFF0F172A),
                         unfocusedContainerColor = Color(0xFF0B1220)
                     ),
-                    placeholder = { Text("e.g. Honda City, Creta, Nexon", color = Color(0xFF64748B), fontSize = 16.sp) }
+                    placeholder = { Text("e.g. Honda City, Creta, Nexon", color = Color(0xFF64748B), style = CockpitTheme.typography.bodyMedium) }
                 )
             }
 
@@ -640,10 +617,7 @@ private fun VehicleSettingsContent(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Powertrain / Fuel Type",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
-                    ),
+                    style = CockpitTheme.typography.titleMedium,
                     color = Color.White
                 )
                 Row(
@@ -669,10 +643,7 @@ private fun VehicleSettingsContent(
                         ) {
                             Text(
                                 text = type,
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                ),
+                                style = CockpitTheme.typography.titleSmall,
                                 color = if (isSelected) Color.White else Color(0xFF94A3B8)
                             )
                         }
@@ -684,10 +655,7 @@ private fun VehicleSettingsContent(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Design Fuel Tank Capacity (Liters)",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
-                    ),
+                    style = CockpitTheme.typography.titleMedium,
                     color = Color.White
                 )
                 OutlinedTextField(
@@ -696,7 +664,7 @@ private fun VehicleSettingsContent(
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(14.dp),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                    textStyle = CockpitTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
@@ -708,7 +676,7 @@ private fun VehicleSettingsContent(
                 )
                 Text(
                     text = "Learned Max: ${NumberFormatUtils.formatFuelLiters(currentFuelState.maxCapacityLiters, 2)} L (Automatically adapts via past fill-ups)",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                    style = CockpitTheme.typography.bodyMedium,
                     color = Color(0xFF38BDF8)
                 )
             }
@@ -724,7 +692,7 @@ private fun VehicleSettingsContent(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(10.dp))
-                Text("Save Vehicle Configuration", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text("Save Vehicle Configuration", style = CockpitTheme.typography.labelLarge)
             }
         }
     }
@@ -743,7 +711,7 @@ private fun DataStorageSettingsContent(
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
                 text = "Create a complete, portable ZIP archive with manifest containing all recorded trips, GPS trails, fuel ledger entries, odometer calibrations, vehicle profile and preferences. Saved to /sdcard/Copilot/Backups.",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 22.sp),
+                style = CockpitTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                 color = Color(0xFF94A3B8)
             )
 
@@ -764,8 +732,7 @@ private fun DataStorageSettingsContent(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = if (isBackupInProgress) "Creating Backup..." else "Backup to Storage Now",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        style = CockpitTheme.typography.labelLarge
                     )
                 }
 
@@ -779,7 +746,7 @@ private fun DataStorageSettingsContent(
                 ) {
                     Icon(Icons.Default.Restore, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Restore from Storage", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF38BDF8))
+                    Text("Restore from Storage", style = CockpitTheme.typography.labelLarge, color = Color(0xFF38BDF8))
                 }
             }
         }
@@ -800,13 +767,13 @@ private fun DataStorageSettingsContent(
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Danger Zone – Factory Reset",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black, fontSize = 20.sp),
+                    style = CockpitTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
                     color = Cockpit_RedAlert
                 )
             }
             Text(
                 text = "Permanently reset all recorded trips, driving history, fuel refill logs, and odometer counters back to 0.0 km. Existing portable backup files (*.zip) in storage will NOT be deleted.",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 22.sp),
+                style = CockpitTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                 color = Color.White.copy(alpha = 0.9f)
             )
 
@@ -818,7 +785,7 @@ private fun DataStorageSettingsContent(
             ) {
                 Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Factory Reset App Data", fontWeight = FontWeight.Black, fontSize = 16.sp)
+                Text("Factory Reset App Data", style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black))
             }
         }
     }
@@ -841,12 +808,12 @@ private fun AboutSettingsContent() {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Stock Blaupunkt Launcher",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                        style = CockpitTheme.typography.titleMedium,
                         color = Color.White
                     )
                     Text(
                         text = "Blaupunkt Launcher3 (${CrashGuardian.STOCK_LAUNCHER_PACKAGE})",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                        style = CockpitTheme.typography.bodyMedium,
                         color = Color(0xFF87929A)
                     )
                 }
@@ -861,7 +828,7 @@ private fun AboutSettingsContent() {
                 ) {
                     Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF38BDF8))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Switch to Stock", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("Switch to Stock", color = Color.White, style = CockpitTheme.typography.labelLarge)
                 }
             }
 
@@ -884,7 +851,7 @@ private fun AboutSettingsContent() {
                 ) {
                     Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Set as Default Launcher", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("Set as Default Launcher", style = CockpitTheme.typography.labelLarge)
                 }
 
                 Button(
@@ -900,7 +867,7 @@ private fun AboutSettingsContent() {
                 ) {
                     Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Restore Stock as Default", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text("Restore Stock as Default", style = CockpitTheme.typography.labelLarge)
                 }
             }
 
@@ -914,12 +881,12 @@ private fun AboutSettingsContent() {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "CrashGuardian Watchdog",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                        style = CockpitTheme.typography.titleMedium,
                         color = Color.White
                     )
                     Text(
                         text = if (crashCount == 0) "Status: Normal (0 crashes recorded)" else "Recent crashes: $crashCount / ${CrashGuardian.MAX_CRASHES_BEFORE_RECOVERY}",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                        style = CockpitTheme.typography.bodyMedium,
                         color = if (crashCount == 0) Color(0xFF10B981) else Color(0xFFF59E0B)
                     )
                 }
@@ -933,7 +900,7 @@ private fun AboutSettingsContent() {
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.height(44.dp)
                     ) {
-                        Text("Reset Counter", fontSize = 14.sp)
+                        Text("Reset Counter", style = CockpitTheme.typography.labelMedium)
                     }
                 }
             }
@@ -952,12 +919,12 @@ private fun AboutSettingsContent() {
                 Column {
                     Text(
                         text = "Application Version",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                        style = CockpitTheme.typography.titleMedium,
                         color = CockpitTheme.colors.textPrimary
                     )
                     Text(
                         text = "Release v$appVersionName (Build $appVersionCode)",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                        style = CockpitTheme.typography.bodyMedium,
                         color = CockpitTheme.colors.textSecondary
                     )
                 }
@@ -970,11 +937,10 @@ private fun AboutSettingsContent() {
                 ) {
                     Text(
                         text = "v$appVersionName",
-                        style = MaterialTheme.typography.titleSmall.copy(
+                        style = CockpitTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 16.sp
+                            fontFeatureSettings = "tnum"
                         ),
                         color = CockpitTheme.colors.accent
                     )
@@ -986,12 +952,12 @@ private fun AboutSettingsContent() {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "Cockpit Specification",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                    style = CockpitTheme.typography.titleMedium,
                     color = Color.White
                 )
                 Text(
                     text = "Optimized for 1280×800 landscape in-car digital clusters. Built with 100% Kotlin, Jetpack Compose Material 3, Room SQLite, OSMDroid Offline Navigation, and Autonomous Vehicle State Tracking.",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 22.sp),
+                    style = CockpitTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
                     color = Color(0xFF87929A)
                 )
             }
@@ -1023,10 +989,7 @@ private fun SettingsCard(
                 Icon(imageVector = icon, contentDescription = null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(24.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    ),
+                    style = CockpitTheme.typography.titleLarge,
                     color = CockpitTheme.colors.textPrimary
                 )
             }

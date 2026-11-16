@@ -14,101 +14,29 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.antigravity.copilot.core.designsystem.colors.*
+import com.antigravity.copilot.core.designsystem.typography.*
 
-// ==================== THEME ENUMS & CONTRACTS ====================
+// Re-export color types and objects for backward compatibility
+typealias CockpitColors = com.antigravity.copilot.core.designsystem.colors.CockpitColors
+typealias CockpitThemeMode = com.antigravity.copilot.core.designsystem.colors.CockpitThemeMode
+typealias ThemeAppearanceMode = com.antigravity.copilot.core.designsystem.colors.ThemeAppearanceMode
 
-enum class CockpitThemeMode(val id: String, val displayName: String, val subtitle: String) {
-    APEX(
-        id = "apex",
-        displayName = "Apex Studio",
-        subtitle = "Contemporary dark navy studio cockpit with luminous cyan telemetry"
-    );
+val Apex_Background = com.antigravity.copilot.core.designsystem.colors.Apex_Background
+val Apex_BackgroundSecondary = com.antigravity.copilot.core.designsystem.colors.Apex_BackgroundSecondary
+val Apex_CardSurface = com.antigravity.copilot.core.designsystem.colors.Apex_CardSurface
+val Apex_CardSurfaceElevated = com.antigravity.copilot.core.designsystem.colors.Apex_CardSurfaceElevated
+val Apex_CardBorder = com.antigravity.copilot.core.designsystem.colors.Apex_CardBorder
+val Apex_CardBorderGlow = com.antigravity.copilot.core.designsystem.colors.Apex_CardBorderGlow
+val Apex_PrimaryAccent = com.antigravity.copilot.core.designsystem.colors.Apex_PrimaryAccent
+val Apex_BlueGlow = com.antigravity.copilot.core.designsystem.colors.Apex_BlueGlow
+val Apex_Positive = com.antigravity.copilot.core.designsystem.colors.Apex_Positive
+val Apex_Warning = com.antigravity.copilot.core.designsystem.colors.Apex_Warning
+val Apex_Danger = com.antigravity.copilot.core.designsystem.colors.Apex_Danger
+val Apex_TextPrimary = com.antigravity.copilot.core.designsystem.colors.Apex_TextPrimary
+val Apex_TextSecondary = com.antigravity.copilot.core.designsystem.colors.Apex_TextSecondary
+val Apex_TextTertiary = com.antigravity.copilot.core.designsystem.colors.Apex_TextTertiary
 
-    companion object {
-        // Backwards compatibility alias
-        val PREMIUM = APEX
-
-        fun fromId(id: String): CockpitThemeMode {
-            return when (id.lowercase().trim()) {
-                "apex", "premium", "classic", "calm_teal", "gradient_glass", "glass", "splash_glass", "gradient" -> APEX
-                else -> APEX
-            }
-        }
-    }
-}
-
-enum class ThemeAppearanceMode(val id: String, val displayName: String) {
-    NIGHT(id = "night", displayName = "Night");
-
-    companion object {
-        fun fromId(@Suppress("UNUSED_PARAMETER") id: String): ThemeAppearanceMode {
-            return NIGHT
-        }
-    }
-}
-
-/**
- * Strict 12-token semantic design contract as specified in Step 2 & 3.
- */
-data class CockpitColors(
-    val bg: Color,
-    val card: Color,
-    val cardElevated: Color,
-    val border: Color,
-    val textPrimary: Color,
-    val textSecondary: Color,
-    val textDisabled: Color,
-    val accent: Color,
-    val accentSoft: Color,
-    val onAccent: Color,
-    val warning: Color,
-    val critical: Color,
-    // Top-light subtle gradient: card blended with 5% textPrimary fading to flat card
-    val cardTopLightGradient: Brush,
-    val backgroundBrush: Brush = Brush.verticalGradient(listOf(bg, bg)),
-    // Backwards-compatible fields for existing components during transition
-    val background: Color = bg,
-    val backgroundSecondary: Color = cardElevated,
-    val cardSurface: Color = card,
-    val cardSurfaceElevated: Color = cardElevated,
-    val cardBorder: Color = border,
-    val cardBorderGlow: Color = accent,
-    val primaryAccent: Color = accent,
-    val blueGlow: Color = accent,
-    val greenEco: Color = accent,
-    val amberWarning: Color = warning,
-    val redAlert: Color = critical,
-    val textTertiary: Color = textDisabled,
-    val cardGradientOdo: Brush = cardTopLightGradient,
-    val cardGradientFuel: Brush = cardTopLightGradient,
-    val cardGradientTrip: Brush = cardTopLightGradient,
-    val cardGradientSpeedo: Brush = cardTopLightGradient,
-    val activeCardBrush: Brush = cardTopLightGradient,
-    val dockBackground: Color = card,
-    val dockBorder: Color = border,
-    val dockBrush: Brush = cardTopLightGradient,
-    val dockActionBrush: Brush = cardTopLightGradient,
-    val isPremium: Boolean = true
-)
-
-// ==================== APEX STUDIO COCKPIT PALETTE ====================
-
-val Apex_Background = Color(0xFF080E1B)
-val Apex_BackgroundSecondary = Color(0xFF0C1424)
-val Apex_CardSurface = Color(0xFF111D30)
-val Apex_CardSurfaceElevated = Color(0xFF16243A)
-val Apex_CardBorder = Color(0xFF243750)
-val Apex_CardBorderGlow = Color(0xFF35BDF5)
-val Apex_PrimaryAccent = Color(0xFF35BDF5)
-val Apex_BlueGlow = Color(0xFF229ED9)
-val Apex_Positive = Color(0xFF22C993)
-val Apex_Warning = Color(0xFFF5B942)
-val Apex_Danger = Color(0xFFF05B67)
-val Apex_TextPrimary = Color(0xFFF3F6FC)
-val Apex_TextSecondary = Color(0xFF91A1B8)
-val Apex_TextTertiary = Color(0xFF5D718C)
-
-// Backward-compatible color aliases
 val Premium_Background = Apex_Background
 val Premium_BackgroundSecondary = Apex_BackgroundSecondary
 val Premium_CardSurface = Apex_CardSurface
@@ -124,64 +52,43 @@ val Premium_TextPrimary = Apex_TextPrimary
 val Premium_TextSecondary = Apex_TextSecondary
 val Premium_TextTertiary = Apex_TextTertiary
 
-val ApexCockpitColors = CockpitColors(
-    bg = Apex_Background,
-    card = Apex_CardSurface,
-    cardElevated = Apex_CardSurfaceElevated,
-    border = Apex_CardBorder,
-    textPrimary = Apex_TextPrimary,
-    textSecondary = Apex_TextSecondary,
-    textDisabled = Apex_TextTertiary,
-    accent = Apex_PrimaryAccent,
-    accentSoft = Color(0x2935BDF5),
-    onAccent = Color(0xFF080E1B),
-    warning = Apex_Warning,
-    critical = Apex_Danger,
-    cardTopLightGradient = Brush.verticalGradient(
-        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
-    ),
-    dockBrush = Brush.verticalGradient(
-        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
-    ),
-    dockActionBrush = Brush.verticalGradient(
-        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
-    ),
-    greenEco = Apex_Positive,
-    amberWarning = Apex_Warning,
-    redAlert = Apex_Danger
-)
-
+val Cockpit_DarkBg = com.antigravity.copilot.core.designsystem.colors.Cockpit_DarkBg
+val Cockpit_DarkBgSecondary = com.antigravity.copilot.core.designsystem.colors.Cockpit_DarkBgSecondary
+val Cockpit_CardSurface = com.antigravity.copilot.core.designsystem.colors.Cockpit_CardSurface
+val Cockpit_CardSurfaceElevated = com.antigravity.copilot.core.designsystem.colors.Cockpit_CardSurfaceElevated
+val Cockpit_CardBorder = com.antigravity.copilot.core.designsystem.colors.Cockpit_CardBorder
+val Cockpit_CardBorderGlow = com.antigravity.copilot.core.designsystem.colors.Cockpit_CardBorderGlow
+val Cockpit_Cyan = com.antigravity.copilot.core.designsystem.colors.Cockpit_Cyan
+val Cockpit_BlueAccent = com.antigravity.copilot.core.designsystem.colors.Cockpit_BlueAccent
+val Cockpit_BlueGlow = com.antigravity.copilot.core.designsystem.colors.Cockpit_BlueGlow
+val Cockpit_PurpleGlow = com.antigravity.copilot.core.designsystem.colors.Cockpit_PurpleGlow
+val Cockpit_GreenEco = com.antigravity.copilot.core.designsystem.colors.Cockpit_GreenEco
+val Cockpit_AmberWarning = com.antigravity.copilot.core.designsystem.colors.Cockpit_AmberWarning
+val Cockpit_RedAlert = com.antigravity.copilot.core.designsystem.colors.Cockpit_RedAlert
+val Cockpit_TextPrimary = com.antigravity.copilot.core.designsystem.colors.Cockpit_TextPrimary
+val Cockpit_TextSecondary = com.antigravity.copilot.core.designsystem.colors.Cockpit_TextSecondary
+val Cockpit_TextTertiary = com.antigravity.copilot.core.designsystem.colors.Cockpit_TextTertiary
+val Coolwalk_TealPlay = com.antigravity.copilot.core.designsystem.colors.Coolwalk_TealPlay
+val ApexCockpitColors = com.antigravity.copilot.core.designsystem.colors.ApexCockpitColors
 val PremiumCockpitColors = ApexCockpitColors
 val ClassicCockpitColors = ApexCockpitColors
+val LocalCockpitColors = com.antigravity.copilot.core.designsystem.colors.LocalCockpitColors
+val LocalCockpitThemeMode = com.antigravity.copilot.core.designsystem.colors.LocalCockpitThemeMode
 
-// Compatibility Aliases for components
-val Cockpit_DarkBg = Color(0xFF060A14)
-val Cockpit_DarkBgSecondary = Color(0xFF0A1020)
-val Cockpit_CardSurface = Color(0xFF0E172C)
-val Cockpit_CardSurfaceElevated = Color(0xFF131F3B)
-val Cockpit_CardBorder = Color(0xFF1F325A)
-val Cockpit_CardBorderGlow = Color(0xFF2B467E)
-val Cockpit_Cyan = Color(0xFF00E5FF)
-val Cockpit_BlueAccent = Color(0xFF2979FF)
-val Cockpit_BlueGlow = Color(0xFF448AFF)
-val Cockpit_PurpleGlow = Color(0xFF7C4DFF)
-val Cockpit_GreenEco = Color(0xFF00E676)
-val Cockpit_AmberWarning = Color(0xFFFFAB00)
-val Cockpit_RedAlert = Color(0xFFFF3D00)
-val Cockpit_TextPrimary = Color(0xFFFFFFFF)
-val Cockpit_TextSecondary = Color(0xFF8FA7D1)
-val Cockpit_TextTertiary = Color(0xFF5A7099)
-val Coolwalk_TealPlay = Color(0xFF2DD4BF)
-
-// Composition Locals
-val LocalCockpitColors = staticCompositionLocalOf { ApexCockpitColors }
-val LocalCockpitThemeMode = staticCompositionLocalOf { CockpitThemeMode.APEX }
+// Re-export typography for backward compatibility
+val CockpitTypography = com.antigravity.copilot.core.designsystem.typography.CockpitTypography
+val AutomotiveTypographyTokens = com.antigravity.copilot.core.designsystem.typography.AutomotiveTypographyTokens
 
 object CockpitTheme {
     val colors: CockpitColors
         @Composable
         @ReadOnlyComposable
         get() = LocalCockpitColors.current
+
+    val typography: Typography
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalCockpitTypography.current
 
     val mode: CockpitThemeMode
         @Composable
@@ -290,7 +197,8 @@ fun CopilotTheme(
     CompositionLocalProvider(
         LocalCockpitColors provides activeColors,
         LocalCockpitThemeMode provides themeMode,
-        LocalAutomotiveTokens provides AutomotiveDesignTokens
+        LocalAutomotiveTokens provides AutomotiveDesignTokens,
+        LocalCockpitTypography provides CockpitTypography
     ) {
         MaterialTheme(
             colorScheme = materialColors,
@@ -307,49 +215,3 @@ fun DrivingReportTheme(
     isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
 ) = CopilotTheme(themeMode, appearanceMode, isDaytimeCalculated, content)
-
-val CockpitTypography = Typography(
-    displayLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Black,
-        fontSize = 64.sp,
-        letterSpacing = (-1.0).sp,
-        fontFeatureSettings = "tnum"
-    ),
-    displayMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 36.sp,
-        fontFeatureSettings = "tnum"
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 24.sp
-    ),
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp
-    ),
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 17.sp
-    ),
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.5.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 13.sp
-    )
-)

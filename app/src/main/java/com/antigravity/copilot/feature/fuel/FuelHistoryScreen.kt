@@ -191,9 +191,7 @@ fun FuelHistoryScreen(
                             ) {
                                 Text(
                                     text = "Fuel Records",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = if (isCompact) 20.sp else 24.sp,
+                                    style = CockpitTheme.typography.headlineLarge.copy(
                                         letterSpacing = (-0.5).sp
                                     ),
                                     color = Color.White
@@ -209,10 +207,9 @@ fun FuelHistoryScreen(
                                 ) {
                                     Text(
                                         text = "$selectedYear",
-                                        style = MaterialTheme.typography.labelSmall.copy(
+                                        style = CockpitTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Black,
-                                            fontSize = 12.5.sp,
-                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                            fontFeatureSettings = "tnum"
                                         ),
                                         color = Color(0xFF38BDF8)
                                     )
@@ -221,9 +218,7 @@ fun FuelHistoryScreen(
 
                             Text(
                                 text = "HISTORICAL LOGS • TANK-TO-TANK TELEMETRY • ACCURATE CONSUMPTION",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.5.sp,
+                                style = CockpitTheme.typography.labelSmall.copy(
                                     letterSpacing = 0.5.sp
                                 ),
                                 color = Color(0xFF87929A)
@@ -258,10 +253,9 @@ fun FuelHistoryScreen(
                                 ) {
                                     Text(
                                         text = "$year",
-                                        style = MaterialTheme.typography.labelMedium.copy(
+                                        style = CockpitTheme.typography.labelMedium.copy(
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                            fontSize = 15.sp,
-                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                            fontFeatureSettings = "tnum"
                                         ),
                                         color = if (isSelected) Color.White else Color(0xFF87929A)
                                     )
@@ -436,12 +430,8 @@ private fun FuelStatBadgeCard(
             ) {
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Black,
-                        fontSize = 22.sp,
-                        lineHeight = 24.sp,
-                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
-                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    style = CockpitTheme.typography.headlineLarge.copy(
+                        fontFeatureSettings = "tnum"
                     ),
                     color = color
                 )
@@ -449,12 +439,8 @@ private fun FuelStatBadgeCard(
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = unit,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            lineHeight = 14.sp,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
-                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                        style = CockpitTheme.typography.labelSmall.copy(
+                            fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF87929A),
                         modifier = Modifier.padding(bottom = 1.dp)
@@ -464,12 +450,8 @@ private fun FuelStatBadgeCard(
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    lineHeight = 13.sp,
-                    letterSpacing = 0.4.sp,
-                    platformStyle = PlatformTextStyle(includeFontPadding = false)
+                style = CockpitTheme.typography.labelSmall.copy(
+                    letterSpacing = 0.4.sp
                 ),
                 color = Color(0xFF87929A),
                 maxLines = 1,
@@ -521,16 +503,15 @@ private fun FuelRecordsMonthGroupedFeed(
 
                 Text(
                     text = "No Fuel Records in ${analytics.year}",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
+                    style = CockpitTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
                     ),
                     color = Color.White
                 )
 
                 Text(
                     text = "Refuels recorded via '+ ADD FUEL' during ${analytics.year} will appear grouped here with live mileage and costs.",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp),
+                    style = CockpitTheme.typography.bodyMedium,
                     color = Color(0xFF87929A)
                 )
             }
@@ -577,9 +558,8 @@ private fun FuelRecordsMonthGroupedFeed(
                         ) {
                             Text(
                                 text = "${monthData.monthFullName} ${monthData.year}",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 20.sp
+                                style = CockpitTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Black
                                 ),
                                 color = Color.White
                             )
@@ -659,10 +639,8 @@ private fun PillBadge(text: String, color: Color) {
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelMedium.copy(
+            style = CockpitTheme.typography.labelSmall.copy(
                 fontWeight = FontWeight.Black,
-                fontSize = 13.5.sp,
-                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                 fontFeatureSettings = "tnum"
             ),
             color = color
@@ -710,10 +688,9 @@ private fun FuelEventCard(
                     ) {
                         Text(
                             text = "⛽ REFUEL",
-                            style = MaterialTheme.typography.labelSmall.copy(
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 9.sp,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF38BDF8)
                         )
@@ -748,10 +725,8 @@ private fun FuelEventCard(
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "${event.midLevelObserved}/10 MID",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 8.sp,
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                style = CockpitTheme.typography.labelSmall.copy(
+                                    fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFFCBD5E1)
                             )
@@ -761,9 +736,8 @@ private fun FuelEventCard(
 
                 Text(
                     text = dateStr,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 11.sp,
-                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                    style = CockpitTheme.typography.bodySmall.copy(
+                        fontFeatureSettings = "tnum"
                     ),
                     color = Color(0xFF87929A)
                 )
@@ -783,10 +757,9 @@ private fun FuelEventCard(
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             text = NumberFormatUtils.formatSignedPrecision(event.liters, 2),
-                            style = MaterialTheme.typography.titleLarge.copy(
+                            style = CockpitTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 21.sp,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
+                                fontFeatureSettings = "tnum",
                                 letterSpacing = (-0.5).sp
                             ),
                             color = Color(0xFF38BDF8)
@@ -794,10 +767,8 @@ private fun FuelEventCard(
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "L",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                            style = CockpitTheme.typography.labelSmall.copy(
+                                fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF87929A),
                             modifier = Modifier.padding(bottom = 2.dp)
@@ -805,9 +776,8 @@ private fun FuelEventCard(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "@ ${NumberFormatUtils.formatCurrencyWithSymbol(event.pricePerLiter, 2)}/L",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontSize = 14.sp,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                            style = CockpitTheme.typography.bodyMedium.copy(
+                                fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF87929A),
                             modifier = Modifier.padding(bottom = 2.dp)
@@ -816,13 +786,12 @@ private fun FuelEventCard(
 
                     if (event.locationName.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "📍", fontSize = 12.sp)
+                            Text(text = "📍", style = CockpitTheme.typography.bodySmall)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = event.locationName,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.5.sp
+                                style = CockpitTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Bold
                                 ),
                                 color = Color(0xFF94A3B8),
                                 maxLines = 1
@@ -839,10 +808,9 @@ private fun FuelEventCard(
                 ) {
                     Text(
                         text = NumberFormatUtils.formatCurrencyWithSymbol(event.totalCost, 2, useGrouping = true),
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = CockpitTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 22.sp,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                            fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFF59E0B)
                     )
@@ -861,10 +829,8 @@ private fun FuelEventCard(
                             ) {
                                 Text(
                                     text = "🚗 ${NumberFormatUtils.formatOdometer(event.odometerKm, 2)} km",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.5.sp,
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                    style = CockpitTheme.typography.labelSmall.copy(
+                                        fontFeatureSettings = "tnum"
                                     ),
                                     color = Color.White
                                 )
@@ -881,10 +847,9 @@ private fun FuelEventCard(
                             ) {
                                 Text(
                                     text = "⚡ ${NumberFormatUtils.formatMileageWithUnit(event.calculatedMileageKmpl, 2)}",
-                                    style = MaterialTheme.typography.labelSmall.copy(
+                                    style = CockpitTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 12.5.sp,
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                        fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF10B981)
                                 )
@@ -992,9 +957,8 @@ private fun EditFuelEventDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "Edit Refuel Entry",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 20.sp
+                            style = CockpitTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Black
                             ),
                             color = Color.White
                         )
@@ -1013,7 +977,7 @@ private fun EditFuelEventDialog(
                     onValueChange = { locationText = it },
                     label = { Text("Fuel Station / Location", color = Cockpit_TextSecondary) },
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                    textStyle = CockpitTheme.typography.titleMedium.copy(color = Color.White),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
@@ -1035,7 +999,7 @@ private fun EditFuelEventDialog(
                         },
                         label = { Text("Quantity (L)", color = Cockpit_TextSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color.White),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
@@ -1056,7 +1020,7 @@ private fun EditFuelEventDialog(
                         },
                         label = { Text("Price (₹ / L)", color = Cockpit_TextSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color.White),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
@@ -1074,7 +1038,7 @@ private fun EditFuelEventDialog(
                         onValueChange = { costText = it },
                         label = { Text("Total Bill (₹)", color = Cockpit_TextSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color(0xFFFFD54F)),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Color(0xFFFFD54F), fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color(0xFFFFD54F),
@@ -1090,7 +1054,7 @@ private fun EditFuelEventDialog(
                         onValueChange = { odoText = it },
                         label = { Text("Odometer (km)", color = Cockpit_TextSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color.White),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
@@ -1109,7 +1073,7 @@ private fun EditFuelEventDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = Color.White, fontSize = 15.sp)
+                        Text("Cancel", color = Color.White, style = CockpitTheme.typography.labelLarge)
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Button(
@@ -1132,7 +1096,7 @@ private fun EditFuelEventDialog(
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Save Changes", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text("Save Changes", style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }

@@ -114,10 +114,9 @@ fun FuelTankCard(
                     }
                     Text(
                         text = "FUEL TANK",
-                        style = MaterialTheme.typography.labelMedium.copy(
+                        style = CockpitTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 1.1.sp,
-                            fontSize = 14.5.sp
+                            letterSpacing = 1.1.sp
                         ),
                         color = textSecondary
                     )
@@ -153,10 +152,9 @@ fun FuelTankCard(
                         )
                         Text(
                             text = "ADD FUEL",
-                            style = MaterialTheme.typography.labelSmall.copy(
+                            style = CockpitTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 0.5.sp,
-                                fontSize = 13.5.sp
+                                letterSpacing = 0.5.sp
                             ),
                             color = Color.Black
                         )
@@ -177,29 +175,21 @@ fun FuelTankCard(
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             text = NumberFormatUtils.formatFuelLiters(currentLiters, 1),
-                            style = MaterialTheme.typography.displayMedium.copy(
-                                fontWeight = FontWeight.Black,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                fontFeatureSettings = "tnum",
-                                fontSize = 38.sp
+                            style = CockpitTheme.typography.displayMedium.copy(
+                                fontFeatureSettings = "tnum"
                             ),
                             color = textPrimary
                         )
                         Spacer(Modifier.width(3.dp))
                         Text(
                             text = "L",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            ),
+                            style = CockpitTheme.typography.titleLarge,
                             color = primaryStatusColor
                         )
                     }
                     Text(
                         text = "OEM Capacity ${capacity.toInt()} L",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 13.sp
-                        ),
+                        style = CockpitTheme.typography.bodySmall,
                         color = textSecondary
                     )
                 }
@@ -211,20 +201,15 @@ fun FuelTankCard(
                 ) {
                     Text(
                         text = "${tankPct.toInt()}%",
-                        style = MaterialTheme.typography.displayMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 36.sp
+                        style = CockpitTheme.typography.displayMedium.copy(
+                            fontFeatureSettings = "tnum"
                         ),
                         color = primaryStatusColor
                     )
                     Text(
                         text = "TANK LEVEL",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp,
-                            fontSize = 12.sp
+                        style = CockpitTheme.typography.labelSmall.copy(
+                            letterSpacing = 0.5.sp
                         ),
                         color = textSecondary
                     )
@@ -283,12 +268,12 @@ fun FuelTankCard(
                 ) {
                     Text(
                         text = "E",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 13.sp),
+                        style = CockpitTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
                         color = if (tankPct <= 15.0) dangerAccent else textSecondary
                     )
                     Text(
                         text = "F",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontSize = 13.sp),
+                        style = CockpitTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black),
                         color = if (tankPct >= 90.0) positiveAccent else textSecondary
                     )
                 }
@@ -311,11 +296,9 @@ fun FuelTankCard(
                     val rangeKm = fuelState.remainingRangeKm
                     Text(
                         text = if (rangeKm > 0) "${rangeKm.toInt()} km" else "--- km",
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = CockpitTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 20.sp
+                            fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -323,10 +306,7 @@ fun FuelTankCard(
                     )
                     Text(
                         text = "EST. RANGE",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
+                        style = CockpitTheme.typography.labelSmall,
                         maxLines = 1,
                         softWrap = false,
                         color = textSecondary
@@ -367,11 +347,9 @@ fun FuelTankCard(
 
                     Text(
                         text = mileageText,
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = CockpitTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 20.sp
+                            fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -379,10 +357,7 @@ fun FuelTankCard(
                     )
                     Text(
                         text = mileageLabel,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
+                        style = CockpitTheme.typography.labelSmall,
                         maxLines = 1,
                         softWrap = false,
                         color = textSecondary
@@ -431,15 +406,12 @@ fun FuelTankCard(
                             Column {
                                 Text(
                                     text = "Calibrate Instrument Gauge",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 22.sp
-                                    ),
+                                    style = CockpitTheme.typography.headlineLarge,
                                     color = CockpitTheme.colors.textPrimary
                                 )
                                 Text(
                                     text = "Match active bars with physical 10-bar cluster display",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.5.sp),
+                                    style = CockpitTheme.typography.bodyMedium,
                                     color = CockpitTheme.colors.textSecondary
                                 )
                             }
@@ -460,11 +432,9 @@ fun FuelTankCard(
                         ) {
                             Text(
                                 text = "$tempSelectedBar / 10 BARS • ${tempSelectedBar * 10}%",
-                                style = MaterialTheme.typography.labelMedium.copy(
+                                style = CockpitTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                    fontFeatureSettings = "tnum",
-                                    fontSize = 15.sp
+                                    fontFeatureSettings = "tnum"
                                 ),
                                 color = activeColor
                             )
@@ -485,9 +455,7 @@ fun FuelTankCard(
                     ) {
                         Text(
                             text = "ESTIMATED FUEL LEVEL",
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 13.5.sp,
+                            style = CockpitTheme.typography.labelMedium.copy(
                                 letterSpacing = 0.5.sp
                             ),
                             color = CockpitTheme.colors.textSecondary
@@ -495,21 +463,15 @@ fun FuelTankCard(
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
                                 text = NumberFormatUtils.formatPrecision(estLiters, 1),
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                    fontFeatureSettings = "tnum",
-                                    fontSize = 28.sp
+                                style = CockpitTheme.typography.displaySmall.copy(
+                                    fontFeatureSettings = "tnum"
                                 ),
                                 color = CockpitTheme.colors.textPrimary
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 text = "L / ${capacity.toInt()} L",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                ),
+                                style = CockpitTheme.typography.labelMedium,
                                 color = CockpitTheme.colors.textSecondary,
                                 modifier = Modifier.padding(bottom = 3.dp)
                             )
@@ -557,20 +519,15 @@ fun FuelTankCard(
                                 ) {
                                     Text(
                                         text = "$bar",
-                                        style = MaterialTheme.typography.titleMedium.copy(
+                                        style = CockpitTheme.typography.headlineMedium.copy(
                                             fontWeight = FontWeight.Black,
-                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                            fontFeatureSettings = "tnum",
-                                            fontSize = 21.sp
+                                            fontFeatureSettings = "tnum"
                                         ),
                                         color = if (isSelected) CockpitTheme.colors.onAccent else CockpitTheme.colors.textSecondary
                                     )
                                     Text(
                                         text = "${bar * 10}%",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.5.sp
-                                        ),
+                                        style = CockpitTheme.typography.labelSmall,
                                         color = if (isSelected) CockpitTheme.colors.onAccent.copy(alpha = 0.9f) else CockpitTheme.colors.textDisabled
                                     )
                                 }
@@ -591,8 +548,7 @@ fun FuelTankCard(
                             Text(
                                 text = "Cancel",
                                 color = CockpitTheme.colors.textSecondary,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
+                                style = CockpitTheme.typography.labelLarge
                             )
                         }
                         Spacer(Modifier.width(12.dp))
@@ -608,8 +564,7 @@ fun FuelTankCard(
                             Text(
                                 text = "Apply Gauge Bar ($tempSelectedBar/10)",
                                 color = CockpitTheme.colors.onAccent,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Black
+                                style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black)
                             )
                         }
                     }

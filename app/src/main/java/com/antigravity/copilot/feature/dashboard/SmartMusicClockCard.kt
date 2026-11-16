@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
+import com.antigravity.copilot.core.designsystem.AutomotiveTypographyTokens
 import com.antigravity.copilot.core.designsystem.CockpitTheme
 import com.antigravity.copilot.core.media.MediaPlaybackManager
 import com.antigravity.copilot.core.media.MediaPlaybackState
@@ -195,10 +196,9 @@ private fun ClockOnlyState(
                 }
                 Text(
                     text = "DIGITAL CLOCK",
-                    style = MaterialTheme.typography.labelSmall.copy(
+                    style = CockpitTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        fontSize = 13.5.sp
+                        letterSpacing = 1.sp
                     ),
                     color = CockpitTheme.colors.accent
                 )
@@ -224,13 +224,7 @@ private fun ClockOnlyState(
             ) {
                 Text(
                     text = timeString,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                        fontWeight = FontWeight.Black,
-                        fontFeatureSettings = "tnum",
-                        fontSize = AutomotiveDesignTokens.Typography.clockValue,
-                        letterSpacing = (-1).sp
-                    ),
+                    style = AutomotiveTypographyTokens.NumericClock,
                     color = CockpitTheme.colors.textPrimary
                 )
 
@@ -238,10 +232,7 @@ private fun ClockOnlyState(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = amPmString,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        ),
+                        style = CockpitTheme.typography.titleLarge,
                         color = CockpitTheme.colors.accent,
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
@@ -263,8 +254,7 @@ private fun ClockOnlyState(
                 )
                 Text(
                     text = dateString,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 15.sp,
+                    style = CockpitTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium
                     ),
                     color = CockpitTheme.colors.textSecondary
@@ -280,9 +270,7 @@ private fun ClockOnlyState(
         ) {
             Text(
                 text = "Vehicle Time • Synchronized",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.5.sp
-                ),
+                style = CockpitTheme.typography.labelSmall,
                 color = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
             )
         }
@@ -347,18 +335,15 @@ private fun ClockWithMusicState(
                 Column {
                     Text(
                         text = if (amPmString.isNotBlank()) "$timeString $amPmString" else timeString,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                        style = CockpitTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 18.sp
+                            fontFeatureSettings = "tnum"
                         ),
                         color = CockpitTheme.colors.textPrimary
                     )
                     Text(
                         text = dateString,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.5.sp,
+                        style = CockpitTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Medium
                         ),
                         color = CockpitTheme.colors.textSecondary
@@ -422,9 +407,8 @@ private fun ClockWithMusicState(
             ) {
                 Text(
                     text = playbackState.displayTitle,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.5.sp
+                    style = CockpitTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
                     ),
                     color = CockpitTheme.colors.textPrimary,
                     maxLines = 1,
@@ -435,10 +419,7 @@ private fun ClockWithMusicState(
 
                 Text(
                     text = playbackState.displayArtist,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Normal
-                    ),
+                    style = CockpitTheme.typography.bodyMedium,
                     color = CockpitTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -469,19 +450,15 @@ private fun ClockWithMusicState(
             ) {
                 Text(
                     text = formattedCurrentTime,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                        fontFeatureSettings = "tnum",
-                        fontSize = 12.5.sp
+                    style = CockpitTheme.typography.labelSmall.copy(
+                        fontFeatureSettings = "tnum"
                     ),
                     color = CockpitTheme.colors.textSecondary
                 )
                 Text(
                     text = formattedTotalTime,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                        fontFeatureSettings = "tnum",
-                        fontSize = 12.5.sp
+                    style = CockpitTheme.typography.labelSmall.copy(
+                        fontFeatureSettings = "tnum"
                     ),
                     color = CockpitTheme.colors.textSecondary
                 )
@@ -601,8 +578,7 @@ private fun AutomotiveMusicPill(
         )
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 13.5.sp,
+            style = CockpitTheme.typography.labelSmall.copy(
                 fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
             ),
             color = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary

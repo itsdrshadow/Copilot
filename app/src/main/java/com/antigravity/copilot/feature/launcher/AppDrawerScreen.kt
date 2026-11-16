@@ -272,10 +272,7 @@ fun AppGridItem(
                 ) {
                     Text(
                         text = app.label.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 24.sp
-                        ),
+                        style = CockpitTheme.typography.headlineLarge,
                         color = CockpitTheme.colors.accent
                     )
                 }
@@ -286,10 +283,8 @@ fun AppGridItem(
             // App Label underneath the icon
             Text(
                 text = app.label,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = labelSize,
-                    lineHeight = 17.sp
+                style = CockpitTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold
                 ),
                 color = CockpitTheme.colors.textPrimary,
                 maxLines = 1,
@@ -348,10 +343,7 @@ fun AppDrawerHeader(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "All Applications",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 22.sp
-                        ),
+                        style = CockpitTheme.typography.headlineLarge,
                         color = CockpitTheme.colors.textPrimary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -364,9 +356,8 @@ fun AppDrawerHeader(
                     ) {
                         Text(
                             text = "$totalAppsCount apps",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.5.sp
+                            style = CockpitTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold
                             ),
                             color = CockpitTheme.colors.accent
                         )
@@ -375,8 +366,7 @@ fun AppDrawerHeader(
                 if (totalPages > 1) {
                     Text(
                         text = "Page ${pageIndex + 1} of $totalPages • Swipe left/right",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 13.sp,
+                        style = CockpitTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Medium
                         ),
                         color = CockpitTheme.colors.textSecondary
@@ -393,7 +383,7 @@ fun AppDrawerHeader(
                 Text(
                     "Search apps...",
                     color = CockpitTheme.colors.textDisabled,
-                    fontSize = 14.5.sp
+                    style = CockpitTheme.typography.bodyMedium
                 )
             },
             leadingIcon = {

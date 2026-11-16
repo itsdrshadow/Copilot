@@ -9,7 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.38.1] - 2026-11-16
+## [1.39.0] - 2026-11-16
+
+### Added
+- **Centralized Global Automotive Typography System (`AutomotiveTypographyTokens`)**:
+  - Implemented 14 strongly typed semantic text styles derived from the production Home Screen (`DisplayLarge`, `DisplayMedium`, `DisplaySmall`, `HeadlineLarge`, `HeadlineMedium`, `HeadlineSmall`, `TitleLarge`, `TitleMedium`, `TitleSmall`, `BodyLarge`, `BodyMedium`, `BodySmall`, `LabelLarge`, `LabelMedium`, `LabelSmall`).
+  - Standardized tabular figures (`tnum`) across all numeric telemetry, speed, odometer, clock, and fuel readouts for jitter-free vertical and horizontal alignment.
+  - Full integration with Material 3 `CockpitTypography` and `CockpitTheme.typography`.
+- **Clean Architecture + MVVM Feature-Oriented Reorganization**:
+  - Extracted core design system packages: `core/designsystem/typography`, `core/designsystem/colors`, `core/designsystem/dimensions`, `core/designsystem/components`, and `core/designsystem/theme`.
+  - Added clean architecture navigation contracts (`CockpitTab`, `CockpitNavEvent`) in `core/navigation` and centralized utilities in `core/common`.
+
+### Changed
+- **Comprehensive Codebase Typography Migration**:
+  - Migrated Home Screen, Dashboard Cards, and Speedometer Cluster to semantic text tokens.
+  - Migrated Smart Music Player & Clock Card, Fuel Tank Gauge, Current Trip, and Smart Trip Summary.
+  - Migrated Fuel History Screen, Fuel Entry Dialog, and Refuel Station Prompt Dialog.
+  - Migrated Trip History Screen, Route Replay, Charts, and Multi-Day Accordion views.
+  - Migrated Live Map View, India Offline Map Dialog, and Speed Limit HUD.
+  - Migrated App Drawer Screen, Launcher Settings, and Geofence Settings.
+  - Migrated Splash Screen, Automotive Brand Logo, and System Recovery Activity.
+
+### Fixed
+- **Typography and Alignment Inconsistencies**:
+  - Eliminated all scattered hardcoded `fontSize` declarations across application UI.
+  - Resolved text clipping, unit baseline misalignments, and overflow issues across 10.1-inch automotive cockpit layout.
+  - Preserved complete backward compatibility for theme tokens and existing unit tests.
+
 
 ### Changed
 - **Calibrate Vehicle Odometer Dialog Redesign**:

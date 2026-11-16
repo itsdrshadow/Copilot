@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.antigravity.copilot.core.designsystem.CockpitTheme
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -83,17 +84,14 @@ fun GeofenceSettingsContent() {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "AUTOMATIC TRIP GEOFENCES",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            ),
+                            style = CockpitTheme.typography.titleMedium,
                             color = Color.White
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Departing an enabled geofence starts a journey (including departure distance). Entering an enabled geofence ends the trip. Journeys persist across days and power cycles.",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                        style = CockpitTheme.typography.bodyMedium,
                         color = Color(0xFF94A3B8)
                     )
                 }
@@ -115,7 +113,7 @@ fun GeofenceSettingsContent() {
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Geofence", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Add Geofence", style = CockpitTheme.typography.labelLarge)
                 }
             }
         }
@@ -144,15 +142,14 @@ fun GeofenceSettingsContent() {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "No Geofences Configured",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 14.sp
+                        style = CockpitTheme.typography.titleSmall,
+                        color = Color.White
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Add your Home, Office, or Farm to enable fully automated departure and arrival tracking.",
                         color = Color(0xFF87929A),
-                        fontSize = 12.sp,
+                        style = CockpitTheme.typography.bodySmall,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
@@ -211,10 +208,7 @@ fun GeofenceSettingsContent() {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = gf.name,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 18.sp
-                                        ),
+                                        style = CockpitTheme.typography.titleMedium,
                                         color = if (gf.isEnabled) Color.White else Color(0xFF64748B)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
@@ -227,11 +221,9 @@ fun GeofenceSettingsContent() {
                                     ) {
                                         Text(
                                             text = "${gf.radiusMeters.toInt()}m radius",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 13.5.sp,
+                                            style = CockpitTheme.typography.labelSmall.copy(
                                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                                fontFeatureSettings = "tnum",
-                                                fontWeight = FontWeight.Bold
+                                                fontFeatureSettings = "tnum"
                                             ),
                                             color = Color(0xFF38BDF8)
                                         )
@@ -249,8 +241,9 @@ fun GeofenceSettingsContent() {
                                         ) {
                                             Text(
                                                 text = "INSIDE GEOFENCE",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Black,
+                                                style = CockpitTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.Black
+                                                ),
                                                 color = Color(0xFF34D399)
                                             )
                                         }
@@ -268,8 +261,7 @@ fun GeofenceSettingsContent() {
                                             }
                                             Text(
                                                 text = distText,
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 13.5.sp,
+                                                style = CockpitTheme.typography.labelSmall.copy(
                                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                                     fontFeatureSettings = "tnum"
                                                 ),
@@ -283,8 +275,7 @@ fun GeofenceSettingsContent() {
 
                                 Text(
                                     text = String.format(Locale.US, "GPS: %.5f, %.5f", gf.latitude, gf.longitude),
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 13.5.sp,
+                                    style = CockpitTheme.typography.bodySmall.copy(
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                         fontFeatureSettings = "tnum"
                                     ),
@@ -487,10 +478,7 @@ fun AddEditGeofenceDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = if (existingGeofence != null) "EDIT TRIP GEOFENCE" else "ADD TRIP GEOFENCE",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            ),
+                            style = CockpitTheme.typography.titleMedium,
                             color = Color.White
                         )
                     }
@@ -555,9 +543,8 @@ fun AddEditGeofenceDialog(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 "Use Current GPS Location",
-                                fontSize = 11.sp,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
+                                style = CockpitTheme.typography.labelSmall,
+                                color = Color.White
                             )
                         }
 
@@ -605,16 +592,17 @@ fun AddEditGeofenceDialog(
                             ) {
                                 Text(
                                     text = "Radius: ${radiusMeters.toInt()} meters",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                    style = CockpitTheme.typography.labelSmall.copy(
+                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                        fontFeatureSettings = "tnum"
+                                    ),
                                     color = Color(0xFF38BDF8)
                                 )
                                 if (radiusMeters == 100f) {
                                     Text(
                                         text = "(Recommended Default)",
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF10B981),
-                                        fontWeight = FontWeight.Bold
+                                        style = CockpitTheme.typography.labelSmall,
+                                        color = Color(0xFF10B981)
                                     )
                                 }
                             }
@@ -649,8 +637,9 @@ fun AddEditGeofenceDialog(
                                     ) {
                                         Text(
                                             text = if (preset == 100f) "100m (Def)" else "${preset.toInt()}m",
-                                            fontSize = 10.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            style = CockpitTheme.typography.labelSmall.copy(
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                            ),
                                             color = if (isSelected) Color.White else Color(0xFF94A3B8)
                                         )
                                     }
@@ -666,9 +655,8 @@ fun AddEditGeofenceDialog(
                     ) {
                         Text(
                             text = "Geofence Map Preview (Tap to reposition center)",
-                            fontSize = 11.sp,
-                            color = Color(0xFF94A3B8),
-                            fontWeight = FontWeight.Bold
+                            style = CockpitTheme.typography.labelSmall,
+                            color = Color(0xFF94A3B8)
                         )
 
                         Box(

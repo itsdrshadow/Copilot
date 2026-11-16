@@ -338,11 +338,7 @@ private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, mo
         Text(
             text = label,
             color = CockpitTheme.colors.textPrimary,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = dock.textSize,
-                letterSpacing = 0.5.sp
-            ),
+            style = CockpitTheme.typography.labelMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

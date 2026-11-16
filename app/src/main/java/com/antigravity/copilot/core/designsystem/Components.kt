@@ -95,7 +95,7 @@ fun MetricTile(
         ) {
             Text(
                 text = label.uppercase(),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                style = CockpitTheme.typography.labelSmall,
                 color = Cockpit_TextTertiary
             )
             if (icon != null) {
@@ -111,14 +111,14 @@ fun MetricTile(
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
+                style = CockpitTheme.typography.headlineMedium,
                 color = Cockpit_TextPrimary
             )
             if (unit.isNotEmpty()) {
                 Spacer(modifier = Modifier.width(3.dp))
                 Text(
                     text = unit,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                    style = CockpitTheme.typography.bodyMedium,
                     color = Cockpit_TextSecondary,
                     modifier = Modifier.padding(bottom = 2.dp)
                 )
@@ -128,7 +128,7 @@ fun MetricTile(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = subValue,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                style = CockpitTheme.typography.labelSmall,
                 color = Cockpit_TextSecondary
             )
         }
@@ -268,9 +268,9 @@ fun CockpitMasterSpeedometer(
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("40", style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), color = Cockpit_TextSecondary)
-                Text("80", style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), color = Cockpit_TextSecondary)
-                Text("120", style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), color = Cockpit_TextSecondary)
+                Text("40", style = CockpitTheme.typography.labelSmall, color = Cockpit_TextSecondary)
+                Text("80", style = CockpitTheme.typography.labelSmall, color = Cockpit_TextSecondary)
+                Text("120", style = CockpitTheme.typography.labelSmall, color = Cockpit_TextSecondary)
             }
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -278,18 +278,12 @@ fun CockpitMasterSpeedometer(
             // Giant Center Speed Display
             Text(
                 text = animatedSpeed.toInt().toString(),
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 58.sp,
-                    fontWeight = FontWeight.Black
-                ),
+                style = CockpitTheme.typography.displayLarge,
                 color = Cockpit_TextPrimary
             )
             Text(
                 text = "km/h",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                ),
+                style = CockpitTheme.typography.labelSmall,
                 color = Cockpit_TextSecondary
             )
 
@@ -315,9 +309,8 @@ fun CockpitMasterSpeedometer(
                 ) {
                     Text(
                         text = "$speedLimit",
-                        style = MaterialTheme.typography.labelSmall.copy(
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 10.sp,
                             color = Color.Black
                         )
                     )
@@ -346,14 +339,13 @@ fun CockpitMasterSpeedometer(
                 Column {
                     Text(
                         text = "Driver Score",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                        style = CockpitTheme.typography.labelSmall,
                         color = Cockpit_TextTertiary
                     )
                     Text(
                         text = "$driverScore",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
+                        style = CockpitTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold
                         ),
                         color = Cockpit_TextPrimary
                     )
@@ -414,15 +406,12 @@ fun CockpitCircularFuelGauge(
                     )
                     Text(
                         text = NumberFormatUtils.formatFuelLitersWithUnit(remainingLiters, 2),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        ),
+                        style = CockpitTheme.typography.titleMedium,
                         color = Cockpit_TextPrimary
                     )
                     Text(
                         text = "≈ $percentage%",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        style = CockpitTheme.typography.labelSmall,
                         color = Cockpit_TextSecondary
                     )
                 }
@@ -451,10 +440,10 @@ fun CockpitCircularFuelGauge(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("Range", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = Cockpit_TextTertiary)
+                        Text("Range", style = CockpitTheme.typography.labelSmall, color = Cockpit_TextTertiary)
                         Text(
                             "${rangeKm.toInt()} km",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                            style = CockpitTheme.typography.titleMedium,
                             color = Cockpit_TextPrimary
                         )
                     }
@@ -478,10 +467,10 @@ fun CockpitCircularFuelGauge(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text("Mileage", style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp), color = Cockpit_TextTertiary)
+                        Text("Mileage", style = CockpitTheme.typography.labelSmall, color = Cockpit_TextTertiary)
                         Text(
                             NumberFormatUtils.formatMileageWithUnit(mileageKmpl, 2),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                            style = CockpitTheme.typography.titleMedium,
                             color = Cockpit_TextPrimary
                         )
                     }
@@ -568,15 +557,12 @@ fun CockpitCircularScoreGauge(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "$score",
-                        style = MaterialTheme.typography.displayMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 28.sp
-                        ),
+                        style = CockpitTheme.typography.displaySmall,
                         color = Cockpit_TextPrimary
                     )
                     Text(
                         text = "/100",
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        style = CockpitTheme.typography.labelSmall,
                         color = Cockpit_TextSecondary
                     )
                 }
@@ -614,9 +600,8 @@ fun CockpitCircularScoreGauge(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = if (score >= 90) "Excellent Driving! Keep it up!" else "Good Driving Pace",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
+                style = CockpitTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold
                 ),
                 color = Cockpit_GreenEco
             )
@@ -637,15 +622,12 @@ private fun ScoreChecklistItem(label: String, percent: Int) {
         Column {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                style = CockpitTheme.typography.labelSmall,
                 color = Cockpit_TextTertiary
             )
             Text(
                 text = "$percent%",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                ),
+                style = CockpitTheme.typography.labelSmall,
                 color = Cockpit_TextPrimary
             )
         }

@@ -308,10 +308,9 @@ fun CurrentTripCard(
                     }
                     Text(
                         text = "CURRENT TRIP",
-                        style = MaterialTheme.typography.labelMedium.copy(
+                        style = CockpitTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 1.1.sp,
-                            fontSize = 14.5.sp
+                            letterSpacing = 1.1.sp
                         ),
                         color = textSecondary,
                         maxLines = 1
@@ -387,10 +386,8 @@ fun CurrentTripCard(
                         )
                         Text(
                             text = target.title,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
-                                fontSize = 13.5.sp
+                            style = CockpitTheme.typography.labelMedium.copy(
+                                letterSpacing = 0.8.sp
                             ),
                             color = textSecondary,
                             maxLines = 1,
@@ -403,7 +400,7 @@ fun CurrentTripCard(
                     AdaptiveMetricValueText(
                         value = target.value,
                         unit = target.unit,
-                        preferredFontSize = AutomotiveDesignTokens.Typography.heroMetric,
+                        preferredFontSize = CockpitTheme.typography.displaySmall.fontSize,
                         minFontSize = 24.sp,
                         valueColor = textPrimary,
                         unitColor = target.accentColor,
@@ -414,9 +411,7 @@ fun CurrentTripCard(
 
                     Text(
                         text = target.subtitle,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 13.sp
-                        ),
+                        style = CockpitTheme.typography.bodySmall,
                         color = textSecondary.copy(alpha = 0.8f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -512,11 +507,9 @@ fun CurrentTripCard(
                 Column(modifier = Modifier.weight(1.2f)) {
                     Text(
                         text = liveTripTimerText,
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = CockpitTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 20.sp
+                            fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -524,10 +517,7 @@ fun CurrentTripCard(
                     )
                     Text(
                         text = timerLabelText,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
+                        style = CockpitTheme.typography.labelSmall,
                         maxLines = 1,
                         softWrap = false,
                         color = timerLabelColor
@@ -556,11 +546,9 @@ fun CurrentTripCard(
                     }
                     Text(
                         text = movingText,
-                        style = MaterialTheme.typography.titleSmall.copy(
+                        style = CockpitTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 17.sp
+                            fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -568,10 +556,7 @@ fun CurrentTripCard(
                     )
                     Text(
                         text = "DRIVING TIME",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
+                        style = CockpitTheme.typography.labelSmall,
                         maxLines = 1,
                         softWrap = false,
                         color = textSecondary

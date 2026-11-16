@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.antigravity.copilot.core.designsystem.CockpitTheme
 
 @Composable
 fun AutomotiveBrandLogo(
@@ -214,10 +215,7 @@ fun AutomotiveBrandLogo(
         // Brand Title
         Text(
             text = "COPILOT",
-            style = TextStyle(
-                fontFamily = FontFamily.SansSerif,
-                fontWeight = FontWeight.Black,
-                fontSize = 32.sp,
+            style = CockpitTheme.typography.displaySmall.copy(
                 letterSpacing = 14.sp,
                 color = Color(0xFFF1F5F9),
                 shadow = Shadow(
@@ -233,10 +231,7 @@ fun AutomotiveBrandLogo(
         // Brand Subtitle
         Text(
             text = "AUTOMOTIVE COCKPIT SYSTEM",
-            style = TextStyle(
-                fontFamily = FontFamily.SansSerif,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 11.sp,
+            style = CockpitTheme.typography.labelSmall.copy(
                 letterSpacing = 6.sp,
                 color = Color(0xFF7DD3FC),
                 textAlign = TextAlign.Center

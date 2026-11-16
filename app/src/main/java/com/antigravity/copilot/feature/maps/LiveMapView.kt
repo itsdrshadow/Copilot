@@ -946,9 +946,8 @@ fun LiveMapPanel(
 
                 Text(
                     text = statusText,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                    style = CockpitTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold
                     ),
                     color = Color.White
                 )
@@ -956,10 +955,8 @@ fun LiveMapPanel(
                 if (isGpsLocked && latestPoint != null && latestPoint.accuracy > 0) {
                     Text(
                         text = "\u00B1${latestPoint.accuracy.toInt()}m",
-                        style = MaterialTheme.typography.labelSmall.copy(
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Medium,
-                            fontSize = 11.sp,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                             fontFeatureSettings = "tnum"
                         ),
                         color = Cockpit_Cyan
@@ -1003,9 +1000,8 @@ fun LiveMapPanel(
                     )
                     Text(
                         text = "RE-CENTER VEHICLE",
-                        style = MaterialTheme.typography.labelMedium.copy(
+                        style = CockpitTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 12.sp,
                             letterSpacing = 0.5.sp
                         ),
                         color = Color.White
@@ -1104,10 +1100,8 @@ fun LiveMapPanel(
                 ) {
                     Text(
                         text = "$currentSpeed",
-                        style = MaterialTheme.typography.titleLarge.copy(
+                        style = CockpitTheme.typography.displaySmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 28.sp,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                             fontFeatureSettings = "tnum"
                         ),
                         color = if (speedLimitInfo.isOverspeed) Cockpit_RedAlert else Color.White
@@ -1115,10 +1109,7 @@ fun LiveMapPanel(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "km/h",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        ),
+                        style = CockpitTheme.typography.labelSmall,
                         color = Cockpit_TextSecondary
                     )
                 }

@@ -325,11 +325,7 @@ fun TripHistoryScreen(
                         ) {
                             Text(
                                 text = "Trip History",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 24.sp,
-                                    letterSpacing = (-0.5).sp
-                                ),
+                                style = CockpitTheme.typography.headlineLarge,
                                 color = Color.White
                             )
 
@@ -343,9 +339,7 @@ fun TripHistoryScreen(
                             ) {
                                 Text(
                                     text = "$selectedYear",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 12.5.sp,
+                                    style = CockpitTheme.typography.labelSmall.copy(
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF38BDF8)
@@ -355,9 +349,7 @@ fun TripHistoryScreen(
 
                         Text(
                             text = "GPS TELEMETRY ARCHIVE • ANIMATED ROUTE REPLAY • DRIVING INSIGHTS",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.5.sp,
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF87929A)
@@ -392,9 +384,8 @@ fun TripHistoryScreen(
                             ) {
                                 Text(
                                     text = "$year",
-                                    style = MaterialTheme.typography.labelMedium.copy(
+                                    style = CockpitTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                        fontSize = 15.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = if (isSelected) Color.White else Color(0xFF87929A)
@@ -672,10 +663,7 @@ private fun TripStatTile(
             ) {
                 Text(
                     text = value,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Black,
-                        fontSize = 22.sp,
-                        lineHeight = 24.sp,
+                    style = CockpitTheme.typography.headlineLarge.copy(
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
@@ -685,10 +673,7 @@ private fun TripStatTile(
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = unit,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            lineHeight = 14.sp,
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         ),
@@ -700,10 +685,7 @@ private fun TripStatTile(
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    lineHeight = 13.sp,
+                style = CockpitTheme.typography.labelSmall.copy(
                     letterSpacing = 0.4.sp,
                     platformStyle = PlatformTextStyle(includeFontPadding = false)
                 ),
@@ -759,12 +741,12 @@ private fun TripListGroupedFeed(
                 }
                 Text(
                     text = "No Trips in ${analytics.year}",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                    style = CockpitTheme.typography.titleMedium,
                     color = Color.White
                 )
                 Text(
                     text = "Drive to record telemetry trips with high-precision GPS playback.",
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                    style = CockpitTheme.typography.bodySmall,
                     color = Color(0xFF87929A)
                 )
             }
@@ -805,9 +787,8 @@ private fun TripListGroupedFeed(
                         ) {
                             Text(
                                 text = "${group.monthName} ${group.year}",
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 14.5.sp
+                                style = CockpitTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Black
                                 ),
                                 color = Color.White
                             )
@@ -916,18 +897,14 @@ private fun TripCardItem(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "${trip.startLocationName.ifBlank { "Trip Origin" }} ➔ ${trip.endLocationName.ifBlank { "Destination" }}",
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.5.sp
-                        ),
+                        style = CockpitTheme.typography.titleSmall,
                         color = Color.White,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Text(
                         text = dateDisplayStr,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 13.sp,
+                        style = CockpitTheme.typography.bodySmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF87929A)
@@ -938,9 +915,7 @@ private fun TripCardItem(
 
                 Text(
                     text = "$distanceKm km",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Black,
-                        fontSize = 19.sp,
+                    style = CockpitTheme.typography.titleLarge.copy(
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
                     color = if (isSelected) Color(0xFF38BDF8) else Color.White
@@ -959,31 +934,25 @@ private fun TripCardItem(
                 ) {
                     Text(
                         text = "⏱️ $durationText",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 12.5.sp,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
-                            fontWeight = FontWeight.Bold
+                        style = CockpitTheme.typography.labelSmall.copy(
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFCBD5E1)
                     )
-                    Text(text = "•", fontSize = 11.sp, color = Color(0xFF475569))
+                    Text(text = "•", style = CockpitTheme.typography.labelSmall, color = Color(0xFF475569))
                     Text(
                         text = "${NumberFormatUtils.formatSpeed(trip.avgSpeedKmh, 2)} km/h avg",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 12.5.sp,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
-                            fontWeight = FontWeight.Bold
+                        style = CockpitTheme.typography.labelSmall.copy(
+                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFCBD5E1)
                     )
                     if (trip.maxSpeedKmh > 0) {
-                        Text(text = "•", fontSize = 11.sp, color = Color(0xFF475569))
+                        Text(text = "•", style = CockpitTheme.typography.labelSmall, color = Color(0xFF475569))
                         Text(
                             text = "max ${NumberFormatUtils.formatSpeed(trip.maxSpeedKmh, 2)}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 12.5.sp,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
-                                fontWeight = FontWeight.Bold
+                            style = CockpitTheme.typography.labelSmall.copy(
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFFA855F7)
                         )
@@ -1004,9 +973,8 @@ private fun TripCardItem(
                 ) {
                     Text(
                         text = "Score ${trip.driverScore}",
-                        style = MaterialTheme.typography.labelSmall.copy(
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 12.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = scoreColor
@@ -1063,13 +1031,13 @@ private fun TripDetailContainer(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Trip GPS Playback View",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 18.sp),
+                    style = CockpitTheme.typography.titleLarge,
                     color = Color.White
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Select any journey on the left to start fast-forward animated route replay.",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.5.sp),
+                    style = CockpitTheme.typography.bodyMedium,
                     color = Color(0xFF87929A)
                 )
             }
@@ -1120,9 +1088,8 @@ private fun TripDetailContainer(
                                 )
                                 Text(
                                     text = tab.title,
-                                    style = MaterialTheme.typography.labelMedium.copy(
+                                    style = CockpitTheme.typography.labelMedium.copy(
                                         fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                        fontSize = 14.5.sp,
                                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                                     ),
                                     color = if (isSelected) Color.White else Color(0xFF87929A)
@@ -1138,9 +1105,7 @@ private fun TripDetailContainer(
                     ) {
                         Text(
                             text = "${NumberFormatUtils.formatDistanceWithUnit(trip.distanceMeters / 1000.0, 2)} • ${NumberFormatUtils.formatSpeedWithUnit(trip.avgSpeedKmh, 2)}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.5.sp,
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color(0xFF38BDF8)
@@ -1341,9 +1306,8 @@ private fun TripMapReplayView(
                             PlaybackStatus.COMPLETED -> "FINISHED"
                             PlaybackStatus.STOPPED -> "READY"
                         },
-                        style = MaterialTheme.typography.labelSmall.copy(
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 8.5.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = statusDotColor
@@ -1351,9 +1315,7 @@ private fun TripMapReplayView(
 
                     Text(
                         text = "• ${NumberFormatUtils.formatSpeedWithUnit(currentPt?.speedKmh ?: 0f, 2)}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 9.sp,
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color.White
@@ -1361,8 +1323,7 @@ private fun TripMapReplayView(
 
                     Text(
                         text = "• ${formatDurationShort(elapsedMs)} / ${formatDurationShort(totalDurationMs)}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF87929A)
@@ -1429,8 +1390,7 @@ private fun TripMapReplayView(
                                     PlaybackStatus.COMPLETED -> "Replay"
                                     PlaybackStatus.STOPPED -> "Play"
                                 },
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
+                                style = CockpitTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                             )
                         }
 
@@ -1441,8 +1401,7 @@ private fun TripMapReplayView(
                         ) {
                             Text(
                                 text = "Pt ${currentIndex + 1}/${points.size}",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 9.5.sp,
+                                style = CockpitTheme.typography.labelSmall.copy(
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFF87929A)
@@ -1459,9 +1418,8 @@ private fun TripMapReplayView(
                             ) {
                                 Text(
                                     text = "${playbackSpeed.toInt()}x Speed",
-                                    style = MaterialTheme.typography.labelSmall.copy(
+                                    style = CockpitTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 9.5.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF38BDF8)
@@ -1557,25 +1515,21 @@ private fun TripTimelineView(
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
                                     text = event.title,
-                                    style = MaterialTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 13.sp
+                                    style = CockpitTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Black
                                     ),
                                     color = Color.White
                                 )
                                 Text(
                                     text = event.description,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 11.sp
-                                    ),
+                                    style = CockpitTheme.typography.bodySmall,
                                     color = Color(0xFF94A3B8)
                                 )
                             }
 
                             Text(
                                 text = timeStr,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 10.5.sp,
+                                style = CockpitTheme.typography.labelSmall.copy(
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = event.accentColor
@@ -1634,18 +1588,15 @@ private fun TripChartsView(
                     ) {
                         Text(
                             text = "SPEED VS TIME PROFILE",
-                            style = MaterialTheme.typography.labelSmall.copy(
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 9.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF38BDF8)
                         )
                         Text(
                             text = "Peak: ${NumberFormatUtils.formatSpeedWithUnit(trip.maxSpeedKmh, 2)}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color.White
@@ -1681,18 +1632,15 @@ private fun TripChartsView(
                     ) {
                         Text(
                             text = "MOVING TIME VS IDLE TIME",
-                            style = MaterialTheme.typography.labelSmall.copy(
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 9.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFFF59E0B)
                         )
                         Text(
                             text = if (engineOffMs >= 300_000L) "Moving $movingPct% • Idle $idlePct% • Parked $engineOffPct%" else "Moving $movingPct% • Idle $idlePct%",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color.White
@@ -1738,18 +1686,18 @@ private fun TripChartsView(
                     ) {
                         Text(
                             text = "🟢 Moving: ${com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(movingMs)}",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                            style = CockpitTheme.typography.bodySmall,
                             color = Color(0xFF10B981)
                         )
                         Text(
                             text = "🟡 Idle: ${com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(idleMs)}",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                            style = CockpitTheme.typography.bodySmall,
                             color = Color(0xFFF59E0B)
                         )
                         if (engineOffMs >= 300_000L) {
                             Text(
                                 text = "⚪ Parked: ${com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(engineOffMs)}",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                style = CockpitTheme.typography.bodySmall,
                                 color = Color(0xFF94A3B8)
                             )
                         }
@@ -1775,9 +1723,8 @@ private fun TripChartsView(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = "SPEED DISTRIBUTION BANDS",
-                        style = MaterialTheme.typography.labelSmall.copy(
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 9.5.sp,
                             letterSpacing = 0.5.sp
                         ),
                         color = Color(0xFFA855F7)
@@ -1799,17 +1746,13 @@ private fun TripChartsView(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = band.label,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold
-                                        ),
+                                        style = CockpitTheme.typography.labelSmall,
                                         color = Color(0xFF87929A)
                                     )
                                     Text(
                                         text = "${band.percent}%",
-                                        style = MaterialTheme.typography.titleSmall.copy(
+                                        style = CockpitTheme.typography.titleSmall.copy(
                                             fontWeight = FontWeight.Black,
-                                            fontSize = 14.sp,
                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                         ),
                                         color = band.color
@@ -1840,9 +1783,8 @@ private fun TripChartsView(
                     Column {
                         Text(
                             text = "ESTIMATED FUEL CONSUMPTION",
-                            style = MaterialTheme.typography.labelSmall.copy(
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 9.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF38BDF8)
@@ -1850,9 +1792,7 @@ private fun TripChartsView(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = if (trip.estimatedFuelLiters > 0) "${NumberFormatUtils.formatFuelLiters(trip.estimatedFuelLiters, 2)} Liters (~${NumberFormatUtils.formatCurrencyWithSymbol(trip.estimatedFuelLiters * 96.5, 2)})" else "-- Liters",
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.5.sp,
+                            style = CockpitTheme.typography.titleSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = Color.White
@@ -1869,9 +1809,8 @@ private fun TripChartsView(
                         ) {
                             Text(
                                 text = "⚡ ${NumberFormatUtils.formatMileageWithUnit(trip.calculatedMileageKmpl, 2)}",
-                                style = MaterialTheme.typography.labelSmall.copy(
+                                style = CockpitTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 11.sp,
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
                                 color = Color(0xFF10B981)
@@ -2833,9 +2772,7 @@ private fun PillBadge(text: String, color: Color) {
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 9.sp,
+            style = CockpitTheme.typography.labelSmall.copy(
                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
             ),
             color = color

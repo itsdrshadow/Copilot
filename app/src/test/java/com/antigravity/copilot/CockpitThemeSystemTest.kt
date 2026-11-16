@@ -78,4 +78,81 @@ class CockpitThemeSystemTest {
         // Resolves safely to default APEX without crashing
         assertEquals(CockpitThemeMode.APEX, corruptedState.cockpitThemeMode)
     }
+
+    @Test
+    fun testCentralizedTypographySystemTokens() {
+        // 14 Semantic Text Styles Specification Verification
+        assertEquals(82f, AutomotiveTypographyTokens.DisplayLarge.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveTypographyTokens.DisplayLarge.fontWeight)
+        assertEquals("tnum", AutomotiveTypographyTokens.DisplayLarge.fontFeatureSettings)
+
+        assertEquals(48f, AutomotiveTypographyTokens.DisplayMedium.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveTypographyTokens.DisplayMedium.fontWeight)
+        assertEquals("tnum", AutomotiveTypographyTokens.DisplayMedium.fontFeatureSettings)
+
+        assertEquals(34f, AutomotiveTypographyTokens.DisplaySmall.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveTypographyTokens.DisplaySmall.fontWeight)
+        assertEquals("tnum", AutomotiveTypographyTokens.DisplaySmall.fontFeatureSettings)
+
+        assertEquals(24f, AutomotiveTypographyTokens.HeadlineLarge.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveTypographyTokens.HeadlineLarge.fontWeight)
+
+        assertEquals(20f, AutomotiveTypographyTokens.HeadlineMedium.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.HeadlineMedium.fontWeight)
+
+        assertEquals(17f, AutomotiveTypographyTokens.HeadlineSmall.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.HeadlineSmall.fontWeight)
+
+        assertEquals(19f, AutomotiveTypographyTokens.TitleLarge.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.TitleLarge.fontWeight)
+
+        assertEquals(16.5f, AutomotiveTypographyTokens.TitleMedium.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.SemiBold, AutomotiveTypographyTokens.TitleMedium.fontWeight)
+
+        assertEquals(15f, AutomotiveTypographyTokens.TitleSmall.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.SemiBold, AutomotiveTypographyTokens.TitleSmall.fontWeight)
+
+        assertEquals(16f, AutomotiveTypographyTokens.BodyLarge.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Normal, AutomotiveTypographyTokens.BodyLarge.fontWeight)
+
+        assertEquals(14.5f, AutomotiveTypographyTokens.BodyMedium.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Normal, AutomotiveTypographyTokens.BodyMedium.fontWeight)
+
+        assertEquals(13f, AutomotiveTypographyTokens.BodySmall.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Normal, AutomotiveTypographyTokens.BodySmall.fontWeight)
+
+        assertEquals(15f, AutomotiveTypographyTokens.LabelLarge.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.LabelLarge.fontWeight)
+
+        assertEquals(14.5f, AutomotiveTypographyTokens.LabelMedium.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.LabelMedium.fontWeight)
+
+        assertEquals(13f, AutomotiveTypographyTokens.LabelSmall.fontSize.value, 0.01f)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.LabelSmall.fontWeight)
+    }
+
+    @Test
+    fun testNumericTypographyAndTabularNumerals() {
+        assertEquals(82f, AutomotiveTypographyTokens.DisplayLarge.fontSize.value, 0.01f)
+        assertEquals("tnum", AutomotiveTypographyTokens.DisplayLarge.fontFeatureSettings)
+
+        assertEquals(62f, AutomotiveTypographyTokens.NumericClock.fontSize.value, 0.01f)
+        assertEquals("tnum", AutomotiveTypographyTokens.NumericClock.fontFeatureSettings)
+
+        assertEquals(38f, AutomotiveTypographyTokens.NumericFuelLiters.fontSize.value, 0.01f)
+        assertEquals("tnum", AutomotiveTypographyTokens.NumericFuelLiters.fontFeatureSettings)
+
+        assertEquals(32f, AutomotiveTypographyTokens.NumericOdometer.fontSize.value, 0.01f)
+        assertEquals("tnum", AutomotiveTypographyTokens.NumericOdometer.fontFeatureSettings)
+    }
+
+    @Test
+    fun testCockpitNavigationArchitectureContracts() {
+        val tabs = com.antigravity.copilot.core.navigation.CockpitTab.values()
+        assertEquals(4, tabs.size)
+        assertTrue(tabs.contains(com.antigravity.copilot.core.navigation.CockpitTab.COCKPIT))
+        assertTrue(tabs.contains(com.antigravity.copilot.core.navigation.CockpitTab.FULL_MAP))
+        assertTrue(tabs.contains(com.antigravity.copilot.core.navigation.CockpitTab.TRIP_HISTORY))
+        assertTrue(tabs.contains(com.antigravity.copilot.core.navigation.CockpitTab.FUEL_HISTORY))
+    }
 }

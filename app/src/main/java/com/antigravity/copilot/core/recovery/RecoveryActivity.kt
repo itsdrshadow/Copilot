@@ -151,9 +151,8 @@ private fun RecoveryScreen(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "EMERGENCY SYSTEM RECOVERY",
-                                style = MaterialTheme.typography.titleMedium.copy(
+                                style = CockpitTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 16.sp,
                                     letterSpacing = 0.5.sp
                                 ),
                                 color = Color.White
@@ -167,17 +166,14 @@ private fun RecoveryScreen(
                             ) {
                                 Text(
                                     text = "$crashCount FAILURES DETECTED",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp
-                                    ),
+                                    style = CockpitTheme.typography.labelSmall,
                                     color = Cockpit_RedAlert
                                 )
                             }
                         }
                         Text(
                             text = "Repeated crash loop intercepted. Vehicle safety guaranteed via stock launcher fallback.",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp),
+                            style = CockpitTheme.typography.bodySmall,
                             color = Cockpit_TextSecondary
                         )
                     }
@@ -190,10 +186,9 @@ private fun RecoveryScreen(
                 ) {
                     Text(
                         text = if (isCountdownPaused) "AUTO-FALLBACK PAUSED" else "AUTO-FALLBACK: ${countdownSeconds}s",
-                        style = MaterialTheme.typography.labelMedium.copy(
+                        style = CockpitTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp
+                            fontFamily = FontFamily.Monospace
                         ),
                         color = if (isCountdownPaused) Cockpit_AmberWarning else Cockpit_Cyan
                     )
@@ -209,7 +204,7 @@ private fun RecoveryScreen(
                     ) {
                         Text(
                             text = if (isCountdownPaused) "RESUME" else "PAUSE",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                            style = CockpitTheme.typography.labelSmall,
                             color = Color.White
                         )
                     }
@@ -252,12 +247,12 @@ private fun RecoveryScreen(
                             Column {
                                 Text(
                                     text = "Telemetry & Fuel Database Intact",
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, fontSize = 12.5.sp),
+                                    style = CockpitTheme.typography.titleSmall,
                                     color = Color.White
                                 )
                                 Text(
                                     text = "All fuel records, odometer baseline and completed trips are securely preserved in permanent SQLite storage.",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.5.sp, lineHeight = 14.sp),
+                                    style = CockpitTheme.typography.bodySmall,
                                     color = Cockpit_TextSecondary
                                 )
                             }
@@ -285,9 +280,8 @@ private fun RecoveryScreen(
                             ) {
                                 Text(
                                     text = "EXCEPTION SUMMARY",
-                                    style = MaterialTheme.typography.labelSmall.copy(
+                                    style = CockpitTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 10.5.sp,
                                         letterSpacing = 0.5.sp
                                     ),
                                     color = Cockpit_TextSecondary
@@ -299,7 +293,7 @@ private fun RecoveryScreen(
                                 ) {
                                     Text(
                                         text = if (showFullTrace) "SHOW SUMMARY" else "VIEW FULL TRACE",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                                        style = CockpitTheme.typography.labelSmall,
                                         color = Cockpit_Cyan
                                     )
                                 }
@@ -317,10 +311,8 @@ private fun RecoveryScreen(
                             ) {
                                 Text(
                                     text = if (showFullTrace) crashTrace else crashMessage,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontSize = 10.5.sp,
-                                        fontFamily = FontFamily.Monospace,
-                                        lineHeight = 14.sp
+                                    style = CockpitTheme.typography.bodySmall.copy(
+                                        fontFamily = FontFamily.Monospace
                                     ),
                                     color = if (showFullTrace) Color(0xFFCBD5E1) else Cockpit_RedAlert
                                 )
@@ -358,16 +350,15 @@ private fun RecoveryScreen(
                             Column {
                                 Text(
                                     text = "LAUNCH BLAUPUNKT STOCK LAUNCHER",
-                                    style = MaterialTheme.typography.labelLarge.copy(
+                                    style = CockpitTheme.typography.labelLarge.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 13.sp,
                                         letterSpacing = 0.5.sp
                                     ),
                                     color = Color.Black
                                 )
                                 Text(
                                     text = "Instant 1-tap fallback to factory OEM interface",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.5.sp),
+                                    style = CockpitTheme.typography.labelSmall,
                                     color = Color(0xFF003847)
                                 )
                             }
@@ -397,9 +388,7 @@ private fun RecoveryScreen(
                             )
                             Text(
                                 text = "RESTORE BLAUPUNKT AS DEFAULT HOME",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                style = CockpitTheme.typography.labelMedium.copy(
                                     color = Color.White
                                 )
                             )
@@ -427,9 +416,7 @@ private fun RecoveryScreen(
                             )
                             Text(
                                 text = "RESTART COPILOT IN SAFE MODE",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                style = CockpitTheme.typography.labelMedium.copy(
                                     color = Cockpit_GreenEco
                                 )
                             )
@@ -459,9 +446,7 @@ private fun RecoveryScreen(
                             )
                             Text(
                                 text = "REBOOT INFOTAINMENT UNIT",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.5.sp,
+                                style = CockpitTheme.typography.labelMedium.copy(
                                     color = Cockpit_AmberWarning
                                 )
                             )

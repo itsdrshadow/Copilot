@@ -114,7 +114,7 @@ fun IndiaOfflineMapDialog(
                                 .border(1.2.dp, Cockpit_Cyan, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "🇮🇳", fontSize = 22.sp)
+                            Text(text = "🇮🇳", style = CockpitTheme.typography.headlineLarge)
                         }
                         Column {
                             Row(
@@ -123,9 +123,7 @@ fun IndiaOfflineMapDialog(
                             ) {
                                 Text(
                                     text = "India HD Offline Road Map System",
-                                    style = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 20.sp,
+                                    style = CockpitTheme.typography.headlineLarge.copy(
                                         letterSpacing = (-0.5).sp
                                     ),
                                     color = Color.White
@@ -139,9 +137,7 @@ fun IndiaOfflineMapDialog(
                                 ) {
                                     Text(
                                         text = "HD ROADMAP ENGINE",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 9.5.sp,
+                                        style = CockpitTheme.typography.labelSmall.copy(
                                             letterSpacing = 0.5.sp
                                         ),
                                         color = Cockpit_Cyan
@@ -150,10 +146,7 @@ fun IndiaOfflineMapDialog(
                             }
                             Text(
                                 text = "Permanent Offline SQLite Storage • Auto-Resumes on Internet • High-Contrast Clear Road Network",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Normal
-                                ),
+                                style = CockpitTheme.typography.bodySmall,
                                 color = Cockpit_TextSecondary
                             )
                         }
@@ -215,9 +208,7 @@ fun IndiaOfflineMapDialog(
                                 ) {
                                     Text(
                                         text = "MASTER STATUS",
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 11.sp,
+                                        style = CockpitTheme.typography.labelSmall.copy(
                                             letterSpacing = 1.sp
                                         ),
                                         color = Cockpit_TextSecondary
@@ -232,10 +223,8 @@ fun IndiaOfflineMapDialog(
                                     ) {
                                         Text(
                                             text = "STORAGE: ${OfflineMapManager.formatCacheSize(totalStorageBytes)} / 10 GB MAX",
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp,
-                                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                            style = CockpitTheme.typography.labelSmall.copy(
+                                                fontFeatureSettings = "tnum"
                                             ),
                                             color = Cockpit_Cyan
                                         )
@@ -269,9 +258,8 @@ fun IndiaOfflineMapDialog(
                                     )
                                     Text(
                                         text = statusText,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.5.sp
+                                        style = CockpitTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Bold
                                         ),
                                         color = statusColor
                                     )
@@ -299,17 +287,15 @@ fun IndiaOfflineMapDialog(
                                         ) {
                                             Text(
                                                 text = "$currentTiles / $totalTiles tiles ($progressPercent%)",
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 11.5.sp,
-                                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                                style = CockpitTheme.typography.labelSmall.copy(
+                                                    fontFeatureSettings = "tnum"
                                                 ),
                                                 color = Color.White
                                             )
                                             Text(
                                                 text = "${NumberFormatUtils.formatPrecision(speedKbs, 2)} KB/s",
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontSize = 11.5.sp,
-                                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                                                style = CockpitTheme.typography.labelSmall.copy(
+                                                    fontFeatureSettings = "tnum"
                                                 ),
                                                 color = Cockpit_TextSecondary
                                             )
@@ -321,10 +307,7 @@ fun IndiaOfflineMapDialog(
                                             "All national highways, arterial expressways and major cities are cached permanently in local SQLite storage. Maps work seamlessly with full clarity without cellular coverage."
                                         else
                                             "Download the complete India offline map pack to travel anywhere across states and national highways without cellular connection.",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 12.sp,
-                                            lineHeight = 17.sp
-                                        ),
+                                        style = CockpitTheme.typography.bodySmall,
                                         color = Cockpit_TextSecondary
                                     )
                                 }
@@ -360,9 +343,8 @@ fun IndiaOfflineMapDialog(
                                         }
                                         Text(
                                             text = buttonText,
-                                            style = MaterialTheme.typography.labelLarge.copy(
+                                            style = CockpitTheme.typography.labelLarge.copy(
                                                 fontWeight = FontWeight.Black,
-                                                fontSize = 12.5.sp,
                                                 letterSpacing = 0.5.sp,
                                                 color = Color.Black
                                             )
@@ -390,9 +372,7 @@ fun IndiaOfflineMapDialog(
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
                                                 text = "CHECKING FOR UPDATES...",
-                                                style = MaterialTheme.typography.labelMedium.copy(
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 12.sp,
+                                                style = CockpitTheme.typography.labelMedium.copy(
                                                     letterSpacing = 0.5.sp,
                                                     color = Cockpit_Cyan
                                                 )
@@ -410,9 +390,7 @@ fun IndiaOfflineMapDialog(
                                                 )
                                                 Text(
                                                     text = "CHECK FOR MAP UPDATES",
-                                                    style = MaterialTheme.typography.labelMedium.copy(
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 12.sp,
+                                                    style = CockpitTheme.typography.labelMedium.copy(
                                                         letterSpacing = 0.5.sp,
                                                         color = Color.White
                                                     )
@@ -443,8 +421,7 @@ fun IndiaOfflineMapDialog(
                                                 )
                                                 Text(
                                                     text = updateStatusMessage ?: "",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontSize = 11.sp,
+                                                    style = CockpitTheme.typography.labelSmall.copy(
                                                         fontWeight = FontWeight.Medium
                                                     ),
                                                     color = Color(0xFFE2E8F0)
@@ -480,18 +457,12 @@ fun IndiaOfflineMapDialog(
                                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     Text(
                                         text = "Whole India Offline Archive (.mbtiles / .sqlite)",
-                                        style = MaterialTheme.typography.titleSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
-                                        ),
+                                        style = CockpitTheme.typography.titleSmall,
                                         color = Color.White
                                     )
                                     Text(
                                         text = "You can also copy pre-downloaded nationwide Road Map MBTiles or SQLite archives into the '/osmdroid/' folder. Auto-detected and mounted instantly without downloading over mobile internet.",
-                                        style = MaterialTheme.typography.bodySmall.copy(
-                                            fontSize = 10.5.sp,
-                                            lineHeight = 14.5.sp
-                                        ),
+                                        style = CockpitTheme.typography.bodySmall,
                                         color = Cockpit_TextSecondary
                                     )
                                 }
@@ -513,9 +484,7 @@ fun IndiaOfflineMapDialog(
                         ) {
                             Text(
                                 text = "REGIONAL HIGHWAY & ARTERIAL PACKS",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 11.sp,
+                                style = CockpitTheme.typography.labelSmall.copy(
                                     letterSpacing = 1.sp
                                 ),
                                 color = Cockpit_TextSecondary
@@ -529,9 +498,7 @@ fun IndiaOfflineMapDialog(
                             ) {
                                 Text(
                                     text = "${downloadedRegions.size} of ${IndiaOfflineMapManager.INDIA_REGIONS.size} INSTALLED",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
+                                    style = CockpitTheme.typography.labelSmall.copy(
                                         letterSpacing = 0.5.sp
                                     ),
                                     color = if (downloadedRegions.size == IndiaOfflineMapManager.INDIA_REGIONS.size) Cockpit_GreenEco else Cockpit_Cyan
@@ -601,9 +568,8 @@ private fun RegionalPackCard(
                 ) {
                     Text(
                         text = region.name,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.5.sp
+                        style = CockpitTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold
                         ),
                         color = Color.White
                     )
@@ -617,10 +583,8 @@ private fun RegionalPackCard(
                     ) {
                         Text(
                             text = "Z${region.minZoom}-Z${region.maxZoom}",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.5.sp,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                            style = CockpitTheme.typography.labelSmall.copy(
+                                fontFeatureSettings = "tnum"
                             ),
                             color = Cockpit_Cyan
                         )
@@ -641,10 +605,8 @@ private fun RegionalPackCard(
                     ) {
                         Text(
                             text = sizeLabel,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 9.5.sp,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                            style = CockpitTheme.typography.labelSmall.copy(
+                                fontFeatureSettings = "tnum"
                             ),
                             color = Cockpit_TextSecondary
                         )
@@ -653,10 +615,7 @@ private fun RegionalPackCard(
 
                 Text(
                     text = region.description,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 11.5.sp,
-                        lineHeight = 15.sp
-                    ),
+                    style = CockpitTheme.typography.bodySmall,
                     color = Cockpit_TextSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -686,9 +645,7 @@ private fun RegionalPackCard(
                         )
                         Text(
                             text = "INSTALLED",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 10.sp,
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 letterSpacing = 0.5.sp
                             ),
                             color = Cockpit_GreenEco

@@ -94,9 +94,7 @@ fun RefuelStationPromptDialog(
                                 ) {
                                     Text(
                                         text = "FUEL STATION DETECTED",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 9.sp,
+                                        style = CockpitTheme.typography.labelSmall.copy(
                                             letterSpacing = 0.5.sp
                                         ),
                                         color = CockpitTheme.colors.accent
@@ -104,9 +102,8 @@ fun RefuelStationPromptDialog(
                                 }
                                 Text(
                                     text = "Did you refuel here?",
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 18.sp
+                                    style = CockpitTheme.typography.headlineSmall.copy(
+                                        fontWeight = FontWeight.Black
                                     ),
                                     color = CockpitTheme.colors.textPrimary
                                 )
@@ -149,9 +146,8 @@ fun RefuelStationPromptDialog(
                             Column {
                                 Text(
                                     text = promptData.locationName.ifBlank { "Fuel Station Nearby" },
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
+                                    style = CockpitTheme.typography.titleSmall.copy(
+                                        fontWeight = FontWeight.Bold
                                     ),
                                     color = CockpitTheme.colors.textPrimary
                                 )
@@ -161,22 +157,18 @@ fun RefuelStationPromptDialog(
                                 ) {
                                     Text(
                                         text = "Odometer: ${NumberFormatUtils.formatOdometer(promptData.currentOdometerKm, 2)} km",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontSize = 12.sp,
-                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                        style = CockpitTheme.typography.bodySmall.copy(
                                             fontFeatureSettings = "tnum"
                                         ),
                                         color = CockpitTheme.colors.textSecondary
                                     )
-                                    Text("•", color = CockpitTheme.colors.textDisabled, fontSize = 11.sp)
+                                    Text("•", color = CockpitTheme.colors.textDisabled, style = CockpitTheme.typography.bodySmall)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.Schedule, contentDescription = null, tint = CockpitTheme.colors.textSecondary, modifier = Modifier.size(12.dp))
                                         Spacer(Modifier.width(3.dp))
                                         Text(
                                             text = formattedTime,
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontSize = 12.sp,
-                                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                                            style = CockpitTheme.typography.bodySmall.copy(
                                                 fontFeatureSettings = "tnum"
                                             ),
                                             color = CockpitTheme.colors.textSecondary
@@ -189,10 +181,7 @@ fun RefuelStationPromptDialog(
 
                     Text(
                         text = "Vehicle has been stationary for over 30 seconds at this fuel station. Would you like to log this refill now?",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Normal
-                        ),
+                        style = CockpitTheme.typography.bodyMedium,
                         color = CockpitTheme.colors.textSecondary,
                         textAlign = TextAlign.Center
                     )
@@ -212,8 +201,7 @@ fun RefuelStationPromptDialog(
                         ) {
                             Text(
                                 "Dismiss",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp,
+                                style = CockpitTheme.typography.labelSmall,
                                 color = CockpitTheme.colors.textSecondary
                             )
                         }
@@ -231,8 +219,7 @@ fun RefuelStationPromptDialog(
                         ) {
                             Text(
                                 "Not Now",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
+                                style = CockpitTheme.typography.labelSmall
                             )
                         }
 
@@ -255,8 +242,7 @@ fun RefuelStationPromptDialog(
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(
                                 "Yes, Add Fuel",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 13.sp
+                                style = CockpitTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black)
                             )
                         }
                     }

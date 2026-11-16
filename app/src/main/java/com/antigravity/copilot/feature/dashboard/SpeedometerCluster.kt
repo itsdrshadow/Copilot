@@ -249,10 +249,9 @@ fun SpeedometerCluster(
                     }
                     Text(
                         text = "SPEEDOMETER",
-                        style = MaterialTheme.typography.labelMedium.copy(
+                        style = CockpitTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 1.1.sp,
-                            fontSize = 14.5.sp
+                            letterSpacing = 1.1.sp
                         ),
                         color = textSecondary
                     )
@@ -269,9 +268,8 @@ fun SpeedometerCluster(
                     ) {
                         Text(
                             text = "$speedLimit",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                fontSize = 16.sp
+                            style = CockpitTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Black
                             ),
                             color = Color.Black
                         )
@@ -370,20 +368,14 @@ fun SpeedometerCluster(
                 ) {
                     Text(
                         text = if (!isGpsValid && animatedSpeed < 1.0f) "0" else "${animatedSpeed.roundToInt()}",
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.SansSerif,
-                            fontFeatureSettings = "tnum",
-                            fontSize = AutomotiveDesignTokens.Typography.speedValue
-                        ),
+                        style = CockpitTheme.typography.displayLarge,
                         color = textPrimary
                     )
                     Text(
                         text = "KM/H",
-                        style = MaterialTheme.typography.labelSmall.copy(
+                        style = CockpitTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 1.0.sp,
-                            fontSize = AutomotiveDesignTokens.Typography.speedUnit
+                            letterSpacing = 1.0.sp
                         ),
                         color = statusColor
                     )
@@ -433,11 +425,8 @@ fun SpeedometerCluster(
                                 rawSpeed < 1.0f -> "IDLE • 0.0 m/s²"
                                 else -> "CRUISING • STEADY"
                             },
-                            style = MaterialTheme.typography.labelMedium.copy(
+                            style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                fontFeatureSettings = "tnum",
-                                fontSize = 13.5.sp,
                                 letterSpacing = 0.4.sp
                             ),
                             maxLines = 1,
@@ -476,11 +465,9 @@ fun SpeedometerCluster(
                 ) {
                     Text(
                         text = String.format(Locale.US, "%,.1f km", currentOdometerKm),
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = CockpitTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 20.sp
+                            fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -489,10 +476,7 @@ fun SpeedometerCluster(
                     )
                     Text(
                         text = "ODOMETER",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
+                        style = CockpitTheme.typography.labelSmall,
                         maxLines = 1,
                         softWrap = false,
                         color = textSecondary
@@ -517,11 +501,9 @@ fun SpeedometerCluster(
                     val deltaText = String.format(Locale.US, "+%.1f km", deltaKmSinceCalibration.coerceAtLeast(0.0))
                     Text(
                         text = deltaText,
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = CockpitTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                            fontFeatureSettings = "tnum",
-                            fontSize = 20.sp
+                            fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -530,10 +512,7 @@ fun SpeedometerCluster(
                     )
                     Text(
                         text = "SINCE CAL.",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
+                        style = CockpitTheme.typography.labelSmall,
                         maxLines = 1,
                         softWrap = false,
                         color = textSecondary
@@ -739,17 +718,12 @@ private fun SpeedometerOdometerCalibrationDialog(
                         Column {
                             Text(
                                 text = "Calibrate Vehicle Odometer",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 21.sp
-                                ),
+                                style = CockpitTheme.typography.headlineMedium,
                                 color = CockpitTheme.colors.textPrimary
                             )
                             Text(
                                 text = "Sync with physical car dashboard cluster reading",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 13.5.sp
-                                ),
+                                style = CockpitTheme.typography.bodySmall,
                                 color = CockpitTheme.colors.textSecondary
                             )
                         }
@@ -770,11 +744,9 @@ private fun SpeedometerOdometerCalibrationDialog(
                         ) {
                             Text(
                                 text = diffText,
-                                style = MaterialTheme.typography.labelMedium.copy(
+                                style = CockpitTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                    fontFeatureSettings = "tnum",
-                                    fontSize = 14.sp
+                                    fontFeatureSettings = "tnum"
                                 ),
                                 color = diffColor
                             )
@@ -809,9 +781,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                             ) {
                                 Text(
                                     text = "ODOMETER",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 13.sp,
+                                    style = CockpitTheme.typography.labelMedium.copy(
                                         letterSpacing = 0.5.sp
                                     ),
                                     color = CockpitTheme.colors.textSecondary
@@ -819,20 +789,16 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text(
                                         text = textValue.ifEmpty { "0.0" },
-                                        style = MaterialTheme.typography.headlineLarge.copy(
-                                            fontWeight = FontWeight.Black,
-                                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                            fontFeatureSettings = "tnum",
-                                            fontSize = 32.sp
+                                        style = CockpitTheme.typography.displaySmall.copy(
+                                            fontFeatureSettings = "tnum"
                                         ),
                                         color = CockpitTheme.colors.textPrimary
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
                                         text = "KM",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 16.sp
+                                        style = CockpitTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Black
                                         ),
                                         color = CockpitTheme.colors.accent,
                                         modifier = Modifier.padding(bottom = 3.dp)
@@ -843,10 +809,7 @@ private fun SpeedometerOdometerCalibrationDialog(
 
                         Text(
                             text = "Enter physical dashboard odometer reading. GPS trip tracking and lifetime distance will automatically calibrate.",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp
-                            ),
+                            style = CockpitTheme.typography.bodySmall,
                             color = CockpitTheme.colors.textSecondary
                         )
 
@@ -854,8 +817,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                             Text(
                                 text = errorMessage ?: "",
                                 color = CockpitTheme.colors.critical,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 13.sp,
+                                style = CockpitTheme.typography.bodySmall.copy(
                                     fontWeight = FontWeight.Bold
                                 )
                             )
@@ -881,8 +843,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 Text(
                                     text = "Cancel",
                                     color = CockpitTheme.colors.textSecondary,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
+                                    style = CockpitTheme.typography.labelLarge
                                 )
                             }
 
@@ -904,8 +865,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 Text(
                                     text = "CONFIRM",
                                     color = CockpitTheme.colors.onAccent,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Black
+                                    style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black)
                                 )
                             }
                         }
@@ -1031,10 +991,7 @@ private fun OdometerTactileKeypadButton(
         } else {
             Text(
                 text = text,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Black,
-                    fontSize = 22.sp,
-                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                style = CockpitTheme.typography.headlineLarge.copy(
                     fontFeatureSettings = "tnum"
                 ),
                 color = accentColor
