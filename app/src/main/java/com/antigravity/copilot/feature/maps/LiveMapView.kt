@@ -121,23 +121,12 @@ class PulsingAuraOverlay : org.osmdroid.views.overlay.Overlay() {
         val pt = android.graphics.Point()
         mapView.projection.toPixels(current, pt)
 
-        val cycleMs = 2000L
-        val phase = (System.currentTimeMillis() % cycleMs) / cycleMs.toFloat() // 0.0f to 1.0f
-
-        val maxRadius = if (isMoving) 38f else 50f
-        val radius = 16f + phase * (maxRadius - 16f)
-        val alpha = ((1.0f - phase) * 170).toInt().coerceIn(0, 255)
-
-        auraPaint.alpha = (alpha * 0.35f).toInt()
-        ringPaint.alpha = alpha
+        val radius = if (isMoving) 28f else 24f
+        auraPaint.alpha = 50
+        ringPaint.alpha = 140
 
         canvas.drawCircle(pt.x.toFloat(), pt.y.toFloat(), radius, auraPaint)
         canvas.drawCircle(pt.x.toFloat(), pt.y.toFloat(), radius, ringPaint)
-
-        // Continuous animation loop only while active and visible
-        if (!isPaused) {
-            mapView.postInvalidateDelayed(33L)
-        }
     }
 }
 
@@ -434,6 +423,31 @@ class SmoothMapNavigator(
         val shortestDelta = (filtered.bearing - startBearing + 540f) % 360f - 180f
         val targetBearing = startBearing + shortestDelta
 
+        val latDelta = kotlin.math.abs(targetLat - startLat)
+        val lonDelta = kotlin.math.abs(targetLon - startLon)
+        val bearingDelta = kotlin.math.abs(shortestDelta)
+
+        // Stationary optimization: when parked or moving under 1.5 km/h with negligible coordinate shift,
+        // cancel any running animator and update marker statically to save CPU cycles.
+        if (targetSpeed < 1.5f && latDelta < 0.00008 && lonDelta < 0.00008 && bearingDelta < 2.5f) {
+            movementAnimator?.cancel()
+            if (latDelta > 0.000002 || lonDelta > 0.000002 || bearingDelta > 0.8f) {
+                currentLat = targetLat
+                currentLon = targetLon
+                currentBearing = (targetBearing + 360f) % 360f
+                val geo = GeoPoint(currentLat, currentLon)
+                locationMarker?.position = geo
+                locationMarker?.rotation = currentBearing
+                auraOverlay?.geoPoint = geo
+                auraOverlay?.isMoving = false
+                if (isFollowMode) {
+                    mapView.setExpectedCenter(geo)
+                }
+                mapView.postInvalidate()
+            }
+            return
+        }
+
         movementAnimator?.cancel()
 
         // Dynamically scale animation duration to GPS update cadence (~850-950ms)
@@ -691,18 +705,6 @@ fun LiveMapPanel(
     val isGpsLocked = latestPoint != null && latestPoint.latitude != 0.0 && latestPoint.longitude != 0.0
     val isVehicleMoving = (latestPoint?.speedKmh ?: 0f) > 2.0f
 
-    // Stationary Radar Pulse Animation for Top Beacon
-    val infiniteTransition = rememberInfiniteTransition(label = "RadarPulse")
-    val radarPulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 0.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "RadarAlpha"
-    )
-
     // Hardware Compass Sensor Listener
     DisposableEffect(context, isHeadingUpMode, isFollowMode) {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
@@ -745,12 +747,14 @@ fun LiveMapPanel(
                     val azimuthDeg = Math.toDegrees(orientation[0].toDouble()).toFloat()
                     val compassHeading = (azimuthDeg + 360f) % 360f
 
-                    if (kotlin.math.abs(compassHeading - lastHeading) > 1.5f) {
+                    val minDelta = if (isVehicleMoving) 2.0f else 5.0f
+                    val minInterval = if (isVehicleMoving) 80L else 500L
+                    if (kotlin.math.abs(compassHeading - lastHeading) > minDelta && (now - lastUpdateTime >= minInterval)) {
                         lastHeading = compassHeading
                         lastUpdateTime = now
                         navigator?.onCompassHeading(compassHeading, isFollowMode)
                         val newOrient = mapViewInstance?.mapOrientation ?: 0f
-                        if (kotlin.math.abs(newOrient - currentMapOrientation) > 2.5f) {
+                        if (kotlin.math.abs(newOrient - currentMapOrientation) > 3.0f) {
                             currentMapOrientation = newOrient
                         }
                     }
@@ -760,7 +764,7 @@ fun LiveMapPanel(
             override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
         }
 
-        if (rotationSensor != null) {
+        if (isHeadingUpMode && rotationSensor != null) {
             sensorManager?.registerListener(sensorListener, rotationSensor, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
@@ -835,7 +839,7 @@ fun LiveMapPanel(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                    setLayerType(View.LAYER_TYPE_NONE, null)
                     setTileSource(OfflineMapManager.NORMAL_ROADMAP_SOURCE)
                     setMultiTouchControls(true)
                     zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
@@ -928,15 +932,8 @@ fun LiveMapPanel(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Status Beacon Dot
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(
-                            (if (isGpsLocked) Cockpit_GreenEco else Cockpit_AmberWarning).copy(
-                                alpha = if (!isVehicleMoving) 0.4f + radarPulseAlpha * 0.6f else 1f
-                            )
-                        )
+                StatusBeaconDot(
+                    isGpsLocked = isGpsLocked
                 )
 
                 val statusText = when {
@@ -1177,4 +1174,17 @@ private fun AutomotiveMapButton(
                 .rotate(iconRotation)
         )
     }
+}
+
+@Composable
+private fun StatusBeaconDot(
+    isGpsLocked: Boolean
+) {
+    val dotColor = if (isGpsLocked) Cockpit_GreenEco else Cockpit_AmberWarning
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .clip(CircleShape)
+            .background(dotColor)
+    )
 }

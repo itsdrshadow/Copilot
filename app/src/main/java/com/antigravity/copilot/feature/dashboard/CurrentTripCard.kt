@@ -223,16 +223,21 @@ fun CurrentTripCard(
     val isFlashingGreen = tripVisualState.event == TripVisualLifecycleEvent.STARTED && elapsedSinceEventMs < 10_000L
     val isFlashingRed = tripVisualState.event == TripVisualLifecycleEvent.COMPLETED && elapsedSinceEventMs < 10_000L
 
-    val flashPulseTransition = rememberInfiniteTransition(label = "FlashPulse")
-    val flashPulseAlpha by flashPulseTransition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "PulseAlpha"
-    )
+    val isFlashing = isFlashingGreen || isFlashingRed
+    val flashPulseAlpha = if (isFlashing) {
+        val flashPulseTransition = rememberInfiniteTransition(label = "FlashPulse")
+        flashPulseTransition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "PulseAlpha"
+        ).value
+    } else {
+        1.0f
+    }
 
     val flashColor by animateColorAsState(
         targetValue = when {

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-11-16
+
+### Fixed
+- **Infotainment Idle CPU Consumption Reduced from ~141% to 0% – 6%**:
+  - **Eliminated Infinite Map Redraw Loop**: Removed recursive `mapView.postInvalidateDelayed(33L)` inside `PulsingAuraOverlay.draw()` that was triggering an unconstrained 30 FPS redraw loop across the entire osmdroid map canvas, forcing constant tile re-projection and color-filter execution.
+  - **Recomposition & RenderThread Decoupling**: Extracted status beacon dot into a lightweight composable (`StatusBeaconDot`) and replaced continuous 60 FPS `rememberInfiniteTransition` with a clean static beacon dot during stationary states, eliminating non-stop Choreographer vsync draw triggers on the window.
+  - **Stationary GPS Navigator Optimization**: Added stationary movement detection in `SmoothMapNavigator.updateTarget()` (detecting speed $< 1.5\text{ km/h}$ and sub-meter coordinate displacement) that cancels running 60 FPS dead-reckoning animators and updates marker position statically rather than scheduling continuous frame invalidations while parked.
+  - **Compass Sensor Event Throttling**: Throttled hardware rotation sensor updates in `LiveMapView` while stationary ($500\text{ms}$ interval with $\ge 5^\circ$ deadband) and restricted sensor listener registration strictly to active `isHeadingUpMode`, preventing sensor noise from triggering redundant map orientation redraws and recompositions.
+  - **Layer Type Optimization**: Switched osmdroid `MapView` from offscreen `LAYER_TYPE_HARDWARE` to `LAYER_TYPE_NONE`, eliminating intermediate framebuffer texture allocation and double-buffering overhead on `RenderThread`.
+  - **Conditional Trip Flash Transition**: Guarded `flashPulseTransition` in `CurrentTripCard` to only instantiate and tick during active trip lifecycle events (`isFlashingGreen || isFlashingRed`), keeping the Compose animation clock completely idle during normal driving and parked states.
+
 ## [1.35.0] - 2026-11-16
 
 ### Added
