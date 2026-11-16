@@ -2488,9 +2488,9 @@ fun TripPlaybackMapView(
                 )
                 setMultiTouchControls(true)
                 minZoomLevel = 0.0
-                maxZoomLevel = 13.0
+                maxZoomLevel = 20.0
                 zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-                setTileSource(OfflineMapManager.SATELLITE_SOURCE)
+                setTileSource(OfflineMapManager.NORMAL_ROADMAP_SOURCE)
                 overlayManager.tilesOverlay.setColorFilter(null)
 
                 // Background route line (High contrast against photorealistic satellite)

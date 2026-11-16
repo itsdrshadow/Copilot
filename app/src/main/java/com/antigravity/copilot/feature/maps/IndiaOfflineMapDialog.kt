@@ -122,7 +122,7 @@ fun IndiaOfflineMapDialog(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Text(
-                                    text = "India HD Satellite Offline Map System",
+                                    text = "India HD Offline Road Map System",
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 20.sp,
@@ -138,7 +138,7 @@ fun IndiaOfflineMapDialog(
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text(
-                                        text = "HD SATELLITE ENGINE",
+                                        text = "HD ROADMAP ENGINE",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 9.5.sp,
@@ -149,7 +149,7 @@ fun IndiaOfflineMapDialog(
                                 }
                             }
                             Text(
-                                text = "Permanent Offline SQLite Storage • Auto-Resumes on Internet • High-Resolution Satellite Hybrid",
+                                text = "Permanent Offline SQLite Storage • Auto-Resumes on Internet • High-Contrast Clear Road Network",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Normal
@@ -487,7 +487,7 @@ fun IndiaOfflineMapDialog(
                                         color = Color.White
                                     )
                                     Text(
-                                        text = "You can also copy pre-downloaded nationwide Satellite MBTiles or SQLite archives into the '/osmdroid/' folder. Auto-detected and mounted instantly without downloading over mobile internet.",
+                                        text = "You can also copy pre-downloaded nationwide Road Map MBTiles or SQLite archives into the '/osmdroid/' folder. Auto-detected and mounted instantly without downloading over mobile internet.",
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontSize = 10.5.sp,
                                             lineHeight = 14.5.sp

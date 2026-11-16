@@ -9,18 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- **Locked Interactive Map Zoom Range (Z0 - Z13)**:
-  - Strictly locked interactive MapView zoom level between `0.0` and `13.0` (`minZoomLevel = 0.0`, `maxZoomLevel = 13.0`) across `LiveMapView`, `TripPlaybackMapView`, and `GeofenceMiniMapView`.
-  - Added real-time `MapListener` zoom clamping in `LiveMapView` to safeguard pinch gestures, double taps, and controller animations from exceeding Zoom 13 or dropping below Zoom 0.
-  - Adjusted initial driving camera focus zoom to 13.0 to align seamlessly with offline high-definition satellite tile coverage.
-- **Curated Offline Map Zoom Ranges**:
-  - Set `All-India Satellite Arterials HD` (`india_national`) to strictly Zoom 0 through Zoom 11 (`minZoom = 0`, `maxZoom = 11`, ~1288 MB) for continental highways, expressways, and major city corridors.
-  - Set all regional map packs (`india_central`, `india_north`, `india_west`, `india_south`, `india_east`) to strictly Zoom 0 through Zoom 13 (`minZoom = 0`, `maxZoom = 13`) for state corridors, district headquarters, and regional arterial bypasses.
-  - Updated region download logic in `IndiaOfflineMapManager` to download up to each pack's defined `maxZoom`.
+### Added
+- **High-Contrast Normal Road Map Engine (`Google_Roadmap`)**: Added `OfflineMapManager.NORMAL_ROADMAP_SOURCE` delivering high-contrast vector-styled road tiles with clear highways, local streets, road names, and town labels, replacing dark satellite imagery for superior driving legibility.
 
-### Removed
-- **Redundant Download Resolution Profiles**: Removed higher zoom presets (`Z0-Z15`, `Z0-Z17`, `Z0-Z20 MAX`) and manual zoom selector from `IndiaOfflineMapDialog`, ensuring lean storage usage and preventing device memory exhaustion from excessive tile downloads.
+### Changed
+- **Switched to Normal Road Map System**:
+  - Replaced satellite imagery with standard high-visibility road map tiles across `LiveMapView`, `TripPlaybackMapView`, `GeofenceMiniMapView`, and `IndiaOfflineMapManager`.
+  - Updated offline map download tile pipeline to stream Google Normal Road Map tiles with fallback to OpenStreetMap Mapnik and Humanitarian HOT tiles.
+  - Updated `IndiaOfflineMapDialog` branding and headers to "India HD Offline Road Map System".
+- **Unlocked Full Optical Zoom Spectrum (Zoom 0 to Max 20)**:
+  - Removed the temporary Zoom 13 limit; set `minZoomLevel = 0.0` and `maxZoomLevel = 20.0` across all map views.
+  - Restored standard driving camera focus zoom to 17.5 for crisp street and junction navigation.
+  - Enabled unrestricted pinch-to-zoom and button zooming across the entire zoom range.
 
 ## [1.34.0] - 2026-11-15
 

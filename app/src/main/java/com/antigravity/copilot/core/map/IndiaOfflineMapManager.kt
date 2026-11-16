@@ -85,17 +85,17 @@ object IndiaOfflineMapManager {
     }
 
     const val MIN_POSSIBLE_ZOOM = 0
-    const val MAX_POSSIBLE_ZOOM = 13
-    const val DEFAULT_MAX_ZOOM = 13
+    const val MAX_POSSIBLE_ZOOM = 20
+    const val DEFAULT_MAX_ZOOM = 16
 
-    // Tiered Geographic Partitioning of India (High-Resolution Satellite HD Imagery)
+    // Tiered Geographic Partitioning of India (High-Resolution Clear Road Map Imagery)
     val INDIA_REGIONS = listOf(
         RegionPack(
             id = "india_national",
-            name = "All-India Satellite Arterials HD",
-            description = "Subcontinent highways, expressways, state corridors & cities (Zooms 0-11)",
+            name = "All-India Road Map (National Highways)",
+            description = "Complete India national highway network, expressways, state corridors & city networks (Zooms 0-14)",
             minZoom = 0,
-            maxZoom = 11,
+            maxZoom = 14,
             north = 37.5,
             east = 97.5,
             south = 6.5,
@@ -104,10 +104,10 @@ object IndiaOfflineMapManager {
         ),
         RegionPack(
             id = "india_central",
-            name = "Central India HD Satellite (CG & MP)",
-            description = "Raipur, Bilaspur, Durg, Bhilai, Bhopal, Indore high-res satellite (Zooms 0-13)",
+            name = "Central India Road Map (CG & MP)",
+            description = "Raipur, Bilaspur, Durg, Bhilai, Bhopal, Indore street & road network (Zooms 0-16)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 16,
             north = 24.5,
             east = 84.5,
             south = 17.5,
@@ -116,10 +116,10 @@ object IndiaOfflineMapManager {
         ),
         RegionPack(
             id = "india_north",
-            name = "North India HD Satellite (Delhi NCR & North)",
-            description = "Delhi, Punjab, Haryana, UP, Rajasthan, UK, HP high-res satellite (Zooms 0-13)",
+            name = "North India Road Map (Delhi NCR & North)",
+            description = "Delhi, Punjab, Haryana, UP, Rajasthan, UK, HP street & road network (Zooms 0-16)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 16,
             north = 37.5,
             east = 84.5,
             south = 26.5,
@@ -128,10 +128,10 @@ object IndiaOfflineMapManager {
         ),
         RegionPack(
             id = "india_west",
-            name = "West India HD Satellite (MH & Gujarat)",
-            description = "Mumbai, Pune, Ahmedabad, Surat, Goa high-res satellite (Zooms 0-13)",
+            name = "West India Road Map (MH & Gujarat)",
+            description = "Mumbai, Pune, Ahmedabad, Surat, Goa street & road network (Zooms 0-16)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 16,
             north = 24.5,
             east = 74.5,
             south = 15.5,
@@ -140,10 +140,10 @@ object IndiaOfflineMapManager {
         ),
         RegionPack(
             id = "india_south",
-            name = "South India HD Satellite (KA, TN, KL, AP, TS)",
-            description = "Bengaluru, Hyderabad, Chennai, Kochi, Coimbatore high-res satellite (Zooms 0-13)",
+            name = "South India Road Map (KA, TN, KL, AP, TS)",
+            description = "Bengaluru, Hyderabad, Chennai, Kochi, Coimbatore street & road network (Zooms 0-16)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 16,
             north = 19.0,
             east = 80.5,
             south = 8.0,
@@ -152,10 +152,10 @@ object IndiaOfflineMapManager {
         ),
         RegionPack(
             id = "india_east",
-            name = "East & NE India HD Satellite",
-            description = "Kolkata, Bhubaneswar, Patna, Guwahati & NE highways (Zooms 0-13)",
+            name = "East & NE India Road Map",
+            description = "Kolkata, Bhubaneswar, Patna, Guwahati & NE road network (Zooms 0-16)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 16,
             north = 28.5,
             east = 97.5,
             south = 20.0,
@@ -429,7 +429,7 @@ object IndiaOfflineMapManager {
         if (_isCheckingUpdates.value) return
         scope.launch {
             _isCheckingUpdates.value = true
-            _updateStatusMessage.value = "Checking Satellite tile servers..."
+            _updateStatusMessage.value = "Checking Road Map tile servers..."
 
             try {
                 // 1. Verify Connectivity
@@ -541,7 +541,7 @@ object IndiaOfflineMapManager {
         manifest.totalTilesTarget = totalTiles
 
         val tileWriter = SqlTileWriter()
-        val tileSource = OfflineMapManager.SATELLITE_SOURCE
+        val tileSource = OfflineMapManager.NORMAL_ROADMAP_SOURCE
 
         val downloadedCount = AtomicInteger(0)
         val bytesDownloaded = AtomicLong(0L)
@@ -683,13 +683,14 @@ object IndiaOfflineMapManager {
     }
 
     /**
-     * Optimized satellite tile fetcher utilizing HTTP 1.1 / TLS Keep-Alive connection caching.
-     * Fetches photorealistic Google Hybrid Satellite (.jpeg) with instant fallback to ArcGIS Satellite.
+     * Optimized road map tile fetcher utilizing HTTP 1.1 / TLS Keep-Alive connection caching.
+     * Fetches high-contrast vector-styled road map (.png) with instant fallback to OpenStreetMap.
      */
     private fun fetchTileFast(serverPrefix: String, zoom: Int, x: Int, y: Int): ByteArray? {
         val urlList = listOf(
-            "https://$serverPrefix.google.com/vt/lyrs=y&x=$x&y=$y&z=$zoom",
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/$zoom/$y/$x"
+            "https://$serverPrefix.google.com/vt/lyrs=m&x=$x&y=$y&z=$zoom",
+            "https://tile.openstreetmap.org/$zoom/$x/$y.png",
+            "https://a.tile.openstreetmap.fr/hot/$zoom/$x/$y.png"
         )
 
         for (urlString in urlList) {

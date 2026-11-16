@@ -74,8 +74,8 @@ import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
 
 private const val MAP_MIN_ZOOM_LEVEL = 0.0
-private const val MAP_MAX_ZOOM_LEVEL = 13.0
-private const val MAP_DEFAULT_DRIVING_ZOOM = 13.0
+private const val MAP_MAX_ZOOM_LEVEL = 20.0
+private const val MAP_DEFAULT_DRIVING_ZOOM = 17.5
 
 /**
  * PulsingAuraOverlay:
@@ -662,7 +662,7 @@ fun LiveMapPanel(
         mapViewInstance?.let { mv ->
             mv.minZoomLevel = MAP_MIN_ZOOM_LEVEL
             mv.maxZoomLevel = MAP_MAX_ZOOM_LEVEL
-            mv.setTileSource(OfflineMapManager.SATELLITE_SOURCE)
+            mv.setTileSource(OfflineMapManager.NORMAL_ROADMAP_SOURCE)
             mv.overlayManager.tilesOverlay.setColorFilter(null)
             mv.invalidate()
         }
@@ -829,27 +829,13 @@ fun LiveMapPanel(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                     setLayerType(View.LAYER_TYPE_HARDWARE, null)
-                    setTileSource(OfflineMapManager.SATELLITE_SOURCE)
+                    setTileSource(OfflineMapManager.NORMAL_ROADMAP_SOURCE)
                     setMultiTouchControls(true)
                     zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
                     isTilesScaledToDpi = true
                     minZoomLevel = MAP_MIN_ZOOM_LEVEL
                     maxZoomLevel = MAP_MAX_ZOOM_LEVEL
                     controller.setZoom(MAP_DEFAULT_DRIVING_ZOOM)
-                    addMapListener(object : MapListener {
-                        override fun onScroll(event: ScrollEvent?): Boolean = false
-                        override fun onZoom(event: ZoomEvent?): Boolean {
-                            val z = event?.zoomLevel
-                            if (z != null) {
-                                if (z > MAP_MAX_ZOOM_LEVEL) {
-                                    controller.setZoom(MAP_MAX_ZOOM_LEVEL)
-                                } else if (z < MAP_MIN_ZOOM_LEVEL) {
-                                    controller.setZoom(MAP_MIN_ZOOM_LEVEL)
-                                }
-                            }
-                            return false
-                        }
-                    })
                     overlayManager.tilesOverlay.setColorFilter(null)
 
                     val (initialLat, initialLon) = if (latestPoint != null) {

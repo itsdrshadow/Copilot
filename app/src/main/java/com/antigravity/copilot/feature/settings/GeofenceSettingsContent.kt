@@ -791,11 +791,11 @@ fun GeofenceMiniMapView(
     AndroidView(
         factory = { ctx ->
             MapView(ctx).apply {
-                setTileSource(OfflineMapManager.SATELLITE_SOURCE)
+                setTileSource(OfflineMapManager.NORMAL_ROADMAP_SOURCE)
                 setMultiTouchControls(true)
                 minZoomLevel = 0.0
-                maxZoomLevel = 13.0
-                val initialZoom = 13.0
+                maxZoomLevel = 20.0
+                val initialZoom = 17.5
                 controller.setZoom(initialZoom)
                 controller.setCenter(GeoPoint(centerLat, centerLon))
                 overlayManager.tilesOverlay.setColorFilter(null)

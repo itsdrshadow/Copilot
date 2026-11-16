@@ -105,6 +105,12 @@ class Milestone3MapTileAndLifecycleTest {
 
     @Test
     fun testOfflineMapSourceConfiguration() {
+        val normalSource = OfflineMapManager.NORMAL_ROADMAP_SOURCE
+        assertEquals("Google_Roadmap", normalSource.name())
+        assertEquals(0, normalSource.minimumZoomLevel)
+        assertEquals(20, normalSource.maximumZoomLevel)
+        assertEquals(256, normalSource.tileSizePixels)
+
         val satelliteSource = OfflineMapManager.SATELLITE_SOURCE
         assertEquals("Google_Hybrid_Satellite", satelliteSource.name())
         assertEquals(0, satelliteSource.minimumZoomLevel)
@@ -136,20 +142,20 @@ class Milestone3MapTileAndLifecycleTest {
     }
 
     @Test
-    fun testIndiaOfflineMapRegionsZoomRangeMinZeroToMaxThirteen() {
+    fun testIndiaOfflineMapRegionsZoomRange() {
         assertEquals(0, IndiaOfflineMapManager.MIN_POSSIBLE_ZOOM)
-        assertEquals(13, IndiaOfflineMapManager.MAX_POSSIBLE_ZOOM)
+        assertEquals(20, IndiaOfflineMapManager.MAX_POSSIBLE_ZOOM)
 
         val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
         assertEquals("All-India minZoom must be 0", 0, nationalPack.minZoom)
-        assertEquals("All-India maxZoom must be 11", 11, nationalPack.maxZoom)
+        assertEquals("All-India maxZoom must be 14", 14, nationalPack.maxZoom)
 
         for (region in IndiaOfflineMapManager.INDIA_REGIONS) {
             assertEquals("Region ${region.name} minZoom must be 0", 0, region.minZoom)
             if (region.id == "india_national") {
-                assertEquals(11, region.maxZoom)
+                assertEquals(14, region.maxZoom)
             } else {
-                assertEquals("Region ${region.name} maxZoom must be 13", 13, region.maxZoom)
+                assertEquals("Region ${region.name} maxZoom must be 16", 16, region.maxZoom)
             }
         }
     }
@@ -176,23 +182,23 @@ class Milestone3MapTileAndLifecycleTest {
     }
 
     @Test
-    fun testLiveMapViewZoomRangeLockedBetweenZeroAndThirteen() {
+    fun testLiveMapViewZoomRangeUnlockedUpToTwenty() {
         val minZoom = 0.0
-        val maxZoom = 13.0
+        val maxZoom = 20.0
 
-        // Test zoom in clamp
-        val zoomNearMax = 12.8
+        // Test zoom in clamp up to max optical zoom 20
+        val zoomNearMax = 19.8
         val targetZoomIn = (zoomNearMax + 0.75).coerceAtMost(maxZoom)
-        assertEquals(13.0, targetZoomIn, 0.001)
+        assertEquals(20.0, targetZoomIn, 0.001)
 
-        // Test zoom out clamp
+        // Test zoom out clamp to min 0
         val zoomNearMin = 0.5
         val targetZoomOut = (zoomNearMin - 0.75).coerceAtLeast(minZoom)
         assertEquals(0.0, targetZoomOut, 0.001)
 
         // Test overshoots
-        val overshootHigh = 18.0.coerceIn(minZoom, maxZoom)
-        assertEquals(13.0, overshootHigh, 0.001)
+        val overshootHigh = 25.0.coerceIn(minZoom, maxZoom)
+        assertEquals(20.0, overshootHigh, 0.001)
 
         val overshootLow = (-5.0).coerceIn(minZoom, maxZoom)
         assertEquals(0.0, overshootLow, 0.001)

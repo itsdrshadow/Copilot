@@ -34,6 +34,34 @@ object OfflineMapManager {
     private const val TAG = "OfflineMapManager"
 
     /**
+     * Standard High-Contrast Normal Roadmap:
+     * High-definition vector-styled road tiles with ultra-clear roads, highways, street names,
+     * landmarks, and building footprints. Much easier to read while driving than dark satellite imagery.
+     * Uses Google Normal Roadmap with fallback to OpenStreetMap.
+     */
+    val NORMAL_ROADMAP_SOURCE = object : OnlineTileSourceBase(
+        "Google_Roadmap",
+        0,
+        20,
+        256,
+        ".png",
+        arrayOf(
+            "https://mt0.google.com/vt/lyrs=m&x=",
+            "https://mt1.google.com/vt/lyrs=m&x=",
+            "https://mt2.google.com/vt/lyrs=m&x=",
+            "https://mt3.google.com/vt/lyrs=m&x="
+        ),
+        "© Google"
+    ) {
+        override fun getTileURLString(pMapTileIndex: Long): String {
+            val zoom = MapTileIndex.getZoom(pMapTileIndex)
+            val x = MapTileIndex.getX(pMapTileIndex)
+            val y = MapTileIndex.getY(pMapTileIndex)
+            return "$baseUrl$x&y=$y&z=$zoom"
+        }
+    }
+
+    /**
      * Humanitarian OpenStreetMap (HOT) Tile Source:
      * High-contrast detailed map rendering with building names, house footprints,
      * and explicit essential service icons (hospitals, fuel pumps, ATMs, police, etc.)
