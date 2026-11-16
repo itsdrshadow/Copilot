@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.antigravity.copilot.core.database.TripEntity
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.CockpitTheme
@@ -246,14 +248,24 @@ private fun CockpitDock(
     onOpenApps: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    val dockContainerShape = RoundedCornerShape(AutomotiveDesignTokens.Radii.container + 6.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(dockContainerShape)
+            .background(CockpitTheme.colors.dockBrush)
+            .border(1.25.dp, CockpitTheme.colors.dockBorder, dockContainerShape)
+            .padding(6.dp)
     ) {
-        DockAction("Trips", Icons.Default.History, onOpenTrips, Modifier.weight(1f))
-        DockAction("Fuels", Icons.Default.LocalGasStation, onOpenFuel, Modifier.weight(1f))
-        DockAction("Apps", Icons.Default.Apps, onOpenApps, Modifier.weight(1f))
-        DockAction("Settings", Icons.Default.Settings, onOpenSettings, Modifier.weight(1f))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            DockAction("Trips", Icons.Default.History, onOpenTrips, Modifier.weight(1f))
+            DockAction("Fuels", Icons.Default.LocalGasStation, onOpenFuel, Modifier.weight(1f))
+            DockAction("Apps", Icons.Default.Apps, onOpenApps, Modifier.weight(1f))
+            DockAction("Settings", Icons.Default.Settings, onOpenSettings, Modifier.weight(1f))
+        }
     }
 }
 
@@ -265,18 +277,36 @@ private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, mo
         modifier = modifier
             .height(dock.height)
             .clip(shape)
-            .background(CockpitTheme.colors.cardElevated)
-            .border(1.25.dp, CockpitTheme.colors.border, shape)
+            .background(CockpitTheme.colors.dockActionBrush)
+            .border(1.2.dp, CockpitTheme.colors.border.copy(alpha = 0.6f), shape)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = dock.pillPaddingHorizontal, vertical = dock.pillPaddingVertical),
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(dock.iconSize))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(CockpitTheme.colors.accentSoft)
+                .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.45f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = CockpitTheme.colors.accent,
+                modifier = Modifier.size(dock.iconSize)
+            )
+        }
         Text(
             text = label,
             color = CockpitTheme.colors.textPrimary,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = dock.textSize),
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = dock.textSize,
+                letterSpacing = 0.5.sp
+            ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )

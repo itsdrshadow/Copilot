@@ -94,6 +94,8 @@ data class CockpitColors(
     val activeCardBrush: Brush = cardTopLightGradient,
     val dockBackground: Color = card,
     val dockBorder: Color = border,
+    val dockBrush: Brush = cardTopLightGradient,
+    val dockActionBrush: Brush = cardTopLightGradient,
     val isPremium: Boolean = true
 )
 
@@ -135,6 +137,22 @@ val GradientGlassCardBrush = Brush.verticalGradient(
     )
 )
 
+val GradientGlassDockBrush = Brush.verticalGradient(
+    colors = listOf(
+        Color(0x3500F0FF), // Specular cyan reflection on dock top
+        Color(0xCC07132B), // Frosted sapphire glass body
+        Color(0xF2020510)  // Deep midnight base
+    )
+)
+
+val GradientGlassDockActionBrush = Brush.verticalGradient(
+    colors = listOf(
+        Color(0x2800F0FF), // Soft glass sheen
+        Color(0xD90A1A36), // Frosted sapphire pill body
+        Color(0xEE040A18)  // Midnight foundation
+    )
+)
+
 val GradientGlassCockpitColors = CockpitColors(
     bg = Glass_Background,
     card = Glass_CardSurface,
@@ -169,6 +187,8 @@ val GradientGlassCockpitColors = CockpitColors(
     activeCardBrush = GradientGlassCardBrush,
     dockBackground = Glass_CardSurfaceElevated,
     dockBorder = Glass_CardBorder,
+    dockBrush = GradientGlassDockBrush,
+    dockActionBrush = GradientGlassDockActionBrush,
     isPremium = true
 )
 
@@ -219,6 +239,12 @@ val ApexCockpitColors = CockpitColors(
     warning = Apex_Warning,
     critical = Apex_Danger,
     cardTopLightGradient = Brush.verticalGradient(
+        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
+    ),
+    dockBrush = Brush.verticalGradient(
+        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
+    ),
+    dockActionBrush = Brush.verticalGradient(
         listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
     ),
     greenEco = Apex_Positive,
@@ -313,6 +339,16 @@ fun CopilotTheme(
         CockpitThemeMode.APEX -> Brush.verticalGradient(listOf(animatedBg, animatedBg))
     }
 
+    val activeDockBrush = when (themeMode) {
+        CockpitThemeMode.GRADIENT_GLASS -> GradientGlassDockBrush
+        CockpitThemeMode.APEX -> Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    }
+
+    val activeDockActionBrush = when (themeMode) {
+        CockpitThemeMode.GRADIENT_GLASS -> GradientGlassDockActionBrush
+        CockpitThemeMode.APEX -> Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    }
+
     val activeColors = CockpitColors(
         bg = animatedBg,
         card = animatedCard,
@@ -347,6 +383,8 @@ fun CopilotTheme(
         activeCardBrush = animatedCardGradient,
         dockBackground = animatedCardElevated,
         dockBorder = animatedBorder,
+        dockBrush = activeDockBrush,
+        dockActionBrush = activeDockActionBrush,
         isPremium = true
     )
 

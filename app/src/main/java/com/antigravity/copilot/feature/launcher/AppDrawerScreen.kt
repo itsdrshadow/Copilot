@@ -303,8 +303,8 @@ fun AppDrawerHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(CockpitTheme.colors.card)
-            .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(16.dp))
+            .background(CockpitTheme.colors.dockBrush)
+            .border(1.2.dp, CockpitTheme.colors.dockBorder, RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -319,13 +319,13 @@ fun AppDrawerHeader(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF162030))
-                    .border(1.dp, Color(0xFF26354A), CircleShape)
+                    .background(CockpitTheme.colors.cardElevated)
+                    .border(1.dp, CockpitTheme.colors.border, CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White,
+                    tint = CockpitTheme.colors.textPrimary,
                     modifier = Modifier.size(20.dp)
                 )
             }

@@ -455,7 +455,7 @@ fun SpeedometerCluster(
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(CockpitTheme.colors.cardElevated)
+                    .background(CockpitTheme.colors.dockActionBrush)
                     .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,

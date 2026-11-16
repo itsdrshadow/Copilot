@@ -486,12 +486,18 @@ fun CurrentTripCard(
                 else -> textSecondary
             }
 
+            val dockBackgroundModifier = if (isFlashingGreen || isFlashingRed) {
+                Modifier.background(dockBg)
+            } else {
+                Modifier.background(CockpitTheme.colors.dockActionBrush)
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(dockBg)
+                    .then(dockBackgroundModifier)
                     .border(dockBorderWidth, dockBorderColor, RoundedCornerShape(10.dp))
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,

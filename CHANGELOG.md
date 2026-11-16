@@ -20,7 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cockpit Theme Selector in Settings -> General**:
   - Added **Gradient Glass** as an interactive theme option in Settings -> General alongside **Apex Studio**, complete with dynamic preview swatches and subtitle description.
   - Integrated animated color transitions (`animateColorAsState`) so theme switching across the dashboard and dialogs occurs fluidly without restarts or stutters.
+- **Frosted Glass Cockpit Dock & Navigation Pills**:
+  - Rebuilt the main launcher `CockpitDock` with a unified frosted glass container utilizing `dockBrush` (`#3500F0FF` top specular sheen $\rightarrow$ `#CC07132B` frosted sapphire $\rightarrow$ `#F2020510` midnight foundation) and glowing glass border `dockBorder`.
+  - Upgraded each `DockAction` pill ("Trips", "Fuels", "Apps", "Settings") with `dockActionBrush`, glowing frosted circular icon capsules (`accentSoft` background and cyan border), and high-contrast `#F4FAFF` typography.
+  - Aligned internal card telemetry docks (in `SpeedometerCluster`, `FuelTankCard`, and `CurrentTripCard`) to use `dockActionBrush` for complete glassmorphic consistency.
 - **Unit Test Suite Expansion**:
+  - Expanded `CockpitThemeSystemTest` to test `GRADIENT_GLASS` theme resolution, token integrity, default state verification, and safe fallbacks.
   - Expanded `CockpitThemeSystemTest` to test `GRADIENT_GLASS` theme resolution, token integrity, default state verification, and safe fallbacks.
 
 ### Changed
