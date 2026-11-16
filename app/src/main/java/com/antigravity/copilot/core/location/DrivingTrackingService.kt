@@ -45,6 +45,7 @@ class DrivingTrackingService : Service(), LocationListener {
 
     private var wakeLock: PowerManager.WakeLock? = null
     private var lastRecordedDistanceMeters: Double = 0.0
+    private var isPowerCut: Boolean = false
 
     private var powerReceiver: BroadcastReceiver? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
@@ -214,6 +215,12 @@ class DrivingTrackingService : Service(), LocationListener {
                     } else null
                 }
 
+                val restoredStatus = try {
+                    TripStatus.valueOf(activeTrip.status)
+                } catch (e: Exception) {
+                    TripStatus.ACTIVE_TRIP
+                }
+
                 engine.restoreActiveTripState(
                     tripId = activeTrip.id,
                     startTime = activeTrip.startTime,
@@ -221,7 +228,8 @@ class DrivingTrackingService : Service(), LocationListener {
                     drivingMs = activeTrip.drivingDurationMs,
                     stationaryMs = activeTrip.stationaryDurationMs,
                     lastLocation = anchorLoc,
-                    originName = activeTrip.startLocationName
+                    originName = activeTrip.startLocationName,
+                    status = restoredStatus
                 )
                 lastRecordedDistanceMeters = activeTrip.distanceMeters
 
@@ -232,10 +240,7 @@ class DrivingTrackingService : Service(), LocationListener {
             }
         }
 
-
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Copilot::TrackingLock")
-        wakeLock?.acquire(24 * 60 * 60 * 1000L)
+        acquireWakeLock()
 
         createNotificationChannel()
         startForegroundWithNotification()
@@ -314,14 +319,37 @@ class DrivingTrackingService : Service(), LocationListener {
                 val now = System.currentTimeMillis()
                 when (intent?.action) {
                     Intent.ACTION_POWER_CONNECTED -> {
+                        isPowerCut = false
                         vehicleStateManager.onHardwarePowerConnected(now)
+                        engine.onPowerConnected(now)
+                        acquireWakeLock()
+                        requestLocationUpdates()
                     }
                     Intent.ACTION_POWER_DISCONNECTED -> {
+                        isPowerCut = true
                         if (::geofenceEngine.isInitialized) {
                             geofenceEngine.onPowerDisconnected(now)
                         }
                         engine.onPowerDisconnected(now)
                         vehicleStateManager.onHardwarePowerDisconnected(now)
+
+                        // Safely persist ongoing journey in TEMPORARY_STOP in Room SQLite
+                        engine.getCurrentTripSummary(now)?.let { summary ->
+                            tripRepository.persistActiveTrip(summary)
+                        }
+
+                        // Immediately reset speed display to zero upon engine cut
+                        latestEmittedPoint?.let { pt ->
+                            if (pt.speedKmh > 0f) {
+                                val zeroPoint = pt.copy(speedKmh = 0f, timestamp = now)
+                                latestEmittedPoint = zeroPoint
+                                tripRepository.onLocationReceived(zeroPoint)
+                            }
+                        }
+
+                        // Protect 12V battery and allow deep sleep
+                        releaseWakeLock()
+                        stopLocationUpdates()
                     }
                     Intent.ACTION_SHUTDOWN, Intent.ACTION_REBOOT,
                     "android.intent.action.QUICKBOOT_POWEROFF",
@@ -352,6 +380,9 @@ class DrivingTrackingService : Service(), LocationListener {
         serviceScope.launch {
             while (isActive) {
                 delay(1000)
+                if (isPowerCut) {
+                    continue
+                }
                 val now = System.currentTimeMillis()
                 val elapsed = now - lastPointTimestamp
                 val lastPt = latestEmittedPoint
@@ -502,7 +533,39 @@ class DrivingTrackingService : Service(), LocationListener {
         }
     }
 
-    private fun stopLocationUpdates() {
+    fun acquireWakeLock() {
+        try {
+            if (wakeLock == null) {
+                val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Copilot::TrackingLock")
+            }
+            wakeLock?.let {
+                if (!it.isHeld) {
+                    it.acquire(24 * 60 * 60 * 1000L)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun releaseWakeLock() {
+        try {
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun requestLocationUpdates() {
+        startLocationUpdates()
+    }
+
+    fun stopLocationUpdates() {
         if (!isLocationUpdatesActive) return
         try {
             fusedLocationClient.removeLocationUpdates(fusedCallback)
@@ -516,7 +579,7 @@ class DrivingTrackingService : Service(), LocationListener {
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        if (isLocationUpdatesActive) {
+        if (isPowerCut || isLocationUpdatesActive) {
             return
         }
         stopLocationUpdates()
@@ -633,8 +696,6 @@ class DrivingTrackingService : Service(), LocationListener {
         serviceScope.cancel()
         stopLocationUpdates()
         gpsFilter.reset()
-        wakeLock?.let {
-            if (it.isHeld) it.release()
-        }
+        releaseWakeLock()
     }
 }

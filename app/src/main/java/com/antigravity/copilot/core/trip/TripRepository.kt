@@ -197,6 +197,11 @@ class TripRepository private constructor(context: Context) {
                 // Seamless multi-day trip recovery: continue ongoing journey across power cycles
                 val activeTrip = tripDao.getActiveTrip()
                 if (activeTrip != null && activeTrip.endTime <= 0L) {
+                    val restoredStatus = try {
+                        TripStatus.valueOf(activeTrip.status)
+                    } catch (e: Exception) {
+                        TripStatus.ACTIVE_TRIP
+                    }
                     _currentTrip.value = TripSummary(
                         id = activeTrip.id,
                         startTime = activeTrip.startTime,
@@ -208,7 +213,7 @@ class TripRepository private constructor(context: Context) {
                         calculatedMileageKmpl = if (activeTrip.calculatedMileageKmpl > 0) activeTrip.calculatedMileageKmpl else getEffectiveMileageFallback(),
                         startLocationName = activeTrip.startLocationName,
                         endLocationName = activeTrip.endLocationName,
-                        status = TripStatus.ACTIVE_TRIP
+                        status = restoredStatus
                     )
                     val pts = tripDao.getPointsForTrip(activeTrip.id)
                     val mapped = pts.map {
@@ -596,6 +601,63 @@ class TripRepository private constructor(context: Context) {
                         Log.e(TAG, "Failed updating trip in Room DB: ${e.message}", e)
                     }
                 }
+            }
+        }
+    }
+
+    fun persistActiveTrip(summary: TripSummary): Job {
+        _currentTrip.value = summary
+        return scope.launch {
+            try {
+                activeTripInsertionJob?.join()
+                val toFlush = mutableListOf<TripPointEntity>()
+                while (true) {
+                    val pt = pendingPoints.poll() ?: break
+                    toFlush.add(pt)
+                }
+                if (toFlush.isNotEmpty()) {
+                    tripDao.insertPoints(toFlush)
+                }
+
+                val tripExists = tripDao.getTripById(summary.id) != null
+                if (!tripExists) {
+                    tripDao.insertTrip(
+                        TripEntity(
+                            id = summary.id,
+                            startTime = summary.startTime,
+                            startLocationName = summary.startLocationName.ifEmpty { "Start Location" },
+                            endLocationName = "",
+                            status = summary.status.name,
+                            isQualifying = summary.distanceMeters >= 1000.0
+                        )
+                    )
+                }
+
+                val existingTrip = tripDao.getTripById(summary.id)
+                val effectiveStartName = summary.startLocationName.ifEmpty { existingTrip?.startLocationName?.ifEmpty { "Trip Origin" } ?: "Trip Origin" }
+                val effectiveEndName = summary.endLocationName.ifEmpty { existingTrip?.endLocationName ?: "" }
+
+                tripDao.updateTrip(
+                    TripEntity(
+                        id = summary.id,
+                        startTime = summary.startTime,
+                        endTime = summary.endTime,
+                        distanceMeters = summary.distanceMeters,
+                        drivingDurationMs = summary.drivingDurationMs,
+                        stationaryDurationMs = summary.stationaryDurationMs,
+                        avgSpeedKmh = summary.avgSpeedKmh,
+                        maxSpeedKmh = summary.maxSpeedKmh,
+                        estimatedFuelLiters = summary.estimatedFuelConsumedLiters,
+                        calculatedMileageKmpl = if (summary.calculatedMileageKmpl > 0) summary.calculatedMileageKmpl else getEffectiveMileageFallback(),
+                        driverScore = summary.driverScore,
+                        startLocationName = effectiveStartName,
+                        endLocationName = effectiveEndName,
+                        status = summary.status.name,
+                        isQualifying = summary.distanceMeters >= 1000.0
+                    )
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed persisting active trip in Room DB: ${e.message}", e)
             }
         }
     }

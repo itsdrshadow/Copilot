@@ -15,7 +15,7 @@ interface TripDao {
     @Query("SELECT * FROM trips WHERE id = :tripId")
     suspend fun getTripById(tripId: Long): TripEntity?
 
-    @Query("SELECT * FROM trips WHERE status = 'ACTIVE_TRIP' ORDER BY startTime DESC LIMIT 1")
+    @Query("SELECT * FROM trips WHERE status IN ('ACTIVE_TRIP', 'TEMPORARY_STOP') ORDER BY startTime DESC LIMIT 1")
     suspend fun getActiveTrip(): TripEntity?
 
     @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND isQualifying = 1 ORDER BY startTime DESC")

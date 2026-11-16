@@ -73,6 +73,8 @@ class TripDetectionEngine(
     // Reliable Stationary Detection & Debounce
     var stationaryCompletionThresholdSeconds: Int = IDLE_TRIP_END_TIMEOUT_SECONDS
     var stationaryDriftRadiusMeters: Double = 35.0
+    var isPowerDisconnected: Boolean = false
+        internal set
     private var stationaryAnchorLocation: Location? = null
 
     companion object {
@@ -134,20 +136,89 @@ class TripDetectionEngine(
         isOutageBridgingPending = false
         rebootAnchorLocation = null
         stationaryAnchorLocation = null
+        isPowerDisconnected = false
         currentOriginName = ""
         currentDestinationName = ""
     }
 
     /**
      * Triggered when vehicle engine ignition cuts 12V ACC / USB power.
-     * Concludes ongoing journey if vehicle has arrived at destination and stopped.
+     * Keeps ongoing trip safe in TEMPORARY_STOP and freezes duration accumulation.
      */
     fun onPowerDisconnected(now: Long = System.currentTimeMillis()) {
-        // Power cut / Engine Off does not terminate multi-day geofence trips
+        isPowerDisconnected = true
         if (currentStatus == TripStatus.ACTIVE_TRIP) {
             currentStatus = TripStatus.TEMPORARY_STOP
-            temporaryStopStartTime = now
+            if (temporaryStopStartTime > 0L) {
+                stationaryDurationMs += (now - temporaryStopStartTime).coerceAtLeast(0L)
+            }
+            temporaryStopStartTime = 0L
+        } else if (currentStatus == TripStatus.TEMPORARY_STOP) {
+            if (temporaryStopStartTime > 0L) {
+                stationaryDurationMs += (now - temporaryStopStartTime).coerceAtLeast(0L)
+                temporaryStopStartTime = 0L
+            }
         }
+        tunnelEntryLocation = null
+        tunnelEntryTimeMs = 0L
+        isOutageBridgingPending = false
+    }
+
+    /**
+     * Triggered when vehicle engine ignition powers back on (12V ACC / USB re-engaged).
+     * Resumes trip telemetry seamlessly without accumulating stationary time from deep sleep.
+     */
+    fun onPowerConnected(now: Long = System.currentTimeMillis()) {
+        isPowerDisconnected = false
+        if (currentStatus == TripStatus.TEMPORARY_STOP) {
+            temporaryStopStartTime = now
+            lastMovementTime = now
+            lastLocationTime = now
+        }
+    }
+
+    fun getCurrentTripSummary(now: Long = System.currentTimeMillis()): TripSummary? {
+        if (currentTripId <= 0L) return null
+        val drivingHours = drivingDurationMs / 3600000.0
+        val avgSpeed = if (drivingHours > 0.002) {
+            (totalDistanceMeters / 1000.0) / drivingHours
+        } else if (speedCount > 0) {
+            speedSumKmh / speedCount
+        } else {
+            0.0
+        }
+        val fuelSnapshot = fuelTelemetryProvider?.invoke()
+        val effectiveMileage = fuelSnapshot?.mileageKmpl?.takeIf { it > 0.0 } ?: BASE_MILEAGE_KMPL
+        val effectivePrice = fuelSnapshot?.fuelPricePerLiter?.takeIf { it > 0.0 } ?: FUEL_PRICE_PER_LITER
+        val tripFuelConsumed = fuelSnapshot?.tripConsumedLiters?.takeIf { it > 0.0 }
+            ?: ((totalDistanceMeters / 1000.0) / effectiveMileage)
+        val tripCost = tripFuelConsumed * effectivePrice
+
+        return TripSummary(
+            id = currentTripId,
+            startTime = tripStartTime,
+            endTime = 0L,
+            distanceMeters = totalDistanceMeters,
+            drivingDurationMs = drivingDurationMs,
+            stationaryDurationMs = stationaryDurationMs,
+            avgSpeedKmh = avgSpeed,
+            maxSpeedKmh = maxSpeedKmh,
+            currentAltitudeMeters = currentAltitude,
+            currentBearing = currentBearing,
+            currentGForce = currentGForce,
+            maxAccelMss = maxAccelMps2,
+            maxDecelMss = maxDecelMps2,
+            estimatedFuelConsumedLiters = tripFuelConsumed,
+            estimatedTripCost = tripCost,
+            calculatedMileageKmpl = effectiveMileage,
+            driverScore = calculateDriverScore(),
+            harshBrakeCount = harshBrakes,
+            rapidAccelCount = rapidAccels,
+            overspeedCount = overspeedInstances,
+            startLocationName = currentOriginName,
+            endLocationName = currentDestinationName,
+            status = currentStatus
+        )
     }
 
     /**
@@ -162,10 +233,14 @@ class TripDetectionEngine(
      * Periodic watchdog tick to enforce trip completion when vehicle remains parked/idle for 5 minutes.
      */
     fun processStationaryWatchdog(now: Long = System.currentTimeMillis()) {
+        if (isPowerDisconnected) return
+
         if (currentStatus == TripStatus.ACTIVE_TRIP) {
             val stationaryDuration = now - lastMovementTime
             if (stationaryDuration >= 15000L) {
                 currentStatus = TripStatus.TEMPORARY_STOP
+                val dwell = (now - lastMovementTime)
+                stationaryDurationMs = (stationaryDurationMs - dwell).coerceAtLeast(0L)
                 temporaryStopStartTime = lastMovementTime
                 if (stationaryAnchorLocation == null) {
                     stationaryAnchorLocation = lastAcceptedLocation
@@ -435,21 +510,24 @@ class TripDetectionEngine(
             }
 
             TripStatus.TEMPORARY_STOP -> {
-                val stoppedSec = (now - temporaryStopStartTime) / 1000
+                val stoppedSec = if (temporaryStopStartTime > 0L) (now - temporaryStopStartTime) / 1000 else 0L
                 val anchor = stationaryAnchorLocation ?: location
                 val distFromAnchor = computeGeodesicDistance(anchor.latitude, anchor.longitude, location.latitude, location.longitude)
                 val isResumed = effectiveSpeedKmh >= MOVEMENT_SPEED_THRESHOLD_KMH && (distFromAnchor >= stationaryDriftRadiusMeters || effectiveSpeedKmh >= MOVEMENT_SPEED_THRESHOLD_KMH * 1.5f)
 
                 if (isResumed) {
-                    stationaryDurationMs += (now - temporaryStopStartTime)
+                    if (temporaryStopStartTime > 0L) {
+                        stationaryDurationMs += (now - temporaryStopStartTime).coerceAtLeast(0L)
+                    }
                     currentStatus = TripStatus.ACTIVE_TRIP
                     lastAcceptedLocation = location
                     lastLocationTime = now
                     stationaryAnchorLocation = null
+                    temporaryStopStartTime = 0L
                 } else {
                     lastAcceptedLocation = location
                     lastLocationTime = now
-                    if (!isGeofenceControlled && stoppedSec >= stationaryCompletionThresholdSeconds) {
+                    if (!isGeofenceControlled && !isPowerDisconnected && temporaryStopStartTime > 0L && stoppedSec >= stationaryCompletionThresholdSeconds) {
                         evaluateTripCompletion(now)
                     }
                 }
@@ -522,9 +600,10 @@ class TripDetectionEngine(
         drivingMs: Long,
         stationaryMs: Long,
         lastLocation: Location? = null,
-        originName: String = ""
+        originName: String = "",
+        status: TripStatus = TripStatus.ACTIVE_TRIP
     ) {
-        currentStatus = TripStatus.ACTIVE_TRIP
+        currentStatus = status
         currentTripId = tripId
         tripStartTime = startTime
         currentOriginName = originName
@@ -534,6 +613,10 @@ class TripDetectionEngine(
         totalDistanceMeters = distanceMeters
         drivingDurationMs = drivingMs
         stationaryDurationMs = stationaryMs
+        if (status == TripStatus.TEMPORARY_STOP) {
+            temporaryStopStartTime = 0L
+            isPowerDisconnected = true
+        }
 
         if (lastLocation != null) {
             currentAltitude = if (lastLocation.hasAltitude()) lastLocation.altitude else currentAltitude
@@ -650,6 +733,8 @@ class TripDetectionEngine(
             }
             if ((now - lastMovementTime) > 15000) {
                 currentStatus = TripStatus.TEMPORARY_STOP
+                val dwell = (now - lastMovementTime)
+                stationaryDurationMs = (stationaryDurationMs - dwell).coerceAtLeast(0L)
                 temporaryStopStartTime = lastMovementTime
             }
         }

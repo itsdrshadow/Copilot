@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Car Ignition Deep Sleep & 12V Battery Protection in DrivingTrackingService**:
+  - Added automotive ignition power-cut detector for `Intent.ACTION_POWER_DISCONNECTED` that safely releases partial wakeLock (`wakeLock?.release()`) and stops GPS hardware tracking updates (`stopLocationUpdates()`), preventing vehicle 12V battery drain and permitting Android infotainment head units to enter deep sleep.
+  - Preserves ongoing journey continuity by transitioning active trips to `TEMPORARY_STOP` and persisting them to Room SQLite (`persistActiveTrip`) so that multi-day and multi-stop journeys remain intact without accidental termination or discard.
+  - Automatically re-acquires partial wakeLock (`PowerManager.PARTIAL_WAKE_LOCK`) and resumes GPS hardware updates (`requestLocationUpdates()`) upon engine ignition restoration (`Intent.ACTION_POWER_CONNECTED`).
+  - Protected `drivingDurationMs` and `stationaryDurationMs` against false time accumulation during car engine-off / deep sleep states (whether 1 hour, overnight, or 5+ days), resuming accurate telemetry seamlessly upon drive-off.
+- **Room SQLite Multi-Stop Trip Restoration**:
+  - Updated `TripDao.getActiveTrip()` to query `status IN ('ACTIVE_TRIP', 'TEMPORARY_STOP')` enabling seamless trip state recovery across vehicle reboots and service recycles.
+- **Comprehensive Ignition Protection Test Suite**:
+  - Created `CarIgnitionDeepSleepBatteryProtectionTest` covering multi-day deep sleep immunity, 1-hour dwell timing, stationary duration freezing, and seamless route continuation.
 - **On-Map Dark Mode / Light Mode Toggle Icon**: Added an interactive lighting mode button (`Icons.Default.DarkMode` / `Icons.Default.LightMode`) directly to the right-hand ergonomic map controls column in `LiveMapView`, enabling the driver to switch with one tap between daytime bright roadmap and anti-glare cockpit dark mode.
 - **High-Contrast Dark Cockpit Map Filter (`DARK_MODE_FILTER`)**: Integrated midnight-blue inverted color matrix filter in `OfflineMapManager` that preserves road and highway legibility while matching cockpit aesthetic and preventing eye fatigue during night driving.
 - **High-Contrast Normal Road Map Engine (`Google_Roadmap`)**: Added `OfflineMapManager.NORMAL_ROADMAP_SOURCE` delivering high-contrast vector-styled road tiles with clear highways, local streets, road names, and town labels, replacing dark satellite imagery for superior driving legibility.
