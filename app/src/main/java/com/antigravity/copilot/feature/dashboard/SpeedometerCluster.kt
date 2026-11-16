@@ -108,7 +108,7 @@ fun SpeedometerCluster(
     var lastValidSpeedTimeMs by remember { mutableLongStateOf(0L) }
     var tickerTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
-    val now = tickerTimeMs
+    val now = System.currentTimeMillis()
     val isGpsPointFresh = latestPoint != null &&
             latestPoint.latitude != 0.0 &&
             latestPoint.longitude != 0.0 &&

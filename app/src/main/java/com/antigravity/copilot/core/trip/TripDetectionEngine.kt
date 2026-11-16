@@ -435,7 +435,20 @@ class TripDetectionEngine(
 
         val effectiveSpeedKmh = when {
             location.hasSpeed() && location.speed <= 0.3f -> 0f
-            hasSensorSpeed -> location.speed * 3.6f
+            hasSensorSpeed -> {
+                val sensorSpeed = location.speed * 3.6f
+                // When moving and computed delta speed indicates higher/instantaneous speed during acceleration,
+                // fuse them to eliminate speedometer lag
+                if (computedSpeedKmh in 3.0f..220.0f && abs(computedSpeedKmh - sensorSpeed) in 1.0f..30.0f) {
+                    if (computedSpeedKmh > sensorSpeed) {
+                        maxOf(sensorSpeed, computedSpeedKmh)
+                    } else {
+                        sensorSpeed
+                    }
+                } else {
+                    sensorSpeed
+                }
+            }
             computedSpeedKmh in 3.0f..220.0f -> computedSpeedKmh
             else -> 0f
         }
@@ -501,7 +514,7 @@ class TripDetectionEngine(
                 } else if (candidateDurationSec >= CANDIDATE_CONFIRM_SECONDS || distFromStart >= CANDIDATE_MIN_DISTANCE_METERS) {
                     // Anchor start time to exact moment movement was initiated
                     val tripEffectiveStart = if (candidateStartTime > 0L) candidateStartTime else now
-                    startNewTrip(tripEffectiveStart, location)
+                    startNewTrip(tripEffectiveStart, location, distFromStart.toDouble())
                 }
             }
 
@@ -640,7 +653,7 @@ class TripDetectionEngine(
         }
     }
 
-    private fun startNewTrip(startTime: Long, initialLocation: Location) {
+    private fun startNewTrip(startTime: Long, initialLocation: Location, candidateDistMeters: Double = 0.0) {
         currentStatus = TripStatus.ACTIVE_TRIP
         currentTripId = startTime
         tripStartTime = startTime
@@ -649,7 +662,7 @@ class TripDetectionEngine(
         lastMovementTime = startTime
         lastLocationTime = startTime
         lastAcceptedLocation = initialLocation
-        totalDistanceMeters = 0.0
+        totalDistanceMeters = candidateDistMeters
         drivingDurationMs = 0
         stationaryDurationMs = 0
         maxSpeedKmh = 0.0
@@ -666,6 +679,9 @@ class TripDetectionEngine(
         isOutageBridgingPending = false
         rebootAnchorLocation = null
 
+        if (candidateDistMeters > 0.0) {
+            onLiveMovement?.invoke(candidateDistMeters, 15.0, 1000L)
+        }
         onTripStarted(currentTripId)
     }
 

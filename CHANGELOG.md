@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-11-16
+
+### Fixed
+- **Speedometer Responsiveness & Accuracy (Eliminated 54-55 km/h Lag at 60 km/h Cruising)**:
+  - **Removed Coordinate Low-Pass Filter in GpsLocationFilter**: Fixed `GpsLocationFilter` where moving vehicle coordinates were previously passed through an artificial low-pass filter (`weight = 0.90` / `0.65`). When traveling at 60 km/h, this caused the initial displacement to attenuate by 10% to 35% ($15.0\text{m}$ instead of $16.67\text{m}$), displaying $\sim 54\text{ km/h}$ and sluggishly ramping to $60\text{ km/h}$ over several seconds. Moving coordinates now snap directly to genuine GPS position ($1.0$ weight) while preserving stationary dead-zone freezing ($< 2.5\text{m}$) and high-speed multipath rejection ($> 240\text{ km/h}$).
+  - **Speed Sensor & Computed Delta Fusion**: Upgraded `TripDetectionEngine.processLocation()` to fuse hardware Doppler sensor speed with geodesic displacement speed. When vehicle accelerates, any hardware Doppler lag (e.g. reporting $55\text{ km/h}$) is instantaneously superseded by the computed displacement speed ($60\text{ km/h}$), eliminating speedometer latency.
+  - **SpeedometerCluster Wall-Clock Reference Fix**: Fixed `now` calculation in `SpeedometerCluster` to use real-time `System.currentTimeMillis()` rather than stale `tickerTimeMs`, preventing delayed or frozen decay evaluations.
+
+- **Odometer Under-Counting & Distance Accuracy Fix**:
+  - **Eliminated Cumulative Coordinate Distance Loss**: Because `GpsLocationFilter` no longer attenuates coordinates during driving, the step geodesic distance between successive GPS fixes is 100% preserved. Every kilometer driven now records the full $1,000\text{m}$ without losing 10%–35% of distance on turns, accelerations, and speed transitions.
+  - **Movement Candidate Distance Retention**: Updated `TripDetectionEngine.startNewTrip()` to credit the initial displacement accumulated during the 15-second / 50m `MOVEMENT_CANDIDATE` verification window (`distFromStart`), preventing the first $50\text{m}$–$250\text{m}$ of non-geofence trips from being discarded on trip confirmation.
+
+### Added
+- **Speedometer Accuracy & Odometer Unit Tests**: Added `SpeedometerAccuracyAndOdometerTest` verifying exact $60\text{ km/h}$ readout on fix #1, speed fusion responsiveness without lag, and 100% geodesic distance accumulation over continuous 10-second cruising intervals.
+
 ## [1.36.0] - 2026-11-16
 
 ### Fixed

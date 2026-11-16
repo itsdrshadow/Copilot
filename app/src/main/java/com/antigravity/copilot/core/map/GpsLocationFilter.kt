@@ -83,7 +83,11 @@ class GpsLocationFilter {
 
         // 2. Stationary jitter filter:
         // When vehicle speed is below stationary threshold, ignore movements within dead-zone
-        val isVehicleStationary = rawSpeedKmh < STATIONARY_SPEED_THRESHOLD_KMH
+        val isVehicleStationary = if (rawSpeedKmh > 0f) {
+            rawSpeedKmh < STATIONARY_SPEED_THRESHOLD_KMH
+        } else {
+            distanceM < MIN_STATIONARY_MOVEMENT_METERS || impliedSpeedKmh < STATIONARY_SPEED_THRESHOLD_KMH
+        }
         val finalLat: Double
         val finalLon: Double
 
@@ -96,10 +100,10 @@ class GpsLocationFilter {
             finalLat = previous.latitude
             finalLon = previous.longitude
         } else {
-            // Apply lightweight low-pass filtering based on GPS accuracy
-            val weight = if (rawAccuracyMeters > 20.0f) 0.65 else 0.90
-            finalLat = previous.latitude + (rawLat - previous.latitude) * weight
-            finalLon = previous.longitude + (rawLon - previous.longitude) * weight
+            // Vehicle is actively in motion: snap directly to genuine GPS position without artificial attenuation
+            // Eliminates coordinate lag that caused 60 km/h cruising to read ~54 km/h and under-reported odometer distance
+            finalLat = rawLat
+            finalLon = rawLon
         }
 
         // 3. Bearing stabilization:
@@ -121,11 +125,18 @@ class GpsLocationFilter {
             finalBearing = lastValidBearing
         }
 
+        val resolvedSpeedKmh = when {
+            isVehicleStationary -> 0f
+            rawSpeedKmh > 0f -> rawSpeedKmh
+            impliedSpeedKmh in STATIONARY_SPEED_THRESHOLD_KMH..MAX_VALID_SPEED_KMH -> impliedSpeedKmh.toFloat()
+            else -> 0f
+        }
+
         val updatedState = FilteredState(
             latitude = finalLat,
             longitude = finalLon,
             bearing = finalBearing,
-            speedKmh = if (isVehicleStationary) 0f else rawSpeedKmh,
+            speedKmh = resolvedSpeedKmh,
             isStationary = isVehicleStationary,
             accuracyMeters = rawAccuracyMeters,
             timestamp = timestamp
