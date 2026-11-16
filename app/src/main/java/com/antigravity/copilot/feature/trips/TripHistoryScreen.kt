@@ -279,7 +279,7 @@ fun TripHistoryScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF070B12))
+            .background(CockpitTheme.colors.backgroundBrush)
             .padding(14.dp)
     ) {
         val isCompactWidth = maxWidth < 760.dp

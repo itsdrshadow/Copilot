@@ -130,7 +130,7 @@ fun FuelHistoryScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF070B12))
+            .background(CockpitTheme.colors.backgroundBrush)
     ) {
             val isCompact = maxWidth < 750.dp
 

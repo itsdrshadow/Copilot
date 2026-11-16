@@ -81,7 +81,7 @@ fun DashboardScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.bg)
+            .background(CockpitTheme.colors.backgroundBrush)
     ) {
         val screenHeight = maxHeight
         val screenWidth = maxWidth

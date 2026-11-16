@@ -290,7 +290,7 @@ private fun MainAppScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.background)
+            .background(CockpitTheme.colors.backgroundBrush)
     ) {
         AnimatedContent(
             targetState = selectedTab,

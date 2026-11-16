@@ -77,7 +77,7 @@ fun AppDrawerScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.bg)
+            .background(CockpitTheme.colors.backgroundBrush)
             .then(swipeBackModifier)
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {

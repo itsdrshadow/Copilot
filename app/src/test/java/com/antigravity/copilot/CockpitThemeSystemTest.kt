@@ -9,16 +9,36 @@ class CockpitThemeSystemTest {
 
     @Test
     fun testThemeEnumFromIdResolution() {
+        assertEquals(CockpitThemeMode.GRADIENT_GLASS, CockpitThemeMode.fromId("gradient_glass"))
+        assertEquals(CockpitThemeMode.GRADIENT_GLASS, CockpitThemeMode.fromId("glass"))
+        assertEquals("Gradient Glass", CockpitThemeMode.GRADIENT_GLASS.displayName)
         assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("apex"))
         assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("APEX"))
         assertEquals("Apex Studio", CockpitThemeMode.APEX.displayName)
         assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("premium"))
         assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("PREMIUM"))
-        // Legacy "classic", "calm_teal", or unknown/blank values automatically and safely resolve to finalized APEX
+        // Legacy "classic", "calm_teal"
         assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("classic"))
         assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("calm_teal"))
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("unknown"))
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId(""))
+        // Safe fallback for unknown/blank values resolves to GRADIENT_GLASS
+        assertEquals(CockpitThemeMode.GRADIENT_GLASS, CockpitThemeMode.fromId("unknown"))
+        assertEquals(CockpitThemeMode.GRADIENT_GLASS, CockpitThemeMode.fromId(""))
+    }
+
+    @Test
+    fun testGradientGlassPaletteTokensIntegrity() {
+        assertTrue(GradientGlassCockpitColors.isPremium)
+        assertEquals(Glass_Background, GradientGlassCockpitColors.background)
+        assertEquals(Glass_CardSurface, GradientGlassCockpitColors.cardSurface)
+        assertEquals(Glass_CardSurfaceElevated, GradientGlassCockpitColors.cardSurfaceElevated)
+        assertEquals(Glass_CardBorder, GradientGlassCockpitColors.cardBorder)
+        assertEquals(Glass_PrimaryAccent, GradientGlassCockpitColors.primaryAccent)
+        assertEquals(Glass_Positive, GradientGlassCockpitColors.greenEco)
+        assertEquals(Glass_Warning, GradientGlassCockpitColors.amberWarning)
+        assertEquals(Glass_Danger, GradientGlassCockpitColors.redAlert)
+        assertEquals(Glass_TextPrimary, GradientGlassCockpitColors.textPrimary)
+        assertEquals(Glass_TextSecondary, GradientGlassCockpitColors.textSecondary)
+        assertEquals(Glass_TextTertiary, GradientGlassCockpitColors.textTertiary)
     }
 
     @Test
@@ -42,10 +62,10 @@ class CockpitThemeSystemTest {
     }
 
     @Test
-    fun testDefaultSettingsStateIsPremium() {
+    fun testDefaultSettingsStateIsGradientGlass() {
         val state = AppSettingsManager.SettingsState()
-        assertEquals("premium", state.cockpitTheme)
-        assertEquals(CockpitThemeMode.PREMIUM, state.cockpitThemeMode)
+        assertEquals("gradient_glass", state.cockpitTheme)
+        assertEquals(CockpitThemeMode.GRADIENT_GLASS, state.cockpitThemeMode)
     }
 
     @Test
@@ -72,7 +92,7 @@ class CockpitThemeSystemTest {
     @Test
     fun testThemeSafeFallbackForInvalidIds() {
         val corruptedState = AppSettingsManager.SettingsState(cockpitTheme = "corrupted_theme_99")
-        // Resolves safely to finalized PREMIUM without crashing
-        assertEquals(CockpitThemeMode.PREMIUM, corruptedState.cockpitThemeMode)
+        // Resolves safely to default GRADIENT_GLASS without crashing
+        assertEquals(CockpitThemeMode.GRADIENT_GLASS, corruptedState.cockpitThemeMode)
     }
 }

@@ -99,14 +99,14 @@ fun LauncherSettingsDialog(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF070D18))
+            .background(CockpitTheme.colors.backgroundBrush)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ==================== TOP ACTION BAR ====================
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF0B1424))
+                    .background(CockpitTheme.colors.cardElevated.copy(alpha = 0.85f))
                     .padding(horizontal = 24.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -120,13 +120,13 @@ fun LauncherSettingsDialog(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF162030))
-                            .border(1.2.dp, Color(0xFF26354A), CircleShape)
+                            .background(CockpitTheme.colors.card)
+                            .border(1.2.dp, CockpitTheme.colors.border, CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back to Cockpit",
-                            tint = Color.White,
+                            tint = CockpitTheme.colors.textPrimary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -135,14 +135,14 @@ fun LauncherSettingsDialog(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF0284C7).copy(alpha = 0.2f))
-                            .border(1.2.dp, Color(0xFF38BDF8).copy(alpha = 0.45f), CircleShape),
+                            .background(CockpitTheme.colors.accentSoft)
+                            .border(1.2.dp, CockpitTheme.colors.accent.copy(alpha = 0.45f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
                             contentDescription = null,
-                            tint = Color(0xFF38BDF8),
+                            tint = CockpitTheme.colors.accent,
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -154,7 +154,7 @@ fun LauncherSettingsDialog(
                                 fontWeight = FontWeight.Black,
                                 fontSize = 24.sp
                             ),
-                            color = Color.White
+                            color = CockpitTheme.colors.textPrimary
                         )
                         Text(
                             text = "${selectedTab.title} • ${selectedTab.subtitle}",
@@ -162,7 +162,7 @@ fun LauncherSettingsDialog(
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium
                             ),
-                            color = Color(0xFF87929A)
+                            color = CockpitTheme.colors.textSecondary
                         )
                     }
                 }
@@ -172,19 +172,19 @@ fun LauncherSettingsDialog(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF162030))
-                        .border(1.2.dp, Color(0xFF26354A), CircleShape)
+                        .background(CockpitTheme.colors.card)
+                        .border(1.2.dp, CockpitTheme.colors.border, CircleShape)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
-                        tint = Color.White,
+                        tint = CockpitTheme.colors.textPrimary,
                         modifier = Modifier.size(22.dp)
                     )
                 }
             }
 
-            HorizontalDivider(color = Color(0xFF1E2838), thickness = 1.5.dp)
+            HorizontalDivider(color = CockpitTheme.colors.border, thickness = 1.dp)
 
             // ==================== BODY: VERTICAL TABS (LEFT) + CONTENT (RIGHT) ====================
             Row(modifier = Modifier.fillMaxSize()) {
@@ -193,14 +193,14 @@ fun LauncherSettingsDialog(
                     modifier = Modifier
                         .width(270.dp)
                         .fillMaxHeight()
-                        .background(Color(0xFF0A111F))
+                        .background(CockpitTheme.colors.card.copy(alpha = 0.65f))
                         .padding(horizontal = 14.dp, vertical = 16.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     SettingsTab.values().forEach { tab ->
                         val isSelected = selectedTab == tab
-                        val activeBg = Color(0xFF0284C7).copy(alpha = 0.24f)
+                        val activeBg = CockpitTheme.colors.accentSoft
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -209,7 +209,7 @@ fun LauncherSettingsDialog(
                                 .background(if (isSelected) activeBg else Color.Transparent)
                                 .border(
                                     width = if (isSelected) 1.5.dp else 1.dp,
-                                    color = if (isSelected) Color(0xFF38BDF8).copy(alpha = 0.65f) else Color(0xFF152238),
+                                    color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
                                     shape = RoundedCornerShape(16.dp)
                                 )
                                 .clickable { selectedTab = tab }
@@ -221,13 +221,13 @@ fun LauncherSettingsDialog(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(if (isSelected) Color(0xFF0284C7) else Color(0xFF141F32)),
+                                    .background(if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.cardElevated),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = tab.icon,
                                     contentDescription = null,
-                                    tint = if (isSelected) Color.White else Color(0xFF87929A),
+                                    tint = if (isSelected) CockpitTheme.colors.onAccent else CockpitTheme.colors.textSecondary,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -237,7 +237,7 @@ fun LauncherSettingsDialog(
                                     fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                     fontSize = 18.sp
                                 ),
-                                color = if (isSelected) Color.White else Color(0xFF94A3B8)
+                                color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
                             )
                         }
                     }
@@ -246,9 +246,9 @@ fun LauncherSettingsDialog(
                 // VERTICAL DIVIDER
                 Box(
                     modifier = Modifier
-                        .width(1.5.dp)
+                        .width(1.dp)
                         .fillMaxHeight()
-                        .background(Color(0xFF1E2838))
+                        .background(CockpitTheme.colors.border)
                 )
 
                 // RIGHT CONTENT AREA (INDEPENDENT SCROLLING)
@@ -256,7 +256,7 @@ fun LauncherSettingsDialog(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .background(Color(0xFF070D18))
+                        .background(Color.Transparent)
                         .padding(horizontal = 24.dp, vertical = 20.dp)
                 ) {
                     AnimatedContent(
@@ -493,6 +493,11 @@ private fun GeneralSettingsContent(
             )
 
             listOf(
+                Triple(
+                    CockpitThemeMode.GRADIENT_GLASS,
+                    CockpitThemeMode.GRADIENT_GLASS.displayName,
+                    listOf(Glass_Background, Glass_BackgroundSecondary, Glass_PrimaryAccent)
+                ),
                 Triple(
                     CockpitThemeMode.APEX,
                     CockpitThemeMode.APEX.displayName,
@@ -1011,8 +1016,8 @@ private fun SettingsCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFF0C1424))
-            .border(1.2.dp, Color(0xFF1E2838), RoundedCornerShape(18.dp))
+            .background(CockpitTheme.colors.cardTopLightGradient)
+            .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(18.dp))
             .padding(20.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -1020,14 +1025,14 @@ private fun SettingsCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(24.dp))
+                Icon(imageVector = icon, contentDescription = null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(24.dp))
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     ),
-                    color = Color.White
+                    color = CockpitTheme.colors.textPrimary
                 )
             }
             content()

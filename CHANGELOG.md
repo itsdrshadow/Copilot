@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.35.0] - 2026-11-16
+
+### Added
+- **Gradient Glass Cockpit Theme (Derived from Splash Screen Colors)**:
+  - Added new `CockpitThemeMode.GRADIENT_GLASS` theme utilizing the exact color palette and aesthetic from the Welcome Splash screen across the entire app.
+  - Multi-stop automotive vertical gradient background (`#02040A` -> `#071026` -> `#040A18` -> `#010307`) integrated seamlessly into `MainActivity`, `DashboardScreen`, `AppDrawerScreen`, `TripHistoryScreen`, `FuelHistoryScreen`, and `LauncherSettingsDialog`.
+  - Frosted glassmorphism card surfaces with specular cyan top reflection (`Color(0x3300F0FF)` fading into frosted sapphire `#08142A` and midnight `#030918`) and glowing translucent electric cyan borders (`Color(0x4D00F0FF)`).
+  - Luminous Splash Cyan telemetry accents (`#00F0FF`, `#00D2FF`, `#00E5FF`), soft cyan glow pills (`Color(0x2800F0FF)`), ice-white primary typography (`#F4FAFF`), and aerospace blue secondary text (`#7FAEE8`).
+- **Cockpit Theme Selector in Settings -> General**:
+  - Added **Gradient Glass** as an interactive theme option in Settings -> General alongside **Apex Studio**, complete with dynamic preview swatches and subtitle description.
+  - Integrated animated color transitions (`animateColorAsState`) so theme switching across the dashboard and dialogs occurs fluidly without restarts or stutters.
+- **Unit Test Suite Expansion**:
+  - Expanded `CockpitThemeSystemTest` to test `GRADIENT_GLASS` theme resolution, token integrity, default state verification, and safe fallbacks.
+
+### Changed
+- **Default Cockpit Theme Updated**:
+  - Set default theme to `gradient_glass` in `AppSettingsManager.SettingsState` and SharedPreferences initialization for new sessions, with backwards-compatible alias mapping.
+
 ### Added
 - **Car Ignition Deep Sleep & 12V Battery Protection in DrivingTrackingService**:
   - Added automotive ignition power-cut detector for `Intent.ACTION_POWER_DISCONNECTED` that safely releases partial wakeLock (`wakeLock?.release()`) and stops GPS hardware tracking updates (`stopLocationUpdates()`), preventing vehicle 12V battery drain and permitting Android infotainment head units to enter deep sleep.
