@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.38.1] - 2026-11-16
+
+### Changed
+- **Calibrate Vehicle Odometer Dialog Redesign**:
+  - Expanded dialog bounding box to `780.dp` width with an ergonomic two-pane split.
+  - Implemented large tactile numeric keypad with tactile press-scale animation (`0.92f`), active glowing borders, backspace icon, and clear button matching the Add Fuel keypad.
+  - Scaled odometer readout chamber font to $32\text{sp}$ bold, unit to $16\text{sp}$, and delta match badge to $14\text{sp}$.
+- **Calibrate Instrument Gauge Dialog Scaling**:
+  - Expanded dialog bounding box to `740.dp` width for automotive cockpit touch ergonomics.
+  - Enlarge 10-bar calibration segments to $56\text{dp}$ width and $88\text{dp}$ height with tactile ripple feedback.
+  - Scaled bar numbers to $21\text{sp}$ bold, percentages to $13.5\text{sp}$, estimated fuel level to $28\text{sp}$, and dialog buttons to $52\text{dp}$ height.
+- **Add Fuel Dialog Comprehensive Typography Scaling**:
+  - Scaled all metric labels (`AMOUNT`, `PRICE/L`, `ODOMETER`) to $13.5\text{sp}$ bold (up from $11\text{sp}$) and metric input heights to $48\text{dp}$.
+  - Scaled gauge markers (`E`, `1/4`, `1/2`, `3/4`, `F`) from $10\text{--}10.5\text{sp}$ to $13\text{sp}$ bold.
+  - Scaled telemetry card metric headers (`FUEL ADDED`, `RANGE GAIN`, `RUNNING COST`, `TOTAL RANGE`) from $10.5\text{--}12\text{sp}$ to $13.5\text{sp}$ bold, with subtitles at $12.5\text{sp}$.
+  - Scaled progress bar level indicators to $13.5\text{sp}$ bold.
+- **Fuel Records Month Accordion Header Scaling**:
+  - Enlarged month group header button (`November 2026`) with a minimum height of $60\text{dp}$ and $18\text{dp} \times 14\text{dp}$ touch padding.
+  - Scaled month title typography to $20\text{sp}$ bold and accordion chevron to $28\text{dp}$.
+  - Scaled summary pill badges (`refills`, `liters`, `total cost`, `mileage`) to $13.5\text{sp}$ bold with $10\text{dp} \times 5\text{dp}$ padding.
+
+### Fixed
+- **Trip History Detail Tab Alignment**:
+  - Fixed vertical and horizontal text and icon alignment across `Route Replay`, `Timeline`, and `Trip Charts` buttons.
+  - Set tab height to $46\text{dp}$ with `CenterHorizontally` and `CenterVertically` arrangements, `PlatformTextStyle(includeFontPadding = false)`, and $14.5\text{sp}$ bold typography.
+
+### Removed
+- **Odometer Quick Delta Adjustment Line**:
+  - Completely eliminated the `-1000 -100 -10 +10 +100 +1000` delta button row in favor of the direct large numeric keypad.
+
 ## [1.38.0] - 2026-11-16
 
 ### Removed

@@ -397,24 +397,27 @@ fun FuelTankCard(
         Dialog(onDismissRequest = { showGaugeDialog = false }) {
             Box(
                 modifier = Modifier
-                    .width(580.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .width(740.dp)
+                    .clip(RoundedCornerShape(22.dp))
                     .background(CockpitTheme.colors.card)
-                    .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(20.dp))
+                    .border(1.5.dp, CockpitTheme.colors.border, RoundedCornerShape(22.dp))
                     .padding(22.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     // Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .size(44.dp)
+                                    .clip(RoundedCornerShape(10.dp))
                                     .background(CockpitTheme.colors.accentSoft),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -422,22 +425,21 @@ fun FuelTankCard(
                                     imageVector = Icons.Default.Tune,
                                     contentDescription = null,
                                     tint = CockpitTheme.colors.accent,
-                                    modifier = Modifier.size(22.dp)
+                                    modifier = Modifier.size(24.dp)
                                 )
                             }
-                            Spacer(Modifier.width(10.dp))
                             Column {
                                 Text(
                                     text = "Calibrate Instrument Gauge",
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 22.sp
                                     ),
                                     color = CockpitTheme.colors.textPrimary
                                 )
                                 Text(
                                     text = "Match active bars with physical 10-bar cluster display",
-                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.5.sp),
                                     color = CockpitTheme.colors.textSecondary
                                 )
                             }
@@ -453,8 +455,8 @@ fun FuelTankCard(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(activeColor.copy(alpha = 0.15f))
-                                .border(1.dp, activeColor.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .border(1.2.dp, activeColor.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                .padding(horizontal = 14.dp, vertical = 7.dp)
                         ) {
                             Text(
                                 text = "$tempSelectedBar / 10 BARS • ${tempSelectedBar * 10}%",
@@ -462,7 +464,7 @@ fun FuelTankCard(
                                     fontWeight = FontWeight.Black,
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                     fontFeatureSettings = "tnum",
-                                    fontSize = 13.5.sp
+                                    fontSize = 15.sp
                                 ),
                                 color = activeColor
                             )
@@ -474,18 +476,18 @@ fun FuelTankCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(CockpitTheme.colors.cardElevated)
-                            .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                            .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 18.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "ESTIMATED FUEL LEVEL",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Black,
+                                fontSize = 13.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = CockpitTheme.colors.textSecondary
@@ -497,19 +499,19 @@ fun FuelTankCard(
                                     fontWeight = FontWeight.Black,
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                     fontFeatureSettings = "tnum",
-                                    fontSize = 24.sp
+                                    fontSize = 28.sp
                                 ),
                                 color = CockpitTheme.colors.textPrimary
                             )
-                            Spacer(Modifier.width(4.dp))
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 text = "L / ${capacity.toInt()} L",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
+                                    fontSize = 15.sp
                                 ),
                                 color = CockpitTheme.colors.textSecondary,
-                                modifier = Modifier.padding(bottom = 2.dp)
+                                modifier = Modifier.padding(bottom = 3.dp)
                             )
                         }
                     }
@@ -530,18 +532,23 @@ fun FuelTankCard(
 
                             Box(
                                 modifier = Modifier
-                                    .width(46.dp)
-                                    .height(76.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .width(56.dp)
+                                    .height(88.dp)
+                                    .clip(RoundedCornerShape(10.dp))
                                     .background(
                                         if (isSelected) zoneColor else CockpitTheme.colors.cardElevated
                                     )
                                     .border(
                                         width = if (isSelected) 1.5.dp else 1.dp,
                                         color = if (isSelected) zoneColor else CockpitTheme.colors.border,
-                                        shape = RoundedCornerShape(8.dp)
+                                        shape = RoundedCornerShape(10.dp)
                                     )
-                                    .clickable { tempSelectedBar = bar },
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = rememberRipple(color = zoneColor),
+                                        role = Role.Button,
+                                        onClick = { tempSelectedBar = bar }
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(
@@ -554,7 +561,7 @@ fun FuelTankCard(
                                             fontWeight = FontWeight.Black,
                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                             fontFeatureSettings = "tnum",
-                                            fontSize = 17.sp
+                                            fontSize = 21.sp
                                         ),
                                         color = if (isSelected) CockpitTheme.colors.onAccent else CockpitTheme.colors.textSecondary
                                     )
@@ -562,9 +569,9 @@ fun FuelTankCard(
                                         text = "${bar * 10}%",
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 11.5.sp
+                                            fontSize = 13.5.sp
                                         ),
-                                        color = if (isSelected) CockpitTheme.colors.onAccent.copy(alpha = 0.8f) else CockpitTheme.colors.textDisabled
+                                        color = if (isSelected) CockpitTheme.colors.onAccent.copy(alpha = 0.9f) else CockpitTheme.colors.textDisabled
                                     )
                                 }
                             }
@@ -579,29 +586,29 @@ fun FuelTankCard(
                     ) {
                         TextButton(
                             onClick = { showGaugeDialog = false },
-                            modifier = Modifier.height(46.dp)
+                            modifier = Modifier.height(52.dp)
                         ) {
                             Text(
                                 text = "Cancel",
                                 color = CockpitTheme.colors.textSecondary,
-                                fontSize = 15.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Spacer(Modifier.width(10.dp))
+                        Spacer(Modifier.width(12.dp))
                         Button(
                             onClick = {
                                 onCalibrateGauge(tempSelectedBar)
                                 showGaugeDialog = false
                             },
-                            modifier = Modifier.height(46.dp),
+                            modifier = Modifier.height(52.dp),
                             shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
                         ) {
                             Text(
                                 text = "Apply Gauge Bar ($tempSelectedBar/10)",
                                 color = CockpitTheme.colors.onAccent,
-                                fontSize = 15.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Black
                             )
                         }

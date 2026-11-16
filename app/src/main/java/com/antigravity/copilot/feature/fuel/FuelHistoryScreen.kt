@@ -557,31 +557,36 @@ private fun FuelRecordsMonthGroupedFeed(
                         .background(Color(0xFF0A0F1A))
                         .border(1.dp, Color(0xFF1A2436), RoundedCornerShape(14.dp))
                 ) {
-                    // Month Header Accordion Bar
+                    // Month Header Accordion Bar (Bada touch target aur bada readable text)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { expandedMonths[monthKey] = !isExpanded }
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                            .defaultMinSize(minHeight = 60.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(color = Color(0xFF38BDF8)),
+                                onClick = { expandedMonths[monthKey] = !isExpanded }
+                            )
+                            .padding(horizontal = 18.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Text(
                                 text = "${monthData.monthFullName} ${monthData.year}",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 16.sp
+                                    fontSize = 20.sp
                                 ),
                                 color = Color.White
                             )
 
                             // Quick monthly summary pills
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 PillBadge(
@@ -610,7 +615,7 @@ private fun FuelRecordsMonthGroupedFeed(
                             contentDescription = if (isExpanded) "Collapse" else "Expand",
                             tint = Color(0xFF87929A),
                             modifier = Modifier
-                                .size(20.dp)
+                                .size(28.dp)
                                 .rotate(arrowRotation)
                         )
                     }
@@ -647,17 +652,18 @@ private fun FuelRecordsMonthGroupedFeed(
 private fun PillBadge(text: String, color: Color) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.12f))
-            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.15f))
+            .border(1.2.dp, color.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 9.5.sp,
-                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Black,
+                fontSize = 13.5.sp,
+                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                fontFeatureSettings = "tnum"
             ),
             color = color
         )

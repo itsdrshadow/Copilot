@@ -17,6 +17,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,10 +27,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
@@ -1083,41 +1086,47 @@ private fun TripDetailContainer(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Tab Selector
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         TripDetailTab.values().forEach { tab ->
                             val isSelected = tab == selectedTab
-                            Box(
+                            Row(
                                 modifier = Modifier
-                                    .defaultMinSize(minHeight = 44.dp)
+                                    .height(46.dp)
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(if (isSelected) Color(0xFF1E3A5F) else Color(0xFF0F1726))
                                     .border(
-                                        width = 1.2.dp,
+                                        width = 1.25.dp,
                                         color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E2838),
                                         shape = RoundedCornerShape(10.dp)
                                     )
-                                    .clickable { onSelectTab(tab) }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = rememberRipple(color = Color(0xFF38BDF8)),
+                                        role = Role.Button,
+                                        onClick = { onSelectTab(tab) }
+                                    )
+                                    .padding(horizontal = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = tab.icon,
-                                        contentDescription = null,
-                                        tint = if (isSelected) Color(0xFF38BDF8) else Color(0xFF87929A),
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = tab.title,
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                            fontSize = 14.sp
-                                        ),
-                                        color = if (isSelected) Color.White else Color(0xFF87929A)
-                                    )
-                                }
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected) Color(0xFF38BDF8) else Color(0xFF87929A),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = tab.title,
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                                        fontSize = 14.5.sp,
+                                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                    ),
+                                    color = if (isSelected) Color.White else Color(0xFF87929A)
+                                )
                             }
                         }
                     }

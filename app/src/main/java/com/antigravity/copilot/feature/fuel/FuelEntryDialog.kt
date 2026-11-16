@@ -345,11 +345,11 @@ fun FuelEntryDialog(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    // Row 1: Amount (₹) & Price / L (₹/L) side-by-side (Compact height: 46dp)
+                                    // Row 1: Amount (₹) & Price / L (₹/L) side-by-side (Height: 48dp)
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(46.dp),
+                                            .height(48.dp),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         // Field 1: Total Amount (₹)
@@ -366,7 +366,7 @@ fun FuelEntryDialog(
                                                     RoundedCornerShape(10.dp)
                                                 )
                                                 .clickable { activeField = ActiveFuelField.AMOUNT }
-                                                .padding(horizontal = 10.dp)
+                                                .padding(horizontal = 12.dp)
                                         ) {
                                             Row(
                                                 modifier = Modifier.fillMaxSize(),
@@ -375,13 +375,13 @@ fun FuelEntryDialog(
                                             ) {
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                 ) {
                                                     Text(
                                                         text = "AMOUNT",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                        style = MaterialTheme.typography.labelMedium.copy(
                                                             fontWeight = FontWeight.Black,
-                                                            fontSize = 11.sp,
+                                                            fontSize = 13.5.sp,
                                                             letterSpacing = 0.5.sp
                                                         ),
                                                         color = if (isAmountActive) Cockpit_AmberWarning else Color(0xFF94A3B8)
@@ -389,7 +389,7 @@ fun FuelEntryDialog(
                                                     if (isAmountActive) {
                                                         Box(
                                                             modifier = Modifier
-                                                                .size(5.dp)
+                                                                .size(6.dp)
                                                                 .clip(CircleShape)
                                                                 .background(Cockpit_AmberWarning)
                                                         )
@@ -403,7 +403,7 @@ fun FuelEntryDialog(
                                                         text = "₹",
                                                         style = MaterialTheme.typography.titleMedium.copy(
                                                             fontWeight = FontWeight.Black,
-                                                            fontSize = 18.sp,
+                                                            fontSize = 19.sp,
                                                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                                                         ),
                                                         color = Cockpit_AmberWarning
@@ -412,7 +412,7 @@ fun FuelEntryDialog(
                                                         text = totalAmountText.ifEmpty { "0" },
                                                         style = MaterialTheme.typography.titleLarge.copy(
                                                             fontWeight = FontWeight.Black,
-                                                            fontSize = 22.sp,
+                                                            fontSize = 24.sp,
                                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                                             letterSpacing = (-0.5).sp,
                                                             platformStyle = PlatformTextStyle(includeFontPadding = false)
@@ -439,7 +439,7 @@ fun FuelEntryDialog(
                                                     RoundedCornerShape(10.dp)
                                                 )
                                                 .clickable { activeField = ActiveFuelField.RATE }
-                                                .padding(horizontal = 10.dp)
+                                                .padding(horizontal = 12.dp)
                                         ) {
                                             Row(
                                                 modifier = Modifier.fillMaxSize(),
@@ -448,9 +448,9 @@ fun FuelEntryDialog(
                                             ) {
                                                 Text(
                                                     text = "PRICE/L",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                    style = MaterialTheme.typography.labelMedium.copy(
                                                         fontWeight = FontWeight.Black,
-                                                        fontSize = 11.sp,
+                                                        fontSize = 13.5.sp,
                                                         letterSpacing = 0.5.sp
                                                     ),
                                                     color = if (isRateActive) Color(0xFF38BDF8) else Color(0xFF94A3B8)
@@ -463,7 +463,7 @@ fun FuelEntryDialog(
                                                         text = "₹",
                                                         style = MaterialTheme.typography.titleSmall.copy(
                                                             fontWeight = FontWeight.Black,
-                                                            fontSize = 15.sp
+                                                            fontSize = 16.sp
                                                         ),
                                                         color = Color(0xFF38BDF8)
                                                     )
@@ -471,7 +471,7 @@ fun FuelEntryDialog(
                                                         text = pricePerLiterText.ifEmpty { "0" },
                                                         style = MaterialTheme.typography.titleLarge.copy(
                                                             fontWeight = FontWeight.Black,
-                                                            fontSize = 20.sp,
+                                                            fontSize = 22.sp,
                                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                                             letterSpacing = (-0.5).sp,
                                                             platformStyle = PlatformTextStyle(includeFontPadding = false)
@@ -485,7 +485,7 @@ fun FuelEntryDialog(
                                         }
                                     }
 
-                                    // Row 2: Odometer Reading (KM) directly underneath (Compact height: 46dp)
+                                    // Row 2: Odometer Reading (KM) directly underneath (Height: 48dp)
                                     val isOdoActive = activeField == ActiveFuelField.ODOMETER
                                     val odoBorderColor = when {
                                         !isOdometerValid && refuelOdometerText.isNotEmpty() -> Cockpit_RedAlert
@@ -496,12 +496,12 @@ fun FuelEntryDialog(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(46.dp)
+                                            .height(48.dp)
                                             .clip(RoundedCornerShape(10.dp))
                                             .background(Color(0xFF0F172A))
                                             .border(1.5.dp, odoBorderColor, RoundedCornerShape(10.dp))
                                             .clickable { activeField = ActiveFuelField.ODOMETER }
-                                            .padding(horizontal = 10.dp)
+                                            .padding(horizontal = 12.dp)
                                     ) {
                                         Row(
                                             modifier = Modifier.fillMaxSize(),
@@ -510,13 +510,13 @@ fun FuelEntryDialog(
                                         ) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 Text(
                                                     text = "ODOMETER",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                    style = MaterialTheme.typography.labelMedium.copy(
                                                         fontWeight = FontWeight.Black,
-                                                        fontSize = 11.sp,
+                                                        fontSize = 13.5.sp,
                                                         letterSpacing = 0.5.sp
                                                     ),
                                                     color = if (!isOdometerValid && refuelOdometerText.isNotEmpty()) Cockpit_RedAlert else if (isOdoActive) Color(0xFFC084FC) else Color(0xFF94A3B8)
@@ -524,9 +524,9 @@ fun FuelEntryDialog(
                                                 if (refuelOdometerText.isNotEmpty() && enteredOdo <= 0.0) {
                                                     Text(
                                                         text = "⚠️ Enter valid km",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                        style = MaterialTheme.typography.labelMedium.copy(
                                                             fontWeight = FontWeight.Black,
-                                                            fontSize = 9.5.sp,
+                                                            fontSize = 12.5.sp,
                                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                                         ),
                                                         color = Cockpit_RedAlert
@@ -534,9 +534,9 @@ fun FuelEntryDialog(
                                                 } else if (odoTripDelta > 0.05) {
                                                     Text(
                                                         text = "+${NumberFormatUtils.formatDistance(odoTripDelta, 1)} km",
-                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                        style = MaterialTheme.typography.labelMedium.copy(
                                                             fontWeight = FontWeight.Black,
-                                                            fontSize = 10.sp,
+                                                            fontSize = 12.5.sp,
                                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                                         ),
                                                         color = Color(0xFFC084FC)
@@ -549,19 +549,19 @@ fun FuelEntryDialog(
                                                     text = refuelOdometerText.ifEmpty { "0" },
                                                     style = MaterialTheme.typography.titleLarge.copy(
                                                         fontWeight = FontWeight.Black,
-                                                        fontSize = 22.sp,
+                                                        fontSize = 24.sp,
                                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                                                         letterSpacing = (-0.5).sp,
                                                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                                                     ),
                                                     color = if (!isOdometerValid && refuelOdometerText.isNotEmpty()) Cockpit_RedAlert else Color.White
                                                 )
-                                                Spacer(Modifier.width(3.dp))
+                                                Spacer(Modifier.width(4.dp))
                                                 Text(
                                                     text = "km",
-                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                    style = MaterialTheme.typography.labelMedium.copy(
                                                         fontWeight = FontWeight.Bold,
-                                                        fontSize = 12.sp
+                                                        fontSize = 14.sp
                                                     ),
                                                     color = Color(0xFFC084FC),
                                                     modifier = Modifier.padding(bottom = 2.dp)
@@ -826,7 +826,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "FUEL LEVEL & TELEMETRIC PROJECTION",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 12.sp,
+                            fontSize = 13.5.sp,
                             letterSpacing = 0.8.sp
                         ),
                         color = Color(0xFF00F5FF)
@@ -841,7 +841,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "Tank: ${designCap.toInt()} L",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF94A3B8)
@@ -857,13 +857,13 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 if (additionalBars > 0) Color(0xFF00B0FF).copy(alpha = 0.70f) else Color(0xFF334155),
                                 RoundedCornerShape(6.dp)
                             )
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = if (additionalBars > 0) "+$additionalBars BARS" else "$postRefillBar/10 BARS",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 10.sp,
+                                fontSize = 12.5.sp,
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
                             color = if (additionalBars > 0) Color(0xFF00B0FF) else Color(0xFF94A3B8)
@@ -906,7 +906,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                     Text(
                         text = if (dispensedLiters > 0.05) "Target Volume (+${NumberFormatUtils.formatFuelLiters(dispensedLiters, 1)}L refueled)" else "Current Tank Volume (${postRefillLiters.toInt()}L)",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.5.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         ),
                         color = Color(0xFF94A3B8)
@@ -933,7 +933,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                     Text(
                         text = if (isOverfill) "OVERFILL LIMIT WARNING" else "MID Bar $postRefillBar of 10",
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
@@ -1009,7 +1009,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "E (Reserve)",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 10.5.sp,
+                            fontSize = 13.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFEF4444)
@@ -1018,7 +1018,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "1/4 (25%)",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
+                            fontSize = 13.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFFF9100)
@@ -1027,7 +1027,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "1/2 (50%)",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
+                            fontSize = 13.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFFEAB308)
@@ -1036,7 +1036,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "3/4 (75%)",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
+                            fontSize = 13.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF22C55E)
@@ -1045,7 +1045,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "F (${designCap.toInt()}L)",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 10.5.sp,
+                            fontSize = 13.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF10B981)
@@ -1072,7 +1072,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             text = "FUEL ADDED",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 10.5.sp,
+                                fontSize = 13.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF94A3B8)
@@ -1092,7 +1092,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 text = "L",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 12.sp
+                                    fontSize = 14.sp
                                 ),
                                 color = Color(0xFF00F5FF),
                                 modifier = Modifier.padding(bottom = 1.dp)
@@ -1100,7 +1100,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         }
                         Text(
                             text = if (addedPct > 0) "+$addedPct% tank boost" else "0% added",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                             color = if (addedPct > 0) Color(0xFF00F5FF) else Color(0xFF64748B),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1122,7 +1122,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             text = "RANGE GAIN",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
+                                fontSize = 13.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF94A3B8)
@@ -1140,7 +1140,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         }
                         Text(
                             text = "@ ${NumberFormatUtils.formatMileage(effectiveMileage, 1)} km/L",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                             color = Color(0xFF10B981).copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1162,7 +1162,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             text = "RUNNING COST",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
+                                fontSize = 13.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF94A3B8)
@@ -1182,7 +1182,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 text = "/km",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 12.sp
+                                    fontSize = 14.sp
                                 ),
                                 color = Color(0xFFF59E0B).copy(alpha = 0.85f),
                                 modifier = Modifier.padding(bottom = 1.dp)
@@ -1190,7 +1190,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         }
                         Text(
                             text = "Real-time cost rate",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                             color = Color(0xFFF59E0B).copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1212,7 +1212,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             text = "TOTAL RANGE",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
+                                fontSize = 13.5.sp,
                                 letterSpacing = 0.5.sp
                             ),
                             color = Color(0xFF94A3B8)
@@ -1230,7 +1230,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         }
                         Text(
                             text = "${postRefillLiters.toInt()}L post-refill",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                             color = Color(0xFF38BDF8).copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -1288,7 +1288,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "Current: ${currentPct}% (${currentFuelLiters.toInt()}L)",
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            fontSize = 13.5.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF94A3B8)
@@ -1297,7 +1297,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         text = "Post-Refill: ${tankPct}% (${postRefillLiters.toInt()}L)",
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
+                            fontSize = 13.5.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = if (isOverfill) Cockpit_AmberWarning else Color(0xFF00F5FF)
@@ -1364,7 +1364,7 @@ fun AutoCalculatedTelemetryCard(
                         text = "AUTO-CALCULATED TELEMETRY",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 11.5.sp,
+                            fontSize = 13.5.sp,
                             letterSpacing = 0.5.sp
                         ),
                         color = Color(0xFF38BDF8)
@@ -1375,7 +1375,7 @@ fun AutoCalculatedTelemetryCard(
                     text = "Tank: ${designCap.toInt()} L",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 10.5.sp,
+                        fontSize = 13.sp,
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
                     color = Color(0xFF94A3B8)
@@ -1406,7 +1406,7 @@ fun AutoCalculatedTelemetryCard(
                                 text = "FUEL ADDED",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp,
+                                    fontSize = 13.5.sp,
                                     letterSpacing = 0.5.sp
                                 ),
                                 color = Color(0xFF94A3B8)
@@ -1416,7 +1416,7 @@ fun AutoCalculatedTelemetryCard(
                                     text = NumberFormatUtils.formatFuelLiters(dispensedLiters, 2),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 18.sp,
+                                        fontSize = 19.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color.White
@@ -1426,7 +1426,7 @@ fun AutoCalculatedTelemetryCard(
                                     text = "L",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 11.sp
+                                        fontSize = 13.5.sp
                                     ),
                                     color = Color(0xFF38BDF8),
                                     modifier = Modifier.padding(bottom = 1.dp)
@@ -1434,7 +1434,7 @@ fun AutoCalculatedTelemetryCard(
                             }
                             Text(
                                 text = if (addedPct > 0) "+$addedPct% tank boost" else "0% added",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                                 color = if (addedPct > 0) Color(0xFF38BDF8) else Color(0xFF64748B),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1456,7 +1456,7 @@ fun AutoCalculatedTelemetryCard(
                                 text = "RANGE GAIN",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp,
+                                    fontSize = 13.5.sp,
                                     letterSpacing = 0.5.sp
                                 ),
                                 color = Color(0xFF94A3B8)
@@ -1466,7 +1466,7 @@ fun AutoCalculatedTelemetryCard(
                                     text = if (addedRangeKm > 0.1) "+${addedRangeKm.toInt()} km" else "+0 km",
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 18.sp,
+                                        fontSize = 19.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Cockpit_GreenEco
@@ -1474,7 +1474,7 @@ fun AutoCalculatedTelemetryCard(
                             }
                             Text(
                                 text = "@ ${NumberFormatUtils.formatMileage(effectiveMileage, 1)} km/L",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                                 color = Cockpit_GreenEco.copy(alpha = 0.85f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1502,7 +1502,7 @@ fun AutoCalculatedTelemetryCard(
                                 text = "RUNNING COST",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp,
+                                    fontSize = 13.5.sp,
                                     letterSpacing = 0.5.sp
                                 ),
                                 color = Color(0xFF94A3B8)
@@ -1512,7 +1512,7 @@ fun AutoCalculatedTelemetryCard(
                                     text = "₹${NumberFormatUtils.formatPrecision(runningCostPerKm, 2)}",
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 18.sp,
+                                        fontSize = 19.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFFF59E0B)
@@ -1522,7 +1522,7 @@ fun AutoCalculatedTelemetryCard(
                                     text = "/km",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 11.sp
+                                        fontSize = 13.5.sp
                                     ),
                                     color = Color(0xFFF59E0B).copy(alpha = 0.85f),
                                     modifier = Modifier.padding(bottom = 1.dp)
@@ -1530,7 +1530,7 @@ fun AutoCalculatedTelemetryCard(
                             }
                             Text(
                                 text = "Real-time travel cost",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                                 color = Color(0xFFF59E0B).copy(alpha = 0.85f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1552,7 +1552,7 @@ fun AutoCalculatedTelemetryCard(
                                 text = "TOTAL RANGE",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 10.sp,
+                                    fontSize = 13.5.sp,
                                     letterSpacing = 0.5.sp
                                 ),
                                 color = Color(0xFF94A3B8)
@@ -1562,7 +1562,7 @@ fun AutoCalculatedTelemetryCard(
                                     text = "${totalRangeKm.toInt()} km",
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 18.sp,
+                                        fontSize = 19.sp,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
                                     color = Color(0xFF00E5FF)
@@ -1570,7 +1570,7 @@ fun AutoCalculatedTelemetryCard(
                             }
                             Text(
                                 text = "${clampedFinalTank.toInt()}L post-fill",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.5.sp, fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                                 color = Color(0xFF00E5FF).copy(alpha = 0.85f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1629,7 +1629,7 @@ fun AutoCalculatedTelemetryCard(
                         text = "Current: ${currentPct}%",
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            fontSize = 13.5.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Color(0xFF94A3B8)
@@ -1638,7 +1638,7 @@ fun AutoCalculatedTelemetryCard(
                         text = "Post-Refill: ${finalPct}%",
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontSize = 11.sp,
+                            fontSize = 13.5.sp,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = if (isOverfill) Cockpit_AmberWarning else Color(0xFF38BDF8)

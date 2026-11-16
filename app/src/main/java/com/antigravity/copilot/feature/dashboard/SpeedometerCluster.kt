@@ -6,13 +6,17 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -697,34 +702,30 @@ private fun SpeedometerOdometerCalibrationDialog(
     var textValue by remember { mutableStateOf(String.format(Locale.US, "%.1f", currentOdometerKm)) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    fun adjustBy(delta: Double) {
-        val current = textValue.toDoubleOrNull() ?: currentOdometerKm
-        val newOdo = (current + delta).coerceAtLeast(0.0)
-        textValue = String.format(Locale.US, "%.1f", newOdo)
-        errorMessage = null
-    }
-
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
-                .width(520.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .width(780.dp)
+                .clip(RoundedCornerShape(22.dp))
                 .background(CockpitTheme.colors.card)
-                .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(20.dp))
+                .border(1.5.dp, CockpitTheme.colors.border, RoundedCornerShape(22.dp))
                 .padding(20.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(CockpitTheme.colors.accentSoft),
                             contentAlignment = Alignment.Center
                         ) {
@@ -732,19 +733,23 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = null,
                                 tint = CockpitTheme.colors.accent,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                         }
-                        Spacer(Modifier.width(10.dp))
                         Column {
                             Text(
                                 text = "Calibrate Vehicle Odometer",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 21.sp
+                                ),
                                 color = CockpitTheme.colors.textPrimary
                             )
                             Text(
                                 text = "Sync with physical car dashboard cluster reading",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 13.5.sp
+                                ),
                                 color = CockpitTheme.colors.textSecondary
                             )
                         }
@@ -758,17 +763,18 @@ private fun SpeedometerOdometerCalibrationDialog(
                         val diffColor = if (kotlin.math.abs(diff) < 0.05) CockpitTheme.colors.accent else CockpitTheme.colors.warning
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(diffColor.copy(alpha = 0.15f))
-                                .border(1.dp, diffColor.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .border(1.2.dp, diffColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
                                 text = diffText,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Black,
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                    fontFeatureSettings = "tnum"
+                                    fontFeatureSettings = "tnum",
+                                    fontSize = 14.sp
                                 ),
                                 color = diffColor
                             )
@@ -776,167 +782,263 @@ private fun SpeedometerOdometerCalibrationDialog(
                     }
                 }
 
-                // Odometer readout chamber
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(CockpitTheme.colors.cardElevated)
-                        .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "ODOMETER",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = CockpitTheme.colors.textSecondary
-                        )
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = textValue.ifEmpty { "0.0" },
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                    fontFeatureSettings = "tnum",
-                                    fontSize = 28.sp
-                                ),
-                                color = CockpitTheme.colors.textPrimary
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = "KM",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = CockpitTheme.colors.accent,
-                                modifier = Modifier.padding(bottom = 2.dp)
-                            )
-                        }
-                    }
-                }
-
-                if (errorMessage != null) {
-                    Text(
-                        text = errorMessage ?: "",
-                        color = CockpitTheme.colors.critical,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // Quick Step Adjustment Buttons
+                // Two-Pane Content: Left (Display, info, actions), Right (Large Numpad)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    listOf(-1000.0, -100.0, -10.0, 10.0, 100.0, 1000.0).forEach { delta ->
-                        val sign = if (delta > 0) "+${delta.toInt()}" else "${delta.toInt()}"
+                    // Left Pane: Readout, Info, Action Buttons
+                    Column(
+                        modifier = Modifier
+                            .weight(0.55f),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Odometer readout chamber
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .height(36.dp)
-                                .clip(RoundedCornerShape(6.dp))
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(CockpitTheme.colors.cardElevated)
-                                .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(6.dp))
-                                .clickable { adjustBy(delta) },
-                            contentAlignment = Alignment.Center
+                                .border(1.5.dp, CockpitTheme.colors.accent.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                                .padding(horizontal = 16.dp, vertical = 14.dp)
                         ) {
-                            Text(
-                                text = sign,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                    fontFeatureSettings = "tnum"
-                                ),
-                                color = if (delta > 0) CockpitTheme.colors.accent else CockpitTheme.colors.critical
-                            )
-                        }
-                    }
-                }
-
-                // Keypad
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val keyRows = listOf(
-                        listOf("1", "2", "3"),
-                        listOf("4", "5", "6"),
-                        listOf("7", "8", "9"),
-                        listOf(".", "0", "DEL")
-                    )
-
-                    keyRows.forEach { row ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            row.forEach { key ->
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(38.dp)
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(CockpitTheme.colors.cardElevated)
-                                        .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            errorMessage = null
-                                            when (key) {
-                                                "DEL" -> if (textValue.isNotEmpty()) textValue = textValue.dropLast(1)
-                                                "." -> if (!textValue.contains(".")) textValue += "."
-                                                else -> textValue += key
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "ODOMETER",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 13.sp,
+                                        letterSpacing = 0.5.sp
+                                    ),
+                                    color = CockpitTheme.colors.textSecondary
+                                )
+                                Row(verticalAlignment = Alignment.Bottom) {
                                     Text(
-                                        text = key,
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold,
+                                        text = textValue.ifEmpty { "0.0" },
+                                        style = MaterialTheme.typography.headlineLarge.copy(
+                                            fontWeight = FontWeight.Black,
                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
-                                            fontFeatureSettings = "tnum"
+                                            fontFeatureSettings = "tnum",
+                                            fontSize = 32.sp
                                         ),
-                                        color = if (key == "DEL") CockpitTheme.colors.critical else CockpitTheme.colors.textPrimary
+                                        color = CockpitTheme.colors.textPrimary
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "KM",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 16.sp
+                                        ),
+                                        color = CockpitTheme.colors.accent,
+                                        modifier = Modifier.padding(bottom = 3.dp)
                                     )
                                 }
                             }
                         }
-                    }
-                }
 
-                // Actions
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = { textValue = ""; errorMessage = null }) {
-                        Text("Clear", color = CockpitTheme.colors.critical)
-                    }
+                        Text(
+                            text = "Enter physical dashboard odometer reading. GPS trip tracking and lifetime distance will automatically calibrate.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp
+                            ),
+                            color = CockpitTheme.colors.textSecondary
+                        )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = onDismiss) {
-                            Text("Cancel", color = CockpitTheme.colors.textSecondary)
+                        if (errorMessage != null) {
+                            Text(
+                                text = errorMessage ?: "",
+                                color = CockpitTheme.colors.critical,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
                         }
-                        Button(
-                            onClick = {
-                                val parsed = textValue.toDoubleOrNull()
-                                if (parsed == null || parsed < 0.0 || parsed > 2_000_000.0) {
-                                    errorMessage = "Enter valid odometer (0 - 2,000,000 km)"
-                                } else {
-                                    onConfirmCalibration(parsed)
-                                }
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
+
+                        Spacer(Modifier.weight(1f, fill = false))
+
+                        // Bottom Actions
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text("Confirm Calibration", color = CockpitTheme.colors.onAccent, fontWeight = FontWeight.Bold)
+                            OutlinedButton(
+                                onClick = onDismiss,
+                                modifier = Modifier
+                                    .weight(0.40f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.2.dp, CockpitTheme.colors.border)
+                            ) {
+                                Text(
+                                    text = "Cancel",
+                                    color = CockpitTheme.colors.textSecondary,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    val parsed = textValue.toDoubleOrNull()
+                                    if (parsed == null || parsed < 0.0 || parsed > 2_000_000.0) {
+                                        errorMessage = "Enter valid odometer (0 - 2,000,000 km)"
+                                    } else {
+                                        onConfirmCalibration(parsed)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(0.60f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
+                            ) {
+                                Text(
+                                    text = "CONFIRM",
+                                    color = CockpitTheme.colors.onAccent,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+
+                    // Right Pane: Large Numpad like Add Fuel
+                    Box(
+                        modifier = Modifier
+                            .weight(0.45f)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(CockpitTheme.colors.cardElevated)
+                            .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(14.dp))
+                            .padding(8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            val keyRows = listOf(
+                                listOf("1", "2", "3"),
+                                listOf("4", "5", "6"),
+                                listOf("7", "8", "9"),
+                                listOf(".", "0", "DEL")
+                            )
+
+                            keyRows.forEach { row ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    row.forEach { key ->
+                                        val isDel = key == "DEL"
+                                        OdometerTactileKeypadButton(
+                                            text = if (isDel) "" else key,
+                                            icon = if (isDel) Icons.AutoMirrored.Filled.Backspace else null,
+                                            accentColor = if (isDel) CockpitTheme.colors.critical else CockpitTheme.colors.textPrimary,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(52.dp),
+                                            onClick = {
+                                                errorMessage = null
+                                                when (key) {
+                                                    "DEL" -> if (textValue.isNotEmpty()) textValue = textValue.dropLast(1)
+                                                    "." -> if (!textValue.contains(".")) textValue += "."
+                                                    else -> textValue += key
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Bottom Row: CLR button
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                OdometerTactileKeypadButton(
+                                    text = "CLR",
+                                    accentColor = CockpitTheme.colors.critical,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp),
+                                    onClick = {
+                                        errorMessage = null
+                                        textValue = ""
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun OdometerTactileKeypadButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accentColor: Color = Color.White,
+    icon: ImageVector? = null
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1.0f,
+        animationSpec = tween(90),
+        label = "OdoKeyScale"
+    )
+
+    Box(
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                if (isPressed) accentColor.copy(alpha = 0.25f) else CockpitTheme.colors.card
+            )
+            .border(
+                1.2.dp,
+                if (isPressed) accentColor.copy(alpha = 0.85f) else CockpitTheme.colors.border,
+                RoundedCornerShape(10.dp)
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = rememberRipple(color = accentColor),
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(24.dp)
+            )
+        } else {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Black,
+                    fontSize = 22.sp,
+                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+                    fontFeatureSettings = "tnum"
+                ),
+                color = accentColor
+            )
         }
     }
 }
