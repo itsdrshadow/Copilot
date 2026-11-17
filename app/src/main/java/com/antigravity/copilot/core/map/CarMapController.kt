@@ -26,8 +26,7 @@ import java.io.File
 /**
  * CarMapController:
  * High-performance controller for MapLibre Native on automotive Android 11 head units.
- * Handles dynamic MBTiles binding to local style.json, 60fps puck tracking with 45° driving tilt,
- * and offline route polyline drawing.
+ * Supports GPS-based auto-detection of 5 regional zones and dynamic local MBTiles binding.
  */
 class CarMapController(
     private val context: Context,
@@ -45,9 +44,13 @@ class CarMapController(
 
     private var mapboxMap: MapboxMap? = null
     private var isStyleLoaded = false
+    private var currentLoadedMbtilesPath: String? = null
 
     private val _hasMapInstalled = MutableStateFlow(false)
     val hasMapInstalled: StateFlow<Boolean> = _hasMapInstalled.asStateFlow()
+
+    private val _activeRegionTitle = MutableStateFlow<String?>(null)
+    val activeRegionTitle: StateFlow<String?> = _activeRegionTitle.asStateFlow()
 
     private val _is3DTiltActive = MutableStateFlow(true)
     val is3DTiltActive: StateFlow<Boolean> = _is3DTiltActive.asStateFlow()
@@ -77,16 +80,30 @@ class CarMapController(
     fun detachMap() {
         this.mapboxMap = null
         this.isStyleLoaded = false
+        this.currentLoadedMbtilesPath = null
     }
 
     /**
-     * Loads the bundled offline style.json and dynamically binds the local .mbtiles file URI.
+     * Loads the bundled offline style.json and dynamically binds the best regional/national .mbtiles file URI.
      */
-    fun loadLocalOfflineStyle(onCompleted: () -> Unit = {}) {
+    fun loadLocalOfflineStyle(
+        lat: Double = lastLocation.latitude,
+        lon: Double = lastLocation.longitude,
+        onCompleted: () -> Unit = {}
+    ) {
         val map = mapboxMap ?: return
-        val mbtilesFile = OfflineMapManager.getMapFile(context)
+        val mbtilesFile = OfflineMapManager.getBestMapFileForLocation(context, lat, lon)
         val hasMap = mbtilesFile != null && mbtilesFile.exists() && mbtilesFile.length() > 0
         _hasMapInstalled.value = hasMap
+
+        val detectedRegion = OfflineMapManager.getRegionForLocation(lat, lon)
+        _activeRegionTitle.value = detectedRegion?.title
+
+        val targetPath = mbtilesFile?.absolutePath
+        if (isStyleLoaded && targetPath == currentLoadedMbtilesPath) {
+            onCompleted()
+            return
+        }
 
         try {
             val styleTemplate = context.assets.open("offline_style/style.json")
@@ -103,7 +120,8 @@ class CarMapController(
             map.setStyle(Style.Builder().fromJson(resolvedJson)) { style ->
                 setupRouteLayers(style)
                 isStyleLoaded = true
-                Log.i(TAG, "MapLibre offline style successfully loaded. Map attached: $hasMap")
+                currentLoadedMbtilesPath = targetPath
+                Log.i(TAG, "MapLibre style loaded. Active pack: ${mbtilesFile?.name ?: "None"}, Region: ${detectedRegion?.title}")
                 onCompleted()
             }
         } catch (e: Exception) {
@@ -148,11 +166,22 @@ class CarMapController(
     }
 
     /**
-     * Smooth 60fps GPS location puck tracking with bearing rotation and 45° driving tilt.
+     * Smooth 60fps GPS location puck tracking with bearing rotation, 45° driving tilt,
+     * and automatic regional map file switching when crossing zones.
      */
     fun updateVehiclePosition(lat: Double, lon: Double, bearing: Float, speedKmh: Float) {
         lastLocation = LatLng(lat, lon)
         lastBearing = bearing.toDouble()
+
+        // Inform OfflineMapManager of location to update detected GPS region
+        OfflineMapManager.updateGpsLocation(lat, lon)
+
+        // Check if regional map file should switch based on new GPS location
+        val bestMap = OfflineMapManager.getBestMapFileForLocation(context, lat, lon)
+        if (bestMap != null && bestMap.absolutePath != currentLoadedMbtilesPath) {
+            Log.i(TAG, "Auto-switching map file to match GPS region: ${bestMap.name}")
+            loadLocalOfflineStyle(lat, lon)
+        }
 
         val map = mapboxMap ?: return
         val currentTilt = if (_is3DTiltActive.value) DEFAULT_DRIVING_TILT else 0.0

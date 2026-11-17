@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.41.0] - 2026-11-17
 
 ### Added
+- **5-Macro-Region Modular Offline Vector Map Architecture with Real-Time GPS Auto-Mounting**:
+  - Partitioned India into 5 optimized macro-regions (`india_north`, `india_west_central`, `india_south`, `india_east`, `india_northeast`) alongside the master All-India package.
+  - Implemented real-time GPS spatial bounding-box resolution (`GeoBoundingBox`) via `currentGpsRegion` StateFlow in `OfflineMapManager`.
+  - Seamless auto-mounting of the nearest regional `.mbtiles` file in `CarMapController` as the car travels across regions without manual switching or screen interruption.
+  - Visual high-visibility `★ CURRENT GPS REGION` badge on regional package cards in `OfflineMapsManagerScreen`.
 - **MapLibre Android SDK v10.3.2 Native Integration**:
   - Replaced legacy OSMDroid raster map engine with MapLibre GL Native `v10.3.2` pinned strictly for 32-bit `armeabi-v7a` CPU architecture and older head unit GPUs.
   - Added `ndk { abiFilters.add("armeabi-v7a") }` in `app/build.gradle.kts`.

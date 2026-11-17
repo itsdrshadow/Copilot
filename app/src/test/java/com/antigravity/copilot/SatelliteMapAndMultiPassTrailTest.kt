@@ -17,9 +17,14 @@ class SatelliteMapAndMultiPassTrailTest {
 
     @Test
     fun testOfflineVectorTileUriGeneration() {
-        val vectorPkg = OfflineMapManager.AVAILABLE_PACKAGES.find { it.type == OfflineMapManager.PackageType.VECTOR_MAP }
-        assertNotNull(vectorPkg)
-        assertEquals("india.mbtiles", vectorPkg?.fileName)
+        val masterPkg = OfflineMapManager.AVAILABLE_PACKAGES.find { it.id == "india_vector_map" }
+        assertNotNull(masterPkg)
+        assertEquals("india.mbtiles", masterPkg?.fileName)
+
+        val northPkg = OfflineMapManager.AVAILABLE_PACKAGES.find { it.id == "india_north" }
+        assertNotNull(northPkg)
+        assertEquals("india_north.mbtiles", northPkg?.fileName)
+
         val samplePath = "/storage/emulated/0/Android/data/com.antigravity.copilot/files/maps/india.mbtiles"
         val mbtilesUri = "mbtiles://$samplePath"
         assertTrue(mbtilesUri.startsWith("mbtiles:///"))

@@ -70,6 +70,7 @@ fun LiveMapPanel(
     val mapController = remember { CarMapController(context.applicationContext, coroutineScope) }
 
     val hasMapInstalled by mapController.hasMapInstalled.collectAsState()
+    val activeRegionTitle by mapController.activeRegionTitle.collectAsState()
     val is3DActive by mapController.is3DTiltActive.collectAsState()
     val isHeadingUp by mapController.isHeadingUp.collectAsState()
     val activeInstruction by mapController.activeInstruction.collectAsState()
@@ -178,14 +179,14 @@ fun LiveMapPanel(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "NO OFFLINE MAP INSTALLED",
-                            fontSize = 18.sp,
+                            text = if (activeRegionTitle != null) "NO MAP FOR ${activeRegionTitle?.uppercase()}" else "NO OFFLINE MAP INSTALLED",
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Download vector map pack or copy .mbtiles via USB drive",
+                            text = if (activeRegionTitle != null) "Download $activeRegionTitle pack (~1.2 GB) or copy via USB" else "Download regional map pack or copy .mbtiles via USB",
                             fontSize = 13.sp,
                             color = Color.White.copy(alpha = 0.7f)
                         )

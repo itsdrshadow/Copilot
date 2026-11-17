@@ -40,7 +40,7 @@ fun OfflineMapsManagerDialog(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.85f))
-                .padding(24.dp),
+                .padding(20.dp),
             contentAlignment = Alignment.Center
         ) {
             OfflineMapsManagerContent(onClose = onDismissRequest)
@@ -59,8 +59,8 @@ fun OfflineMapsManagerContent(
     val downloadProgress by OfflineMapManager.downloadProgress.collectAsState()
     val downloadSpeedMbs by OfflineMapManager.downloadSpeedMbs.collectAsState()
     val installedPackages by OfflineMapManager.installedPackages.collectAsState()
+    val currentGpsRegion by OfflineMapManager.currentGpsRegion.collectAsState()
     val storageInfo by OfflineMapManager.storageInfo.collectAsState()
-    val statusMessage by OfflineMapManager.statusMessage.collectAsState()
 
     var isImportingUsb by remember { mutableStateOf(false) }
     var usbImportProgressText by remember { mutableStateOf<String?>(null) }
@@ -68,12 +68,14 @@ fun OfflineMapsManagerContent(
     LaunchedEffect(Unit) {
         OfflineMapManager.refreshPackageStatus(context)
         OfflineMapManager.refreshStorageInfo(context)
+        val (lat, lon) = OfflineMapManager.getLastKnownPosition(context)
+        OfflineMapManager.updateGpsLocation(lat, lon)
     }
 
     Surface(
         modifier = modifier
-            .fillMaxWidth(0.95f)
-            .fillMaxHeight(0.92f)
+            .fillMaxWidth(0.96f)
+            .fillMaxHeight(0.95f)
             .clip(RoundedCornerShape(20.dp))
             .border(1.5.dp, Cockpit_Cyan.copy(alpha = 0.4f), RoundedCornerShape(20.dp)),
         color = Color(0xFF0F141C)
@@ -81,7 +83,7 @@ fun OfflineMapsManagerContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(20.dp)
         ) {
             // Header Bar
             Row(
@@ -104,17 +106,17 @@ fun OfflineMapsManagerContent(
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(16.dp))
+                    Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
                             text = "OFFLINE MAPS & ROUTING MANAGER",
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
+                            fontSize = 19.sp,
                             color = Color.White
                         )
                         Text(
-                            text = "100% Offline Navigation for Android 11 Head Unit",
+                            text = "5 Regional Macro-Zones + All-India Navigation (Max 15 GB Budget)",
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -124,7 +126,7 @@ fun OfflineMapsManagerContent(
                 // Close Button (Min 56dp touch area)
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(52.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF1E2633))
                         .clickable { onClose() },
@@ -134,17 +136,22 @@ fun OfflineMapsManagerContent(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = Color.White,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Storage Budget Gauge Bar & Warning
+            // Storage Budget Gauge Bar
             StorageBudgetCard(storageInfo = storageInfo)
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Live GPS Detected Region Pill Banner
+            CurrentGpsRegionBanner(currentGpsRegion = currentGpsRegion)
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Active Download Progress Card
             AnimatedVisibility(
@@ -168,49 +175,41 @@ fun OfflineMapsManagerContent(
                 Surface(
                     color = Color(0xFF16222F),
                     shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
                             color = Cockpit_Cyan,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(22.dp),
                             strokeWidth = 2.5.dp
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
                         Text(
                             text = usbImportProgressText ?: "Importing...",
                             color = Cockpit_Cyan,
-                            fontSize = 14.sp
+                            fontSize = 13.sp
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // Package List
-            Text(
-                text = "AVAILABLE PACKAGES (MAX 15 GB BUDGET)",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White.copy(alpha = 0.7f),
-                letterSpacing = 1.sp
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+            // Package List (Regional + National)
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(installedPackages) { pkg ->
+                    val isCurrentGpsMatch = currentGpsRegion?.id == pkg.id
                     PackageItemRow(
                         pkg = pkg,
+                        isCurrentGpsMatch = isCurrentGpsMatch,
                         isCurrentlyDownloading = downloadState == OfflineMapManager.DownloadState.DOWNLOADING && activePkgId == pkg.id,
                         onDownload = { OfflineMapManager.startDownload(context, pkg.id) },
                         onDelete = { OfflineMapManager.deletePackage(context, pkg.id) },
@@ -219,14 +218,14 @@ fun OfflineMapsManagerContent(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Bottom Actions Bar (USB Import + Check Updates)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // USB / SD Card Import Button (Min 56dp height)
+                // USB / SD Card Import Button
                 Button(
                     onClick = {
                         isImportingUsb = true
@@ -234,7 +233,7 @@ fun OfflineMapsManagerContent(
                         OfflineMapManager.importFromExternalStorage(
                             context = context,
                             onProgress = { msg, _ -> usbImportProgressText = msg },
-                            onComplete = { success, msg ->
+                            onComplete = { _, msg ->
                                 isImportingUsb = false
                                 usbImportProgressText = null
                                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
@@ -243,7 +242,7 @@ fun OfflineMapsManagerContent(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp),
+                        .height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E2D3D)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -251,14 +250,14 @@ fun OfflineMapsManagerContent(
                         imageVector = Icons.Default.Usb,
                         contentDescription = null,
                         tint = Cockpit_Cyan,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "IMPORT FROM USB / SD CARD",
+                        text = "IMPORT FROM USB / SD",
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
-                        fontSize = 14.sp
+                        fontSize = 13.sp
                     )
                 }
 
@@ -270,7 +269,7 @@ fun OfflineMapsManagerContent(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp),
+                        .height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan.copy(alpha = 0.2f)),
                     border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(Cockpit_Cyan)),
                     shape = RoundedCornerShape(12.dp)
@@ -279,14 +278,61 @@ fun OfflineMapsManagerContent(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = null,
                         tint = Cockpit_Cyan,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "CHECK FOR UPDATES",
                         fontWeight = FontWeight.Bold,
                         color = Cockpit_Cyan,
-                        fontSize = 14.sp
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CurrentGpsRegionBanner(currentGpsRegion: OfflineMapManager.OfflinePackage?) {
+    Surface(
+        color = Color(0xFF131D2A),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan.copy(alpha = 0.35f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.GpsFixed,
+                contentDescription = null,
+                tint = Cockpit_Cyan,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "CURRENT GPS REGION: ",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        text = currentGpsRegion?.title ?: "Detecting Location...",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = Cockpit_Cyan
+                    )
+                }
+                if (!currentGpsRegion?.coveredStates.isNullOrBlank()) {
+                    Text(
+                        text = currentGpsRegion?.coveredStates ?: "",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.5f),
+                        maxLines = 1
                     )
                 }
             }
@@ -299,19 +345,18 @@ private fun StorageBudgetCard(storageInfo: OfflineMapManager.StorageBudgetInfo) 
     val totalGb = storageInfo.totalDeviceBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
     val freeGb = storageInfo.freeDeviceBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
     val usedOfflineGb = storageInfo.offlineMapsUsedBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
-    val freeRatio = if (totalGb > 0) (storageInfo.freeDeviceBytes.toFloat() / storageInfo.totalDeviceBytes.toFloat()).coerceIn(0f, 1f) else 0f
     val offlineRatio = if (totalGb > 0) (storageInfo.offlineMapsUsedBytes.toFloat() / storageInfo.totalDeviceBytes.toFloat()).coerceIn(0f, 1f) else 0f
 
     Surface(
         color = Color(0xFF141A24),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             if (storageInfo.isLowStorageWarning) Cockpit_RedAlert else Color(0xFF222B3A)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -322,32 +367,32 @@ private fun StorageBudgetCard(storageInfo: OfflineMapManager.StorageBudgetInfo) 
                         imageVector = Icons.Default.Storage,
                         contentDescription = null,
                         tint = if (storageInfo.isLowStorageWarning) Cockpit_RedAlert else Cockpit_Cyan,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "DEVICE STORAGE BUDGET",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         color = Color.White
                     )
                 }
                 Text(
                     text = String.format("%.1f GB Free of %.1f GB (Maps: %.2f GB)", freeGb, totalGb, usedOfflineGb),
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = if (storageInfo.isLowStorageWarning) Cockpit_RedAlert else Cockpit_Cyan,
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Multi-segment storage bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp))
                     .background(Color(0xFF222C3A))
             ) {
                 Row(modifier = Modifier.fillMaxSize()) {
@@ -361,18 +406,18 @@ private fun StorageBudgetCard(storageInfo: OfflineMapManager.StorageBudgetInfo) 
             }
 
             if (storageInfo.isLowStorageWarning) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = null,
                         tint = Cockpit_RedAlert,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "WARNING: Free device storage is below 2.0 GB. Please clean up unused maps.",
-                        fontSize = 12.sp,
+                        text = "WARNING: Free storage below 2.0 GB. Clean up unused regional maps.",
+                        fontSize = 11.sp,
                         color = Cockpit_RedAlert,
                         fontWeight = FontWeight.Medium
                     )
@@ -394,11 +439,11 @@ private fun ActiveDownloadCard(
 ) {
     Surface(
         color = Color(0xFF132030),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(12.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -407,7 +452,7 @@ private fun ActiveDownloadCard(
                 Text(
                     text = packageTitle,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     color = Color.White
                 )
                 Text(
@@ -416,27 +461,27 @@ private fun ActiveDownloadCard(
                         OfflineMapManager.DownloadState.PAUSED_USER -> "Paused"
                         else -> String.format("%.1f%% (%.1f MB/s)", progress * 100f, speedMbs)
                     },
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = Cockpit_Cyan
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp)),
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
                 color = Cockpit_Cyan,
                 trackColor = Color(0xFF1C2B3C)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Pause / Resume / Cancel Controls (Min 52dp touch targets)
+            // Controls
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
@@ -444,21 +489,21 @@ private fun ActiveDownloadCard(
             ) {
                 OutlinedButton(
                     onClick = onCancel,
-                    modifier = Modifier.height(52.dp),
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Cockpit_RedAlert)
                 ) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("CANCEL", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("CANCEL", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 Button(
                     onClick = if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) onPause else onResume,
-                    modifier = Modifier.height(52.dp),
-                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) Cockpit_AmberWarning else Cockpit_Cyan
                     )
@@ -466,15 +511,15 @@ private fun ActiveDownloadCard(
                     Icon(
                         imageVector = if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(18.dp),
                         tint = Color.Black
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) "PAUSE" else "RESUME",
                         fontWeight = FontWeight.Bold,
                         color = Color.Black,
-                        fontSize = 13.sp
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -485,20 +530,24 @@ private fun ActiveDownloadCard(
 @Composable
 private fun PackageItemRow(
     pkg: OfflineMapManager.OfflinePackage,
+    isCurrentGpsMatch: Boolean,
     isCurrentlyDownloading: Boolean,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     onUpdate: () -> Unit
 ) {
     Surface(
-        color = Color(0xFF161C26),
+        color = if (isCurrentGpsMatch && !pkg.isInstalled) Color(0xFF122233) else Color(0xFF161C26),
         shape = RoundedCornerShape(12.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF222B38)),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isCurrentGpsMatch) Cockpit_Cyan.copy(alpha = 0.6f) else Color(0xFF222B38)
+        ),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(14.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
@@ -508,10 +557,27 @@ private fun PackageItemRow(
                     Text(
                         text = pkg.title,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         color = Color.White
                     )
-                    Spacer(modifier = Modifier.width(10.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    if (isCurrentGpsMatch) {
+                        Surface(
+                            color = Cockpit_Cyan.copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = "★ GPS REGION",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Cockpit_Cyan,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+
                     // Status Badge
                     Surface(
                         color = if (pkg.isInstalled) Cockpit_GreenEco.copy(alpha = 0.2f) else Color(0xFF2A3442),
@@ -519,57 +585,80 @@ private fun PackageItemRow(
                     ) {
                         Text(
                             text = if (pkg.isInstalled) "INSTALLED" else "NOT INSTALLED",
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (pkg.isInstalled) Cockpit_GreenEco else Color.White.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+
+                if (pkg.coveredStates.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = pkg.coveredStates,
+                        fontSize = 11.sp,
+                        color = Cockpit_Cyan.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${pkg.description} • ~${String.format("%.1f", pkg.estimatedSizeBytes.toDouble() / (1024.0 * 1024.0 * 1024.0))} GB",
-                    fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.6f)
+                    fontSize = 11.sp,
+                    color = Color.White.copy(alpha = 0.5f)
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             // Large Touch Action Buttons
             if (pkg.isInstalled) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(
                         onClick = onUpdate,
-                        modifier = Modifier.height(52.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Cockpit_Cyan)
                     ) {
-                        Text("UPDATE", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("UPDATE", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
 
                     OutlinedButton(
                         onClick = onDelete,
-                        modifier = Modifier.height(52.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Cockpit_RedAlert)
                     ) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("DELETE", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("DELETE", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
             } else {
                 Button(
                     onClick = onDownload,
                     enabled = !isCurrentlyDownloading,
-                    modifier = Modifier.height(52.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan)
+                    modifier = Modifier.height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isCurrentGpsMatch) Cockpit_Cyan else Color(0xFF1E2F42)
+                    )
                 ) {
-                    Icon(imageVector = Icons.Default.Download, contentDescription = null, tint = Color.Black, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("DOWNLOAD", fontWeight = FontWeight.Bold, color = Color.Black, fontSize = 13.sp)
+                    Icon(
+                        imageVector = Icons.Default.Download,
+                        contentDescription = null,
+                        tint = if (isCurrentGpsMatch) Color.Black else Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "DOWNLOAD",
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCurrentGpsMatch) Color.Black else Color.White,
+                        fontSize = 12.sp
+                    )
                 }
             }
         }

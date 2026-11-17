@@ -19,7 +19,7 @@ import java.util.zip.ZipInputStream
 /**
  * Unified OfflineMapManager:
  * Manages Scoped Storage (maps, routing, downloads) on Android 11+ head units.
- * Controls WorkManager-based resumable downloads with Range headers and storage budgeting.
+ * Supports 5 Macro-Regions + All-India Master with real-time GPS location auto-detection.
  */
 object OfflineMapManager {
     private const val TAG = "OfflineMapManager"
@@ -58,14 +58,27 @@ object OfflineMapManager {
         ROUTING_GRAPH
     }
 
+    data class GeoBoundingBox(
+        val minLat: Double,
+        val maxLat: Double,
+        val minLon: Double,
+        val maxLon: Double
+    ) {
+        fun contains(lat: Double, lon: Double): Boolean {
+            return lat in minLat..maxLat && lon in minLon..maxLon
+        }
+    }
+
     data class OfflinePackage(
         val id: String,
         val title: String,
         val description: String,
+        val coveredStates: String = "",
         val type: PackageType,
         val estimatedSizeBytes: Long,
         val downloadUrl: String,
         val fileName: String,
+        val boundingBox: GeoBoundingBox? = null,
         val isInstalled: Boolean = false,
         val installedSizeBytes: Long = 0L
     )
@@ -77,21 +90,79 @@ object OfflineMapManager {
         val isLowStorageWarning: Boolean = false
     )
 
-    // Standard Car Navigation Offline Packages
+    // 5 Macro-Regions + All-India National Packages
     val AVAILABLE_PACKAGES = listOf(
         OfflinePackage(
+            id = "india_north",
+            title = "North India Zone",
+            description = "High-speed regional vector map (.mbtiles)",
+            coveredStates = "Delhi-NCR, Punjab, Haryana, Rajasthan, HP, J&K, Ladakh, Chandigarh, Uttarakhand",
+            type = PackageType.VECTOR_MAP,
+            estimatedSizeBytes = 1200L * 1024L * 1024L, // ~1.2 GB
+            downloadUrl = "https://download.geofabrik.de/asia/india/north-zone-latest.mbtiles",
+            fileName = "india_north.mbtiles",
+            boundingBox = GeoBoundingBox(minLat = 23.5, maxLat = 37.1, minLon = 68.5, maxLon = 81.5)
+        ),
+        OfflinePackage(
+            id = "india_west_central",
+            title = "West & Central India Zone",
+            description = "High-speed regional vector map (.mbtiles)",
+            coveredStates = "Maharashtra, Gujarat, Madhya Pradesh, Chhattisgarh, Goa",
+            type = PackageType.VECTOR_MAP,
+            estimatedSizeBytes = 1400L * 1024L * 1024L, // ~1.4 GB
+            downloadUrl = "https://download.geofabrik.de/asia/india/west-central-zone-latest.mbtiles",
+            fileName = "india_west_central.mbtiles",
+            boundingBox = GeoBoundingBox(minLat = 15.0, maxLat = 26.9, minLon = 68.1, maxLon = 84.4)
+        ),
+        OfflinePackage(
+            id = "india_south",
+            title = "South India Zone",
+            description = "High-speed regional vector map (.mbtiles)",
+            coveredStates = "Karnataka, Tamil Nadu, Kerala, Andhra Pradesh, Telangana, Puducherry",
+            type = PackageType.VECTOR_MAP,
+            estimatedSizeBytes = 1300L * 1024L * 1024L, // ~1.3 GB
+            downloadUrl = "https://download.geofabrik.de/asia/india/south-zone-latest.mbtiles",
+            fileName = "india_south.mbtiles",
+            boundingBox = GeoBoundingBox(minLat = 8.0, maxLat = 19.9, minLon = 74.0, maxLon = 84.8)
+        ),
+        OfflinePackage(
+            id = "india_east",
+            title = "East India Zone",
+            description = "High-speed regional vector map (.mbtiles)",
+            coveredStates = "West Bengal, Bihar, Jharkhand, Odisha",
+            type = PackageType.VECTOR_MAP,
+            estimatedSizeBytes = 1100L * 1024L * 1024L, // ~1.1 GB
+            downloadUrl = "https://download.geofabrik.de/asia/india/east-zone-latest.mbtiles",
+            fileName = "india_east.mbtiles",
+            boundingBox = GeoBoundingBox(minLat = 17.8, maxLat = 27.5, minLon = 81.3, maxLon = 89.9)
+        ),
+        OfflinePackage(
+            id = "india_northeast",
+            title = "North-East India Zone",
+            description = "High-speed regional vector map (.mbtiles)",
+            coveredStates = "Assam, Meghalaya, Arunachal Pradesh, Manipur, Mizoram, Nagaland, Tripura, Sikkim",
+            type = PackageType.VECTOR_MAP,
+            estimatedSizeBytes = 500L * 1024L * 1024L, // ~500 MB
+            downloadUrl = "https://download.geofabrik.de/asia/india/northeast-zone-latest.mbtiles",
+            fileName = "india_northeast.mbtiles",
+            boundingBox = GeoBoundingBox(minLat = 21.9, maxLat = 29.5, minLon = 87.9, maxLon = 97.4)
+        ),
+        OfflinePackage(
             id = "india_vector_map",
-            title = "All-India Vector Map",
-            description = "Detailed nationwide road network, highways, and terrain (.mbtiles)",
+            title = "All-India Master Vector Map",
+            description = "Complete nationwide arterial highways & all states (.mbtiles)",
+            coveredStates = "All 28 States & 8 Union Territories Nationwide",
             type = PackageType.VECTOR_MAP,
             estimatedSizeBytes = 4L * 1024L * 1024L * 1024L, // ~4.0 GB
             downloadUrl = "https://download.geofabrik.de/asia/india-latest.mbtiles",
-            fileName = "india.mbtiles"
+            fileName = "india.mbtiles",
+            boundingBox = GeoBoundingBox(minLat = 6.5, maxLat = 37.5, minLon = 68.0, maxLon = 97.5)
         ),
         OfflinePackage(
             id = "india_routing_graph",
             title = "All-India Routing Graph",
             description = "Offline turn-by-turn navigation data for GraphHopper Core (.zip)",
+            coveredStates = "Nationwide Interconnected Road Graph",
             type = PackageType.ROUTING_GRAPH,
             estimatedSizeBytes = 4500L * 1024L * 1024L, // ~4.5 GB
             downloadUrl = "https://graphhopper.com/public/maps/india-gh.zip",
@@ -120,6 +191,9 @@ object OfflineMapManager {
     private val _installedPackages = MutableStateFlow<List<OfflinePackage>>(AVAILABLE_PACKAGES)
     val installedPackages: StateFlow<List<OfflinePackage>> = _installedPackages.asStateFlow()
 
+    private val _currentGpsRegion = MutableStateFlow<OfflinePackage?>(null)
+    val currentGpsRegion: StateFlow<OfflinePackage?> = _currentGpsRegion.asStateFlow()
+
     private val _storageInfo = MutableStateFlow(StorageBudgetInfo())
     val storageInfo: StateFlow<StorageBudgetInfo> = _storageInfo.asStateFlow()
 
@@ -139,6 +213,10 @@ object OfflineMapManager {
         getDownloadsDir(context).mkdirs()
         refreshPackageStatus(context)
         refreshStorageInfo(context)
+
+        // Initialize last known GPS region
+        val (lat, lon) = getLastKnownPosition(context)
+        updateGpsLocation(lat, lon)
     }
 
     /**
@@ -152,12 +230,63 @@ object OfflineMapManager {
     fun getRoutingDir(context: Context): File = File(context.getExternalFilesDir(null), "routing")
     fun getDownloadsDir(context: Context): File = File(context.getExternalFilesDir(null), "downloads")
 
-    fun getMapFile(context: Context): File? {
+    /**
+     * Determines which regional zone contains the given GPS coordinates.
+     */
+    fun getRegionForLocation(lat: Double, lon: Double): OfflinePackage? {
+        // Match specific macro-regions first (North, West/Central, South, East, North-East)
+        val macroRegions = AVAILABLE_PACKAGES.filter { 
+            it.type == PackageType.VECTOR_MAP && it.id != "india_vector_map" && it.boundingBox != null 
+        }
+        for (region in macroRegions) {
+            if (region.boundingBox?.contains(lat, lon) == true) {
+                return region
+            }
+        }
+        // Fallback to national
+        return AVAILABLE_PACKAGES.find { it.id == "india_vector_map" }
+    }
+
+    /**
+     * Updates current GPS position and recalculates detected regional zone.
+     */
+    fun updateGpsLocation(lat: Double, lon: Double) {
+        val detected = getRegionForLocation(lat, lon)
+        if (_currentGpsRegion.value?.id != detected?.id) {
+            _currentGpsRegion.value = detected
+            Log.i(TAG, "GPS Region updated to: ${detected?.title} for ($lat, $lon)")
+        }
+    }
+
+    /**
+     * Resolves the best available local .mbtiles map file for the given location:
+     * 1. Specific regional file if installed (e.g. india_north.mbtiles).
+     * 2. All-India master file if installed (india.mbtiles).
+     * 3. Any installed .mbtiles file as fallback.
+     */
+    fun getBestMapFileForLocation(context: Context, lat: Double, lon: Double): File? {
         val mapsDir = getMapsDir(context)
-        val indiaMap = File(mapsDir, "india.mbtiles")
-        if (indiaMap.exists() && indiaMap.length() > 0) return indiaMap
-        // Fallback to any .mbtiles in directory
+        val regionalPkg = getRegionForLocation(lat, lon)
+        if (regionalPkg != null) {
+            val regionalFile = File(mapsDir, regionalPkg.fileName)
+            if (regionalFile.exists() && regionalFile.length() > 0) {
+                return regionalFile
+            }
+        }
+
+        // Master All-India fallback
+        val masterFile = File(mapsDir, "india.mbtiles")
+        if (masterFile.exists() && masterFile.length() > 0) {
+            return masterFile
+        }
+
+        // Return any valid installed .mbtiles file
         return mapsDir.listFiles { _, name -> name.endsWith(".mbtiles") }?.firstOrNull()
+    }
+
+    fun getMapFile(context: Context): File? {
+        val (lat, lon) = getLastKnownPosition(context)
+        return getBestMapFileForLocation(context, lat, lon)
     }
 
     fun hasOfflineMap(context: Context): Boolean = getMapFile(context) != null
@@ -311,7 +440,6 @@ object OfflineMapManager {
         managerScope.launch {
             try {
                 var importedCount = 0
-                // Scan common Android external USB mount paths
                 val searchDirs = listOf(
                     File("/storage/"),
                     File("/mnt/media_rw/"),
@@ -327,7 +455,7 @@ object OfflineMapManager {
                             for (sf in subFiles) {
                                 if (sf.name.endsWith(".mbtiles", ignoreCase = true)) {
                                     onProgress("Copying ${sf.name}...", 0.5f)
-                                    val dest = File(getMapsDir(context), "india.mbtiles")
+                                    val dest = File(getMapsDir(context), sf.name)
                                     copyFileWithProgress(sf, dest)
                                     importedCount++
                                 } else if (sf.name.contains("routing", ignoreCase = true) && sf.name.endsWith(".zip", ignoreCase = true)) {
@@ -443,6 +571,7 @@ object OfflineMapManager {
 
     // Last Known Position (for DrivingTrackingService and TripRepository)
     fun saveLastKnownPosition(context: Context, latitude: Double, longitude: Double) {
+        updateGpsLocation(latitude, longitude)
         val p = prefs ?: context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).also { prefs = it }
         p.edit()
             .putFloat(KEY_LAST_LAT, latitude.toFloat())
