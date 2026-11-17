@@ -1,6 +1,5 @@
 package com.antigravity.copilot.feature.dashboard
 
-import com.antigravity.copilot.core.designsystem.components.liquidGlass
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -59,6 +58,7 @@ fun CurrentTripCard(
     modifier: Modifier = Modifier,
     baselineMileage: Double = 18.0
 ) {
+    val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
     val cyanAccent = CockpitTheme.colors.accent
     val positiveAccent = CockpitTheme.colors.accent
@@ -299,13 +299,12 @@ fun CurrentTripCard(
 
     Box(
         modifier = modifier
-            .liquidGlass(
-                AutomotiveDesignTokens.Radii.card,
-                borderColor = when {
-                    flashColor != Color.Transparent -> flashColor
-                    CockpitTheme.isGlass -> Color.Unspecified
-                    else -> cardBorder
-                }
+            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
+            .background(cardBg)
+            .border(
+                width = 1.25.dp,
+                color = if (flashColor != Color.Transparent) flashColor else cardBorder,
+                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
             )
             .padding(14.dp)
     ) {

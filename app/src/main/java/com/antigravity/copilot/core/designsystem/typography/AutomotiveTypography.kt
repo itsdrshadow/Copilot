@@ -269,26 +269,4 @@ val CockpitTypography = Typography(
     labelSmall = AutomotiveTypographyTokens.LabelSmall
 )
 
-/**
- * Liquid Glass type hierarchy: same metrics as [CockpitTypography] (no layout shifts when
- * switching themes) with lighter, Apple-like weights and tighter display tracking.
- */
-val LiquidGlassTypography = Typography(
-    displayLarge = AutomotiveTypographyTokens.DisplayLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = (-1.5).sp),
-    displayMedium = AutomotiveTypographyTokens.DisplayMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = (-1.0).sp),
-    displaySmall = AutomotiveTypographyTokens.DisplaySmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp),
-    headlineLarge = AutomotiveTypographyTokens.HeadlineLarge.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.2).sp),
-    headlineMedium = AutomotiveTypographyTokens.HeadlineMedium.copy(fontWeight = FontWeight.SemiBold),
-    headlineSmall = AutomotiveTypographyTokens.HeadlineSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.2.sp),
-    titleLarge = AutomotiveTypographyTokens.TitleLarge.copy(fontWeight = FontWeight.SemiBold),
-    titleMedium = AutomotiveTypographyTokens.TitleMedium.copy(fontWeight = FontWeight.Medium, letterSpacing = 0.1.sp),
-    titleSmall = AutomotiveTypographyTokens.TitleSmall.copy(fontWeight = FontWeight.Medium),
-    bodyLarge = AutomotiveTypographyTokens.BodyLarge,
-    bodyMedium = AutomotiveTypographyTokens.BodyMedium,
-    bodySmall = AutomotiveTypographyTokens.BodySmall,
-    labelLarge = AutomotiveTypographyTokens.LabelLarge.copy(fontWeight = FontWeight.SemiBold),
-    labelMedium = AutomotiveTypographyTokens.LabelMedium.copy(fontWeight = FontWeight.SemiBold),
-    labelSmall = AutomotiveTypographyTokens.LabelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp, fontFeatureSettings = "tnum")
-)
-
 val LocalCockpitTypography = staticCompositionLocalOf { CockpitTypography }

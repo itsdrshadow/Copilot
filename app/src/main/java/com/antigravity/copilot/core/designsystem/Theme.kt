@@ -63,7 +63,6 @@ val Coolwalk_TealPlay = com.antigravity.copilot.core.designsystem.colors.Coolwal
 val ApexCockpitColors = com.antigravity.copilot.core.designsystem.colors.ApexCockpitColors
 val PremiumCockpitColors = ApexCockpitColors
 val ClassicCockpitColors = ApexCockpitColors
-val LiquidGlassCockpitColors = com.antigravity.copilot.core.designsystem.colors.LiquidGlassCockpitColors
 val LocalCockpitColors = com.antigravity.copilot.core.designsystem.colors.LocalCockpitColors
 val LocalCockpitThemeMode = com.antigravity.copilot.core.designsystem.colors.LocalCockpitThemeMode
 
@@ -97,11 +96,6 @@ object CockpitTheme {
         @ReadOnlyComposable
         get() = true
 
-    /** True while Liquid Glass is active — lets screens opt into glass-only touches. */
-    val isGlass: Boolean
-        @Composable
-        @ReadOnlyComposable
-        get() = LocalCockpitColors.current.glass != null
 }
 
 // ==================== DYNAMIC ANIMATED THEME PROVIDER ====================
@@ -114,8 +108,7 @@ fun CopilotTheme(
     content: @Composable () -> Unit
 ) {
     val targetBaseColors = cockpitColorsFor(themeMode)
-    val isGlass = themeMode.isGlass
-    val activeTypography = if (isGlass) LiquidGlassTypography else CockpitTypography
+    val activeTypography = CockpitTypography
 
     val animSpec = tween<Color>(durationMillis = 300)
 
@@ -132,15 +125,10 @@ fun CopilotTheme(
     val animatedWarning = animateColorAsState(targetValue = targetBaseColors.warning, animationSpec = animSpec, label = "warning").value
     val animatedCritical = animateColorAsState(targetValue = targetBaseColors.critical, animationSpec = animSpec, label = "critical").value
 
-    // Apex keeps its historical animated brushes; Liquid Glass uses its pre-built glass brushes.
-    val animatedCardGradient = if (isGlass) targetBaseColors.cardTopLightGradient
-        else Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-    val activeBackgroundBrush = if (isGlass) targetBaseColors.backgroundBrush
-        else Brush.verticalGradient(listOf(animatedBg, animatedBg))
-    val activeDockBrush = if (isGlass) targetBaseColors.dockBrush
-        else Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-    val activeDockActionBrush = if (isGlass) targetBaseColors.dockActionBrush
-        else Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    val animatedCardGradient = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    val activeBackgroundBrush = Brush.verticalGradient(listOf(animatedBg, animatedBg))
+    val activeDockBrush = animatedCardGradient
+    val activeDockActionBrush = animatedCardGradient
 
     val activeColors = CockpitColors(
         bg = animatedBg,
@@ -162,10 +150,10 @@ fun CopilotTheme(
         cardSurface = animatedCard,
         cardSurfaceElevated = animatedCardElevated,
         cardBorder = animatedBorder,
-        cardBorderGlow = if (isGlass) targetBaseColors.cardBorderGlow else animatedAccent,
+        cardBorderGlow = animatedAccent,
         primaryAccent = animatedAccent,
-        blueGlow = if (isGlass) targetBaseColors.blueGlow else animatedAccent,
-        greenEco = if (isGlass) targetBaseColors.greenEco else animatedAccent,
+        blueGlow = animatedAccent,
+        greenEco = animatedAccent,
         amberWarning = animatedWarning,
         redAlert = animatedCritical,
         textTertiary = animatedTextDisabled,
@@ -174,12 +162,11 @@ fun CopilotTheme(
         cardGradientTrip = animatedCardGradient,
         cardGradientSpeedo = animatedCardGradient,
         activeCardBrush = animatedCardGradient,
-        dockBackground = if (isGlass) targetBaseColors.dockBackground else animatedCardElevated,
+        dockBackground = animatedCardElevated,
         dockBorder = animatedBorder,
         dockBrush = activeDockBrush,
         dockActionBrush = activeDockActionBrush,
-        isPremium = true,
-        glass = targetBaseColors.glass
+        isPremium = true
     )
 
     val materialColors = darkColorScheme(

@@ -1,6 +1,5 @@
 package com.antigravity.copilot.feature.dashboard
 
-import com.antigravity.copilot.core.designsystem.components.liquidGlass
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
@@ -207,6 +206,7 @@ fun SpeedometerCluster(
     val isAccelerating = smoothedAccelMss > 0.30f
     val isDecelerating = smoothedAccelMss < -0.30f
 
+    val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
     val cyanAccent = CockpitTheme.colors.accent
     val criticalColor = CockpitTheme.colors.critical
@@ -215,7 +215,13 @@ fun SpeedometerCluster(
 
     Box(
         modifier = modifier
-            .liquidGlass(AutomotiveDesignTokens.Radii.card, tintColor = cyanAccent, borderColor = if (CockpitTheme.isGlass) Color.Unspecified else cardBorder)
+            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
+            .background(cardBg)
+            .border(
+                width = 1.25.dp,
+                color = cardBorder,
+                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
+            )
             .padding(14.dp)
     ) {
         Column(

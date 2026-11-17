@@ -1,7 +1,5 @@
 package com.antigravity.copilot.feature.dashboard
 
-import com.antigravity.copilot.core.designsystem.components.liquidGlassPill
-import com.antigravity.copilot.core.designsystem.components.liquidGlass
 import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import androidx.compose.animation.core.Spring
@@ -267,10 +265,7 @@ private fun CockpitDock(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .then(
-                if (CockpitTheme.isGlass) Modifier.liquidGlass(dockContainerShape)
-                else Modifier.cockpitSurface(CockpitTheme.colors.dockBrush, CockpitTheme.colors.dockBorder, dockContainerShape, borderWidth = 1.25.dp)
-            )
+            .cockpitSurface(CockpitTheme.colors.dockBrush, CockpitTheme.colors.dockBorder, dockContainerShape, borderWidth = 1.25.dp)
             .padding(6.dp)
     ) {
         Row(
@@ -312,10 +307,7 @@ private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, mo
                 scaleX = scale
                 scaleY = scale
             }
-            .then(
-                if (CockpitTheme.isGlass) Modifier.liquidGlassPill(shape, CockpitTheme.colors.accent, active = isPressed)
-                else Modifier.cockpitSurface(dockActionBg, if (isPressed) CockpitTheme.colors.accent else CockpitTheme.colors.border.copy(alpha = 0.45f), shape, borderWidth = 1.dp)
-            )
+            .cockpitSurface(dockActionBg, if (isPressed) CockpitTheme.colors.accent else CockpitTheme.colors.border.copy(alpha = 0.45f), shape, borderWidth = 1.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2026-11-17
+
+### Removed
+- **The Liquid Glass theme is gone.** This removes the theme option, its palette, `GlassStyle` and the ambient glows, the `liquidGlass` / `liquidGlassPill` / `glassAmbientOrb` modifiers, `LiquidGlassTypography`, every `isGlass` branch, and `LiquidGlassThemeTest`. A saved `liquid_glass` setting now falls back to Apex Studio. Google Sans stays, because Apex uses it too.
+
 ## [1.52.0] - 2026-11-17
 
 ### Added
