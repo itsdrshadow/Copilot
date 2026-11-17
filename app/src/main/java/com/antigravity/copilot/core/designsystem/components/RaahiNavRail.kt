@@ -39,7 +39,7 @@ data class RailItem<K>(
 )
 
 /**
- * Left navigation rail (76 dp). Active item: cardRaised background with cyan icon and label;
+ * Left navigation rail (88 dp). Active item: cardRaised background with cyan icon and label;
  * inactive: textSecondary. [bottomItems] are pinned to the bottom (Settings).
  */
 @Composable
@@ -57,7 +57,7 @@ fun <K> RaahiNavRail(
                 .width(Raahi.RailWidth)
                 .fillMaxHeight()
                 .background(c.rail)
-                .padding(vertical = 10.dp, horizontal = 4.dp),
+                .padding(vertical = 10.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(
@@ -90,7 +90,7 @@ private fun <K> RailButton(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 60.dp)
+                .heightIn(min = 72.dp)
                 .clip(shape)
                 .background(if (isActive) c.cardElevated else Color.Transparent)
                 .border(1.dp, if (isActive) c.border else Color.Transparent, shape)
@@ -101,10 +101,10 @@ private fun <K> RailButton(
         verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+            Icon(item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(28.dp))
         }
-        // Rail labels follow the system font scale up to 1.15x (never below 12 sp), so every
-        // label still fits the fixed 76 dp rail at 1.3x instead of being cut off.
+        // Rail labels follow the system font scale up to 1.15x (never below 14 sp), so every
+        // label still fits the fixed 88 dp rail at 1.3x instead of being cut off.
         val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
         val railScale = minOf(fontScale, 1.15f) / fontScale
         val base = CockpitTheme.typography.labelSmall

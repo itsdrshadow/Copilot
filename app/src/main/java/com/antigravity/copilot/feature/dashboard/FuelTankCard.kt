@@ -26,7 +26,6 @@ import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material.icons.outlined.LocalGasStation
 import com.antigravity.copilot.core.designsystem.components.InfoLine
 import com.antigravity.copilot.core.designsystem.components.Raahi
@@ -86,23 +85,24 @@ fun FuelTankCard(
             .clip(cardShape)
             .background(c.cardTopLightGradient)
             .border(1.25.dp, c.border, cardShape)
-            .padding(14.dp),
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Header pinned to the top; the readouts sit at the bottom with free space between.
+        // Header on top, readouts straight under it: the card wraps its content (no free space),
+        // so it can never clip on a 10.1" screen; the Speedometer card takes the rest.
         Row(
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().height(Raahi.MinTouch),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(36.dp)
                     .clip(CopilotShapes.R6)
                     .background(c.accent.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.accent, modifier = Modifier.size(18.dp))
+                Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.accent, modifier = Modifier.size(22.dp))
             }
             Text(
                 text = "FUEL",
@@ -113,7 +113,6 @@ fun FuelTankCard(
             )
             AddFuelButton(onClick = onClick)
         }
-        Spacer(Modifier.weight(1f))
 
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(
@@ -152,7 +151,7 @@ fun FuelTankCard(
             SegmentBar(
                 fillPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0),
                 color = fuelLevelColor(tankPct),
-                height = 22.dp
+                height = 26.dp
             )
         }
 
@@ -352,9 +351,8 @@ fun PremiumFuelTankCard(
 )
 
 /**
- * Compact "+ Add Fuel" action for the card header: 40 dp tall visually (fits the header, no
- * card-height jump) while the touch target stays 48 dp. Solid accent so it is the one obvious
- * action on the card.
+ * "+ Add Fuel" action for the card header: a full 56 dp touch target that matches the header
+ * height. Solid accent so it is the one obvious action on the card.
  */
 @Composable
 private fun AddFuelButton(onClick: () -> Unit) {
@@ -362,19 +360,18 @@ private fun AddFuelButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
-            .minimumInteractiveComponentSize()
-            .height(40.dp)
+            .height(Raahi.MinTouch)
             .clip(shape)
             .background(c.accent)
             .clickable(role = Role.Button, onClickLabel = "Add fuel", onClick = onClick)
-            .padding(start = 10.dp, end = 14.dp),
+            .padding(start = 14.dp, end = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(Icons.Outlined.Add, contentDescription = null, tint = c.onAccent, modifier = Modifier.size(20.dp))
+        Icon(Icons.Outlined.Add, contentDescription = null, tint = c.onAccent, modifier = Modifier.size(24.dp))
         Text(
             "Add Fuel",
-            style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
             color = c.onAccent,
             maxLines = 1,
             softWrap = false

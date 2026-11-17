@@ -92,13 +92,13 @@ fun TripMetricTicker(
     Column(
         modifier =
             modifier
-                .widthIn(min = 220.dp, max = 300.dp)
+                .widthIn(min = 240.dp, max = 320.dp)
                 .clip(shape)
-                .background(c.card.copy(alpha = 0.55f))
+                .background(c.card.copy(alpha = 0.72f))
                 .border(1.dp, outline, shape)
                 .clickable(role = Role.Button, onClickLabel = "Next trip stat") {
                     index = (index + 1) % metrics.size
-                }.padding(horizontal = 18.dp, vertical = 10.dp),
+                }.padding(horizontal = 18.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
@@ -124,7 +124,7 @@ fun TripMetricTicker(
             val m = metrics[i % metrics.size]
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(m.icon, contentDescription = null, tint = m.accentColor, modifier = Modifier.size(20.dp))
+                    Icon(m.icon, contentDescription = null, tint = m.accentColor, modifier = Modifier.size(22.dp))
                     Text(
                         m.title,
                         style = CockpitTheme.typography.labelMedium,

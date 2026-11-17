@@ -63,10 +63,11 @@ object Raahi {
     val CardPadding: Dp = 16.dp
     val CardPaddingTight: Dp = 14.dp
     val Gap: Dp = 10.dp
-    val RailWidth: Dp = 76.dp
-    val RightPanelWidth: Dp = 416.dp
-    val MinTouch: Dp = 48.dp
-    val RecenterSize: Dp = 52.dp
+    // Sized for a 10.1" 1280x800 dp head unit read from ~2.5 ft: 56 dp minimum touch targets.
+    val RailWidth: Dp = 88.dp
+    val RightPanelWidth: Dp = 448.dp
+    val MinTouch: Dp = 56.dp
+    val RecenterSize: Dp = 60.dp
     val CardShape = RoundedCornerShape(CardRadius)
     val InnerShape = RoundedCornerShape(InnerRadius)
     val PillShape = RoundedCornerShape(PillRadius)
@@ -140,7 +141,7 @@ fun RaahiPill(
     Row(
         modifier =
             modifier
-                .defaultMinSize(minHeight = 32.dp)
+                .defaultMinSize(minHeight = 40.dp)
                 .clip(Raahi.PillShape)
                 .background(if (filled) color.copy(alpha = 0.16f) else c.cardElevated)
                 .border(Raahi.Border, if (filled) color.copy(alpha = 0.55f) else c.border, Raahi.PillShape)
@@ -150,9 +151,9 @@ fun RaahiPill(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
         } else {
-            Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+            Box(Modifier.size(10.dp).clip(CircleShape).background(color))
         }
         Text(
             text = text,
@@ -179,7 +180,7 @@ fun SegmentBar(
     val trackBorder = CockpitTheme.colors.border
     Row(
         modifier = modifier.fillMaxWidth().height(height),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         val fill = fillPoints.coerceIn(0.0, segments.toDouble())
         for (i in 1..segments) {
@@ -214,17 +215,17 @@ fun StatCell(
 ) {
     Column(modifier = modifier, horizontalAlignment = horizontalAlignment) {
         RaahiLabel(label)
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(value, style = valueStyle, color = valueColor, maxLines = 1, softWrap = false)
             if (unit != null) {
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(5.dp))
                 Text(
                     unit,
-                    style = CockpitTheme.typography.labelMedium,
+                    style = CockpitTheme.typography.labelLarge,
                     color = CockpitTheme.colors.textSecondary,
                     maxLines = 1,
-                    modifier = Modifier.padding(bottom = 2.dp),
+                    modifier = Modifier.padding(bottom = 3.dp),
                 )
             }
         }
@@ -252,7 +253,7 @@ fun StatCard(
 
 enum class RaahiButtonKind { Primary, Secondary, Danger }
 
-/** 48 dp+ button. Primary = cyan fill; Secondary = raised card with border. */
+/** 56 dp+ button. Primary = cyan fill; Secondary = raised card with border. */
 @Composable
 fun RaahiButton(
     text: String,
@@ -282,7 +283,7 @@ fun RaahiButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val tint = if (enabled) fg else c.textDisabled
-        if (icon != null) Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        if (icon != null) Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
         Text(text, style = CockpitTheme.typography.labelLarge, color = tint, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -311,10 +312,10 @@ fun InfoLine(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(Icons.Outlined.Info, contentDescription = "Show full text", tint = color, modifier = Modifier.size(20.dp))
+        Icon(Icons.Outlined.Info, contentDescription = "Show full text", tint = color, modifier = Modifier.size(24.dp))
         Text(
             text = text,
-            style = CockpitTheme.typography.bodySmall,
+            style = CockpitTheme.typography.bodyMedium,
             color = color,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -369,7 +370,7 @@ fun <T> SegmentedToggle(
             Box(
                 modifier =
                     Modifier
-                        .defaultMinSize(minWidth = 72.dp, minHeight = 48.dp)
+                        .defaultMinSize(minWidth = 80.dp, minHeight = Raahi.MinTouch)
                         .clip(Raahi.PillShape)
                         .background(if (isSel) c.cardElevated else Color.Transparent)
                         .clickable(role = Role.Tab) { onSelect(value) }

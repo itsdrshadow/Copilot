@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-11-18
+
+### Changed
+- **The Drive screen is tuned for a 10.1" landscape head unit read from about 2.5 ft.** Every element stays where it was. Only sizes, padding and weights changed, and everything fits 1280x800 dp without clipping or scrolling.
+- **Heavier, larger text.** Real Inter SemiBold/Bold and Barlow Semi Condensed Bold fonts are now bundled, so heavier weights no longer fall back to Medium. Labels and captions are Medium/SemiBold at 14sp or more, and primary numbers are Bold.
+- **Touch targets are at least 56dp.** This covers Add Fuel, the fuel gauge, map controls (60dp), rail items (72dp in an 88dp rail), the trip and clock pills (76dp) and the notice info button.
+- **The Fuel card wraps its content** and the Speedometer card takes the remaining height. When a fuel notice shows, the speed readout steps down a size so it never touches the dial arc.
+
+### Added
+- **Tap the trip pill to see the full route.** The route still ellipsizes in the pill. A tap opens a small dropdown that closes after 5 s. Long-press still starts or ends a trip.
+
 ## [2.3.2] - 2026-11-18
 
 ### Changed

@@ -233,7 +233,7 @@ fun SpeedometerCluster(
                 color = cardBorder,
                 shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
             )
-            .padding(14.dp)
+            .padding(16.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -244,17 +244,17 @@ fun SpeedometerCluster(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp),
+                    .height(52.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(36.dp)
                             .clip(CopilotShapes.R6)
                             .background(cyanAccent.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
@@ -263,7 +263,7 @@ fun SpeedometerCluster(
                             imageVector = Icons.Default.Speed,
                             contentDescription = null,
                             tint = cyanAccent,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                     Text(
@@ -279,14 +279,17 @@ fun SpeedometerCluster(
             }
 
             // ==================== 2. 240° STUDIO DIAL CANVAS ====================
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(top = 14.dp)
+                    .padding(top = 10.dp)
                     .offset(y = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
+                // The dial shrinks when the Fuel card grows (e.g. a fuel notice): step the readout
+                // down so the number never collides with the arc.
+                val compactDial = maxHeight < 220.dp
                 Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {}) { // own layer: dial redraws stay isolated
                     val w = size.width
                     val h = size.height
@@ -369,8 +372,9 @@ fun SpeedometerCluster(
                 ) {
                     Text(
                         text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
-                        style = CockpitTheme.typography.displayLarge,
-                        color = textPrimary
+                        style = if (compactDial) CockpitTheme.typography.displayMedium else CockpitTheme.typography.displayLarge,
+                        color = textPrimary,
+                        maxLines = 1
                     )
                     Text(
                         text = "KM/H",
@@ -380,12 +384,12 @@ fun SpeedometerCluster(
                         ),
                         color = statusColor
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(if (compactDial) 4.dp else 8.dp))
 
                     // Prominent Dynamic Speed Trend Readout
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
                             .clip(CopilotShapes.R8)
                             .background(
@@ -397,8 +401,8 @@ fun SpeedometerCluster(
                                 }
                             )
                             .padding(
-                                horizontal = 12.dp,
-                                vertical = 4.dp
+                                horizontal = 14.dp,
+                                vertical = 6.dp
                             )
                     ) {
                         Icon(
@@ -415,7 +419,7 @@ fun SpeedometerCluster(
                                 isDecelerating -> CockpitTheme.colors.warning
                                 else -> textSecondary
                             },
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                         Text(
                             text = when {
@@ -427,7 +431,7 @@ fun SpeedometerCluster(
                             },
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
-                                letterSpacing = 0.4.sp
+                                letterSpacing = 0.3.sp
                             ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -456,25 +460,25 @@ fun SpeedometerCluster(
                     label = "Distance",
                     value = tripDistanceKm?.let { NumberFormatUtils.formatDistance(it) } ?: "--",
                     unit = "km",
-                    valueStyle = CockpitTheme.typography.headlineMedium,
+                    valueStyle = CockpitTheme.typography.headlineLarge,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = Raahi.MinTouch)
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
                 VDivider()
                 StatCell(
                     label = "Odometer",
                     value = String.format(Locale.US, "%,.0f", currentOdometerKm),
                     unit = "km",
-                    valueStyle = CockpitTheme.typography.headlineMedium,
+                    valueStyle = CockpitTheme.typography.headlineLarge,
                     horizontalAlignment = Alignment.End,
                     modifier = Modifier
                         .weight(1f)
                         .clip(CopilotShapes.R6)
                         .clickable(role = Role.Button, onClickLabel = "Calibrate odometer") { showOdometerDialog = true }
                         .heightIn(min = Raahi.MinTouch)
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
         }

@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -96,6 +97,14 @@ fun DriveTopRow(
     val active = currentTrip.isActive()
     val completed = currentTrip.isCompleted()
     var showManualTripDialog by remember { mutableStateOf(false) }
+    // Compact overflow pattern: the route ellipsizes in the pill; a tap expands the full route.
+    var routeExpanded by remember { mutableStateOf(false) }
+    LaunchedEffect(routeExpanded) {
+        if (routeExpanded) {
+            delay(5_000L)
+            routeExpanded = false
+        }
+    }
 
     val sinceEvent = System.currentTimeMillis() - tripVisualState.eventTimestamp
     val justStarted = tripVisualState.event == TripVisualLifecycleEvent.STARTED && sinceEvent < 10_000L
@@ -125,28 +134,29 @@ fun DriveTopRow(
         modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(Raahi.Gap),
     ) {
+      Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
         Row(
             modifier =
                 Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .heightIn(min = 68.dp)
+                    .fillMaxSize()
+                    .heightIn(min = 76.dp)
                     .clip(Raahi.PillShape)
                     .background(c.card)
                     .border(Raahi.Border, if (active) c.accent.copy(alpha = 0.6f) else c.border, Raahi.PillShape)
                     .combinedClickable(
                         role = Role.Button,
+                        onClickLabel = "Show full route",
                         onLongClickLabel = if (active) "End trip" else "Start trip",
-                        // Tap does nothing (no trip popup); long-press is the manual trip control.
-                        onClick = {},
+                        // Tap shows the full route (no trip popup); long-press is the manual trip control.
+                        onClick = { routeExpanded = !routeExpanded },
                         onLongClick = { showManualTripDialog = true },
-                    ).padding(horizontal = 16.dp, vertical = 8.dp),
+                    ).padding(horizontal = 18.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(Modifier.size(12.dp).clip(CircleShape).background(dotColor))
+            Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor))
             Column(modifier = Modifier.weight(1f)) {
-                Text(stateText, style = CockpitTheme.typography.titleMedium, color = c.textPrimary, maxLines = 1)
+                Text(stateText, style = CockpitTheme.typography.titleMedium, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     route,
                     style = CockpitTheme.typography.bodyMedium,
@@ -159,7 +169,7 @@ fun DriveTopRow(
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     if (showTrip) TimeFormatUtils.formatLiveTripTimer(elapsed) else "--",
-                    style = CockpitTheme.typography.headlineSmall,
+                    style = CockpitTheme.typography.headlineMedium,
                     color = if (active) c.accent else c.textPrimary,
                     maxLines = 1,
                     softWrap = false,
@@ -167,6 +177,20 @@ fun DriveTopRow(
                 Text("Trip time", style = CockpitTheme.typography.labelMedium, color = c.textSecondary, maxLines = 1)
             }
         }
+        DropdownMenu(
+            expanded = routeExpanded,
+            onDismissRequest = { routeExpanded = false },
+            modifier = Modifier.background(c.cardElevated),
+        ) {
+            Column(
+                modifier = Modifier.widthIn(min = 240.dp, max = 420.dp).padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(stateText, style = CockpitTheme.typography.labelMedium, color = c.textSecondary)
+                Text(route, style = CockpitTheme.typography.titleMedium, color = c.textPrimary)
+            }
+        }
+      }
         ClockPill(onClick = onOpenMedia, modifier = Modifier.fillMaxHeight())
     }
 
@@ -222,12 +246,12 @@ private fun ClockPill(
     Row(
         modifier =
             modifier
-                .heightIn(min = 68.dp)
+                .heightIn(min = 76.dp)
                 .clip(Raahi.PillShape)
                 .background(c.card)
                 .border(Raahi.Border, c.border, Raahi.PillShape)
                 .clickable(role = Role.Button, onClickLabel = "Music and clock", onClick = onClick)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -235,7 +259,7 @@ private fun ClockPill(
             if (playback.isMusicActive) Icons.Outlined.MusicNote else Icons.Outlined.Schedule,
             contentDescription = null,
             tint = if (playback.isMusicActive) c.accent else c.textSecondary,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(26.dp),
         )
         Row(verticalAlignment = Alignment.Bottom) {
             Text(time, style = CockpitTheme.typography.headlineLarge, color = c.textPrimary, maxLines = 1, softWrap = false)

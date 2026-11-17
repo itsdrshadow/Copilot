@@ -327,7 +327,7 @@ fun LiveMapPanel(
                 modifier = Modifier
                     .align(if (narrow) Alignment.TopStart else Alignment.TopEnd)
                     // Narrow map: stacked under the speed-limit sign, clear of the controls.
-                    .padding(start = 14.dp, end = 14.dp, top = if (narrow) 84.dp else 14.dp),
+                    .padding(start = 14.dp, end = 14.dp, top = if (narrow) 92.dp else 14.dp),
                 horizontalAlignment = if (narrow) Alignment.Start else Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -336,7 +336,7 @@ fun LiveMapPanel(
             }
         }
 
-        // Map controls, bottom-right: secondary menu, heading, recenter (52 dp).
+        // Map controls, bottom-right: secondary menu, heading, recenter (60 dp).
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -451,7 +451,7 @@ private fun MapFloatingButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = if (isActive) c.onAccent else c.textPrimary,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(28.dp)
         )
     }
 }
@@ -469,19 +469,19 @@ private fun MapMenuItem(
             .height(Raahi.RecenterSize)
             .mapControlSurface(isActive, Raahi.PillShape)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val tint = if (isActive) c.onAccent else c.textPrimary
-        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
-        Spacer(modifier = Modifier.width(10.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(26.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Text(text = label, color = tint, style = CockpitTheme.typography.labelLarge, maxLines = 1)
     }
 }
 
 /** Regulatory speed-limit sign (white disc, red ring); the sign colours are fixed by law, not theme. */
 @Composable
-fun SpeedLimitSign(limitKmh: Int, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 56.dp) {
+fun SpeedLimitSign(limitKmh: Int, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 64.dp) {
     Box(
         modifier = modifier
             .size(size)
@@ -505,7 +505,7 @@ private val SignBlack = Color(0xFF0B1220)
 
 @Composable
 private fun LegendDot(color: Color) {
-    Box(Modifier.size(10.dp).clip(CircleShape).background(color))
+    Box(Modifier.size(12.dp).clip(CircleShape).background(color))
 }
 
 @Composable
@@ -516,9 +516,9 @@ private fun LegendChipFrame(content: @Composable RowScope.() -> Unit) {
             .clip(Raahi.PillShape)
             .background(c.card)
             .border(1.dp, c.border, Raahi.PillShape)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         content = content
     )
 }

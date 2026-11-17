@@ -21,7 +21,7 @@ import com.antigravity.copilot.core.trip.TripVisualState
 import com.antigravity.copilot.feature.maps.LiveMapPanel
 
 /**
- * Raahi Drive screen: map in the centre, ~416 dp panel on the right with the trip pill (trip
+ * Raahi Drive screen: map in the centre, ~448 dp panel on the right with the trip pill (trip
  * time) + clock, Speed card (dial, distance, odometer) and Fuel card. Trip stats rotate on the map (top-right); the music
  * player is one tap away (clock pill). Navigation lives in the left rail.
  */
@@ -121,7 +121,7 @@ fun DashboardScreen(
                     LiveSpeedometer(
                         latestPoint = latestPoint,
                         speedLimitInfo = speedLimitInfo,
-                        // Speed and Fuel share the height ~55 / 45.
+                        // Fuel wraps its content; Speed takes the remaining height.
                         modifier = if (roomy) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(300.dp),
                         allTrips = allTrips,
                         totalLifetimeKm = totalLifetimeKm,
@@ -132,7 +132,7 @@ fun DashboardScreen(
                         onClick = onOpenFuelDialog,
                         onCalibrateGauge = onCalibrateMidBar,
                         onDismissNotice = onDismissFuelNotice,
-                        modifier = if (roomy) Modifier.fillMaxWidth().weight(0.82f) else Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
