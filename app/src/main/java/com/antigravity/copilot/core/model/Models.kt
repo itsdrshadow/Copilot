@@ -20,7 +20,9 @@ data class TripPoint(
     val speedKmh: Float = 0f,
     val bearing: Float = 0f,
     val accuracy: Float = 0f,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    /** Live driving-state label (IDLE / ACCELERATING / CRUISING / BRAKING); not persisted. */
+    val drivingState: String = ""
 )
 
 data class TripSummary(
@@ -44,6 +46,11 @@ data class TripSummary(
     val harshBrakeCount: Int = 0,
     val rapidAccelCount: Int = 0,
     val overspeedCount: Int = 0,
+    /** Classifier events: entries into BRAKING (< -1.5 m/s²) / ACCELERATING (> +1.2 m/s²). */
+    val brakeCount: Int = 0,
+    val accelCount: Int = 0,
+    /** Best (highest) smoothed instantaneous km/L seen while moving. */
+    val bestMileageKmpl: Double = 0.0,
     val startLocationName: String = "",
     val endLocationName: String = "",
     val status: TripStatus = TripStatus.IDLE

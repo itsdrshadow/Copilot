@@ -324,6 +324,7 @@ class DrivingTrackingService : Service(), LocationListener {
                 engine.isGeofenceControlled = hasEnabled
             }
         }
+        registerLinearAccelerationSensor()
         engine.fuelTelemetryProvider = {
             fuelRepository.getFuelTelemetrySnapshot()
         }
@@ -716,8 +717,33 @@ class DrivingTrackingService : Service(), LocationListener {
         // Ongoing trip state is preserved in Room database across task removal and reboots
     }
 
+    private var linearAccelListener: android.hardware.SensorEventListener? = null
+
+    /** Linear-acceleration sensor (gravity removed) for the driving-state label; optional. */
+    private fun registerLinearAccelerationSensor() {
+        try {
+            val sm = getSystemService(Context.SENSOR_SERVICE) as? android.hardware.SensorManager ?: return
+            val sensor = sm.getDefaultSensor(android.hardware.Sensor.TYPE_LINEAR_ACCELERATION) ?: return
+            val listener = object : android.hardware.SensorEventListener {
+                override fun onSensorChanged(event: android.hardware.SensorEvent) {
+                    if (::engine.isInitialized) engine.onLinearAcceleration(event.values[0], event.values[1], event.values[2])
+                }
+                override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
+            }
+            sm.registerListener(listener, sensor, android.hardware.SensorManager.SENSOR_DELAY_UI)
+            linearAccelListener = listener
+        } catch (e: Exception) {
+            android.util.Log.w("DrivingTrackingService", "Linear acceleration sensor unavailable: ${e.message}")
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        linearAccelListener?.let { l ->
+            try {
+                (getSystemService(Context.SENSOR_SERVICE) as? android.hardware.SensorManager)?.unregisterListener(l)
+            } catch (_: Exception) {}
+        }
         // Save ongoing journey on service shutdown
         // Ongoing trip state is preserved in Room database across task removal and reboots
         powerReceiver?.let {

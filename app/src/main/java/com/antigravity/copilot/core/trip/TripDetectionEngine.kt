@@ -40,6 +40,33 @@ class TripDetectionEngine(
         private set
     /** Pure moving/idle split (idle = < 2 km/h for > 30 s, see Config). */
     private val motion = com.antigravity.copilot.core.logic.MotionTimeTracker()
+    /** Displayed true speed: Doppler, accuracy-gated, lightly smoothed. */
+    private val speedFilter = com.antigravity.copilot.core.logic.SpeedFilter()
+    /** IDLE / ACCELERATING / CRUISING / BRAKING label + brake/accel event counts. */
+    val drivingClassifier = com.antigravity.copilot.core.logic.DrivingStateClassifier()
+    /** Orientation-independent longitudinal axis from the linear-acceleration sensor. */
+    private val longitudinalEstimator = com.antigravity.copilot.core.logic.LongitudinalAccelEstimator()
+    /** Trip distance = filtered haversine segments (not speed x time). */
+    private val odometer = com.antigravity.copilot.core.logic.OdometerAccumulator()
+
+    val drivingState: com.antigravity.copilot.core.logic.DrivingState get() = drivingClassifier.state
+
+    /** Feed TYPE_LINEAR_ACCELERATION samples (device frame, m/s²). Thread-safe. */
+    fun onLinearAcceleration(ax: Float, ay: Float, az: Float) {
+        synchronized(longitudinalEstimator) { longitudinalEstimator.onSensor(ax.toDouble(), ay.toDouble(), az.toDouble()) }
+    }
+
+    private fun seedOdometer(loc: Location?) {
+        odometer.breakSegment()
+        if (loc != null) {
+            odometer.onFix(
+                com.antigravity.copilot.core.logic.GeoFix(
+                    loc.latitude, loc.longitude, 0.0,
+                    if (loc.time > 0L) loc.time else System.currentTimeMillis(), 0.0
+                )
+            )
+        }
+    }
     private var maxSpeedKmh: Double = 0.0
     private var speedSumKmh: Double = 0.0
     private var speedCount: Long = 0
@@ -213,6 +240,8 @@ class TripDetectionEngine(
             driverScore = calculateDriverScore(),
             harshBrakeCount = harshBrakes,
             rapidAccelCount = rapidAccels,
+            brakeCount = drivingClassifier.brakeEvents,
+            accelCount = drivingClassifier.accelEvents,
             overspeedCount = overspeedInstances,
             startLocationName = currentOriginName,
             endLocationName = currentDestinationName,
@@ -398,6 +427,7 @@ class TripDetectionEngine(
 
                     lastAcceptedLocation = location
                     lastLocationTime = now
+                    seedOdometer(location) // bridged distance already added; restart segments here
                     currentAltitude = if (location.hasAltitude()) location.altitude else currentAltitude
                     currentBearing = if (location.hasBearing()) location.bearing else currentBearing
 
@@ -431,25 +461,18 @@ class TripDetectionEngine(
             0f
         }
 
-        val effectiveSpeedKmh = when {
-            location.hasSpeed() && location.speed <= 0.3f -> 0f
-            hasSensorSpeed -> {
-                val sensorSpeed = location.speed * 3.6f
-                // When moving and computed delta speed indicates higher/instantaneous speed during acceleration,
-                // fuse them to eliminate speedometer lag
-                if (computedSpeedKmh in 3.0f..220.0f && abs(computedSpeedKmh - sensorSpeed) in 1.0f..30.0f) {
-                    if (computedSpeedKmh > sensorSpeed) {
-                        maxOf(sensorSpeed, computedSpeedKmh)
-                    } else {
-                        sensorSpeed
-                    }
-                } else {
-                    sensorSpeed
-                }
-            }
-            computedSpeedKmh in 3.0f..220.0f -> computedSpeedKmh
-            else -> 0f
+        // True speed = GPS Doppler, accuracy-filtered, lightly smoothed (no max() fusion overshoot).
+        val dopplerMps = when {
+            location.hasSpeed() -> location.speed.toDouble()
+            computedSpeedKmh in 3.0f..220.0f -> computedSpeedKmh / 3.6
+            else -> null
         }
+        val effectiveSpeedKmh = speedFilter.onFix(dopplerMps, accuracy.toDouble(), now).toFloat()
+
+        // Driving state label (sensor fused with GPS dv/dt when the sensor axis is learned).
+        val gpsAccel = drivingClassifier.gpsAccel(effectiveSpeedKmh.toDouble(), now)
+        val sensorLongitudinal = gpsAccel?.let { a -> synchronized(longitudinalEstimator) { longitudinalEstimator.onGps(a) } }
+        drivingClassifier.onSample(now, effectiveSpeedKmh.toDouble(), sensorLongitudinal)
 
         currentAltitude = if (location.hasAltitude()) location.altitude else currentAltitude
 
@@ -472,7 +495,8 @@ class TripDetectionEngine(
             speedKmh = effectiveSpeedKmh,
             bearing = currentBearing,
             accuracy = accuracy,
-            timestamp = now
+            timestamp = now,
+            drivingState = drivingClassifier.state.name
         )
         onPointReceived(currentPoint)
 
@@ -573,6 +597,8 @@ class TripDetectionEngine(
         lastMovementTime = fixTime
         lastLocationTime = fixTime
         lastAcceptedLocation = initialLocation
+        seedOdometer(initialLocation)
+        drivingClassifier.restoreCounts(0, 0)
         totalDistanceMeters = departureDistanceMeters
         drivingDurationMs = 0
         stationaryDurationMs = 0
@@ -652,6 +678,7 @@ class TripDetectionEngine(
                 lastAcceptedLocation = curLoc ?: lastLocation
             }
         }
+        seedOdometer(lastAcceptedLocation)
     }
 
     private fun startNewTrip(startTime: Long, initialLocation: Location, candidateDistMeters: Double = 0.0) {
@@ -663,6 +690,8 @@ class TripDetectionEngine(
         lastMovementTime = startTime
         lastLocationTime = startTime
         lastAcceptedLocation = initialLocation
+        seedOdometer(initialLocation)
+        drivingClassifier.restoreCounts(0, 0)
         totalDistanceMeters = candidateDistMeters
         drivingDurationMs = 0
         stationaryDurationMs = 0
@@ -702,13 +731,15 @@ class TripDetectionEngine(
             // Validate plausible car movement (< 220 km/h)
             val impliedSpeedKmh = (dist / timeDeltaSec) * 3.6
 
-            // Strict anti-drift: Only accumulate distance if the vehicle is genuinely moving
-            val isGenuinelyMoving = (speedKmh >= 2.5f && dist >= 0.8) || (dist >= 4.0 && impliedSpeedKmh in 3.0..220.0)
-
-            if (isGenuinelyMoving && impliedSpeedKmh < 220.0) {
-                totalDistanceMeters += dist
-                stepDistanceMeters = dist
-            }
+            // Odometer: filtered haversine segments (accuracy gate, stationary jitter, teleports).
+            stepDistanceMeters = odometer.onFix(
+                com.antigravity.copilot.core.logic.GeoFix(
+                    location.latitude, location.longitude,
+                    (if (location.hasAccuracy()) location.accuracy else 5.0f).toDouble(),
+                    now, speedKmh.toDouble()
+                )
+            )
+            totalDistanceMeters += stepDistanceMeters
 
             // Real Longitudinal G-Force and Acceleration
             val prevSpeedMps = if (prevLoc.hasSpeed()) prevLoc.speed else 0f
@@ -801,6 +832,8 @@ class TripDetectionEngine(
             driverScore = driverScore,
             harshBrakeCount = harshBrakes,
             rapidAccelCount = rapidAccels,
+            brakeCount = drivingClassifier.brakeEvents,
+            accelCount = drivingClassifier.accelEvents,
             overspeedCount = overspeedInstances,
             startLocationName = currentOriginName,
             endLocationName = currentDestinationName,
@@ -866,6 +899,8 @@ class TripDetectionEngine(
             driverScore = calculateDriverScore(),
             harshBrakeCount = harshBrakes,
             rapidAccelCount = rapidAccels,
+            brakeCount = drivingClassifier.brakeEvents,
+            accelCount = drivingClassifier.accelEvents,
             overspeedCount = overspeedInstances,
             startLocationName = currentOriginName,
             endLocationName = effectiveDestName,

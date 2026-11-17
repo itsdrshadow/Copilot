@@ -23,12 +23,25 @@ object OdometerManager {
     private const val KEY_BASELINE_LIFETIME_AT_UPDATE = "baseline_lifetime_km_at_update"
     private const val KEY_LATEST_LIFETIME_KM = "latest_lifetime_km"
     private const val KEY_IS_MANUALLY_VERIFIED = "is_manually_verified"
+    private const val KEY_K_FACTOR_BITS = "odo_k_factor_bits"
+    private const val KEY_K_SAMPLES = "odo_k_samples"
 
     data class OdometerState(
         val baselineOdometerKm: Double = 0.0,
         val baselineLifetimeKmAtUpdate: Double = 0.0,
-        val isManuallyVerified: Boolean = false
-    )
+        val isManuallyVerified: Boolean = false,
+        /** Correction factor k = real_delta / app_delta (smoothed); shown = base + k * app_delta. */
+        val kFactor: Double = 1.0,
+        val kSamples: Int = 0
+    ) {
+        fun toCorrection() = com.antigravity.copilot.core.logic.OdometerCorrection(
+            baseRealKm = baselineOdometerKm,
+            appKmAtBase = baselineLifetimeKmAtUpdate,
+            k = kFactor,
+            samples = kSamples,
+            hasBase = isManuallyVerified
+        )
+    }
 
     private val _odometerConfig = MutableStateFlow(OdometerState())
     val odometerConfig: StateFlow<OdometerState> = _odometerConfig.asStateFlow()
@@ -64,7 +77,9 @@ object OdometerManager {
         }
         latestLifetimeKm = latestLifetime
         val verified = prefs.getBoolean(KEY_IS_MANUALLY_VERIFIED, false)
-        _odometerConfig.value = OdometerState(baseline, baselineLifetime, verified)
+        val k = if (prefs.contains(KEY_K_FACTOR_BITS)) java.lang.Double.longBitsToDouble(prefs.getLong(KEY_K_FACTOR_BITS, 0L)) else 1.0
+        val kSamples = prefs.getInt(KEY_K_SAMPLES, 0)
+        _odometerConfig.value = OdometerState(baseline, baselineLifetime, verified, if (k.isFinite() && k > 0) k else 1.0, kSamples)
     }
 
     fun syncLifetimeKm(km: Double, context: Context? = null) {
@@ -95,6 +110,8 @@ object OdometerManager {
         val safeReading = readingKm.coerceAtLeast(0.0)
         val safeLifetime = currentTotalLifetimeKm.coerceAtLeast(0.0)
         latestLifetimeKm = safeLifetime
+        // Learn k from the interval since the previous real reading (pure, unit-tested).
+        val corrected = _odometerConfig.value.toCorrection().withRealReading(safeReading, safeLifetime)
         getPrefs(context).edit()
             .putLong(KEY_BASELINE_ODOMETER_KM + "_bits", java.lang.Double.doubleToRawLongBits(safeReading))
             .putLong(KEY_BASELINE_LIFETIME_AT_UPDATE + "_bits", java.lang.Double.doubleToRawLongBits(safeLifetime))
@@ -103,12 +120,16 @@ object OdometerManager {
             .putFloat(KEY_BASELINE_LIFETIME_AT_UPDATE, safeLifetime.toFloat())
             .putFloat(KEY_LATEST_LIFETIME_KM, safeLifetime.toFloat())
             .putBoolean(KEY_IS_MANUALLY_VERIFIED, true)
+            .putLong(KEY_K_FACTOR_BITS, java.lang.Double.doubleToRawLongBits(corrected.k))
+            .putInt(KEY_K_SAMPLES, corrected.samples)
             .apply()
 
         _odometerConfig.value = OdometerState(
             baselineOdometerKm = safeReading,
             baselineLifetimeKmAtUpdate = safeLifetime,
-            isManuallyVerified = true
+            isManuallyVerified = true,
+            kFactor = corrected.k,
+            kSamples = corrected.samples
         )
     }
 
@@ -117,8 +138,9 @@ object OdometerManager {
      * Example: +12.4 km.
      */
     fun calculateDeltaKm(totalLifetimeKm: Double): Double {
-        val delta = totalLifetimeKm - _odometerConfig.value.baselineLifetimeKmAtUpdate
-        return delta.coerceAtLeast(0.0)
+        val cfg = _odometerConfig.value
+        val delta = totalLifetimeKm - cfg.baselineLifetimeKmAtUpdate
+        return (delta * cfg.kFactor).coerceAtLeast(0.0)
     }
 
     /**

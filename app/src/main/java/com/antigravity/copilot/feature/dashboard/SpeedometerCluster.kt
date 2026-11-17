@@ -384,6 +384,21 @@ fun SpeedometerCluster(
                         ),
                         color = statusColor
                     )
+                    // Driving state label (IDLE / ACCELERATING / CRUISING / BRAKING)
+                    val drivingStateLabel = if (isGpsValid) latestPoint?.drivingState.orEmpty().ifBlank { "IDLE" } else "IDLE"
+                    Text(
+                        text = drivingStateLabel,
+                        style = CockpitTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.2.sp
+                        ),
+                        color = when (drivingStateLabel) {
+                            "BRAKING" -> CockpitTheme.colors.critical
+                            "ACCELERATING" -> CockpitTheme.colors.warning
+                            "CRUISING" -> CockpitTheme.colors.accent
+                            else -> textSecondary
+                        }
+                    )
 
                     Spacer(Modifier.height(6.dp))
 

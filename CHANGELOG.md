@@ -14,10 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pure `GeofenceTripDetector` (hysteresis exit at radius+15 m, entry at radius, accuracy < 30 m, 3-fix debounce) and `MotionTimeTracker` (idle = < 2 km/h for > 30 s) with unit tests.
 - Manual trip start / end override (long-press the CURRENT TRIP header).
 - Battery-optimisation exemption prompt for the tracking service.
+- `SpeedFilter` (Doppler-only, accuracy-gated EMA), `DrivingStateClassifier` + orientation-independent `LongitudinalAccelEstimator` (linear-acceleration sensor fused with GPS dv/dt), IDLE / ACCELERATING / CRUISING / BRAKING label under the speed readout.
+- `OdometerAccumulator` (filtered haversine segments) and odometer correction factor *k* learned from real-odometer entries (shown = base + k·app_delta).
 
 ### Changed
 - Default geofence radius 200 m → 75 m (min 30 m).
 - `GeofenceTripLifecycleEngine` delegates start/end decisions to the pure detector.
+- Speedometer no longer max()-fuses position-derived speed (overshoot); trip distance uses the new accumulator.
 - Trip moving/idle time: short stops (< 30 s) are moving time; trip idle at completion = wall clock − moving.
 
 ### Removed

@@ -30,7 +30,7 @@ class SpeedometerAccuracyAndOdometerTest {
     }
 
     @Test
-    fun testTripEngineSpeedResolutionFusesInstantaneousSpeedWithoutLag() {
+    fun testTripEngineSpeedResolutionUsesDopplerTrueSpeed() {
         var latestSpeed = 0f
         var totalDist = 0.0
 
@@ -60,10 +60,11 @@ class SpeedometerAccuracyAndOdometerTest {
             timestamp = t0 + 4500L
         )
 
-        // Engine must resolve to 60 km/h rather than lagging at 55 km/h
+        // Spec (Phase 2): the speedometer shows TRUE speed = GPS Doppler (accuracy-filtered, lightly
+        // smoothed). Position-derived speed is noisy and must not be max()-fused into the display.
         assertTrue(
-            "Effective speed must immediately reflect real 60 km/h movement instead of lagging at 55 km/h (was $latestSpeed)",
-            latestSpeed >= 59.0f
+            "Effective speed must follow Doppler 55 km/h, not the position-derived 60 km/h (was $latestSpeed)",
+            latestSpeed in 54.0f..56.0f
         )
         assertTrue("Total distance should be non-negative", totalDist >= 0.0)
     }
