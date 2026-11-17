@@ -33,10 +33,11 @@ object MapNetworkGuard {
 
     /**
      * Hand gzipped tiles to MapLibre untouched with `Content-Encoding: gzip`.
-     * Off: MapLibre Native 10.3.2 does not inflate HTTP bodies itself (OkHttp's transparent gzip
-     * only applies to real network responses, which our in-process interceptor short-circuits),
-     * so gzip bytes would fail MVT parsing and render a blank map. Tiles are therefore cached
-     * compressed in RAM and inflated once per request instead (~<1 ms per tile).
+     * Off by default: OkHttp's transparent gunzip only runs in its BridgeInterceptor, which our
+     * application interceptor short-circuits, and MapLibre Android 10.3.2 passes response bytes
+     * straight to native MVT parsing. An emulator trial with this on drew no roads, but that run
+     * was confounded by an out-of-region GPS fix — verify on a head unit before enabling.
+     * Meanwhile tiles stay gzipped in the RAM cache and are inflated per request (~<1 ms/tile).
      */
     private const val GZIP_PASS_THROUGH = false
 
