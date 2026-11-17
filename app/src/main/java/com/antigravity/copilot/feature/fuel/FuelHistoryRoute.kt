@@ -10,6 +10,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun FuelHistoryRoute(
     onBackToCockpit: () -> Unit,
+    fuelState: com.antigravity.copilot.core.model.FuelState? = null,
+    onAddFuel: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: FuelHistoryViewModel = hiltViewModel()
 ) {
@@ -19,6 +21,8 @@ fun FuelHistoryRoute(
         onBackToCockpit = onBackToCockpit,
         modifier = modifier,
         onEditEvent = viewModel::updateEvent,
-        onDeleteEvent = viewModel::deleteEvent
+        onDeleteEvent = viewModel::deleteEvent,
+        fuelState = fuelState,
+        onAddFuel = onAddFuel
     )
 }

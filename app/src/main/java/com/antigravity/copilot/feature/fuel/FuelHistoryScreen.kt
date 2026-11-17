@@ -1,5 +1,8 @@
 package com.antigravity.copilot.feature.fuel
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TintedBadge
@@ -94,7 +97,9 @@ fun FuelHistoryScreen(
     onBackToCockpit: () -> Unit,
     modifier: Modifier = Modifier,
     onEditEvent: (FuelEventEntity) -> Unit = {},
-    onDeleteEvent: (Long) -> Unit = {}
+    onDeleteEvent: (Long) -> Unit = {},
+    fuelState: com.antigravity.copilot.core.model.FuelState? = null,
+    onAddFuel: () -> Unit = {}
 ) {
     val currentCalYear = remember { Calendar.getInstance().get(Calendar.YEAR) }
 
@@ -141,13 +146,37 @@ fun FuelHistoryScreen(
             .cockpitBackground()
     ) {
             val isCompact = maxWidth < 750.dp
+            // Raahi Fuel screen: Tank + Gauge on the left, Add fuel + log on the right.
+            val showSidePanel = fuelState != null && maxWidth >= 820.dp
 
+          Row(
+              modifier = Modifier
+                  .fillMaxSize()
+                  .padding(if (isCompact) 12.dp else 16.dp),
+              horizontalArrangement = Arrangement.spacedBy(12.dp)
+          ) {
+            if (showSidePanel && fuelState != null) {
+                Column(
+                    modifier = Modifier
+                        .width(340.dp)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    FuelTankSummaryCard(fuelState, modifier = Modifier.fillMaxWidth())
+                    GaugeStatusCard(fuelState, onOpenDrive = onBackToCockpit, modifier = Modifier.fillMaxWidth())
+                }
+            }
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(if (isCompact) 12.dp else 18.dp),
+                    .weight(1f)
+                    .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (fuelState != null) {
+                    AddFuelCard(fuelState, onAddFuel = onAddFuel, modifier = Modifier.fillMaxWidth())
+                    if (!showSidePanel) FuelTankSummaryCard(fuelState, modifier = Modifier.fillMaxWidth())
+                }
                 // ==================== 1. COCKPIT HEADER ====================
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -163,19 +192,19 @@ fun FuelHistoryScreen(
                             onClick = onBackToCockpit,
                             modifier = Modifier
                                 .size(50.dp)
-                                .cockpitSurface(Color(0xFF141C2B), Palette.Ink750, CopilotShapes.R12, borderWidth = 1.2.dp)
+                                .cockpitSurface(CockpitTheme.colors.border, Palette.Ink750, CopilotShapes.R12, borderWidth = 1.2.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White,
+                                tint = CockpitTheme.colors.textPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .cockpitSurface(Color(0xFF0F263E), Palette.Sky400.copy(alpha = 0.5f), CopilotShapes.R12, borderWidth = 1.2.dp),
+                                .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.5f), CopilotShapes.R12, borderWidth = 1.2.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -196,13 +225,13 @@ fun FuelHistoryScreen(
                                     style = CockpitTheme.typography.headlineLarge.copy(
                                         letterSpacing = (-0.5).sp
                                     ),
-                                    color = Color.White
+                                    color = CockpitTheme.colors.textPrimary
                                 )
 
                                 // Current Year Badge
                                 Box(
                                     modifier = Modifier
-                                        .cockpitSurface(Color(0xFF142033), Palette.Sky400.copy(alpha = 0.35f), CopilotShapes.R6)
+                                        .cockpitSurface(CockpitTheme.colors.border, Palette.Sky400.copy(alpha = 0.35f), CopilotShapes.R6)
                                         .padding(horizontal = 8.dp, vertical = 3.dp)
                                 ) {
                                     Text(
@@ -257,7 +286,7 @@ fun FuelHistoryScreen(
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                             fontFeatureSettings = "tnum"
                                         ),
-                                        color = if (isSelected) Color.White else Palette.Steel400
+                                        color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
                                     )
                                 }
                             }
@@ -284,6 +313,7 @@ fun FuelHistoryScreen(
                         .weight(1f)
                 )
             }
+          }
         }
 
     // ==================== EDIT REFUEL DIALOG ====================
@@ -306,7 +336,7 @@ fun FuelHistoryScreen(
                 Text(
                     text = "Delete Fuel Record?",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                    color = Color.White
+                    color = CockpitTheme.colors.textPrimary
                 )
             },
             text = {
@@ -325,15 +355,15 @@ fun FuelHistoryScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.critical),
                     shape = CopilotShapes.R10
                 ) {
-                    Text("Delete", fontWeight = FontWeight.Bold)
+                    Text("Delete", fontWeight = FontWeight.Bold, color = contentColorOn(CockpitTheme.colors.critical))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { eventToDelete = null }) {
-                    Text("Cancel", color = Color.White)
+                    Text("Cancel", color = CockpitTheme.colors.textPrimary)
                 }
             },
-            containerColor = Color(0xFF131D30),
+            containerColor = CockpitTheme.colors.border,
             shape = RoundedCornerShape(20.dp)
         )
     }
@@ -349,7 +379,7 @@ private fun YearlySummaryBanner(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .cockpitSurface(Color(0xFF0B1019), Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
+            .cockpitSurface(CockpitTheme.colors.cardElevated, Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
             .padding(horizontal = 12.dp, vertical = 9.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -360,7 +390,7 @@ private fun YearlySummaryBanner(
             label = "TOTAL REFILLS",
             value = "${analytics.totalRefills}",
             unit = "Logs",
-            color = Color.White
+            color = CockpitTheme.colors.textPrimary
         )
 
         // Total Fuel Filled
@@ -484,7 +514,7 @@ private fun FuelRecordsMonthGroupedFeed(
                 Box(
                     modifier = Modifier
                         .size(60.dp)
-                        .cockpitSurface(Color(0xFF101726), Palette.Ink750, CircleShape, borderWidth = 1.2.dp),
+                        .cockpitSurface(CockpitTheme.colors.border, Palette.Ink750, CircleShape, borderWidth = 1.2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -500,7 +530,7 @@ private fun FuelRecordsMonthGroupedFeed(
                     style = CockpitTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White
+                    color = CockpitTheme.colors.textPrimary
                 )
 
                 Text(
@@ -528,7 +558,7 @@ private fun FuelRecordsMonthGroupedFeed(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .cockpitSurface(Color(0xFF0A0F1A), Color(0xFF1A2436), CopilotShapes.R14)
+                        .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R14)
                 ) {
                     // Month Header Accordion Bar (Bada touch target aur bada readable text)
                     Row(
@@ -553,7 +583,7 @@ private fun FuelRecordsMonthGroupedFeed(
                                 style = CockpitTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.Black
                                 ),
-                                color = Color.White
+                                color = CockpitTheme.colors.textPrimary
                             )
 
                             // Quick monthly summary pills
@@ -635,7 +665,7 @@ private fun FuelEventCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .cockpitSurface(Color(0xFF0F1524), Palette.Ink750, CopilotShapes.R12)
+            .cockpitSurface(CockpitTheme.colors.border, Palette.Ink750, CopilotShapes.R12)
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -658,16 +688,25 @@ private fun FuelEventCard(
                     ) {
                         Text(
                             text = when {
-                                event.eventType == "UNLOGGED_CONSUMPTION" && event.notes.startsWith("RESOLVED") -> "✓ UNLOGGED (RESOLVED)"
-                                event.eventType == "UNLOGGED_CONSUMPTION" -> "⚠ UNLOGGED (PROVISIONAL)"
-                                event.eventType == "UNLOGGED_REFILL_AUTO" -> "⛽ UNLOGGED REFILL (AUTO)"
-                                else -> "⛽ REFUEL"
+                                event.eventType == "UNLOGGED_CONSUMPTION" && event.notes.startsWith("RESOLVED") -> "Unlogged (resolved)"
+                                event.eventType == "UNLOGGED_CONSUMPTION" -> "Unlogged (provisional)"
+                                event.eventType == "UNLOGGED_REFILL_AUTO" -> "Unlogged refill"
+                                else -> "Refuel"
                             },
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
                                 fontFeatureSettings = "tnum"
                             ),
                             color = Palette.Sky400
+                        )
+                    }
+
+                    // "Auto" chip: entries the fuel system created by itself (not typed by the driver).
+                    if (event.eventType == "UNLOGGED_REFILL_AUTO" || event.eventType == "UNLOGGED_CONSUMPTION") {
+                        com.antigravity.copilot.core.designsystem.components.RaahiPill(
+                            text = "Auto",
+                            color = CockpitTheme.colors.warning,
+                            filled = true
                         )
                     }
 
@@ -686,7 +725,7 @@ private fun FuelEventCard(
                                     isFilled && i < 2 -> Palette.Red500
                                     isFilled && i < 5 -> Palette.Amber500
                                     isFilled -> Palette.Sky400
-                                    else -> Color(0xFF1F2937)
+                                    else -> CockpitTheme.colors.border
                                 }
                                 Box(
                                     modifier = Modifier
@@ -803,7 +842,7 @@ private fun FuelEventCard(
                                     style = CockpitTheme.typography.labelSmall.copy(
                                         fontFeatureSettings = "tnum"
                                     ),
-                                    color = Color.White
+                                    color = CockpitTheme.colors.textPrimary
                                 )
                             }
                         }
@@ -839,7 +878,7 @@ private fun FuelEventCard(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .cockpitSurface(Color(0xFF0F2642), Palette.Sky400.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
+                            .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = rememberRipple(bounded = true, color = Palette.Sky400),
@@ -858,7 +897,7 @@ private fun FuelEventCard(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .cockpitSurface(Color(0xFF3B151E), Palette.Red500.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
+                            .cockpitSurface(CockpitTheme.colors.critical.copy(alpha = 0.14f), Palette.Red500.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = rememberRipple(bounded = true, color = Palette.Red500),
@@ -900,7 +939,7 @@ private fun EditFuelEventDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.72f)
-                .cockpitSurface(Color(0xFF0F182A), Color(0xFF2563EB), CopilotShapes.R22, borderWidth = 1.5.dp)
+                .cockpitSurface(CockpitTheme.colors.border, CockpitTheme.colors.accent, CopilotShapes.R22, borderWidth = 1.5.dp)
                 .padding(22.dp)
         ) {
             Column(
@@ -916,7 +955,7 @@ private fun EditFuelEventDialog(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = null,
-                            tint = Color(0xFF60A5FA),
+                            tint = CockpitTheme.colors.accent,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -925,14 +964,14 @@ private fun EditFuelEventDialog(
                             style = CockpitTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Black
                             ),
-                            color = Color.White
+                            color = CockpitTheme.colors.textPrimary
                         )
                     }
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier.size(36.dp).clip(CircleShape).background(Palette.Ink700)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = CockpitTheme.colors.textPrimary, modifier = Modifier.size(18.dp))
                     }
                 }
 
@@ -942,10 +981,10 @@ private fun EditFuelEventDialog(
                     onValueChange = { locationText = it },
                     label = { Text("Fuel Station / Location", color = CockpitTheme.colors.textSecondary) },
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = CockpitTheme.typography.titleMedium.copy(color = Color.White),
+                    textStyle = CockpitTheme.typography.titleMedium.copy(color = CockpitTheme.colors.textPrimary),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = CockpitTheme.colors.textPrimary,
+                        unfocusedTextColor = CockpitTheme.colors.textPrimary,
                         focusedBorderColor = CockpitTheme.colors.accent,
                         unfocusedBorderColor = Palette.Ink700
                     ),
@@ -964,11 +1003,11 @@ private fun EditFuelEventDialog(
                         },
                         label = { Text("Quantity (L)", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = CockpitTheme.colors.textPrimary, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
+                            focusedTextColor = CockpitTheme.colors.textPrimary,
+                            unfocusedTextColor = CockpitTheme.colors.textPrimary,
                             focusedBorderColor = CockpitTheme.colors.accent,
                             unfocusedBorderColor = Palette.Ink700
                         ),
@@ -985,11 +1024,11 @@ private fun EditFuelEventDialog(
                         },
                         label = { Text("Price (₹ / L)", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = CockpitTheme.colors.textPrimary, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
+                            focusedTextColor = CockpitTheme.colors.textPrimary,
+                            unfocusedTextColor = CockpitTheme.colors.textPrimary,
                             focusedBorderColor = CockpitTheme.colors.accent,
                             unfocusedBorderColor = Palette.Ink700
                         ),
@@ -1019,11 +1058,11 @@ private fun EditFuelEventDialog(
                         onValueChange = { odoText = it },
                         label = { Text("Odometer (km)", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = CockpitTheme.colors.textPrimary, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
+                            focusedTextColor = CockpitTheme.colors.textPrimary,
+                            unfocusedTextColor = CockpitTheme.colors.textPrimary,
                             focusedBorderColor = CockpitTheme.colors.accent,
                             unfocusedBorderColor = Palette.Ink700
                         ),
@@ -1038,7 +1077,7 @@ private fun EditFuelEventDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = Color.White, style = CockpitTheme.typography.labelLarge)
+                        Text("Cancel", color = CockpitTheme.colors.textPrimary, style = CockpitTheme.typography.labelLarge)
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Button(
@@ -1061,7 +1100,7 @@ private fun EditFuelEventDialog(
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Save Changes", style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+                        Text("Save Changes", style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = contentColorOn(CockpitTheme.colors.overlapBlue))
                     }
                 }
             }
@@ -1070,6 +1109,29 @@ private fun EditFuelEventDialog(
 }
 
 // ==================== CALCULATION & DATA AGGREGATION ENGINE ====================
+
+/** Upper bound for any car's km/L; a refuel step implying more is an odometer recalibration. */
+internal const val MAX_PLAUSIBLE_KMPL = 45.0
+private const val MIN_FALLBACK_DISTANCE_KM = 20.0
+
+/**
+ * Distance between refuels from their odometer readings, summed step by step. A step longer than
+ * [MAX_PLAUSIBLE_KMPL] x the litres put in at its end cannot have been driven on that fuel: it is
+ * an odometer recalibration (e.g. the first real reading) and is skipped.
+ */
+internal fun plausibleOdometerDistanceKm(chron: List<FuelEventEntity>): Double {
+    var total = 0.0
+    var prevOdo = -1.0
+    for (e in chron) {
+        if (e.odometerKm <= 0.0) continue
+        if (prevOdo > 0.0) {
+            val step = e.odometerKm - prevOdo
+            if (step > 0.0 && step <= MAX_PLAUSIBLE_KMPL * maxOf(e.liters, 1.0)) total += step
+        }
+        prevOdo = e.odometerKm
+    }
+    return total
+}
 
 private fun computeYearlyAnalytics(
     allEvents: List<FuelEventEntity>,
@@ -1096,19 +1158,18 @@ private fun computeYearlyAnalytics(
     val totalLiters = yearEvents.sumOf { it.liters }
     val totalRefills = yearEvents.count { it.liters > 0 || it.eventType == "REFUEL" }
 
-    // Accurate Year Distance calculation from odometer readings
-    val validOdos = chronEvents.map { it.odometerKm }.filter { it > 0 }
-    val totalDistanceKm = if (validOdos.size >= 2) {
-        max(0.0, validOdos.last() - validOdos.first())
-    } else 0.0
+    // Year distance: sum of refuel-to-refuel odometer steps, skipping impossible steps
+    // (odometer recalibrations), so a calibration jump never reads as distance driven.
+    val totalDistanceKm = plausibleOdometerDistanceKm(chronEvents)
 
     // Average Mileage calculation: prioritize verified Fuel Engine interval calculations
     val validMileages = yearEvents.map { it.calculatedMileageKmpl }.filter { it in 5.0..45.0 }
     val avgMileageKmpl = if (validMileages.isNotEmpty()) {
         validMileages.average()
-    } else if (totalDistanceKm > 0 && totalLiters > 0 && totalRefills >= 2) {
+    } else if (totalDistanceKm >= MIN_FALLBACK_DISTANCE_KM && totalLiters > 0 && totalRefills >= 2) {
         val consumedLiters = chronEvents.drop(1).sumOf { it.liters }
-        if (consumedLiters > 0) totalDistanceKm / consumedLiters else totalDistanceKm / totalLiters
+        val m = if (consumedLiters > 0) totalDistanceKm / consumedLiters else totalDistanceKm / totalLiters
+        m.takeIf { it in 5.0..MAX_PLAUSIBLE_KMPL } ?: 0.0
     } else {
         0.0
     }
@@ -1133,17 +1194,15 @@ private fun computeYearlyAnalytics(
 
         // Monthly Distance
         val mChron = monthEvents.sortedBy { it.timestamp }
-        val mOdos = mChron.map { it.odometerKm }.filter { it > 0 }
-        val mDistance = if (mOdos.size >= 2) {
-            max(0.0, mOdos.last() - mOdos.first())
-        } else 0.0
+        val mDistance = plausibleOdometerDistanceKm(mChron)
 
         val mValidMileages = monthEvents.map { it.calculatedMileageKmpl }.filter { it in 5.0..45.0 }
         val mMileage = if (mValidMileages.isNotEmpty()) {
             mValidMileages.average()
-        } else if (mDistance > 0 && mLiters > 0 && mRefills >= 2) {
+        } else if (mDistance >= MIN_FALLBACK_DISTANCE_KM && mLiters > 0 && mRefills >= 2) {
             val mConsumed = mChron.drop(1).sumOf { it.liters }
-            if (mConsumed > 0) mDistance / mConsumed else mDistance / mLiters
+            val m = if (mConsumed > 0) mDistance / mConsumed else mDistance / mLiters
+            m.takeIf { it in 5.0..MAX_PLAUSIBLE_KMPL } ?: 0.0
         } else {
             0.0
         }
