@@ -14,7 +14,7 @@ class BackupRestoreTypeSafetyTest {
     fun testBackupConstantsVersionSynchronization() {
         assertEquals("1.18.0", FullBackupManager.CURRENT_APP_VERSION)
         assertEquals(33, FullBackupManager.CURRENT_VERSION_CODE)
-        assertEquals(8, FullBackupManager.DATABASE_SCHEMA_VERSION)
+        assertEquals(com.antigravity.copilot.core.database.AppDatabase.DATABASE_SCHEMA_VERSION, FullBackupManager.DATABASE_SCHEMA_VERSION)
     }
 
     @Test

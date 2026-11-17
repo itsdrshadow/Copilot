@@ -20,9 +20,9 @@ class PersistentStorageAndMigrationTest {
     fun testRoomSequentialMigrationsIntegrity() {
         // AppDatabase must have all sequential migrations from 1 to 8 defined
         val migrations = AppDatabase.ALL_MIGRATIONS
-        assertEquals(7, migrations.size)
+        assertEquals(AppDatabase.DATABASE_SCHEMA_VERSION - 1, migrations.size)
 
-        for (i in 1..7) {
+        for (i in 1..migrations.size) {
             val migration = migrations[i - 1]
             assertEquals("Migration startVersion must be sequential", i, migration.startVersion)
             assertEquals("Migration endVersion must be sequential", i + 1, migration.endVersion)
@@ -31,7 +31,7 @@ class PersistentStorageAndMigrationTest {
 
     @Test
     fun testDatabaseSchemaVersionConstant() {
-        assertEquals(8, AppDatabase.DATABASE_SCHEMA_VERSION)
+        assertEquals(AppDatabase.ALL_MIGRATIONS.last().endVersion, AppDatabase.DATABASE_SCHEMA_VERSION)
     }
 
     @Test

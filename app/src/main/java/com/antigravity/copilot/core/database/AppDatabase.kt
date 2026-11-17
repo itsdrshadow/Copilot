@@ -233,6 +233,18 @@ interface TripGeofenceDao {
     suspend fun clearAllGeofences()
 }
 
+@Dao
+interface FuelModelDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(state: FuelModelStateEntity)
+
+    @Query("SELECT * FROM fuel_model_state WHERE id = 1")
+    suspend fun get(): FuelModelStateEntity?
+
+    @Query("DELETE FROM fuel_model_state")
+    suspend fun clear()
+}
+
 @Database(
     entities = [
         VehicleEntity::class,
@@ -241,9 +253,10 @@ interface TripGeofenceDao {
         FuelEventEntity::class,
         VehicleStateTransitionEntity::class,
         FuelLedgerEntity::class,
-        TripGeofenceEntity::class
+        TripGeofenceEntity::class,
+        FuelModelStateEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -253,6 +266,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun vehicleStateDao(): VehicleStateDao
     abstract fun fuelLedgerDao(): FuelLedgerDao
     abstract fun tripGeofenceDao(): TripGeofenceDao
+    abstract fun fuelModelDao(): FuelModelDao
 
     companion object {
         @Volatile
@@ -415,7 +429,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        const val DATABASE_SCHEMA_VERSION = 8
+        /** Fuel model JSON snapshot. Strict: failures surface instead of being swallowed. */
+        val MIGRATION_8_9 = object : androidx.room.migration.Migration(8, 9) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `fuel_model_state` (" +
+                        "`id` INTEGER NOT NULL, `json` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+            }
+        }
+
+        const val DATABASE_SCHEMA_VERSION = 9
 
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
@@ -424,7 +448,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
-            MIGRATION_7_8
+            MIGRATION_7_8,
+            MIGRATION_8_9
         )
 
         fun getInstance(context: Context): AppDatabase {

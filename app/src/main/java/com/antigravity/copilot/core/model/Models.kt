@@ -116,7 +116,19 @@ data class FuelState(
     val aiConfidencePercent: Int = 85,
     val aiDrivingStyle: String = "OPTIMAL DRIVE",
     val confidenceLabel: String = "CONFIRMED",
-    val explanation: String = ""
+    val explanation: String = "",
+    /** Learned usable capacity (separate from the OEM design capacity). */
+    val actualCapacityLiters: Double = 48.0,
+    /** Continuous gauge position 0..10 for the smooth bar fill (never shown as a number). */
+    val gaugeFillPoints: Double = 10.0,
+    /** 0..1 confidence of the learned mileage. */
+    val mileageConfidence: Double = 0.0,
+    /** Unclamped model estimate; negative = "debt" (consumption beyond the tank). */
+    val rawFuelLiters: Double = 48.0,
+    val topBufferLiters: Double = 3.0,
+    val bottomBufferLiters: Double = 5.0,
+    /** Sum of provisional unlogged-consumption entries awaiting the next refill. */
+    val unloggedDebtLiters: Double = 0.0
 )
 
 @androidx.compose.runtime.Immutable

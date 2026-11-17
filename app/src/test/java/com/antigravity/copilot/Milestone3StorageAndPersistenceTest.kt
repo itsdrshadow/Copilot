@@ -37,7 +37,7 @@ class Milestone3StorageAndPersistenceTest {
     @Test
     fun testDatabaseSchemaVersionSynchronization() {
         // AppDatabase schema version must match FullBackupManager expected schema version
-        assertEquals(8, AppDatabase.DATABASE_SCHEMA_VERSION)
+        assertEquals(AppDatabase.ALL_MIGRATIONS.size + 1, AppDatabase.DATABASE_SCHEMA_VERSION)
         assertEquals(AppDatabase.DATABASE_SCHEMA_VERSION, FullBackupManager.DATABASE_SCHEMA_VERSION)
     }
 
@@ -72,7 +72,7 @@ class Milestone3StorageAndPersistenceTest {
         val manifest = FullBackupManager.BackupManifest(
             appVersion = "2.0.0",
             versionCode = 40,
-            schemaVersion = 9,
+            schemaVersion = AppDatabase.DATABASE_SCHEMA_VERSION + 1,
             timestamp = System.currentTimeMillis()
         )
 
@@ -82,7 +82,7 @@ class Milestone3StorageAndPersistenceTest {
 
         assertTrue(
             "Exception message must mention incompatible schema version",
-            exception.message?.contains("Incompatible schema version: 9 > 8") == true
+            exception.message?.contains("Incompatible schema version: ${AppDatabase.DATABASE_SCHEMA_VERSION + 1} > ${AppDatabase.DATABASE_SCHEMA_VERSION}") == true
         )
     }
 

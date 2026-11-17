@@ -15,11 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual trip start / end override (long-press the CURRENT TRIP header).
 - Battery-optimisation exemption prompt for the tracking service.
 - `SpeedFilter` (Doppler-only, accuracy-gated EMA), `DrivingStateClassifier` + orientation-independent `LongitudinalAccelEstimator` (linear-acceleration sensor fused with GPS dv/dt), IDLE / ACCELERATING / CRUISING / BRAKING label under the speed readout.
+- Pure fuel model (`core/logic/fuel`): isotonic `GaugeCurve` (21 half-point knots, learned top/bottom buffers, uneven litres-per-point), `MileageEstimator` (weighted last ~3 segments / 30 days, full-to-full and gauge-to-gauge, confidence score), anchor-based tank estimate (`anchor − km / mileage`), learned actual capacity kept separate from OEM design capacity. Persisted in new `fuel_model_state` table (DB v9, strict migration) and included in JSON backup/restore.
+- Refill dialog: "Filled to FULL tank" flag; real odometer at refill re-bases the odometer and teaches *k*.
+- Gauge calibration popup supports half points (tap the top bar again).
 - `OdometerAccumulator` (filtered haversine segments) and odometer correction factor *k* learned from real-odometer entries (shown = base + k·app_delta).
 
 ### Changed
 - Default geofence radius 200 m → 75 m (min 30 m).
 - `GeofenceTripLifecycleEngine` delegates start/end decisions to the pure detector.
+- Home fuel gauge is a continuous bar driven by estimated litres (full until the top buffer is used, then smooth), no numeric point.
+- Live kinematic consumption no longer deducts from the tank (trip estimate only).
 - Speedometer no longer max()-fuses position-derived speed (overshoot); trip distance uses the new accumulator.
 - Trip moving/idle time: short stops (< 30 s) are moving time; trip idle at completion = wall clock − moving.
 

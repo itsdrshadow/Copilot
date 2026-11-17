@@ -127,3 +127,14 @@ data class TripGeofenceEntity(
     val updatedAt: Long = System.currentTimeMillis()
 )
 
+
+/**
+ * Single-row JSON snapshot of the pure fuel model (`core.logic.fuel.FuelModelState`):
+ * anchor, learned gauge curve observations, mileage segments, unlogged entries.
+ */
+@Entity(tableName = "fuel_model_state")
+data class FuelModelStateEntity(
+    @PrimaryKey val id: Int = 1,
+    val json: String,
+    val updatedAt: Long = System.currentTimeMillis()
+)

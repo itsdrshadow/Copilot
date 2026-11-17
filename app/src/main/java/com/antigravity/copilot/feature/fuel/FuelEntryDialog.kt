@@ -65,7 +65,7 @@ fun FuelEntryDialog(
     recordedLifetimeKm: Double,
     currentLocationPoint: TripPoint?,
     onDismiss: () -> Unit,
-    onSaveRefuel: (liters: Double, midBar: Int, pricePerLiter: Double, totalCost: Double, odometerKm: Double, locationName: String, lat: Double, lon: Double) -> Unit,
+    onSaveRefuel: (liters: Double, midBar: Int, pricePerLiter: Double, totalCost: Double, odometerKm: Double, locationName: String, lat: Double, lon: Double, fullTank: Boolean) -> Unit,
     @Suppress("UNUSED_PARAMETER") onCalibrateMidBar: (midBar: Int) -> Unit = {},
     @Suppress("UNUSED_PARAMETER") onCalibrateOdometer: (odometerKm: Double) -> Unit = {},
     viewModel: FuelEntryViewModel = hiltViewModel()
@@ -138,6 +138,8 @@ fun FuelEntryDialog(
 
     var userSelectedMidBar by remember(autoPostRefillBar) { mutableIntStateOf(autoPostRefillBar) }
     val additionalBars = (userSelectedMidBar - currentBar).coerceAtLeast(0)
+    // Full-tank flag (defaults to on when the gauge shows full after refilling).
+    var isFullTank by remember(userSelectedMidBar) { mutableStateOf(userSelectedMidBar >= 10) }
 
     // Odometer validation: Must be a positive number
     val enteredOdo = refuelOdometerText.toDoubleOrNull() ?: 0.0
@@ -536,6 +538,23 @@ fun FuelEntryDialog(
                                         .weight(1f)
                                 )
 
+                                // Full-tank flag: full-to-full intervals are the most reliable mileage source.
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(CopilotShapes.R8)
+                                        .clickable { isFullTank = !isFullTank }
+                                        .padding(horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(checked = isFullTank, onCheckedChange = { isFullTank = it })
+                                    Text(
+                                        text = "Filled to FULL tank (nozzle clicked off)",
+                                        style = CockpitTheme.typography.labelLarge,
+                                        color = CockpitTheme.colors.textPrimary
+                                    )
+                                }
+
                                 // 3. BOTTOM SECTION: ACTIONS (CANCEL & CONFIRM REFUEL)
                                 Row(
                                     modifier = Modifier
@@ -580,7 +599,8 @@ fun FuelEntryDialog(
                                                 enteredOdo,
                                                 locationNameText,
                                                 lat,
-                                                lon
+                                                lon,
+                                                isFullTank
                                             )
                                             onDismiss()
                                         },

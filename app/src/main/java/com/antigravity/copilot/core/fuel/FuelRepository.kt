@@ -8,6 +8,10 @@ import com.antigravity.copilot.core.database.FuelEventEntity
 import com.antigravity.copilot.core.database.FuelLedgerEntity
 import com.antigravity.copilot.core.database.PersistentDataManager
 import com.antigravity.copilot.core.fuel.intelligence.*
+import com.antigravity.copilot.core.database.FuelModelStateEntity
+import com.antigravity.copilot.core.logic.fuel.FuelModel
+import com.antigravity.copilot.core.logic.fuel.FuelModelState
+import com.antigravity.copilot.core.logic.fuel.RefillInput
 import com.antigravity.copilot.core.model.FuelState
 import com.antigravity.copilot.core.odometer.OdometerManager
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -88,6 +92,73 @@ class FuelRepository private constructor(context: Context) {
     private var pendingPersist: Boolean = false
     private val persistDebounceMs: Long = PERSIST_DEBOUNCE_MS
 
+    // ---------------- Pure fuel model (source of truth for tank level, gauge, mileage) ----------------
+    private val fuelModelDao = database.fuelModelDao()
+    private val modelGson = com.google.gson.Gson()
+    @Volatile
+    private var model: FuelModelState = FuelModelState(
+        designCapacityL = designCapacity,
+        actualCapacityL = maxCapacity,
+        defaultKmpl = baselineVehicleMileage,
+        anchorLitres = prefs.getFloat("remaining_liters", (designCapacity * 0.5).toFloat()).toDouble(),
+        anchorOdoKm = 0.0,
+        anchorTimeMs = System.currentTimeMillis()
+    )
+    @Volatile
+    private var modelLoaded = false
+
+    /** Read-only view of the current fuel model (for tests / diagnostics / UI). */
+    val fuelModelState: FuelModelState get() = model
+
+    /** Quiet, non-blocking fuel notices (e.g. auto-resolved unlogged fuel). */
+    private val _fuelNotice = MutableStateFlow<String?>(null)
+    val fuelNotice: StateFlow<String?> = _fuelNotice.asStateFlow()
+    fun dismissFuelNotice() { _fuelNotice.value = null }
+
+    private suspend fun loadModel() {
+        try {
+            val row = fuelModelDao.get()
+            if (row != null && row.json.isNotBlank()) {
+                model = modelGson.fromJson(row.json, FuelModelState::class.java).normalized()
+            } else {
+                // First run on this version: seed from legacy state (learned mileage, odometer).
+                val learned = mileageEngine.overallEstimatedMileage.takeIf { mileageEngine.sampleCount >= 1 && it > 0 }
+                model = model.copy(
+                    defaultKmpl = learned ?: baselineVehicleMileage,
+                    anchorOdoKm = getEffectiveOdometer()
+                )
+                persistModelNow()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Fuel model load failed; keeping seed: ${e.message}", e)
+        }
+        modelLoaded = true
+        _fuelState.value = buildFuelState()
+    }
+
+    private suspend fun persistModelNow() {
+        try {
+            fuelModelDao.upsert(FuelModelStateEntity(json = modelGson.toJson(model)))
+        } catch (e: Exception) {
+            Log.e(TAG, "Fuel model persist failed: ${e.message}", e)
+        }
+    }
+
+    private fun persistModelAsync() {
+        scope.launch { persistModelNow() }
+    }
+
+    /** Calibration popup: user picked [point] (0..10, half points) shown by the car's gauge. */
+    fun calibrateGaugePoint(point: Double) {
+        scope.launch {
+            stateMutex.withLock {
+                model = FuelModel.onGaugeReading(model, point, getEffectiveOdometer(), System.currentTimeMillis())
+                persistModelNow()
+                _fuelState.value = buildFuelState()
+            }
+        }
+    }
+
     private val _fuelState = MutableStateFlow(buildFuelState())
     val fuelState: StateFlow<FuelState> = _fuelState.asStateFlow()
 
@@ -130,6 +201,7 @@ class FuelRepository private constructor(context: Context) {
 
         // Asynchronously rehydrate from ledger
         rehydrateLedgerAsync()
+        scope.launch { stateMutex.withLock { loadModel() } }
     }
 
     fun reloadFromDatabase() {
@@ -269,13 +341,16 @@ class FuelRepository private constructor(context: Context) {
     }
 
     private fun buildFuelState(): FuelState {
-        val balance = estimator.nominalFuelLiters
-        val conservativeBalance = estimator.conservativeFuelLiters
-        val upperBalance = estimator.upperFuelLiters
-        val effectiveMax = max(designCapacity, estimator.maxCapacityLiters)
-        val safeDesign = designCapacity.coerceAtLeast(10.0)
+        // Tank level = last anchor litres − km since anchor / learned mileage (pure FuelModel).
+        val est = FuelModel.estimate(model, getEffectiveOdometer(), System.currentTimeMillis())
+        val balance = est.displayLitres
+        val spread = (1.0 - est.mileageConfidence) * 0.15 * balance
+        val conservativeBalance = (balance - spread).coerceAtLeast(0.0)
+        val upperBalance = (balance + spread).coerceAtMost(est.actualCapacityL)
+        val effectiveMax = est.actualCapacityL
+        val safeDesign = est.designCapacityL.coerceAtLeast(10.0)
 
-        val fraction = if (safeDesign > 0.0) (balance / safeDesign) else 0.0
+        val fraction = if (effectiveMax > 0.0) (balance / effectiveMax) else 0.0
         val percentage = (fraction * 100.0).roundToInt().coerceIn(0, 100)
 
         val hasConfirmedEmpirical = mileageEngine.hasSufficientEvidence && mileageEngine.measuredMileage != null
@@ -292,16 +367,13 @@ class FuelRepository private constructor(context: Context) {
             else -> 18.0
         }
 
-        // For DTE range estimation: strictly use learned empirical mileage or baseline vehicle mileage
-        val rangeMileage = if (validEmpiricalMileage > 0.0) validEmpiricalMileage else baselineVehicleMileage
+        // Range uses the model's learned mileage (never contaminated by live throttle oscillation)
+        val rangeMileage = est.kmpl
+        val range = est.rangeKm
+        val minRange = conservativeBalance * rangeMileage
+        val maxRange = upperBalance * rangeMileage
 
-        // Range snapshot is strictly computed from rangeMileage (never contaminated by 1-second throttle oscillation)
-        val snapshot = estimator.createSnapshot(rangeMileage)
-        val range = snapshot.estimatedRangeKm
-        val minRange = snapshot.rangeMinKm
-        val maxRange = snapshot.rangeMaxKm
-
-        val midBar = estimator.currentGaugeBar.coerceIn(0, 10)
+        val midBar = est.gaugePoints.roundToInt().coerceIn(0, 10)
         val isLow = balance < 7.0 || fraction < 0.15 || midBar <= 2
         val tripCost = FuelMath.roundCurrency(cumulativeTripConsumedLiters * fuelPrice)
 
@@ -322,9 +394,10 @@ class FuelRepository private constructor(context: Context) {
             else -> "HIGH"
         }
 
+        val confidencePct = (est.mileageConfidence * 100).roundToInt()
         val confidenceLabel = when {
-            estimator.confidenceScore >= 80 -> "CONFIRMED"
-            estimator.confidenceScore >= 50 -> "HIGH"
+            confidencePct >= 80 -> "CONFIRMED"
+            confidencePct >= 50 -> "HIGH"
             else -> "PROVISIONAL"
         }
 
@@ -335,11 +408,11 @@ class FuelRepository private constructor(context: Context) {
             remainingLiters = FuelMath.roundFuel(balance),
             conservativeFuelLiters = FuelMath.roundFuel(conservativeBalance),
             upperFuelLiters = FuelMath.roundFuel(upperBalance),
-            currentMileageKmpl = FuelMath.roundMileage(validEmpiricalMileage),
+            currentMileageKmpl = FuelMath.roundMileage(est.kmpl),
             expectedMileageKmpl = FuelMath.roundMileage(baselineVehicleMileage),
             cityMileageKmpl = FuelMath.roundMileage(mileageEngine.cityMileageEstimate),
             highwayMileageKmpl = FuelMath.roundMileage(mileageEngine.highwayMileageEstimate),
-            isRealMileageDerived = hasConfirmedEmpirical || hasEstimatedEmpirical,
+            isRealMileageDerived = model.segments.isNotEmpty() || hasConfirmedEmpirical || hasEstimatedEmpirical,
             mileageLearningState = mileageEngine.learningState,
             isTankCalibrated = true,
             hasOverfill = hasOverfill,
@@ -358,10 +431,17 @@ class FuelRepository private constructor(context: Context) {
             fuelEfficiencyTier = tier,
             odometerKm = getEffectiveOdometer(),
             liveInstantMileageKmpl = FuelMath.roundMileage(displayInstantMileage),
-            aiConfidencePercent = estimator.confidenceScore,
+            aiConfidencePercent = confidencePct,
             aiDrivingStyle = liveDrivingStyle,
             confidenceLabel = confidenceLabel,
-            explanation = estimator.currentExplanation
+            explanation = estimator.currentExplanation,
+            actualCapacityLiters = FuelMath.roundFuel(est.actualCapacityL),
+            gaugeFillPoints = est.gaugePoints,
+            mileageConfidence = est.mileageConfidence,
+            rawFuelLiters = est.rawLitres,
+            topBufferLiters = est.topBufferL,
+            bottomBufferLiters = est.bottomBufferL,
+            unloggedDebtLiters = model.totalDebtL
         )
     }
 
@@ -399,6 +479,8 @@ class FuelRepository private constructor(context: Context) {
         estimator.updateDesignCapacity(safeCapacity)
         gaugeCalibration.updateDesignCapacity(safeCapacity)
         mileageEngine.updateBaseline(safeMileage)
+        model = FuelModel.withConfig(model, safeCapacity, safeMileage)
+        persistModelAsync()
         _fuelState.value = buildFuelState()
     }
 
@@ -416,7 +498,12 @@ class FuelRepository private constructor(context: Context) {
         }
     }
 
-    fun calibrateMidBar(selectedBar: Int) {
+    fun calibrateMidBar(selectedBar: Int) = calibrateMidBar(selectedBar.toDouble())
+
+    /** Gauge tap calibration: feeds the pure model (half points) and the legacy ledger. */
+    fun calibrateMidBar(point: Double) {
+        calibrateGaugePoint(point)
+        val selectedBar = point.roundToInt().coerceIn(0, 10)
         val currentOdo = getEffectiveOdometer()
         // Feature 16: Reset slosh buffer on explicit user calibration so user's manual action applies immediately
         gaugeCalibration.resetSloshBuffer(selectedBar)
@@ -583,7 +670,9 @@ class FuelRepository private constructor(context: Context) {
         locationName: String = "",
         latitude: Double = 0.0,
         longitude: Double = 0.0,
-        recordedLifetimeKm: Double = latestAppLifetimeKm
+        recordedLifetimeKm: Double = latestAppLifetimeKm,
+        fullTank: Boolean = midBarObserved >= 10,
+        gaugeAfterPoint: Double? = midBarObserved.takeIf { it in 0..10 }?.toDouble()
     ) {
         if (litersAdded <= 0.0 || !litersAdded.isFinite()) return
 
@@ -591,8 +680,24 @@ class FuelRepository private constructor(context: Context) {
             stateMutex.withLock {
                 try {
                     latestAppLifetimeKm = recordedLifetimeKm
+                    // The real dashboard odometer entered at every refill re-bases the app odometer
+                    // and teaches the correction factor k (OdometerCorrection).
+                    if (odometerKm > 0.0) {
+                        OdometerManager.setBaselineOdometer(appContext, odometerKm, recordedLifetimeKm)
+                    }
                     val effectiveOdo = if (odometerKm > 0.0) odometerKm else getEffectiveOdometer()
                     val safeTotalCost = if (totalCost > 0.0) totalCost else FuelMath.roundCurrency(litersAdded * pricePerLiter)
+
+                    // Pure fuel model: litres = amount / price, anchor reset, segments, gauge curve.
+                    val refill = RefillInput(
+                        timeMs = System.currentTimeMillis(),
+                        amountRs = safeTotalCost,
+                        pricePerL = if (pricePerLiter > 0.0) pricePerLiter else safeTotalCost / litersAdded,
+                        odoKm = effectiveOdo,
+                        fullTank = fullTank,
+                        gaugeAfter = gaugeAfterPoint
+                    )
+                    applyRefillToModel(refill)
 
                     val prevState = estimator.toSnapshot()
 
@@ -724,6 +829,13 @@ class FuelRepository private constructor(context: Context) {
         }
     }
 
+    /** Phase 3 refill handling (gauge-after litres from the learned curve). */
+    private suspend fun applyRefillToModel(refill: RefillInput) {
+        val gaugeLitres = refill.gaugeAfter?.takeIf { it < 10.0 }?.let { FuelModel.curve(model).litresAt(it) }
+        model = FuelModel.applyRefill(model, refill, gaugeLitres)
+        persistModelNow()
+    }
+
     /**
      * Real-time kinematic live consumption deduction.
      * Deducts continuous fuel while preserving decimal accuracy.
@@ -746,12 +858,8 @@ class FuelRepository private constructor(context: Context) {
         liveDrivingStyle = result.drivingStyleTag
 
         cumulativeTripConsumedLiters = FuelMath.roundFuel(cumulativeTripConsumedLiters + result.litersConsumed)
-        val currentOdo = getEffectiveOdometer()
-
-        estimator.applyConsumption(
-            consumedLiters = result.litersConsumed,
-            odometerKm = currentOdo
-        )
+        // Live consumption is a trip ESTIMATE only; it never feeds back into the tank level,
+        // which comes from the pure FuelModel (anchor − km / learned mileage).
 
         persistValuesDebounced()
         _fuelState.value = buildFuelState()
@@ -877,6 +985,8 @@ class FuelRepository private constructor(context: Context) {
 
         baselineVehicleMileage = newDefaultMileage.coerceIn(4.0, 60.0)
         mileageEngine.updateBaseline(baselineVehicleMileage)
+        model = FuelModel.withConfig(model, designCapacity, baselineVehicleMileage)
+        persistModelAsync()
 
         persistValuesImmediate()
         _fuelState.value = buildFuelState()
@@ -977,6 +1087,7 @@ class FuelRepository private constructor(context: Context) {
         pendingPersist = false
 
         estimator.initializeBaseline(48.0, 10, 0.0)
+        model = FuelModelState(anchorLitres = 48.0, anchorTimeMs = System.currentTimeMillis())
         prefs.edit().clear().apply()
         aiEngine.resetLearnedModel()
         mileageEngine.resetLearnedModel(18.0)
@@ -989,6 +1100,7 @@ class FuelRepository private constructor(context: Context) {
             try {
                 fuelDao.clearAllFuelEvents()
                 fuelLedgerDao.clearAll()
+                fuelModelDao.clear()
                 PersistentDataManager.clearBackup(appContext)
             } catch (e: Exception) {
                 Log.e(TAG, "Error in resetAllData Room DB clear: ${e.message}", e)

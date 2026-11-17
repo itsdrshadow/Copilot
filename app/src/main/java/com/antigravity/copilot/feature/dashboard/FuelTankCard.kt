@@ -39,7 +39,7 @@ import java.util.Locale
 fun FuelTankCard(
     fuelState: FuelState,
     onClick: () -> Unit,
-    onCalibrateGauge: (Int) -> Unit = {},
+    onCalibrateGauge: (Double) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val cardBg = CockpitTheme.colors.cardTopLightGradient
@@ -56,10 +56,13 @@ fun FuelTankCard(
     val tankPct = fuelState.fuelPercentage.toDouble().coerceIn(0.0, 100.0)
 
     var showGaugeDialog by remember { mutableStateOf(false) }
-    val initialMidBar = if (fuelState.currentMidBar in 1..10) fuelState.currentMidBar else ((tankPct / 10.0).toInt()).coerceIn(1, 10)
-    var tempSelectedBar by remember(initialMidBar, showGaugeDialog) {
-        mutableIntStateOf(initialMidBar)
+    val initialPoint = (Math.round(fuelState.gaugeFillPoints * 2.0) / 2.0).coerceIn(0.0, 10.0)
+    // Selected gauge point (0..10, half points: tap the top lit bar again for "half").
+    var tempSelectedPoint by remember(initialPoint, showGaugeDialog) {
+        mutableDoubleStateOf(initialPoint)
     }
+    val tempSelectedBar = kotlin.math.ceil(tempSelectedPoint).toInt()
+    val selectedLabel = if (tempSelectedPoint % 1.0 == 0.0) "${tempSelectedPoint.toInt()}" else "${tempSelectedPoint.toInt()}½"
 
     val addButtonInteraction = remember { MutableInteractionSource() }
     val isAddPressed by addButtonInteraction.collectIsPressedAsState()
@@ -241,27 +244,32 @@ fun FuelTankCard(
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val activeBars = if (fuelState.currentMidBar in 1..10) fuelState.currentMidBar else ((tankPct / 10.0).toInt()).coerceIn(0, 10)
+                    // Continuous bar fill from estimated litres: full bar until the top buffer is
+                    // used, then drops smoothly (9.9, 9.8, ...). The numeric point is never shown.
+                    val fillPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0)
                     for (i in 1..10) {
-                        val isSegmentActive = i <= activeBars
-                        val segmentColor = when {
-                            !isSegmentActive -> CockpitTheme.colors.border
-                            i <= 1 -> dangerAccent
-                            i <= 3 -> warningAccent
+                        val segmentFill = (fillPoints - (i - 1)).coerceIn(0.0, 1.0).toFloat()
+                        val fillColor = when {
+                            fillPoints <= 1.0 -> dangerAccent
+                            fillPoints <= 3.0 -> warningAccent
                             else -> cyanAccent
                         }
-
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(2.5.dp))
-                                .background(segmentColor)
-                                .then(
-                                    if (!isSegmentActive) Modifier.border(0.5.dp, CockpitTheme.colors.border, RoundedCornerShape(2.5.dp))
-                                    else Modifier
+                                .background(CockpitTheme.colors.border)
+                        ) {
+                            if (segmentFill > 0f) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .fillMaxWidth(segmentFill)
+                                        .background(fillColor)
                                 )
-                        )
+                            }
+                        }
                     }
                 }
 
@@ -432,7 +440,7 @@ fun FuelTankCard(
                                 .padding(horizontal = 14.dp, vertical = 7.dp)
                         ) {
                             Text(
-                                text = "$tempSelectedBar / 10 BARS • ${tempSelectedBar * 10}%",
+                                text = "$selectedLabel / 10 BARS • ${(tempSelectedPoint * 10).toInt()}%",
                                 style = CockpitTheme.typography.labelMedium.copy(
                                     fontWeight = FontWeight.Black,
                                     fontFeatureSettings = "tnum"
@@ -443,7 +451,7 @@ fun FuelTankCard(
                     }
 
                     // Live Lit Fuel Volume Readout Chamber
-                    val estLiters = (tempSelectedBar * capacity / 10.0).coerceIn(0.0, capacity)
+                    val estLiters = (tempSelectedPoint * capacity / 10.0).coerceIn(0.0, capacity)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -508,7 +516,13 @@ fun FuelTankCard(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = rememberRipple(color = zoneColor),
                                         role = Role.Button,
-                                        onClick = { tempSelectedBar = bar }
+                                        onClick = {
+                                            tempSelectedPoint = when (tempSelectedPoint) {
+                                                bar.toDouble() -> bar - 0.5
+                                                bar - 0.5 -> if (bar == 1) 0.0 else bar.toDouble()
+                                                else -> bar.toDouble()
+                                            }
+                                        }
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -553,7 +567,7 @@ fun FuelTankCard(
                         Spacer(Modifier.width(12.dp))
                         Button(
                             onClick = {
-                                onCalibrateGauge(tempSelectedBar)
+                                onCalibrateGauge(tempSelectedPoint)
                                 showGaugeDialog = false
                             },
                             modifier = Modifier.height(52.dp),
@@ -561,7 +575,7 @@ fun FuelTankCard(
                             colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
                         ) {
                             Text(
-                                text = "Apply Gauge Bar ($tempSelectedBar/10)",
+                                text = "Apply Gauge Bar ($selectedLabel/10)",
                                 color = CockpitTheme.colors.onAccent,
                                 style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black)
                             )
@@ -580,7 +594,7 @@ fun FuelTankCard(
 fun PremiumFuelTankCard(
     fuelState: FuelState,
     onClick: () -> Unit,
-    onCalibrateGauge: (Int) -> Unit = {},
+    onCalibrateGauge: (Double) -> Unit = {},
     modifier: Modifier = Modifier
 ) = FuelTankCard(
     fuelState = fuelState,

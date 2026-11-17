@@ -152,6 +152,7 @@ object FullBackupManager {
             val fuelLedgerEvents = db.fuelLedgerDao().getAllEventsAsc()
             val vehicleTransitions = db.vehicleStateDao().getAllTransitions()
             val geofences = db.tripGeofenceDao().getAllGeofencesList()
+            val fuelModelState = db.fuelModelDao().get()
 
             fun encodePrefs(spName: String): Map<String, TypedPrefEntry> {
                 val sp = context.getSharedPreferences(spName, Context.MODE_PRIVATE)
@@ -228,6 +229,7 @@ object FullBackupManager {
             writeZipStringEntry("fuel_ledger_events.json", gson.toJson(fuelLedgerEvents))
             writeZipStringEntry("vehicle_state_transitions.json", gson.toJson(vehicleTransitions))
             writeZipStringEntry("trip_geofences.json", gson.toJson(geofences))
+            if (fuelModelState != null) writeZipStringEntry("fuel_model_state.json", gson.toJson(fuelModelState))
 
             // 3. SharedPreferences
             writeZipStringEntry("preferences.json", gson.toJson(prefsData))
@@ -351,6 +353,7 @@ object FullBackupManager {
             val fuelLedgerJson = readEntryString("fuel_ledger_events.json")
             val transitionsJson = readEntryString("vehicle_state_transitions.json")
             val geofencesJson = readEntryString("trip_geofences.json")
+            val fuelModelJson = readEntryString("fuel_model_state.json")
 
             val prefsJson = readEntryString("preferences.json")
             val mapManifestJson = readEntryString("maps/india_offline_manifest.json")
@@ -375,6 +378,8 @@ object FullBackupManager {
 
             val geofenceType = object : TypeToken<List<TripGeofenceEntity>>() {}.type
             val geofencesList: List<TripGeofenceEntity>? = if (!geofencesJson.isNullOrBlank()) gson.fromJson(geofencesJson, geofenceType) else null
+            val fuelModelEntity: com.antigravity.copilot.core.database.FuelModelStateEntity? =
+                if (!fuelModelJson.isNullOrBlank()) gson.fromJson(fuelModelJson, com.antigravity.copilot.core.database.FuelModelStateEntity::class.java) else null
 
             val db = AppDatabase.getInstance(context)
 
@@ -422,6 +427,11 @@ object FullBackupManager {
                 if (geofencesList != null) {
                     db.tripGeofenceDao().clearAllGeofences()
                     db.tripGeofenceDao().insertGeofences(geofencesList)
+                }
+
+                // Fuel model (anchor, gauge curve observations, mileage segments, unlogged entries)
+                if (fuelModelEntity != null && fuelModelEntity.json.isNotBlank()) {
+                    db.fuelModelDao().upsert(fuelModelEntity)
                 }
             }
 

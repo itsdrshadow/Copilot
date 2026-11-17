@@ -366,7 +366,7 @@ private fun MainAppScreen(
                     onLaunchNavi = { viewModel.launchNavigation() },
                     onLaunchSettings = { viewModel.setSettingsDialogOpen(true) },
                     onToggleFullMap = { viewModel.selectTab(1) },
-                    onCalibrateMidBar = { bar -> viewModel.calibrateMidBar(bar) }
+                    onCalibrateMidBar = { point -> viewModel.calibrateGaugePoint(point) }
                 )
                 1 -> LiveMapPanel(
                     latestPoint = latestPoint,
@@ -428,8 +428,9 @@ private fun MainAppScreen(
                 recordedLifetimeKm = recordedDistanceKm,
                 currentLocationPoint = latestPoint,
                 onDismiss = { viewModel.setFuelDialogOpen(false) },
-                onSaveRefuel = { liters, midBar, price, cost, odo, locationName, lat, lon ->
+                onSaveRefuel = { liters, midBar, price, cost, odo, locationName, lat, lon, fullTank ->
                     viewModel.recordRefuel(
+                        fullTank = fullTank,
                         litersAdded = liters,
                         midBarObserved = midBar,
                         pricePerLiter = price,

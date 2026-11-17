@@ -63,7 +63,7 @@ fun DashboardScreen(
     @Suppress("UNUSED_PARAMETER") onLaunchNavi: () -> Unit = {},
     onLaunchSettings: () -> Unit,
     onToggleFullMap: () -> Unit,
-    onCalibrateMidBar: (Int) -> Unit = {},
+    onCalibrateMidBar: (Double) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isSpeedTimedOut by remember { mutableStateOf(false) }
@@ -357,7 +357,7 @@ fun PremiumDashboardScreen(
     onLaunchNavi: () -> Unit = {},
     onLaunchSettings: () -> Unit,
     onToggleFullMap: () -> Unit,
-    onCalibrateMidBar: (Int) -> Unit = {},
+    onCalibrateMidBar: (Double) -> Unit = {},
     modifier: Modifier = Modifier
 ) = DashboardScreen(
     currentTrip = currentTrip,

@@ -428,9 +428,9 @@ class Tier1FeatureCoverageTest {
     fun test20_SchemaVersionValidationInBackupRestore_GatesAgainstMismatch() {
         val currentDbSchemaVersion = FullBackupManager.DATABASE_SCHEMA_VERSION // 8
 
-        val validManifest = FullBackupManager.BackupManifest(schemaVersion = 8)
+        val validManifest = FullBackupManager.BackupManifest(schemaVersion = FullBackupManager.DATABASE_SCHEMA_VERSION)
         val obsoleteManifest = FullBackupManager.BackupManifest(schemaVersion = 4)
-        val futureManifest = FullBackupManager.BackupManifest(schemaVersion = 9)
+        val futureManifest = FullBackupManager.BackupManifest(schemaVersion = FullBackupManager.DATABASE_SCHEMA_VERSION + 1)
 
         fun isCompatible(manifest: FullBackupManager.BackupManifest): Boolean {
             return manifest.schemaVersion == currentDbSchemaVersion

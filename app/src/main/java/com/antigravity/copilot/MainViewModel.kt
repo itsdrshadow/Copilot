@@ -128,6 +128,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun recordRefuel(
+        fullTank: Boolean,
         litersAdded: Double,
         midBarObserved: Int,
         pricePerLiter: Double,
@@ -139,6 +140,7 @@ class MainViewModel @Inject constructor(
         recordedLifetimeKm: Double
     ) {
         fuelRepository.recordRefuel(
+            fullTank = fullTank,
             litersAdded = litersAdded,
             midBarObserved = midBarObserved,
             pricePerLiter = pricePerLiter,
@@ -153,6 +155,11 @@ class MainViewModel @Inject constructor(
 
     fun calibrateMidBar(bar: Int) {
         fuelRepository.calibrateMidBar(bar)
+    }
+
+    /** Gauge calibration popup (half points allowed). */
+    fun calibrateGaugePoint(point: Double) {
+        fuelRepository.calibrateMidBar(point)
     }
 
     fun calibrateOdometer(odometerKm: Double, recordedLifetimeKm: Double) {
