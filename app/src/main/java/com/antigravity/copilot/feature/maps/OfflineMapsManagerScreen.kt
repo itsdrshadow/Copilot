@@ -61,9 +61,11 @@ fun OfflineMapsManagerContent(
     val installedPackages by OfflineMapManager.installedPackages.collectAsState()
     val currentGpsRegion by OfflineMapManager.currentGpsRegion.collectAsState()
     val storageInfo by OfflineMapManager.storageInfo.collectAsState()
+    val statusMessage by OfflineMapManager.statusMessage.collectAsState()
 
     var isImportingUsb by remember { mutableStateOf(false) }
     var usbImportProgressText by remember { mutableStateOf<String?>(null) }
+    var editingPackageForUrl by remember { mutableStateOf<OfflineMapManager.OfflinePackage?>(null) }
 
     LaunchedEffect(Unit) {
         OfflineMapManager.refreshPackageStatus(context)
@@ -170,6 +172,30 @@ fun OfflineMapsManagerContent(
                 )
             }
 
+            // Download Error Alert Card
+            AnimatedVisibility(
+                visible = downloadState == OfflineMapManager.DownloadState.ERROR
+            ) {
+                DownloadErrorCard(
+                    errorMessage = statusMessage,
+                    onDismiss = { OfflineMapManager.clearDownloadError() },
+                    onRetry = { activePkgId?.let { OfflineMapManager.startDownload(context, it) } },
+                    onImportUsb = {
+                        isImportingUsb = true
+                        usbImportProgressText = "Scanning USB drive & storage..."
+                        OfflineMapManager.importFromExternalStorage(
+                            context = context,
+                            onProgress = { msg, _ -> usbImportProgressText = msg },
+                            onComplete = { _, msg ->
+                                isImportingUsb = false
+                                usbImportProgressText = null
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                            }
+                        )
+                    }
+                )
+            }
+
             // USB / SD Card Import Progress
             if (isImportingUsb && usbImportProgressText != null) {
                 Surface(
@@ -211,9 +237,13 @@ fun OfflineMapsManagerContent(
                         pkg = pkg,
                         isCurrentGpsMatch = isCurrentGpsMatch,
                         isCurrentlyDownloading = downloadState == OfflineMapManager.DownloadState.DOWNLOADING && activePkgId == pkg.id,
-                        onDownload = { OfflineMapManager.startDownload(context, pkg.id) },
+                        onDownload = {
+                            Toast.makeText(context, "Starting download for ${pkg.title}", Toast.LENGTH_SHORT).show()
+                            OfflineMapManager.startDownload(context, pkg.id)
+                        },
                         onDelete = { OfflineMapManager.deletePackage(context, pkg.id) },
-                        onUpdate = { OfflineMapManager.startDownload(context, pkg.id) }
+                        onUpdate = { OfflineMapManager.startDownload(context, pkg.id) },
+                        onEditUrl = { editingPackageForUrl = pkg }
                     )
                 }
             }
@@ -288,6 +318,25 @@ fun OfflineMapsManagerContent(
                         fontSize = 13.sp
                     )
                 }
+            }
+
+            // Custom Download URL Editor Dialog
+            editingPackageForUrl?.let { pkg ->
+                CustomUrlDialog(
+                    pkg = pkg,
+                    initialUrl = OfflineMapManager.getEffectiveDownloadUrl(context, pkg),
+                    onSave = { newUrl ->
+                        OfflineMapManager.setCustomDownloadUrl(context, pkg.id, newUrl)
+                        editingPackageForUrl = null
+                        Toast.makeText(context, "Download URL updated for ${pkg.title}", Toast.LENGTH_SHORT).show()
+                    },
+                    onReset = {
+                        OfflineMapManager.setCustomDownloadUrl(context, pkg.id, null)
+                        editingPackageForUrl = null
+                        Toast.makeText(context, "Reset to default URL", Toast.LENGTH_SHORT).show()
+                    },
+                    onDismiss = { editingPackageForUrl = null }
+                )
             }
         }
     }
@@ -534,7 +583,8 @@ private fun PackageItemRow(
     isCurrentlyDownloading: Boolean,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
-    onUpdate: () -> Unit
+    onUpdate: () -> Unit,
+    onEditUrl: () -> Unit
 ) {
     Surface(
         color = if (isCurrentGpsMatch && !pkg.isInstalled) Color(0xFF122233) else Color(0xFF161C26),
@@ -604,8 +654,13 @@ private fun PackageItemRow(
                 }
 
                 Spacer(modifier = Modifier.height(2.dp))
+                val sizeText = if (pkg.estimatedSizeBytes >= 1024L * 1024L * 1024L) {
+                    "~${String.format("%.1f", pkg.estimatedSizeBytes.toDouble() / (1024.0 * 1024.0 * 1024.0))} GB"
+                } else {
+                    "${pkg.estimatedSizeBytes / 1024} KB"
+                }
                 Text(
-                    text = "${pkg.description} • ~${String.format("%.1f", pkg.estimatedSizeBytes.toDouble() / (1024.0 * 1024.0 * 1024.0))} GB",
+                    text = "${pkg.description} • $sizeText",
                     fontSize = 11.sp,
                     color = Color.White.copy(alpha = 0.5f)
                 )
@@ -614,8 +669,23 @@ private fun PackageItemRow(
             Spacer(modifier = Modifier.width(12.dp))
 
             // Large Touch Action Buttons
-            if (pkg.isInstalled) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                // Link / Custom URL button
+                IconButton(
+                    onClick = onEditUrl,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(Color(0xFF1E2836), RoundedCornerShape(8.dp))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = "Configure URL",
+                        tint = Cockpit_Cyan.copy(alpha = 0.7f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                if (pkg.isInstalled) {
                     OutlinedButton(
                         onClick = onUpdate,
                         modifier = Modifier.height(48.dp),
@@ -635,30 +705,199 @@ private fun PackageItemRow(
                         Spacer(modifier = Modifier.width(3.dp))
                         Text("DELETE", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
+                } else {
+                    Button(
+                        onClick = onDownload,
+                        enabled = !isCurrentlyDownloading,
+                        modifier = Modifier.height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isCurrentGpsMatch) Cockpit_Cyan else Color(0xFF1E2F42)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = null,
+                            tint = if (isCurrentGpsMatch) Color.Black else Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "DOWNLOAD",
+                            fontWeight = FontWeight.Bold,
+                            color = if (isCurrentGpsMatch) Color.Black else Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
-            } else {
-                Button(
-                    onClick = onDownload,
-                    enabled = !isCurrentlyDownloading,
-                    modifier = Modifier.height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isCurrentGpsMatch) Cockpit_Cyan else Color(0xFF1E2F42)
-                    )
-                ) {
+            }
+        }
+    }
+}
+
+@Composable
+private fun DownloadErrorCard(
+    errorMessage: String,
+    onDismiss: () -> Unit,
+    onRetry: () -> Unit,
+    onImportUsb: () -> Unit
+) {
+    Surface(
+        color = Color(0xFF281116),
+        shape = RoundedCornerShape(12.dp),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Cockpit_RedAlert),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Download,
+                        imageVector = Icons.Default.Warning,
                         contentDescription = null,
-                        tint = if (isCurrentGpsMatch) Color.Black else Color.White,
-                        modifier = Modifier.size(16.dp)
+                        tint = Cockpit_RedAlert,
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "DOWNLOAD",
+                        text = "DOWNLOAD FAILED / ERROR",
                         fontWeight = FontWeight.Bold,
-                        color = if (isCurrentGpsMatch) Color.Black else Color.White,
-                        fontSize = 12.sp
+                        fontSize = 14.sp,
+                        color = Cockpit_RedAlert
                     )
+                }
+
+                IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Dismiss",
+                        tint = Color.White.copy(alpha = 0.7f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = errorMessage,
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.height(42.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("RETRY", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                }
+
+                OutlinedButton(
+                    onClick = onImportUsb,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Cockpit_Cyan),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        brush = androidx.compose.ui.graphics.SolidColor(Cockpit_Cyan)
+                    ),
+                    modifier = Modifier.height(42.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Usb, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("IMPORT FROM USB / STORAGE", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomUrlDialog(
+    pkg: OfflineMapManager.OfflinePackage,
+    initialUrl: String,
+    onSave: (String) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var urlText by remember { mutableStateOf(initialUrl) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFF131B26),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan.copy(alpha = 0.5f)),
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = "Configure Server URL",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Set custom mirror or local server for ${pkg.title}:",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = urlText,
+                    onValueChange = { urlText = it },
+                    label = { Text("Download URL") },
+                    singleLine = false,
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedBorderColor = Cockpit_Cyan,
+                        unfocusedBorderColor = Color(0xFF2E3D52)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onReset) {
+                        Text("RESET DEFAULT", color = Cockpit_RedAlert, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = onDismiss) {
+                            Text("CANCEL", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+                        }
+                        Button(
+                            onClick = { onSave(urlText) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("SAVE", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
                 }
             }
         }

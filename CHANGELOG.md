@@ -9,7 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.41.0] - 2026-11-17
 
+### Fixed
+- **WorkManager HTTP 4xx Handling & Error Feedback**:
+  - Fixed infinite retry loop on HTTP 404/403 responses in `MapDownloadWorker` by immediately returning `Result.failure()` with actionable error messages.
+  - Added visible automotive `DownloadErrorCard` in `OfflineMapsManagerScreen` showing exact server responses with Retry, Dismiss, and USB Import shortcuts.
+  - Fixed background thread Toast crash (`Looper.prepare()`) during USB/Storage import by dispatching all progress and completion callbacks on `Dispatchers.Main`.
+  - Enhanced `importFromExternalStorage` with multi-tier directory scanning supporting `/sdcard/Download/`, USB OTG mounts, and SD cards.
+
 ### Added
+- **Demo Test Vector Map Pack & Custom URL Mirror Editor**:
+  - Added 550 KB `demo_sample_map` package for immediate offline map verification and testing.
+  - Added per-package custom server / mirror URL configuration dialog (`CustomUrlDialog`) stored in SharedPreferences.
 - **5-Macro-Region Modular Offline Vector Map Architecture with Real-Time GPS Auto-Mounting**:
   - Partitioned India into 5 optimized macro-regions (`india_north`, `india_west_central`, `india_south`, `india_east`, `india_northeast`) alongside the master All-India package.
   - Implemented real-time GPS spatial bounding-box resolution (`GeoBoundingBox`) via `currentGpsRegion` StateFlow in `OfflineMapManager`.

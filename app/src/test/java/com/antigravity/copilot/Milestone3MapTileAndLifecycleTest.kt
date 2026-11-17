@@ -38,7 +38,11 @@ class Milestone3MapTileAndLifecycleTest {
     @Test
     fun testFiveRegionalMacroZonesAndMasterPackages() {
         val packages = OfflineMapManager.AVAILABLE_PACKAGES
-        assertEquals(7, packages.size)
+        assertEquals(8, packages.size)
+
+        val demoPack = packages.find { it.id == "demo_sample_map" }
+        assertNotNull("Demo test map package must exist", demoPack)
+        assertTrue("Demo map pack must have valid fixture URL", demoPack?.downloadUrl?.contains("plain_1.mbtiles") == true)
 
         // 5 Regional Macro Zones
         val north = packages.find { it.id == "india_north" }

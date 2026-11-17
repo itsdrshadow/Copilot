@@ -87,8 +87,18 @@ class MapDownloadWorker(
                 Log.i(TAG, "HTTP 416 Range Not Satisfiable - checking if file complete")
             } else if (!response.isSuccessful && responseCode != 206) {
                 Log.e(TAG, "Download failed with HTTP $responseCode")
-                OfflineMapManager.notifyDownloadError(packageId, "HTTP $responseCode")
-                return@withContext Result.retry()
+                val errorDetail = when (responseCode) {
+                    404 -> "HTTP 404: File not found on server URL"
+                    403 -> "HTTP 403: Access forbidden by server"
+                    500, 502, 503, 504 -> "HTTP $responseCode: Server temporarily unavailable"
+                    else -> "HTTP $responseCode server error"
+                }
+                OfflineMapManager.notifyDownloadError(packageId, errorDetail)
+                if (responseCode in 400..499 && responseCode != 408 && responseCode != 429) {
+                    // Client errors (404/403) will never succeed on retry
+                    return@withContext Result.failure()
+                }
+                return@withContext if (runAttemptCount < 2) Result.retry() else Result.failure()
             }
 
             val body = response.body
@@ -180,8 +190,13 @@ class MapDownloadWorker(
         } catch (e: Exception) {
             Log.e(TAG, "Download exception for $packageId: ${e.message}", e)
             outputRaf?.close()
-            OfflineMapManager.notifyDownloadError(packageId, e.message ?: "Download error")
-            if (isStopped) Result.success() else Result.retry()
+            val friendlyError = when {
+                e is java.net.UnknownHostException -> "No internet connection (Cannot resolve server host)"
+                e is java.net.SocketTimeoutException -> "Download timed out (Slow or interrupted network)"
+                else -> e.message ?: "Download connection error"
+            }
+            OfflineMapManager.notifyDownloadError(packageId, friendlyError)
+            if (isStopped) Result.success() else if (runAttemptCount < 2) Result.retry() else Result.failure()
         }
     }
 

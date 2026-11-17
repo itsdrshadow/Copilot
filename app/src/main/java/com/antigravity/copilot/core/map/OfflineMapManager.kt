@@ -167,6 +167,17 @@ object OfflineMapManager {
             estimatedSizeBytes = 4500L * 1024L * 1024L, // ~4.5 GB
             downloadUrl = "https://graphhopper.com/public/maps/india-gh.zip",
             fileName = "india-gh.zip"
+        ),
+        OfflinePackage(
+            id = "demo_sample_map",
+            title = "Demo / Quick Test Vector Map",
+            description = "Lightweight test vector map pack (.mbtiles) for instant testing",
+            coveredStates = "OpenMapTiles Standard Test Geometry (550 KB)",
+            type = PackageType.VECTOR_MAP,
+            estimatedSizeBytes = 561152L, // 550 KB
+            downloadUrl = "https://raw.githubusercontent.com/mapbox/node-mbtiles/master/test/fixtures/plain_1.mbtiles",
+            fileName = "demo_sample.mbtiles",
+            boundingBox = null
         )
     )
 
@@ -300,8 +311,10 @@ object OfflineMapManager {
         val updated = AVAILABLE_PACKAGES.map { pkg ->
             if (pkg.type == PackageType.VECTOR_MAP) {
                 val target = File(getMapsDir(context), pkg.fileName)
-                val installed = target.exists() && target.length() > 0
-                pkg.copy(isInstalled = installed, installedSizeBytes = if (installed) target.length() else 0L)
+                val plain1 = File(getMapsDir(context), "plain_1.mbtiles")
+                val installed = (target.exists() && target.length() > 0) || (pkg.id == "demo_sample_map" && plain1.exists() && plain1.length() > 0)
+                val size = if (target.exists() && target.length() > 0) target.length() else if (plain1.exists()) plain1.length() else 0L
+                pkg.copy(isInstalled = installed, installedSizeBytes = size)
             } else {
                 val routingDir = File(getRoutingDir(context), "india")
                 val installed = OfflineRoutingEngine.hasRoutingGraph(context)
@@ -357,8 +370,9 @@ object OfflineMapManager {
             File(getDownloadsDir(context), pkg.fileName).absolutePath
         }
 
+        val effectiveUrl = getEffectiveDownloadUrl(context, pkg)
         val workData = workDataOf(
-            MapDownloadWorker.KEY_URL to pkg.downloadUrl,
+            MapDownloadWorker.KEY_URL to effectiveUrl,
             MapDownloadWorker.KEY_DEST_PATH to targetDest,
             MapDownloadWorker.KEY_PACKAGE_ID to pkg.id,
             MapDownloadWorker.KEY_PACKAGE_TYPE to if (pkg.type == PackageType.VECTOR_MAP) "MAP" else "ROUTING",
@@ -430,7 +444,7 @@ object OfflineMapManager {
     }
 
     /**
-     * Import map and routing packages from external USB drive or SD card.
+     * Import map and routing packages from external USB drive, SD card, or Download folder.
      */
     fun importFromExternalStorage(
         context: Context,
@@ -440,46 +454,73 @@ object OfflineMapManager {
         managerScope.launch {
             try {
                 var importedCount = 0
-                val searchDirs = listOf(
-                    File("/storage/"),
-                    File("/mnt/media_rw/"),
-                    Environment.getExternalStorageDirectory()
-                )
+                val searchDirs = mutableListOf<File>()
+                searchDirs.add(File("/storage/"))
+                searchDirs.add(File("/mnt/media_rw/"))
+                Environment.getExternalStorageDirectory()?.let { searchDirs.add(it) }
+                try {
+                    val dlDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    if (dlDir != null) searchDirs.add(dlDir)
+                } catch (_: Exception) {}
+
+                val candidateFiles = mutableListOf<File>()
+                fun scan(dir: File, depth: Int) {
+                    if (depth > 2 || !dir.exists() || !dir.canRead()) return
+                    val entries = dir.listFiles() ?: return
+                    for (entry in entries) {
+                        if (entry.isFile) {
+                            val lower = entry.name.lowercase()
+                            if (lower.endsWith(".mbtiles") || (lower.contains("routing") && lower.endsWith(".zip"))) {
+                                candidateFiles.add(entry)
+                            }
+                        } else if (entry.isDirectory && depth < 2) {
+                            scan(entry, depth + 1)
+                        }
+                    }
+                }
 
                 for (base in searchDirs) {
-                    if (!base.exists() || !base.canRead()) continue
-                    val files = base.listFiles() ?: continue
-                    for (file in files) {
-                        if (file.isDirectory) {
-                            val subFiles = file.listFiles() ?: continue
-                            for (sf in subFiles) {
-                                if (sf.name.endsWith(".mbtiles", ignoreCase = true)) {
-                                    onProgress("Copying ${sf.name}...", 0.5f)
-                                    val dest = File(getMapsDir(context), sf.name)
-                                    copyFileWithProgress(sf, dest)
-                                    importedCount++
-                                } else if (sf.name.contains("routing", ignoreCase = true) && sf.name.endsWith(".zip", ignoreCase = true)) {
-                                    onProgress("Extracting ${sf.name}...", 0.7f)
-                                    val destDir = File(getRoutingDir(context), "india")
-                                    destDir.mkdirs()
-                                    extractZipDirect(sf, destDir)
-                                    importedCount++
-                                }
+                    scan(base, 0)
+                }
+
+                val distinctCandidates = candidateFiles.distinctBy { it.absolutePath }
+                for (sf in distinctCandidates) {
+                    if (sf.name.endsWith(".mbtiles", ignoreCase = true)) {
+                        withContext(Dispatchers.Main) { onProgress("Importing ${sf.name}...", 0.5f) }
+                        val dest = File(getMapsDir(context), sf.name)
+                        copyFileWithProgress(sf, dest)
+                        importedCount++
+
+                        // If plain_1.mbtiles was downloaded from browser, also map it to demo_sample.mbtiles
+                        if (sf.name.equals("plain_1.mbtiles", ignoreCase = true)) {
+                            val demoDest = File(getMapsDir(context), "demo_sample.mbtiles")
+                            if (!demoDest.exists()) {
+                                copyFileWithProgress(sf, demoDest)
                             }
                         }
+                    } else if (sf.name.contains("routing", ignoreCase = true) && sf.name.endsWith(".zip", ignoreCase = true)) {
+                        withContext(Dispatchers.Main) { onProgress("Extracting ${sf.name}...", 0.7f) }
+                        val destDir = File(getRoutingDir(context), "india")
+                        destDir.mkdirs()
+                        extractZipDirect(sf, destDir)
+                        importedCount++
                     }
                 }
 
                 refreshPackageStatus(context)
                 refreshStorageInfo(context)
-                if (importedCount > 0) {
-                    onComplete(true, "Successfully imported $importedCount offline package(s)")
-                } else {
-                    onComplete(false, "No .mbtiles or routing archives found on USB/SD card.")
+                withContext(Dispatchers.Main) {
+                    if (importedCount > 0) {
+                        onComplete(true, "Successfully imported $importedCount offline package(s)")
+                    } else {
+                        onComplete(false, "No .mbtiles or routing archives found on USB/SD card.")
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "USB Import failed: ${e.message}", e)
-                onComplete(false, "Import error: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    onComplete(false, "Import error: ${e.message}")
+                }
             }
         }
     }
@@ -552,6 +593,32 @@ object OfflineMapManager {
     fun notifyDownloadError(packageId: String, error: String) {
         _downloadState.value = DownloadState.ERROR
         _statusMessage.value = "Download failed: $error"
+    }
+
+    fun clearDownloadError() {
+        _downloadState.value = DownloadState.IDLE
+        _activePackageId.value = null
+        _statusMessage.value = "Offline storage ready"
+    }
+
+    fun getCustomDownloadUrl(packageId: String): String? {
+        return prefs?.getString("custom_url_$packageId", null)
+    }
+
+    fun setCustomDownloadUrl(context: Context, packageId: String, url: String?) {
+        val p = prefs ?: context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).also { prefs = it }
+        p.edit().apply {
+            if (url.isNullOrBlank()) {
+                remove("custom_url_$packageId")
+            } else {
+                putString("custom_url_$packageId", url.trim())
+            }
+        }.apply()
+    }
+
+    fun getEffectiveDownloadUrl(context: Context, pkg: OfflinePackage): String {
+        val custom = getCustomDownloadUrl(pkg.id)
+        return if (!custom.isNullOrBlank()) custom else pkg.downloadUrl
     }
 
     fun checkForUpdates(context: Context) {
