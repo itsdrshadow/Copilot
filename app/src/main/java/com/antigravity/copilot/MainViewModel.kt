@@ -1,12 +1,14 @@
 package com.antigravity.copilot
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import androidx.lifecycle.viewModelScope
 import com.antigravity.copilot.core.database.FuelEventEntity
 import com.antigravity.copilot.core.database.FuelLedgerEntity
 import com.antigravity.copilot.core.database.TripEntity
-import com.antigravity.copilot.core.database.TripPointEntity
 import com.antigravity.copilot.core.fuel.FuelRepository
 import com.antigravity.copilot.core.fuel.intelligence.MissedRefuelDetectionResult
 import com.antigravity.copilot.core.location.SpeedLimitEngine
@@ -24,12 +26,14 @@ import kotlinx.coroutines.launch
  * MainViewModel - Centralized state holder for Automotive Cockpit & Launcher.
  * Follows modern Android Architecture guidelines (UDF: Unidirectional Data Flow).
  */
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val tripRepository = TripRepository.getInstance(application)
-    private val fuelRepository = FuelRepository.getInstance(application)
-    private val speedLimitEngine = SpeedLimitEngine.getInstance()
-    private val launcherManager = LauncherManager(application)
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
+    private val tripRepository: TripRepository,
+    private val fuelRepository: FuelRepository,
+    private val speedLimitEngine: SpeedLimitEngine,
+    private val launcherManager: LauncherManager
+) : ViewModel() {
 
     // Core Domain Streams
     val currentTrip: StateFlow<TripSummary> = tripRepository.currentTrip
@@ -39,7 +43,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val qualifyingTrips: Flow<List<TripEntity>> = tripRepository.qualifyingTrips
     val lastThreeTrips: Flow<List<TripEntity>> = tripRepository.lastThreeTrips
     val fuelState: StateFlow<FuelState> = fuelRepository.fuelState
-    val fuelHistory: Flow<List<FuelEventEntity>> = fuelRepository.fuelHistory
     val fuelLedgerHistory: Flow<List<FuelLedgerEntity>> = fuelRepository.fuelLedgerHistory
     val provisionalInferredEvents: Flow<List<FuelLedgerEntity>> = fuelRepository.provisionalInferredEvents
     val refuelPromptEvent: StateFlow<FuelRepository.RefuelPromptData?> = fuelRepository.refuelPromptEvent
@@ -156,18 +159,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         fuelRepository.calibrateOdometer(odometerKm, recordedLifetimeKm)
     }
 
-    fun updateFuelEvent(updatedEvent: FuelEventEntity) {
-        fuelRepository.updateFuelEvent(updatedEvent)
-    }
-
-    fun deleteFuelEvent(eventId: Long) {
-        fuelRepository.deleteFuelEvent(eventId)
-    }
-
-    fun deleteTrip(tripId: Long) {
-        tripRepository.deleteTrip(tripId)
-    }
-
     fun updateVehicleConfig(designCapacity: Double, defaultMileage: Double) {
         fuelRepository.updateVehicleConfig(designCapacity, defaultMileage)
     }
@@ -190,25 +181,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         fuelRepository.resolveInferredRefuel(inferredEventId, confirmedLiters, pricePerLiter, totalAmount, fuelStation)
     }
 
-    suspend fun getPointsForTrip(tripId: Long): List<TripPointEntity> {
-        return tripRepository.getPointsForTrip(tripId)
-    }
-
-    suspend fun getTransitionsForTrip(tripId: Long, startTime: Long = 0L, endTime: Long = 0L): List<com.antigravity.copilot.core.database.VehicleStateTransitionEntity> {
-        return tripRepository.getTransitionsForTrip(tripId, startTime, endTime)
-    }
-
-    suspend fun getFuelEventsForTrip(startTime: Long, endTime: Long): List<com.antigravity.copilot.core.database.FuelLedgerEntity> {
-        return fuelRepository.getFuelEventsBetween(startTime, endTime)
-    }
-
     fun updateVehicleConfiguration(tankCapacity: Double, expectedMileage: Double) {
         fuelRepository.updateVehicleConfiguration(tankCapacity, expectedMileage)
     }
 
     fun resetAllData() {
         viewModelScope.launch {
-            com.antigravity.copilot.core.persistence.FullFactoryResetManager.executeFactoryReset(getApplication())
+            com.antigravity.copilot.core.persistence.FullFactoryResetManager.executeFactoryReset(appContext)
         }
     }
 }

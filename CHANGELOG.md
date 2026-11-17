@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.42.0] - 2026-11-17
+
+### Added
+- **Hilt dependency injection** (`hilt-android 2.50`, `hilt-navigation-compose 1.1.0`): `@HiltAndroidApp CopilotApp`, `@AndroidEntryPoint MainActivity`.
+- `di/AppModule` bridges existing singletons (`AppDatabase`, `TripRepository`, `FuelRepository`, `SpeedLimitEngine`, `TripGeofenceManager`, `VehicleStateManager`) into the graph so services and UI share one instance; `di/RepositoryModule` binds domain interfaces.
+- **Domain layer**: `domain/repository/TripHistoryRepository`, `FuelLogRepository`; pure `domain/trip/YearlyTripAnalytics` (moved out of UI code).
+- **Data layer**: `data/repository/TripHistoryRepositoryImpl`, `FuelLogRepositoryImpl`.
+- **Feature ViewModels**: `TripHistoryViewModel` + `TripHistoryRoute`, `FuelHistoryViewModel` + `FuelHistoryRoute`.
+
+### Changed
+- `MainViewModel` is now a `@HiltViewModel` with constructor injection (no more `getInstance()`/`AndroidViewModel`); trip/fuel history methods moved to their feature ViewModels.
+
+---
+
 ## [1.41.2] - 2026-11-17
 
 ### Added

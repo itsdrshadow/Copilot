@@ -1,5 +1,8 @@
 package com.antigravity.copilot
 
+import dagger.hilt.android.AndroidEntryPoint
+import com.antigravity.copilot.feature.trips.TripHistoryRoute
+import com.antigravity.copilot.feature.fuel.FuelHistoryRoute
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
@@ -46,7 +49,6 @@ import com.antigravity.copilot.core.settings.AppSettingsManager
 import com.antigravity.copilot.core.location.DrivingTrackingService
 import com.antigravity.copilot.feature.dashboard.DashboardScreen
 import com.antigravity.copilot.feature.fuel.FuelEntryDialog
-import com.antigravity.copilot.feature.fuel.FuelHistoryScreen
 import com.antigravity.copilot.feature.fuel.RefuelStationPromptDialog
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -58,10 +60,10 @@ import com.antigravity.copilot.feature.maps.LiveMapPanel
 import com.antigravity.copilot.feature.settings.LauncherSettingsDialog
 import com.antigravity.copilot.feature.splash.SplashViewModel
 import com.antigravity.copilot.feature.splash.WelcomeSplashScreen
-import com.antigravity.copilot.feature.trips.TripHistoryScreen
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
@@ -252,7 +254,6 @@ private fun MainAppScreen(
     val qualifyingTrips by viewModel.qualifyingTrips.collectAsStateWithLifecycle(initialValue = emptyList())
     val lastThreeTrips by viewModel.lastThreeTrips.collectAsStateWithLifecycle(initialValue = emptyList())
     val fuelState by viewModel.fuelState.collectAsStateWithLifecycle()
-    val fuelHistory by viewModel.fuelHistory.collectAsStateWithLifecycle(initialValue = emptyList())
     val tripVisualState by viewModel.tripVisualState.collectAsStateWithLifecycle()
     val speedLimitInfo by viewModel.speedLimitInfo.collectAsStateWithLifecycle()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
@@ -353,21 +354,8 @@ private fun MainAppScreen(
                     isFullScreen = true,
                     onToggleFullScreen = { viewModel.selectTab(0) }
                 )
-                2 -> TripHistoryScreen(
-                    trips = qualifyingTrips,
-                    onLoadTripPoints = { tripId -> viewModel.getPointsForTrip(tripId) },
-                    onLoadTripTransitions = { tripId, start, end -> viewModel.getTransitionsForTrip(tripId, start, end) },
-                    onLoadTripFuelEvents = { start, end -> viewModel.getFuelEventsForTrip(start, end) },
-                    onBackToCockpit = { viewModel.selectTab(0) },
-                    onDeleteTrip = { tripId -> viewModel.deleteTrip(tripId) },
-                    fuelPrice = fuelState.fuelPricePerLiter
-                )
-                3 -> FuelHistoryScreen(
-                    fuelEvents = fuelHistory,
-                    onBackToCockpit = { viewModel.selectTab(0) },
-                    onEditEvent = { updatedEvent -> viewModel.updateFuelEvent(updatedEvent) },
-                    onDeleteEvent = { eventId -> viewModel.deleteFuelEvent(eventId) }
-                )
+                2 -> TripHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })
+                3 -> FuelHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })
             }
         }
 

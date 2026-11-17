@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.trips
 
+import com.antigravity.copilot.domain.trip.*
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes

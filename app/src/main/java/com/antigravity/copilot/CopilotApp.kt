@@ -1,6 +1,7 @@
 package com.antigravity.copilot
 
 import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
 import android.util.Log
 import com.antigravity.copilot.core.location.DrivingTrackingService
 import com.antigravity.copilot.core.map.OfflineMapManager
@@ -9,6 +10,7 @@ import com.antigravity.copilot.core.storage.StorageMigrationManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
+@HiltAndroidApp
 class CopilotApp : Application() {
     companion object {
         private const val TAG = "CopilotApp"

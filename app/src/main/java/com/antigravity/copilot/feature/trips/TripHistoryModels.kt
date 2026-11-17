@@ -69,38 +69,4 @@ internal sealed class TimelineEvent(
     )
 }
 
-internal data class MonthlyTripGroup(
-    val monthIndex: Int,
-    val monthName: String,
-    val year: Int,
-    val totalDistanceKm: Double,
-    val totalDurationMs: Long,
-    val trips: List<TripEntity>
-)
-
-internal data class YearlyTripAnalytics(
-    val year: Int,
-    val totalTrips: Int,
-    val totalDistanceKm: Double,
-    val totalDrivingDurationMs: Long,
-    val totalIdleDurationMs: Long,
-    val avgSpeedKmh: Double,
-    val maxSpeedKmh: Double,
-    val longestTripKm: Double,
-    val longestTripDurationMs: Long,
-    val estimatedFuelLiters: Double,
-    val estimatedFuelCost: Double,
-    val monthlyGroups: List<MonthlyTripGroup>,
-    val weeklyDistribution: IntArray, // 7 days (Mon=0..Sun=6)
-    val avgTripDistanceKm: Double = 0.0,
-    val avgTripDurationMs: Long = 0L,
-    val movingRatioPercent: Double = 0.0,
-    val weekdayPercent: Double = 0.0,
-    val weekendPercent: Double = 0.0,
-    val dayPercent: Double = 0.0,
-    val nightPercent: Double = 0.0,
-    val avgDriverScore: Int = 100,
-    val fuelCostPerKm: Double = 0.0
-)
-
 internal data class SpeedBand(val label: String, val percent: Int, val color: Color)
