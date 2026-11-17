@@ -21,9 +21,9 @@ import com.antigravity.copilot.core.trip.TripVisualState
 import com.antigravity.copilot.feature.maps.LiveMapPanel
 
 /**
- * Raahi Drive screen: map in the centre, ~448 dp panel on the right with the trip pill (trip
- * time) + clock, Speed card (dial, distance, odometer) and Fuel card. Trip stats rotate on the map (top-right); the music
- * player is one tap away (clock pill). Navigation lives in the left rail.
+ * Drive screen: map on the left half, a 2x2 card grid on the right half
+ * (Speedometer | Fuel on top, Current trip | Music + clock below). Navigation lives in the left
+ * rail. The map has no trip overlay; trip stats live in the Current trip card.
  */
 @Composable
 fun DashboardScreen(
@@ -62,13 +62,6 @@ fun DashboardScreen(
         fuelState.expectedMileageKmpl > 0.0 -> fuelState.expectedMileageKmpl
         else -> 18.0
     }
-    var showMedia by remember { mutableStateOf(false) }
-    // The map reads the trip through these, so trip updates recompose only the ticker chip.
-    val tripState = rememberUpdatedState(currentTrip)
-    val mileageState = rememberUpdatedState(fallbackMileage)
-    val tripTicker: @Composable () -> Unit = remember {
-        { TripMetricTicker(trip = { tripState.value }, baselineMileage = { mileageState.value }) }
-    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -76,11 +69,10 @@ fun DashboardScreen(
             .cockpitBackground()
     ) {
         val gap = if (isMapFullScreen) 0.dp else Raahi.Gap
-        // Wider right panel (map a little smaller); never more than ~42% of the screen.
-        val panelWidth = minOf(Raahi.RightPanelWidth, maxWidth * 0.42f).coerceAtLeast(minOf(340.dp, maxWidth * 0.5f))
-        // Short screens (small phones in landscape, or a large font scale): the panel scrolls
+        // Short screens (small phones in landscape, or a large font scale): the grid scrolls
         // instead of squeezing cards until text clips.
         val roomy = maxHeight >= 560.dp
+        val rowHeight = if (roomy) Modifier else Modifier.height(320.dp)
 
         Row(
             modifier = Modifier
@@ -97,9 +89,8 @@ fun DashboardScreen(
                 isFullScreen = isMapFullScreen,
                 isCovered = isCovered,
                 onToggleFullScreen = onToggleFullMap,
-                topOverlay = tripTicker,
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(if (isMapFullScreen) 1f else 0.5f)
                     .fillMaxHeight()
                     .clip(mapShape)
                     .then(if (isMapFullScreen) Modifier else Modifier.border(Raahi.Border, CockpitTheme.colors.border, mapShape))
@@ -108,39 +99,54 @@ fun DashboardScreen(
             if (!isMapFullScreen) {
                 Column(
                     modifier = Modifier
-                        .width(panelWidth)
+                        .weight(0.5f)
                         .fillMaxHeight()
                         .then(if (roomy) Modifier else Modifier.verticalScroll(rememberScrollState())),
                     verticalArrangement = Arrangement.spacedBy(Raahi.Gap)
                 ) {
-                    DriveTopRow(
-                        currentTrip = currentTrip,
-                        tripVisualState = tripVisualState,
-                        onOpenMedia = { showMedia = true }
-                    )
-                    LiveSpeedometer(
-                        latestPoint = latestPoint,
-                        speedLimitInfo = speedLimitInfo,
-                        // Fuel wraps its content; Speed takes the remaining height.
-                        modifier = if (roomy) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(300.dp),
-                        allTrips = allTrips,
-                        totalLifetimeKm = totalLifetimeKm,
-                        tripDistanceKm = if (currentTrip.isActive() || currentTrip.isCompleted()) currentTrip.distanceKm else null
-                    )
-                    FuelTankCard(
-                        fuelState = fuelState,
-                        onClick = onOpenFuelDialog,
-                        onCalibrateGauge = onCalibrateMidBar,
-                        onDismissNotice = onDismissFuelNotice,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    // Row 1: Speedometer + Fuel
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (roomy) Modifier.weight(1f) else rowHeight),
+                        horizontalArrangement = Arrangement.spacedBy(Raahi.Gap)
+                    ) {
+                        LiveSpeedometer(
+                            latestPoint = latestPoint,
+                            speedLimitInfo = speedLimitInfo,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            allTrips = allTrips,
+                            totalLifetimeKm = totalLifetimeKm,
+                            tripDistanceKm = if (currentTrip.isActive() || currentTrip.isCompleted()) currentTrip.distanceKm else null
+                        )
+                        FuelTankCard(
+                            fuelState = fuelState,
+                            onClick = onOpenFuelDialog,
+                            onCalibrateGauge = onCalibrateMidBar,
+                            onDismissNotice = onDismissFuelNotice,
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                        )
+                    }
+                    // Row 2: Current trip + Music player / clock
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (roomy) Modifier.weight(1f) else rowHeight),
+                        horizontalArrangement = Arrangement.spacedBy(Raahi.Gap)
+                    ) {
+                        CurrentTripCard(
+                            currentTrip = currentTrip,
+                            tripVisualState = tripVisualState,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            baselineMileage = fallbackMileage
+                        )
+                        SmartMusicClockCard(
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                        )
+                    }
                 }
             }
         }
-    }
-
-    if (showMedia) {
-        MediaDialog(onDismiss = { showMedia = false })
     }
 }
 

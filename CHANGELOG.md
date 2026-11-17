@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2026-11-18
+
+### Changed
+- **The Drive screen is back to the 4-card grid.** The map fills the left half. The right half is a 2x2 grid with Speedometer and Fuel on top, and Current trip and Music/Clock below. The theme, rail, fonts and 56dp touch targets from 2.4.0 are unchanged.
+- The clock card is titled "CLOCK", and its Media button stays on one line. The speedometer's Distance and Odometer readouts fit the narrower card.
+
+### Removed
+- **The "Last trip" / "Current trip" stat chip is gone from the map.** Trip stats are in the Current trip card.
+- The trip pill, clock pill and tap-to-expand route from the 2.4.0 right panel are removed from the Drive screen. The Music/Clock card replaces them.
+
 ## [2.4.0] - 2026-11-18
 
 ### Changed

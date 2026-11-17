@@ -88,8 +88,7 @@ fun FuelTankCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Header on top, readouts straight under it: the card wraps its content (no free space),
-        // so it can never clip on a 10.1" screen; the Speedometer card takes the rest.
+        // Header pinned to the top; the readouts sit at the bottom with free space between.
         Row(
             modifier = Modifier.fillMaxWidth().height(Raahi.MinTouch),
             verticalAlignment = Alignment.CenterVertically,
@@ -113,6 +112,7 @@ fun FuelTankCard(
             )
             AddFuelButton(onClick = onClick)
         }
+        Spacer(Modifier.weight(1f))
 
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(

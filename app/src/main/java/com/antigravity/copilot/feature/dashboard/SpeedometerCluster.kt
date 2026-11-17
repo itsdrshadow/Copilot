@@ -460,25 +460,25 @@ fun SpeedometerCluster(
                     label = "Distance",
                     value = tripDistanceKm?.let { NumberFormatUtils.formatDistance(it) } ?: "--",
                     unit = "km",
-                    valueStyle = CockpitTheme.typography.headlineLarge,
+                    valueStyle = CockpitTheme.typography.headlineMedium,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = Raahi.MinTouch)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
                 )
                 VDivider()
                 StatCell(
                     label = "Odometer",
                     value = String.format(Locale.US, "%,.0f", currentOdometerKm),
                     unit = "km",
-                    valueStyle = CockpitTheme.typography.headlineLarge,
+                    valueStyle = CockpitTheme.typography.headlineMedium,
                     horizontalAlignment = Alignment.End,
                     modifier = Modifier
                         .weight(1f)
                         .clip(CopilotShapes.R6)
                         .clickable(role = Role.Button, onClickLabel = "Calibrate odometer") { showOdometerDialog = true }
                         .heightIn(min = Raahi.MinTouch)
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
                 )
             }
         }

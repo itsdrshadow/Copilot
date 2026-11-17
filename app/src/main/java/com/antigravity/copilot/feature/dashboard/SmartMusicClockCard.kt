@@ -204,7 +204,7 @@ private fun ClockOnlyState(
                     )
                 }
                 Text(
-                    text = "DIGITAL CLOCK",
+                    text = "CLOCK",
                     style = CockpitTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Black,
                         letterSpacing = 1.1.sp
@@ -603,6 +603,8 @@ private fun AutomotiveMusicPill(
         )
         Text(
             text = label,
+            maxLines = 1,
+            softWrap = false,
             style = CockpitTheme.typography.labelSmall.copy(
                 fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
             ),
