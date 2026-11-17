@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.maps
 
+import com.antigravity.copilot.core.designsystem.components.liquidGlassPill
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.CockpitTheme
@@ -406,19 +407,15 @@ fun LiveMapPanel(
 }
 
 /**
- * Map HUD chrome. Apex keeps its original dark capsule + vivid cyan; Liquid Glass routes through
- * cockpitSurface for the translucent sheen + specular rim. Changing theme only recomposes these
+ * Map HUD chrome. Apex keeps its original dark capsule + vivid cyan; Liquid Glass uses
+ * liquidGlassPill: a backlit translucent capsule with a cyan inner glow when active. Changing theme only recomposes these
  * overlays — the AndroidView-hosted MapView is untouched.
  */
 @Composable
 private fun Modifier.mapHudSurface(isActive: Boolean, idleAlpha: Float): Modifier {
     val colors = CockpitTheme.colors
     return if (CockpitTheme.isGlass) {
-        cockpitSurface(
-            background = if (isActive) colors.accent else colors.card,
-            border = if (isActive) colors.accent else colors.border,
-            shape = CircleShape
-        )
+        liquidGlassPill(CircleShape, colors.accent, active = isActive)
     } else {
         this.clip(CircleShape)
             .background(if (isActive) Cockpit_Cyan else Color(0xFF141C28).copy(alpha = idleAlpha))
@@ -427,7 +424,7 @@ private fun Modifier.mapHudSurface(isActive: Boolean, idleAlpha: Float): Modifie
 }
 
 @Composable
-private fun mapHudOnActive(): Color = if (CockpitTheme.isGlass) CockpitTheme.colors.onAccent else Color.Black
+private fun mapHudOnActive(): Color = if (CockpitTheme.isGlass) Color.White else Color.Black
 
 @Composable
 private fun MapFloatingButton(

@@ -101,7 +101,15 @@ data class GlassStyle(
     /** Cheap RenderNode outline shadow under neutral glass surfaces. */
     val shadowElevationDp: Float,
     /** Soft ambient colour pools painted behind screens (see `Modifier.cockpitBackground`). */
-    val ambientGlows: List<AmbientGlow> = emptyList()
+    val ambientGlows: List<AmbientGlow> = emptyList(),
+    /** `Modifier.liquidGlass` body: translucent vertical sheen (white → clear → deep slate). */
+    val panelFill: Brush = sheen,
+    /** `Modifier.liquidGlass` 1.25dp refractive rim: glossy white-cyan top-left → faint bottom-right. */
+    val rim: Brush = specularBorder,
+    /** Inner 1dp highlight line along the top edge (centre colour of a horizontal fade). */
+    val topHighlight: Color = Color(0x59FFFFFF),
+    /** Emerald pool painted behind the Fuel card (`Modifier.glassAmbientOrb`). */
+    val fuelGlow: Color = Color.Transparent
 )
 
 /** One radial colour pool; [centerX]/[centerY]/[radius] are fractions of the screen size. */
@@ -109,38 +117,57 @@ data class AmbientGlow(val color: Color, val centerX: Float, val centerY: Float,
 
 // ==================== LIQUID GLASS PALETTE ====================
 
-val Glass_Base = Color(0xFF0B1220)
-val Glass_BaseIndigoTint = Color(0xFF151B45)
-val Glass_BaseTealTint = Color(0xFF07222C)
-val Glass_Surface = Color(0xD1111A2E) // #111A2E @ 82%
-val Glass_SurfaceElevated = Color(0xD91A2540) // lifted panel @ 85%
-val Glass_SurfaceLow = Color(0xC70E1628) // #0E1628 @ 78%
+val Glass_Base = Color(0xFF060B19) // deep midnight navy
+val Glass_BaseIndigoTint = Color(0xFF0B1230)
+val Glass_BaseTealTint = Color(0xFF05101C)
+// Neutral fills are genuinely translucent so the ambient orbs read through them.
+val Glass_Surface = Color(0x9E0F172A) // #0F172A @ 62%
+val Glass_SurfaceElevated = Color(0xB3172036) // lifted panel @ 70%
+val Glass_SurfaceLow = Color(0x8C0F172A) // #0F172A @ 55%
 // Opaque on purpose (≈18% white over Glass_Base): screens call border.copy(alpha = x),
 // which REPLACES alpha — a translucent token would turn 0.6 into a glaring 60% white rim.
-val Glass_Border = Color(0xFF353D4D)
+val Glass_Border = Color(0xFF333B4B)
 val Glass_Cyan = Color(0xFF38BDF8)
 val Glass_Indigo = Color(0xFF818CF8)
 val Glass_Emerald = Color(0xFF34D399)
 val Glass_Amber = Color(0xFFFBBF24)
 val Glass_Rose = Color(0xFFFB7185)
 val Glass_TextPrimary = Color(0xFFF5F8FF)
-val Glass_TextSecondary = Color(0xFFA9B6CC)
-val Glass_TextTertiary = Color(0xFF6B7A93)
+val Glass_TextSecondary = Color(0xFFB4C0D4)
+val Glass_TextTertiary = Color(0xFF7484A0)
 
-val LiquidGlassStyle = GlassStyle(
-    sheen = Brush.linearGradient(listOf(Color(0x26FFFFFF), Color(0x12FFFFFF), Color(0x0DFFFFFF))),
-    specularBorder = Brush.linearGradient(listOf(Color(0x55FFFFFF), Color(0x24FFFFFF), Color(0x14FFFFFF))),
-    shadowElevationDp = 3f,
-    ambientGlows = listOf(
-        AmbientGlow(Color(0x478B5CF6), centerX = 0.08f, centerY = 0.05f, radius = 0.75f), // violet, top-left
-        AmbientGlow(Color(0x3D38BDF8), centerX = 0.95f, centerY = 0.95f, radius = 0.80f), // cyan, bottom-right
-        AmbientGlow(Color(0x2634D399), centerX = 0.62f, centerY = 0.18f, radius = 0.45f)  // emerald haze
-    )
+// Ambient light sources (spec: cyan 22% top-left, indigo 20% bottom-right, emerald behind Fuel).
+val Glass_OrbCyan = Color(0xFF0EA5E9).copy(alpha = 0.22f)
+val Glass_OrbIndigo = Color(0xFF6366F1).copy(alpha = 0.20f)
+val Glass_OrbEmerald = Color(0xFF10B981).copy(alpha = 0.20f)
+
+/** Translucent vertical glass body shared by `liquidGlass` and the theme card brushes. */
+private val Glass_PanelFill = Brush.verticalGradient(
+    0.0f to Color.White.copy(alpha = 0.16f),
+    0.45f to Color.White.copy(alpha = 0.05f),
+    1.0f to Color(0xFF0F172A).copy(alpha = 0.55f)
 )
 
-// Pre-composited sheen-over-surface fill for screens that paint a single brush.
-private val Glass_CardFill = Brush.linearGradient(
-    listOf(Color(0xD9353C4D), Color(0xD1252D41), Color(0xC71D2538))
+/** Specular rim: glossy white / ice-cyan top-left → faint white bottom-right. */
+private val Glass_Rim = Brush.linearGradient(
+    0.0f to Color(0x99FFFFFF),
+    0.22f to Color(0x807DD3FC),
+    0.6f to Color(0x30FFFFFF),
+    1.0f to Color(0x18FFFFFF)
+)
+
+val LiquidGlassStyle = GlassStyle(
+    sheen = Brush.verticalGradient(listOf(Color(0x1FFFFFFF), Color(0x08FFFFFF), Color(0x00FFFFFF))),
+    specularBorder = Glass_Rim,
+    shadowElevationDp = 0f, // translucent fills would show an outline shadow through them
+    ambientGlows = listOf(
+        AmbientGlow(Glass_OrbCyan, centerX = 0.10f, centerY = 0.08f, radius = 0.85f),   // top-left
+        AmbientGlow(Glass_OrbIndigo, centerX = 0.92f, centerY = 0.95f, radius = 0.85f) // bottom-right
+    ),
+    panelFill = Glass_PanelFill,
+    rim = Glass_Rim,
+    topHighlight = Color(0x66FFFFFF),
+    fuelGlow = Glass_OrbEmerald
 )
 
 val LiquidGlassCockpitColors = CockpitColors(
@@ -156,9 +183,9 @@ val LiquidGlassCockpitColors = CockpitColors(
     onAccent = Glass_Base,
     warning = Glass_Amber,
     critical = Glass_Rose,
-    cardTopLightGradient = Glass_CardFill,
-    // Ambient indigo → slate → teal wash so translucent cards have something to sit on.
-    backgroundBrush = Brush.linearGradient(listOf(Glass_BaseIndigoTint, Glass_Base, Glass_BaseTealTint)),
+    cardTopLightGradient = Glass_PanelFill,
+    // Midnight navy with a faint indigo lift at the top; the orbs supply the colour.
+    backgroundBrush = Brush.verticalGradient(listOf(Glass_BaseIndigoTint, Glass_Base, Glass_BaseTealTint)),
     cardBorderGlow = Glass_Indigo,
     blueGlow = Glass_Indigo,
     greenEco = Glass_Emerald,
@@ -166,8 +193,8 @@ val LiquidGlassCockpitColors = CockpitColors(
     redAlert = Glass_Rose,
     dockBackground = Glass_SurfaceLow,
     dockBorder = Glass_Border,
-    dockBrush = Glass_CardFill,
-    dockActionBrush = Glass_CardFill,
+    dockBrush = Glass_PanelFill,
+    dockActionBrush = Glass_PanelFill,
     glass = LiquidGlassStyle
 )
 

@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.liquidGlass
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -107,14 +108,13 @@ fun SmartMusicClockCard(
 
     val isMusicActive = playbackState.isMusicActive
 
-    val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
     val cornerRadius = AutomotiveDesignTokens.Radii.card
     val cardPadding = 14.dp
 
     Box(
         modifier = modifier
-            .cockpitSurface(cardBg, cardBorder, RoundedCornerShape(cornerRadius), borderWidth = 1.25.dp)
+            .liquidGlass(cornerRadius, tintColor = CockpitTheme.colors.blueGlow, borderColor = if (CockpitTheme.isGlass) Color.Unspecified else cardBorder)
             .padding(cardPadding)
     ) {
         AnimatedContent(

@@ -39,9 +39,9 @@ class LiquidGlassThemeTest {
         assertNull(ApexCockpitColors.glass)
         assertNotNull(LiquidGlassCockpitColors.glass)
         assertEquals(Glass_Emerald, LiquidGlassCockpitColors.greenEco)
-        // Glass surfaces are translucent within the 78–85% alpha band.
+        // Glass surfaces are translucent within the 55–75% alpha band so ambient orbs read through.
         val a = LiquidGlassCockpitColors.card.alpha
-        assertTrue("card alpha $a", a in 0.78f..0.85f)
+        assertTrue("card alpha $a", a in 0.55f..0.75f)
     }
 
     @Test

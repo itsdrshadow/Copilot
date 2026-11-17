@@ -1,6 +1,10 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.glassAmbientOrb
+import com.antigravity.copilot.core.designsystem.components.liquidGlassPill
+import com.antigravity.copilot.core.designsystem.components.liquidGlass
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import androidx.compose.foundation.shape.CircleShape
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -43,7 +47,6 @@ fun FuelTankCard(
     onDismissNotice: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
     val cyanAccent = CockpitTheme.colors.accent
     val positiveAccent = CockpitTheme.colors.accent
@@ -81,13 +84,8 @@ fun FuelTankCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
-            .background(cardBg)
-            .border(
-                width = 1.25.dp,
-                color = cardBorder,
-                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
-            )
+            .glassAmbientOrb()
+            .liquidGlass(AutomotiveDesignTokens.Radii.card, borderColor = if (CockpitTheme.isGlass) Color.Unspecified else cardBorder)
             .padding(14.dp)
     ) {
         Column(
@@ -131,7 +129,8 @@ fun FuelTankCard(
                     )
                 }
 
-                // Dedicated Tactile "+ ADD FUEL" Button
+                // Dedicated Tactile "+ ADD FUEL" Button (glossy backlit capsule under Liquid Glass)
+                val addFuelInk = if (CockpitTheme.isGlass) Color.White else Color.Black
                 Box(
                     modifier = Modifier
                         .defaultMinSize(minWidth = 108.dp, minHeight = 44.dp)
@@ -139,8 +138,7 @@ fun FuelTankCard(
                             scaleX = addScale
                             scaleY = addScale
                         }
-                        .clip(CopilotShapes.R10)
-                        .background(cyanAccent)
+                        .liquidGlassPill(if (CockpitTheme.isGlass) CircleShape else CopilotShapes.R10, cyanAccent)
                         .clickable(
                             interactionSource = addButtonInteraction,
                             indication = rememberRipple(bounded = true, color = Color.White),
@@ -156,7 +154,7 @@ fun FuelTankCard(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
-                            tint = Color.Black,
+                            tint = addFuelInk,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
@@ -165,7 +163,7 @@ fun FuelTankCard(
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 0.5.sp
                             ),
-                            color = Color.Black
+                            color = addFuelInk
                         )
                     }
                 }

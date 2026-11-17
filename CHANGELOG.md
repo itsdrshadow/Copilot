@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.52.0] - 2026-11-17
+
+### Added
+- **`Modifier.liquidGlass(cornerRadius, tintColor)`** gives the Speedometer, Fuel Tank, Current Trip and Clock/Music cards and the dock container a translucent glass body. The fill is a vertical gradient from 16% white through 5% white to 55% slate, so ambient light shows through. Each panel has a 1.25dp rim that fades from glossy white-cyan at the top-left to faint white at the bottom-right, plus a 1dp highlight line just inside the top edge.
+- **`Modifier.liquidGlassPill`** draws the ADD FUEL button, the map floating buttons and the pressed dock tab as glossy capsules with a cyan inner glow.
+- **`Modifier.glassAmbientOrb`** paints an emerald light pool behind the Fuel Tank card.
+
+### Changed
+- Liquid Glass now uses a deep midnight-navy base (`#060B19`), with a cyan orb at 22% at the top-left and an indigo orb at 20% at the bottom-right. Neutral glass surfaces are 55–70% opaque instead of 78–85%.
+- Glass surfaces no longer cast an outline shadow, which used to show through the translucent fill. Everything is drawn with static brushes (no RenderEffect or blur), so it stays light on GLES 2.0.
+
 ## [1.51.0] - 2026-11-17
 
 ### Added

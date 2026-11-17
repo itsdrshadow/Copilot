@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -33,6 +34,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -118,7 +120,7 @@ fun Modifier.cockpitBackground(): Modifier {
 }
 
 private fun Modifier.glassShadow(enabled: Boolean, glass: GlassStyle, shape: Shape): Modifier =
-    if (enabled) shadow(glass.shadowElevationDp.dp, shape, clip = false) else this
+    if (enabled && glass.shadowElevationDp > 0f) shadow(glass.shadowElevationDp.dp, shape, clip = false) else this
 
 private fun Modifier.glassBorder(
     border: Color,
@@ -130,6 +132,141 @@ private fun Modifier.glassBorder(
     border(1.dp, glass.specularBorder, shape)
 } else {
     border(borderWidth, border, shape)
+}
+
+// ==================== LIQUID GLASS ====================
+
+/**
+ * Apple-style Liquid Glass panel for dashboard cards, docks and floating chrome.
+ *
+ * Under Liquid Glass: a translucent vertical sheen (white 16% → 5% → slate 55%) lets the ambient
+ * orbs behind the panel tint through it, a 1.25dp gradient rim catches "light" on the top-left,
+ * and a 1dp inner highlight line runs along the top edge. Optional [tintColor] washes the glass
+ * with a faint colour. Pure brush fills + one line: no blur, no RenderEffect, no offscreen layer,
+ * and brushes are rebuilt only when the size changes (drawWithCache) — safe on GLES 2.0.
+ *
+ * Under Apex it reproduces the classic opaque card exactly (gradient fill + 1.25dp [borderColor]).
+ */
+@Composable
+@ReadOnlyComposable
+fun Modifier.liquidGlass(
+    cornerRadius: Dp,
+    tintColor: Color = Color.Unspecified,
+    borderColor: Color = Color.Unspecified
+): Modifier = liquidGlass(RoundedCornerShape(cornerRadius), tintColor, borderColor)
+
+/** Shape overload of [liquidGlass] (e.g. CircleShape capsules). */
+@Composable
+@ReadOnlyComposable
+fun Modifier.liquidGlass(
+    shape: Shape,
+    tintColor: Color = Color.Unspecified,
+    borderColor: Color = Color.Unspecified
+): Modifier {
+    val colors = LocalCockpitColors.current
+    val glass = colors.glass ?: return this
+        .clip(shape)
+        .background(colors.cardTopLightGradient)
+        .border(1.25.dp, if (borderColor.isSpecified) borderColor else colors.border, shape)
+    return this
+        .clip(shape)
+        .then(if (tintColor.isSpecified) Modifier.background(tintColor.copy(alpha = 0.08f)) else Modifier)
+        .background(glass.panelFill)
+        .glassTopHighlight(glass.topHighlight)
+        .then(
+            if (borderColor.isSpecified) Modifier.border(1.25.dp, borderColor, shape)
+            else Modifier.border(1.25.dp, glass.rim, shape)
+        )
+}
+
+/**
+ * Luminous glass capsule for primary controls (ADD FUEL, map buttons, active dock tab).
+ *
+ * Glass: a [glowColor]-tinted translucent body, a soft inner glow rising from the bottom edge,
+ * a glossy upper half-sheen and a rim that fades from white into [glowColor]. When [active] is
+ * false the capsule is plain [liquidGlass] with a dimmer glow. Apex: solid [glowColor] when active,
+ * otherwise the standard card surface.
+ */
+@Composable
+@ReadOnlyComposable
+fun Modifier.liquidGlassPill(
+    shape: Shape,
+    glowColor: Color,
+    active: Boolean = true
+): Modifier {
+    val colors = LocalCockpitColors.current
+    val glass = colors.glass ?: return if (active) {
+        this.clip(shape).background(glowColor)
+    } else {
+        this.clip(shape).background(colors.card).border(1.dp, colors.border, shape)
+    }
+    val glowAlpha = if (active) 0.42f else 0.16f
+    val bodyAlpha = if (active) 0.22f else 0.0f
+    return this
+        .clip(shape)
+        .background(glass.panelFill)
+        .drawWithCache {
+            val body = Brush.verticalGradient(
+                listOf(glowColor.copy(alpha = bodyAlpha + 0.08f), glowColor.copy(alpha = bodyAlpha))
+            )
+            val innerGlow = Brush.radialGradient(
+                colors = listOf(glowColor.copy(alpha = glowAlpha), glowColor.copy(alpha = 0f)),
+                center = Offset(size.width / 2f, size.height * 1.05f),
+                radius = (maxOf(size.width, size.height) * 0.75f).coerceAtLeast(1f)
+            )
+            val gloss = Brush.verticalGradient(
+                0f to Color.White.copy(alpha = 0.24f),
+                0.5f to Color.White.copy(alpha = 0.04f),
+                0.5001f to Color.Transparent,
+                startY = 0f,
+                endY = size.height
+            )
+            onDrawBehind {
+                drawRect(body)
+                drawRect(innerGlow)
+                drawRect(gloss)
+            }
+        }
+        .glassTopHighlight(glass.topHighlight)
+        .border(
+            1.25.dp,
+            Brush.linearGradient(
+                listOf(Color(0xB3FFFFFF), glowColor.copy(alpha = if (active) 0.75f else 0.35f), Color(0x18FFFFFF))
+            ),
+            shape
+        )
+}
+
+/**
+ * Static coloured light pool painted behind a composable (deliberately unclipped, so it spills
+ * past the bounds and refracts through the translucent glass on top). No-op outside Liquid Glass
+ * or when [color] is transparent.
+ */
+@Composable
+@ReadOnlyComposable
+fun Modifier.glassAmbientOrb(color: Color = LocalCockpitColors.current.glass?.fuelGlow ?: Color.Transparent): Modifier {
+    if (LocalCockpitColors.current.glass == null || color.alpha == 0f) return this
+    return drawWithCache {
+        val r = (maxOf(size.width, size.height) * 0.9f).coerceAtLeast(1f)
+        val c = Offset(size.width / 2f, size.height / 2f)
+        val brush = Brush.radialGradient(listOf(color, color.copy(alpha = 0f)), center = c, radius = r)
+        onDrawBehind { drawCircle(brush, radius = r, center = c) }
+    }
+}
+
+/** 1dp inner highlight just inside the top rim; horizontal fade so it never hits the corners. */
+private fun Modifier.glassTopHighlight(color: Color): Modifier = drawWithCache {
+    val stroke = 1.dp.toPx()
+    val y = 1.25.dp.toPx() + stroke / 2f
+    val brush = Brush.horizontalGradient(
+        0f to Color.Transparent,
+        0.3f to color,
+        0.7f to color,
+        1f to Color.Transparent,
+        startX = 0f,
+        endX = size.width
+    )
+    onDrawBehind { drawLine(brush, Offset(0f, y), Offset(size.width, y), strokeWidth = stroke) }
 }
 
 /** Visual presets for [TintedBadge]. */
