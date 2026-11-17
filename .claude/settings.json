@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.gradle/**)",
+      "Read(./build/**)",
+      "Read(./**/build/**)",
+      "Read(./.idea/**)",
+      "Read(./.kotlin/**)",
+      "Read(./**/*.jar)",
+      "Read(./**/*.aar)",
+      "Read(./**/*.apk)",
+      "Read(./**/*.aab)",
+      "Read(./**/*.so)",
+      "Read(./**/*.dex)",
+      "Read(./gradle/wrapper/gradle-wrapper.jar)",
+      "Read(./local.properties)",
+      "Read(./**/*.lock)",
+      "Read(./**/*.log)"
+    ]
+  }
+}
