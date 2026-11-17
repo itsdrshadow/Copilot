@@ -35,6 +35,7 @@ import com.antigravity.copilot.core.designsystem.components.RaahiDialogHost
 import com.antigravity.copilot.core.designsystem.components.RaahiLabel
 import com.antigravity.copilot.core.designsystem.components.SegmentBar
 import com.antigravity.copilot.core.designsystem.components.StatCell
+import com.antigravity.copilot.core.designsystem.components.VDivider
 import com.antigravity.copilot.core.designsystem.components.fuelLevelColor
 import com.antigravity.copilot.core.designsystem.components.raahiCard
 import com.antigravity.copilot.core.model.FuelState
@@ -78,38 +79,14 @@ fun FuelTankCard(
     val tankPct = fuelState.fuelPercentage.toDouble().coerceIn(0.0, 100.0)
     var showGaugeDialog by remember { mutableStateOf(false) }
 
-    // Same card surface and header style as the Speedometer card, so the two read as a pair.
-    val cardShape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
+    // Same card anatomy as the other Drive cards (header, hero, gauge, stat strip).
     Column(
         modifier = modifier
-            .clip(cardShape)
-            .background(c.cardTopLightGradient)
-            .border(1.25.dp, c.border, cardShape)
-            .padding(14.dp),
+            .dashCardSurface()
+            .padding(DashCard.Padding),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Header pinned to the top; the readouts sit at the bottom with free space between.
-        Row(
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(30.dp)
-                    .clip(CopilotShapes.R6)
-                    .background(c.accent.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.accent, modifier = Modifier.size(18.dp))
-            }
-            Text(
-                text = "FUEL",
-                style = CockpitTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 1.1.sp),
-                color = c.textSecondary,
-                maxLines = 1,
-                modifier = Modifier.weight(1f)
-            )
+        DashCardHeader(icon = Icons.Outlined.LocalGasStation, title = "FUEL") {
             AddFuelButton(onClick = onClick)
         }
         Spacer(Modifier.weight(1f))
@@ -163,22 +140,23 @@ fun FuelTankCard(
             )
         }
 
-        Row(modifier = Modifier.fillMaxWidth()) {
+        DashStatStrip {
             val rangeKm = fuelState.remainingRangeKm
             StatCell(
                 label = "Est. range",
                 value = if (rangeKm > 0) "${rangeKm.toInt()}" else "--",
                 unit = "km",
-                valueStyle = CockpitTheme.typography.headlineLarge,
-                modifier = Modifier.weight(1f)
+                valueStyle = CockpitTheme.typography.headlineMedium,
+                modifier = Modifier.weight(1f).padding(horizontal = 10.dp)
             )
+            VDivider()
             val (kmpl, label) = displayMileage(fuelState)
             StatCell(
                 label = label,
                 value = String.format(Locale.US, "%.1f", kmpl),
                 unit = "km/L",
-                valueStyle = CockpitTheme.typography.headlineLarge,
-                modifier = Modifier.weight(1f),
+                valueStyle = CockpitTheme.typography.headlineMedium,
+                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
                 horizontalAlignment = Alignment.End
             )
         }
@@ -359,7 +337,7 @@ fun PremiumFuelTankCard(
 )
 
 /**
- * "+ Add Fuel" action for the card header: 44 dp tall, matching the header height. Solid accent so it is the one obvious action on the card.
+ * "+ Add Fuel" action for the card header: 40 dp tall inside the 44 dp header. Solid accent so it is the one obvious action on the card.
  */
 @Composable
 private fun AddFuelButton(onClick: () -> Unit) {
@@ -367,7 +345,7 @@ private fun AddFuelButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
-            .height(44.dp)
+            .height(40.dp)
             .clip(shape)
             .background(c.accent)
             .clickable(role = Role.Button, onClickLabel = "Add fuel", onClick = onClick)

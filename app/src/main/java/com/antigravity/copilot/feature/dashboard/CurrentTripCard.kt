@@ -313,61 +313,24 @@ fun CurrentTripCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
-            .background(cardBg)
-            .border(
-                width = 1.25.dp,
-                color = if (flashColor != Color.Transparent) flashColor else cardBorder,
-                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
-            )
-            .padding(14.dp)
+            .dashCardSurface(borderColor = if (flashColor != Color.Transparent) flashColor else cardBorder)
+            .padding(DashCard.Padding)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // ==================== 1. CARD HEADER ====================
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .pointerInput(isTripActive) {
-                        detectTapGestures(onLongPress = { showManualTripDialog = true })
-                    },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CopilotShapes.R6)
-                            .background(statusColor.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Timer,
-                            contentDescription = null,
-                            tint = statusColor,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Text(
-                        text = if (isTripCompleted) "LAST TRIP" else "CURRENT TRIP",
-                        style = CockpitTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.1.sp
-                        ),
-                        color = textSecondary,
-                        maxLines = 1
-                    )
+            // ==================== 1. CARD HEADER (long-press: manual start / end) ====================
+            DashCardHeader(
+                icon = Icons.Default.Timer,
+                title = if (isTripCompleted) "LAST TRIP" else "CURRENT TRIP",
+                accent = statusColor,
+                modifier = Modifier.pointerInput(isTripActive) {
+                    detectTapGestures(onLongPress = { showManualTripDialog = true })
                 }
-
-                // Automotive Status Icon Telltale (Active vs Completed vs Parked)
-                Box(
+            ) {
+                // Status telltale (live / completed / parked)
+                Row(
                     modifier = Modifier
                         .height(32.dp)
                         .defaultMinSize(minWidth = 32.dp)
@@ -375,28 +338,23 @@ fun CurrentTripCard(
                         .background(statusColor.copy(alpha = 0.14f))
                         .border(1.dp, statusColor.copy(alpha = 0.45f), CopilotShapes.R8)
                         .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.Center
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        if (isTripActive) {
-                            // Pulsing live green beacon dot
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(positiveAccent)
-                            )
-                        }
-                        Icon(
-                            imageVector = statusIcon,
-                            contentDescription = statusLabel,
-                            tint = statusColor,
-                            modifier = Modifier.size(16.dp)
+                    if (isTripActive) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(positiveAccent)
                         )
                     }
+                    Icon(
+                        imageVector = statusIcon,
+                        contentDescription = statusLabel,
+                        tint = statusColor,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
 
@@ -544,11 +502,11 @@ fun CurrentTripCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(DashCard.StripHeight)
                     .clip(CopilotShapes.R10)
                     .then(dockBackgroundModifier)
                     .border(dockBorderWidth, dockBorderColor, CopilotShapes.R10)
-                    .padding(horizontal = 12.dp, vertical = 2.dp),
+                    .padding(horizontal = 14.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

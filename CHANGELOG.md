@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2026-11-18
+
+### Changed
+- **All four Drive cards share one design.** Speedometer, Fuel, Trip and Clock use the same surface, padding, 44dp header (icon tile + bold title) and 60dp bottom stat strip, so the headers and strips line up across the grid.
+- **Clock card:** the Media icon and text are removed. Its bottom strip shows Date and Day in a larger font.
+- **Fuel card:** Est. range and km/L sit in the same stat strip as the Speedometer.
+- **Trips map:** playback only moves the vehicle puck along the route that is already drawn, and no second trail is drawn on top. Route lines and markers are sized in dp. The replay controls are sized for a car screen: a 56dp play button, a larger slider with elapsed/total time and a 48dp speed chip. The status HUD sits at the bottom-left so it never covers the route start.
+- **Fuel page:** it now uses the same layout as Trips. The header and yearly stats run across the top, with a large Add Fuel button next to the year. Tank and Fuel Gauge cards on the left use the Drive-card design, with a colour-coded rounded gauge. The records list is on the right.
+- **Log Fuel popup:** it is more colourful and the text is larger.
+  - Each field has its own colour: Amount is green, Price amber and Odometer cyan. Values are 32sp.
+  - The tank projection uses the red/yellow/green zone gauge with coloured stats.
+  - Keypad keys are larger, Clear is red and Next is cyan.
+  - The Save button is a large green button.
+- **"Filled to full" is now "Full tank fill".** It is a toggle card with a switch that turns green when on, and its subtitle explains why it matters.
+
 ## [2.6.0] - 2026-11-18
 
 ### Changed

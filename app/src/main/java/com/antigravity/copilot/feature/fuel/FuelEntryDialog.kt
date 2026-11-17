@@ -10,14 +10,24 @@ import androidx.compose.material.icons.automirrored.outlined.Backspace
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.LocalGasStation
 import androidx.compose.material.icons.outlined.Place
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Payments
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +39,7 @@ import com.antigravity.copilot.core.designsystem.components.RaahiButton
 import com.antigravity.copilot.core.designsystem.components.RaahiButtonKind
 import com.antigravity.copilot.core.designsystem.components.RaahiDialogHost
 import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
+import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.raahiCard
 import com.antigravity.copilot.core.model.FuelState
 import com.antigravity.copilot.core.model.TripPoint
@@ -169,7 +180,11 @@ fun FuelEntryDialog(
         }
     }
 
-    RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 1120.dp) {
+    val amountColor = c.positive
+    val rateColor = c.warning
+    val odoColor = c.accent
+
+    RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 1160.dp) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -177,26 +192,44 @@ fun FuelEntryDialog(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // ---- Header ----
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // ---- Header: amber pump tile, big title, station chip, close ----
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Box(
-                    modifier = Modifier.size(48.dp).clip(Raahi.InnerShape).background(c.cardElevated),
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(Raahi.InnerShape)
+                        .background(
+                            Brush.linearGradient(listOf(c.warning.copy(alpha = 0.35f), c.critical.copy(alpha = 0.20f)))
+                        )
+                        .border(1.dp, c.warning.copy(alpha = 0.55f), Raahi.InnerShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.warning, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.warning, modifier = Modifier.size(30.dp))
                 }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Log refuel", style = CockpitTheme.typography.titleLarge, color = c.textPrimary)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Icon(Icons.Outlined.Place, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(16.dp))
-                        val cleanAddress = locationNameText
-                            .replace(Regex("(?i)\\b(HN\\s*\\d+|PO)\\b[, ]*"), "")
-                            .trim()
-                            .ifBlank { "Fuel station" }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        "Log Fuel",
+                        style = CockpitTheme.typography.titleLarge.copy(fontSize = 26.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold),
+                        color = c.textPrimary
+                    )
+                    val cleanAddress = locationNameText
+                        .replace(Regex("(?i)\\b(HN\\s*\\d+|PO)\\b[, ]*"), "")
+                        .trim()
+                        .ifBlank { "Fuel station" }
+                    Row(
+                        modifier = Modifier
+                            .clip(Raahi.PillShape)
+                            .background(c.accent.copy(alpha = 0.12f))
+                            .border(1.dp, c.accent.copy(alpha = 0.35f), Raahi.PillShape)
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Outlined.Place, contentDescription = null, tint = c.accent, modifier = Modifier.size(18.dp))
                         Text(
                             cleanAddress,
-                            style = CockpitTheme.typography.bodyMedium,
-                            color = c.textSecondary,
+                            style = CockpitTheme.typography.labelLarge,
+                            color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -204,23 +237,25 @@ fun FuelEntryDialog(
                 }
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(Raahi.MinTouch)
                         .clip(Raahi.PillShape)
                         .background(c.cardElevated)
                         .border(1.dp, c.border, Raahi.PillShape)
                         .clickable(role = Role.Button, onClick = onDismiss),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.Close, contentDescription = "Close", tint = c.textPrimary, modifier = Modifier.size(22.dp))
+                    Icon(Icons.Outlined.Close, contentDescription = "Close", tint = c.textPrimary, modifier = Modifier.size(26.dp))
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(modifier = Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 // ---- Left: fields, projection, full tank, actions ----
-                Column(modifier = Modifier.weight(1.25f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(modifier = Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         FuelField(
-                            label = "Amount",
+                            label = "Amount paid",
+                            icon = Icons.Outlined.Payments,
+                            accent = amountColor,
                             prefix = "₹",
                             value = totalAmountText.ifEmpty { "0" },
                             active = activeField == ActiveFuelField.AMOUNT,
@@ -229,6 +264,8 @@ fun FuelEntryDialog(
                         )
                         FuelField(
                             label = if (isRememberedStationPrice) "Price / L (saved)" else "Price / L",
+                            icon = Icons.Outlined.Sell,
+                            accent = rateColor,
                             prefix = "₹",
                             value = pricePerLiterText.ifEmpty { "0" },
                             active = activeField == ActiveFuelField.RATE,
@@ -242,6 +279,8 @@ fun FuelEntryDialog(
                             odoTripDelta > 0.05 -> "Odometer  +${NumberFormatUtils.formatDistance(odoTripDelta, 1)} km"
                             else -> "Odometer"
                         },
+                        icon = Icons.Outlined.Speed,
+                        accent = odoColor,
                         suffix = "km",
                         value = refuelOdometerText.ifEmpty { "0" },
                         dimValue = !odometerEdited,
@@ -266,28 +305,13 @@ fun FuelEntryDialog(
                     )
 
                     // Full-to-full intervals are the most reliable mileage source.
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = Raahi.MinTouch)
-                            .clip(Raahi.InnerShape)
-                            .clickable(role = Role.Checkbox) { fullTankOverride = !isFullTank },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = isFullTank,
-                            onCheckedChange = { fullTankOverride = it },
-                            colors = CheckboxDefaults.colors(checkedColor = c.accent, checkmarkColor = c.onAccent, uncheckedColor = c.textSecondary)
-                        )
-                        Text(
-                            "Filled to full (nozzle clicked off)",
-                            style = CockpitTheme.typography.bodyLarge,
-                            color = c.textPrimary
-                        )
-                    }
+                    FullTankToggle(
+                        checked = isFullTank,
+                        onToggle = { fullTankOverride = !isFullTank }
+                    )
 
                     validationError?.let {
-                        Text(it, style = CockpitTheme.typography.bodyMedium, color = c.criticalText)
+                        Text(it, style = CockpitTheme.typography.bodyLarge, color = c.criticalText)
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -295,15 +319,14 @@ fun FuelEntryDialog(
                             text = "Cancel",
                             onClick = onDismiss,
                             kind = RaahiButtonKind.Secondary,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).height(60.dp)
                         )
-                        RaahiButton(
-                            text = "Save refuel",
+                        SaveFuelButton(
                             enabled = isFormValid,
                             onClick = {
                                 if (!isFormValid) {
                                     Toast.makeText(context, validationError ?: "Enter the refuel amount", Toast.LENGTH_SHORT).show()
-                                    return@RaahiButton
+                                    return@SaveFuelButton
                                 }
                                 onSaveRefuel(
                                     dispensedLiters,
@@ -324,54 +347,68 @@ fun FuelEntryDialog(
                     }
                 }
 
-                // ---- Right: keypad ----
+                // ---- Right: keypad (tinted by the field being typed) ----
+                val keyAccent = when (activeField) {
+                    ActiveFuelField.AMOUNT -> amountColor
+                    ActiveFuelField.RATE -> rateColor
+                    ActiveFuelField.ODOMETER -> odoColor
+                }
                 Column(
                     modifier = Modifier
-                        .weight(0.75f)
-                        .raahiCard(raised = true)
+                        .weight(0.7f)
+                        .fillMaxHeight()
+                        .clip(Raahi.CardShape)
+                        .background(c.cardElevated)
+                        .border(1.dp, keyAccent.copy(alpha = 0.45f), Raahi.CardShape)
                         .padding(10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val keyStyle = CockpitTheme.typography.headlineLarge
+                    val keyStyle = CockpitTheme.typography.displaySmall
                     listOf(
                         listOf("1", "2", "3"),
                         listOf("4", "5", "6"),
                         listOf("7", "8", "9"),
                         listOf(".", "0", "⌫")
                     ).forEach { row ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             row.forEach { k ->
                                 val isBack = k == "⌫"
                                 TactileKeypadButton(
                                     text = if (isBack) "" else k,
                                     icon = if (isBack) Icons.AutoMirrored.Outlined.Backspace else null,
-                                    accentColor = c.textPrimary,
+                                    accentColor = if (isBack) c.warning else c.textPrimary,
+                                    backgroundColor = if (isBack) c.warning.copy(alpha = 0.12f) else c.card,
+                                    idleBorderColor = if (isBack) c.warning.copy(alpha = 0.45f) else c.border,
                                     textStyle = keyStyle,
                                     shape = Raahi.InnerShape,
                                     showRipple = true,
-                                    modifier = Modifier.weight(1f).height(60.dp),
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
                                     onClick = { onKeypadPress(k) }
                                 )
                             }
                         }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.weight(0.85f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TactileKeypadButton(
                             text = "Clear",
-                            accentColor = c.textPrimary,
-                            textStyle = CockpitTheme.typography.labelLarge,
+                            accentColor = c.criticalText,
+                            backgroundColor = c.critical.copy(alpha = 0.12f),
+                            idleBorderColor = c.critical.copy(alpha = 0.45f),
+                            textStyle = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             shape = Raahi.InnerShape,
                             showRipple = true,
-                            modifier = Modifier.weight(1f).height(56.dp),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             onClick = { onKeypadPress("C") }
                         )
                         TactileKeypadButton(
                             text = "Next",
-                            accentColor = c.textPrimary,
-                            textStyle = CockpitTheme.typography.labelLarge,
+                            accentColor = c.accentText,
+                            backgroundColor = c.accent.copy(alpha = 0.14f),
+                            idleBorderColor = c.accent.copy(alpha = 0.5f),
+                            textStyle = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             shape = Raahi.InnerShape,
                             showRipple = true,
-                            modifier = Modifier.weight(1f).height(56.dp),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             onClick = { nextField() }
                         )
                     }
@@ -381,13 +418,15 @@ fun FuelEntryDialog(
     }
 }
 
-/** Keypad-driven field: label on top, value large; active = cyan border. */
+/** Keypad-driven field: coloured icon + label on top, big value; active = 2 dp border in its colour. */
 @Composable
 private fun FuelField(
     label: String,
     value: String,
     active: Boolean,
     onClick: () -> Unit,
+    accent: Color,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
     prefix: String? = null,
     suffix: String? = null,
@@ -395,37 +434,125 @@ private fun FuelField(
     error: Boolean = false
 ) {
     val c = CockpitTheme.colors
+    val edge = if (error) c.critical else accent
     Column(
         modifier = modifier
-            .heightIn(min = 64.dp)
+            .heightIn(min = 82.dp)
             .clip(Raahi.InnerShape)
-            .background(c.cardElevated)
-            .border(if (active) 2.dp else 1.dp, if (error) c.critical else if (active) c.accent else c.border, Raahi.InnerShape)
+            .background(edge.copy(alpha = if (active) 0.16f else 0.07f))
+            .border(if (active) 2.dp else 1.dp, if (active || error) edge else edge.copy(alpha = 0.35f), Raahi.InnerShape)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Text(
-            label,
-            style = CockpitTheme.typography.labelMedium,
-            color = if (error) c.criticalText else c.textSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(icon, contentDescription = null, tint = edge, modifier = Modifier.size(18.dp))
+            Text(
+                label,
+                style = CockpitTheme.typography.labelLarge,
+                color = if (error) c.criticalText else c.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         Row(verticalAlignment = Alignment.Bottom) {
             if (prefix != null) {
-                Text(prefix, style = CockpitTheme.typography.titleMedium, color = c.textSecondary, modifier = Modifier.padding(end = 4.dp, bottom = 2.dp))
+                Text(prefix, style = CockpitTheme.typography.headlineSmall, color = edge, modifier = Modifier.padding(end = 4.dp, bottom = 3.dp))
             }
             Text(
                 value,
-                style = CockpitTheme.typography.headlineLarge,
+                style = CockpitTheme.typography.displaySmall,
                 color = if (dimValue) c.textSecondary else c.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false)
             )
             if (suffix != null) {
-                Text(suffix, style = CockpitTheme.typography.titleMedium, color = c.textSecondary, modifier = Modifier.padding(start = 4.dp, bottom = 2.dp))
+                Text(suffix, style = CockpitTheme.typography.titleMedium, color = edge, modifier = Modifier.padding(start = 6.dp, bottom = 4.dp))
             }
         }
+    }
+}
+
+/**
+ * "Full tank fill" toggle (was "Filled to full"): a tappable card with a switch. Green when on.
+ * Full-to-full intervals give the most accurate mileage, so the subtitle says why it matters.
+ */
+@Composable
+private fun FullTankToggle(checked: Boolean, onToggle: () -> Unit) {
+    val c = CockpitTheme.colors
+    val tint = if (checked) c.positive else c.textSecondary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 68.dp)
+            .clip(Raahi.InnerShape)
+            .background(if (checked) c.positive.copy(alpha = 0.14f) else c.cardElevated)
+            .border(if (checked) 2.dp else 1.dp, if (checked) c.positive else c.border, Raahi.InnerShape)
+            .clickable(role = Role.Switch, onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clip(Raahi.InnerShape)
+                .background(tint.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                if (checked) Icons.Outlined.TaskAlt else Icons.Outlined.LocalGasStation,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "Full tank fill",
+                style = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = c.textPrimary
+            )
+            Text(
+                "Pump stopped on its own: best for accurate mileage",
+                style = CockpitTheme.typography.bodyMedium,
+                color = c.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = { onToggle() },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = c.positive,
+                uncheckedThumbColor = c.textSecondary,
+                uncheckedTrackColor = c.card,
+                uncheckedBorderColor = c.border
+            )
+        )
+    }
+}
+
+/** Big green "Save refuel" action. */
+@Composable
+private fun SaveFuelButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val c = CockpitTheme.colors
+    val bg = if (enabled) c.positive else c.cardElevated
+    val fg = if (enabled) contentColorOn(c.positive) else c.textDisabled
+    Row(
+        modifier = modifier
+            .height(60.dp)
+            .clip(Raahi.InnerShape)
+            .background(bg)
+            .border(1.dp, if (enabled) c.positive else c.border, Raahi.InnerShape)
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(Icons.Outlined.Check, contentDescription = null, tint = fg, modifier = Modifier.size(26.dp))
+        Text("Save refuel", style = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = fg)
     }
 }

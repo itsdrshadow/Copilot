@@ -226,14 +226,8 @@ fun SpeedometerCluster(
     // ==================== SPEEDOMETER CARD (240° dial) ====================
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
-            .background(cardBg)
-            .border(
-                width = 1.25.dp,
-                color = cardBorder,
-                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
-            )
-            .padding(14.dp)
+            .dashCardSurface()
+            .padding(DashCard.Padding)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -241,42 +235,7 @@ fun SpeedometerCluster(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ==================== 1. CLUSTER HEADER (limit sign lives on the map) ====================
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(30.dp)
-                            .clip(CopilotShapes.R6)
-                            .background(cyanAccent.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Speed,
-                            contentDescription = null,
-                            tint = cyanAccent,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Text(
-                        text = "SPEEDOMETER",
-                        style = CockpitTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.1.sp
-                        ),
-                        color = textSecondary,
-                        maxLines = 1
-                    )
-                }
-            }
+            DashCardHeader(icon = Icons.Default.Speed, title = "SPEEDOMETER")
 
             // ==================== 2. 240° STUDIO DIAL CANVAS ====================
             BoxWithConstraints(
@@ -448,14 +407,7 @@ fun SpeedometerCluster(
             }
 
             // ==================== 3. TRIP DISTANCE + ODOMETER (tap odometer to calibrate) ====================
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
-                    .cockpitSurface(CockpitTheme.colors.dockActionBrush, CockpitTheme.colors.border, CopilotShapes.R10)
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            DashStatStrip {
                 // Km driven since the odometer was last calibrated (tap Odometer to recalibrate).
                 StatCell(
                     label = "Since cal.",
@@ -464,8 +416,7 @@ fun SpeedometerCluster(
                     valueStyle = CockpitTheme.typography.headlineMedium,
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = Raahi.MinTouch)
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(horizontal = 10.dp)
                 )
                 VDivider()
                 StatCell(
@@ -478,8 +429,9 @@ fun SpeedometerCluster(
                         .weight(1f)
                         .clip(CopilotShapes.R6)
                         .clickable(role = Role.Button, onClickLabel = "Calibrate odometer") { showOdometerDialog = true }
-                        .heightIn(min = Raahi.MinTouch)
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .fillMaxHeight()
+                        .wrapContentHeight(Alignment.CenterVertically)
+                        .padding(horizontal = 10.dp)
                 )
             }
         }

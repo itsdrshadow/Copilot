@@ -39,6 +39,7 @@ import com.antigravity.copilot.feature.maps.rememberStaticMapSnapshot
  * Trip route over the offline basemap. The basemap is a one-shot MapLibre snapshot fitted to the
  * route bounds; the route, markers and playback puck are a Compose overlay projected with the
  * same Web-Mercator camera, so they line up exactly and playback redraws only the overlay.
+ * Playback only moves the vehicle puck along the already-drawn route (no second trail on top).
  */
 @Composable
 fun TripPlaybackMapView(
@@ -120,6 +121,8 @@ fun TripPlaybackMapView(
             snapshot?.let { drawSnapshot(it, cam) }
 
             fun pt(i: Int) = Offset(projected[2 * i], projected[2 * i + 1])
+            val casing = 6.dp.toPx()
+            val line = 4.dp.toPx()
 
             // Trail layer: whole route cyan. Overlap layer (~15 m grid): 1 pass blue, 2 orange, 3+ red.
             for ((path, passes) in runPaths) {
@@ -131,37 +134,28 @@ fun TripPlaybackMapView(
                     }
                     else -> trailColour.copy(alpha = 0.55f)
                 }
-                drawPath(path, StaticPalette.scrim, style = Stroke(width = 11f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                drawPath(path, colour, style = Stroke(width = 7f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(path, StaticPalette.scrim, style = Stroke(width = casing, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(path, colour, style = Stroke(width = line, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
 
-            // Played-back portion
             val safeIdx = currentIndex.coerceIn(0, points.lastIndex)
-            val active = Path()
-            var started = false
-            for (i in 0..safeIdx) {
-                if (projected[2 * i].isNaN()) continue
-                val p = pt(i)
-                if (!started) { active.moveTo(p.x, p.y); started = true } else active.lineTo(p.x, p.y)
-            }
-            if (started) {
-                drawPath(active, StaticPalette.Cyan, style = Stroke(width = 10f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
 
             // Start (green) / end (red) markers
-            drawCircle(StaticPalette.textPrimary, radius = 14f, center = pt(firstIdx))
-            drawCircle(StaticPalette.GreenA400, radius = 11f, center = pt(firstIdx))
-            drawCircle(StaticPalette.textPrimary, radius = 14f, center = pt(lastIdx))
-            drawCircle(StaticPalette.critical, radius = 11f, center = pt(lastIdx))
+            val ring = 8.dp.toPx()
+            val dot = 6.dp.toPx()
+            drawCircle(StaticPalette.textPrimary, radius = ring, center = pt(firstIdx))
+            drawCircle(StaticPalette.GreenA400, radius = dot, center = pt(firstIdx))
+            drawCircle(StaticPalette.textPrimary, radius = ring, center = pt(lastIdx))
+            drawCircle(StaticPalette.critical, radius = dot, center = pt(lastIdx))
 
             // Vehicle puck at the nearest valid fix at or before the playback index
             var puckIdx = safeIdx
             while (puckIdx > firstIdx && projected[2 * puckIdx].isNaN()) puckIdx--
             if (!projected[2 * puckIdx].isNaN()) {
                 val c = pt(puckIdx)
-                drawCircle(StaticPalette.Cyan.copy(alpha = 0.35f), radius = 24f, center = c)
-                drawCircle(StaticPalette.textPrimary, radius = 10f, center = c)
-                drawCircle(StaticPalette.Cyan, radius = 7f, center = c)
+                drawCircle(StaticPalette.Cyan.copy(alpha = 0.30f), radius = 16.dp.toPx(), center = c)
+                drawCircle(StaticPalette.textPrimary, radius = 8.dp.toPx(), center = c)
+                drawCircle(StaticPalette.Cyan, radius = 5.5.dp.toPx(), center = c)
             }
         }
     }

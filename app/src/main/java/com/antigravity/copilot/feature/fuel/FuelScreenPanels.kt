@@ -1,5 +1,21 @@
 package com.antigravity.copilot.feature.fuel
 
+import androidx.compose.material.icons.outlined.Tune
+
+import androidx.compose.material.icons.outlined.LocalGasStation
+
+import androidx.compose.foundation.layout.Column
+
+import com.antigravity.copilot.core.designsystem.components.VDivider
+
+import com.antigravity.copilot.feature.dashboard.dashCardSurface
+
+import com.antigravity.copilot.feature.dashboard.DashStatStrip
+
+import com.antigravity.copilot.feature.dashboard.DashCardHeader
+
+import com.antigravity.copilot.feature.dashboard.DashCard
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -33,8 +49,11 @@ fun FuelTankSummaryCard(
 ) {
     val c = CockpitTheme.colors
     val pct = fuelState.fuelPercentage.toDouble().coerceIn(0.0, 100.0)
-    RaahiCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        RaahiLabel("Tank")
+    Column(
+        modifier = modifier.dashCardSurface().padding(DashCard.Padding),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        DashCardHeader(icon = Icons.Outlined.LocalGasStation, title = "TANK")
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 NumberFormatUtils.formatFuelLiters(fuelState.remainingLiters, 1),
@@ -46,20 +65,40 @@ fun FuelTankSummaryCard(
             Spacer(Modifier.weight(1f))
             Text("${pct.toInt()}%", style = CockpitTheme.typography.headlineLarge, color = fuelLevelTextColor(pct))
         }
-        SegmentBar(fillPoints = fuelState.gaugeFillPoints, color = fuelLevelColor(pct), height = 14.dp)
-        Row {
-            StatCell("OEM capacity", "${fuelState.designCapacityLiters.toInt()}", unit = "L", modifier = Modifier.weight(1f))
+        SegmentBar(
+            fillPoints = fuelState.gaugeFillPoints,
+            color = fuelLevelColor(pct),
+            height = 18.dp,
+            segmentColor = { bar ->
+                when {
+                    bar <= 2 -> c.critical
+                    bar <= 4 -> c.warning
+                    else -> c.positive
+                }
+            },
+        )
+        DashStatStrip {
+            StatCell("OEM capacity", "${fuelState.designCapacityLiters.toInt()}", unit = "L", modifier = Modifier.weight(1f).padding(horizontal = 10.dp))
+            VDivider()
             val actual = fuelState.actualCapacityLiters.takeIf { it > 0.0 } ?: fuelState.maxCapacityLiters
-            StatCell("Actual (learned)", String.format(Locale.US, "%.1f", actual), unit = "L", modifier = Modifier.weight(1f))
+            StatCell(
+                "Learned",
+                String.format(Locale.US, "%.1f", actual),
+                unit = "L",
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+            )
         }
-        Row {
+        DashStatStrip {
             val (kmpl, label) = displayMileage(fuelState)
-            StatCell(label, String.format(Locale.US, "%.1f", kmpl), unit = "km/L", modifier = Modifier.weight(1f))
+            StatCell(label, String.format(Locale.US, "%.1f", kmpl), unit = "km/L", modifier = Modifier.weight(1f).padding(horizontal = 10.dp))
+            VDivider()
             StatCell(
                 "Est. range",
                 if (fuelState.remainingRangeKm > 0) "${fuelState.remainingRangeKm.toInt()}" else "--",
                 unit = "km",
-                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
             )
         }
         fuelState.fuelNotice?.let { InfoLine(it, title = "Fuel notice") }
@@ -77,15 +116,19 @@ fun GaugeStatusCard(
     modifier: Modifier = Modifier,
 ) {
     val c = CockpitTheme.colors
-    RaahiCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        RaahiLabel("Fuel gauge")
+    Column(
+        modifier = modifier.dashCardSurface().padding(DashCard.Padding),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        DashCardHeader(icon = Icons.Outlined.Tune, title = "FUEL GAUGE")
         val point = (Math.round(fuelState.gaugeFillPoints * 2.0) / 2.0).coerceIn(0.0, 10.0)
-        StatCell("App reads the gauge at", gaugePointLabel(point), unit = "of 10 bars")
+        StatCell("App reads the gauge at", gaugePointLabel(point), unit = "of 10 bars", valueStyle = CockpitTheme.typography.headlineLarge)
         Text(
             "To log a gauge reading, tap the fuel gauge on the Drive screen and pick the bars your car shows.",
             style = CockpitTheme.typography.bodyMedium,
             color = c.textSecondary,
         )
+        Spacer(Modifier.weight(1f))
         RaahiButton(
             text = "Go to Drive",
             icon = Icons.Outlined.DirectionsCar,

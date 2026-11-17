@@ -1,5 +1,9 @@
 package com.antigravity.copilot.feature.fuel
 
+import androidx.compose.material.icons.outlined.Add
+
+import com.antigravity.copilot.core.designsystem.components.RaahiButton
+
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.antigravity.copilot.core.designsystem.components.contentColorOn
@@ -146,173 +150,184 @@ fun FuelHistoryScreen(
             .cockpitBackground()
     ) {
             val isCompact = maxWidth < 750.dp
-            // Raahi Fuel screen: Tank + Gauge on the left, Add fuel + log on the right.
+            // Raahi Fuel screen (same frame as Trips): header + yearly strip across the top, then
+            // Tank + Gauge on the left and the month-grouped log on the right.
             val showSidePanel = fuelState != null && maxWidth >= 820.dp
 
-          Row(
+          Column(
               modifier = Modifier
                   .fillMaxSize()
                   .padding(if (isCompact) 12.dp else 16.dp),
-              horizontalArrangement = Arrangement.spacedBy(12.dp)
+              verticalArrangement = Arrangement.spacedBy(12.dp)
           ) {
-            if (showSidePanel && fuelState != null) {
-                Column(
-                    modifier = Modifier
-                        .width(340.dp)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    FuelTankSummaryCard(fuelState, modifier = Modifier.fillMaxWidth())
-                    GaugeStatusCard(fuelState, onOpenDrive = onBackToCockpit, modifier = Modifier.fillMaxWidth())
-                }
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                if (fuelState != null) {
-                    AddFuelCard(fuelState, onAddFuel = onAddFuel, modifier = Modifier.fillMaxWidth())
-                    if (!showSidePanel) FuelTankSummaryCard(fuelState, modifier = Modifier.fillMaxWidth())
-                }
-                // ==================== 1. COCKPIT HEADER ====================
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Back button + Title and Icon
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        IconButton(
-                            onClick = onBackToCockpit,
-                            modifier = Modifier
-                                .size(50.dp)
-                                .cockpitSurface(CockpitTheme.colors.border, Palette.Ink750, CopilotShapes.R12, borderWidth = 1.2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = CockpitTheme.colors.textPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.5f), CopilotShapes.R12, borderWidth = 1.2.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalGasStation,
-                                contentDescription = null,
-                                tint = Palette.Sky400,
-                                modifier = Modifier.size(26.dp)
-                            )
-                        }
+              // ==================== 1. COCKPIT HEADER ====================
+              Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.SpaceBetween,
+                  verticalAlignment = Alignment.CenterVertically
+              ) {
+                  // Back button + Title and Icon
+                  Row(
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(10.dp)
+                  ) {
+                      IconButton(
+                          onClick = onBackToCockpit,
+                          modifier = Modifier
+                              .size(50.dp)
+                              .cockpitSurface(CockpitTheme.colors.border, Palette.Ink750, CopilotShapes.R12, borderWidth = 1.2.dp)
+                      ) {
+                          Icon(
+                              imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                              contentDescription = "Back",
+                              tint = CockpitTheme.colors.textPrimary,
+                              modifier = Modifier.size(24.dp)
+                          )
+                      }
+                      Box(
+                          modifier = Modifier
+                              .size(48.dp)
+                              .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.5f), CopilotShapes.R12, borderWidth = 1.2.dp),
+                          contentAlignment = Alignment.Center
+                      ) {
+                          Icon(
+                              imageVector = Icons.Default.LocalGasStation,
+                              contentDescription = null,
+                              tint = Palette.Sky400,
+                              modifier = Modifier.size(26.dp)
+                          )
+                      }
 
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Fuel Records",
-                                    style = CockpitTheme.typography.headlineLarge.copy(
-                                        letterSpacing = (-0.5).sp
-                                    ),
-                                    color = CockpitTheme.colors.textPrimary
-                                )
+                      Column {
+                          Row(
+                              verticalAlignment = Alignment.CenterVertically,
+                              horizontalArrangement = Arrangement.spacedBy(8.dp)
+                          ) {
+                              Text(
+                                  text = "Fuel Records",
+                                  style = CockpitTheme.typography.headlineLarge.copy(
+                                      letterSpacing = (-0.5).sp
+                                  ),
+                                  color = CockpitTheme.colors.textPrimary
+                              )
 
-                                // Current Year Badge
-                                Box(
-                                    modifier = Modifier
-                                        .cockpitSurface(CockpitTheme.colors.border, Palette.Sky400.copy(alpha = 0.35f), CopilotShapes.R6)
-                                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                                ) {
-                                    Text(
-                                        text = "$selectedYear",
-                                        style = CockpitTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.Black,
-                                            fontFeatureSettings = "tnum"
-                                        ),
-                                        color = Palette.Sky400
-                                    )
-                                }
-                            }
+                              // Current Year Badge
+                              Box(
+                                  modifier = Modifier
+                                      .cockpitSurface(CockpitTheme.colors.border, Palette.Sky400.copy(alpha = 0.35f), CopilotShapes.R6)
+                                      .padding(horizontal = 8.dp, vertical = 3.dp)
+                              ) {
+                                  Text(
+                                      text = "$selectedYear",
+                                      style = CockpitTheme.typography.labelSmall.copy(
+                                          fontWeight = FontWeight.Black,
+                                          fontFeatureSettings = "tnum"
+                                      ),
+                                      color = Palette.Sky400
+                                  )
+                              }
+                          }
 
-                            Text(
-                                text = "HISTORICAL LOGS • TANK-TO-TANK TELEMETRY • ACCURATE CONSUMPTION",
-                                style = CockpitTheme.typography.labelSmall.copy(
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = Palette.Steel400
-                            )
-                        }
-                    }
+                          Text(
+                              text = buildString {
+                                  append("${yearlyAnalytics.totalRefills} refills in $selectedYear")
+                                  val price = fuelState?.fuelPricePerLiter ?: 0.0
+                                  if (price > 0) append("  •  Last price ₹${NumberFormatUtils.formatPrecision(price, 2)} / L")
+                              },
+                              style = CockpitTheme.typography.bodyMedium,
+                              color = CockpitTheme.colors.textSecondary
+                          )
+                      }
+                  }
 
-                    // Top Action Controls: Year Selector, Close Button
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Year Switcher Chips
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            items(availableYears) { year ->
-                                val isSelected = year == selectedYear
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CopilotShapes.R12)
-                                        .background(if (isSelected) Palette.Ink600 else Palette.Ink900)
-                                        .border(
-                                            width = 1.2.dp,
-                                            color = if (isSelected) Palette.Sky400 else Palette.Ink750,
-                                            shape = CopilotShapes.R12
-                                        )
-                                        .clickable { selectedYear = year }
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "$year",
-                                        style = CockpitTheme.typography.labelMedium.copy(
-                                            fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                            fontFeatureSettings = "tnum"
-                                        ),
-                                        color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
-                                    )
-                                }
-                            }
-                        }
+                  // Top Action Controls: Year Selector, Close Button
+                  Row(
+                      verticalAlignment = Alignment.CenterVertically,
+                      horizontalArrangement = Arrangement.spacedBy(10.dp)
+                  ) {
+                      // Year Switcher Chips
+                      LazyRow(
+                          horizontalArrangement = Arrangement.spacedBy(8.dp),
+                          verticalAlignment = Alignment.CenterVertically
+                      ) {
+                          items(availableYears) { year ->
+                              val isSelected = year == selectedYear
+                              Box(
+                                  modifier = Modifier
+                                      .clip(CopilotShapes.R12)
+                                      .background(if (isSelected) Palette.Ink600 else Palette.Ink900)
+                                      .border(
+                                          width = 1.2.dp,
+                                          color = if (isSelected) Palette.Sky400 else Palette.Ink750,
+                                          shape = CopilotShapes.R12
+                                      )
+                                      .clickable { selectedYear = year }
+                                      .padding(horizontal = 16.dp, vertical = 10.dp),
+                                  contentAlignment = Alignment.Center
+                              ) {
+                                  Text(
+                                      text = "$year",
+                                      style = CockpitTheme.typography.labelMedium.copy(
+                                          fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                                          fontFeatureSettings = "tnum"
+                                      ),
+                                      color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
+                                  )
+                              }
+                          }
+                      }
+                      if (fuelState != null) {
+                          RaahiButton(
+                              text = "Add Fuel",
+                              icon = Icons.Outlined.Add,
+                              onClick = onAddFuel,
+                              modifier = Modifier.height(52.dp)
+                          )
+                      }
+                  }
+              }
 
-                    }
-                }
 
-                // ==================== 2. YEARLY SUMMARY TILES ====================
-                YearlySummaryBanner(
-                    analytics = yearlyAnalytics,
-                    isCompact = isCompact
-                )
+              // ==================== 2. YEARLY SUMMARY TILES ====================
+              YearlySummaryBanner(
+                  analytics = yearlyAnalytics,
+                  isCompact = isCompact
+              )
 
-                // ==================== 3. CONTENT AREA ====================
-                // Chronological Month-Grouped Feed
-                FuelRecordsMonthGroupedFeed(
-                    analytics = yearlyAnalytics,
-                    expandedMonths = expandedMonths,
-                    onEditEvent = { eventToEdit = it },
-                    onDeleteEvent = { eventToDelete = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                )
-            }
+              Row(
+                  modifier = Modifier.fillMaxWidth().weight(1f),
+                  horizontalArrangement = Arrangement.spacedBy(12.dp)
+              ) {
+                  if (showSidePanel && fuelState != null) {
+                      Column(
+                          modifier = Modifier
+                              .width(340.dp)
+                              .fillMaxHeight(),
+                          verticalArrangement = Arrangement.spacedBy(12.dp)
+                      ) {
+                          FuelTankSummaryCard(fuelState, modifier = Modifier.fillMaxWidth())
+                          GaugeStatusCard(fuelState, onOpenDrive = onBackToCockpit, modifier = Modifier.fillMaxWidth().weight(1f))
+                      }
+                  }
+                  Column(
+                      modifier = Modifier.weight(1f).fillMaxHeight(),
+                      verticalArrangement = Arrangement.spacedBy(12.dp)
+                  ) {
+                      if (fuelState != null && !showSidePanel) {
+                          FuelTankSummaryCard(fuelState, modifier = Modifier.fillMaxWidth())
+                      }
+                      // ==================== 3. CONTENT AREA ====================
+                      FuelRecordsMonthGroupedFeed(
+                          analytics = yearlyAnalytics,
+                          expandedMonths = expandedMonths,
+                          onEditEvent = { eventToEdit = it },
+                          onDeleteEvent = { eventToDelete = it },
+                          modifier = Modifier
+                              .fillMaxWidth()
+                              .weight(1f)
+                      )
+                  }
+              }
           }
         }
 

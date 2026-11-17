@@ -51,7 +51,7 @@ internal fun RefuelProjectionCard(
     Column(
         modifier = modifier
             .raahiCard(raised = true)
-            .padding(Raahi.CardPaddingTight),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -80,29 +80,34 @@ internal fun RefuelProjectionCard(
             )
         }
 
-        // Display-only gauge: solid = fuel already in the tank, outlined tint = this refuel.
-        val levelColor = fuelLevelColor(tankPct)
+        // Display-only gauge in the home-card zone colours (red / yellow / green):
+        // solid = fuel already in the tank, lighter = this refuel.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(18.dp)
+                .height(20.dp)
                 .semantics { contentDescription = "Projected fuel gauge, ${tankPct.toInt()} percent" },
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             for (i in 1..10) {
                 val base = (currentPoints - (i - 1)).coerceIn(0.0, 1.0).toFloat()
                 val total = (afterPoints - (i - 1)).coerceIn(0.0, 1.0).toFloat()
-                val shape = RoundedCornerShape(3.dp)
+                val shape = RoundedCornerShape(6.dp)
+                val zone = when {
+                    i <= 2 -> c.critical
+                    i <= 4 -> c.warning
+                    else -> c.positive
+                }
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(shape)
-                        .background(c.card)
-                        .border(1.dp, c.border, shape)
+                        .background(zone.copy(alpha = 0.14f))
+                        .border(1.dp, zone.copy(alpha = 0.35f), shape)
                 ) {
-                    if (total > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(total).background(levelColor.copy(alpha = 0.45f)))
-                    if (base > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(base).background(levelColor))
+                    if (total > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(total).clip(shape).background(zone.copy(alpha = 0.5f)))
+                    if (base > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(base).clip(shape).background(zone))
                 }
             }
         }
@@ -124,27 +129,30 @@ internal fun RefuelProjectionCard(
                 "Fuel added",
                 NumberFormatUtils.formatFuelLiters(dispensedLiters, 2),
                 unit = "L",
-                valueStyle = CockpitTheme.typography.headlineSmall,
+                valueStyle = CockpitTheme.typography.headlineMedium,
+                valueColor = c.positiveText,
                 modifier = Modifier.weight(1f)
             )
             StatCell(
                 "Range gain",
                 "+${kotlin.math.round(addedRangeKm).toInt()}",
                 unit = "km",
-                valueStyle = CockpitTheme.typography.headlineSmall,
+                valueStyle = CockpitTheme.typography.headlineMedium,
+                valueColor = c.accentText,
                 modifier = Modifier.weight(1f)
             )
             StatCell(
                 "Cost / km",
                 "₹${NumberFormatUtils.formatPrecision(runningCostPerKm, 2)}",
-                valueStyle = CockpitTheme.typography.headlineSmall,
+                valueStyle = CockpitTheme.typography.headlineMedium,
+                valueColor = c.warningText,
                 modifier = Modifier.weight(1f)
             )
             StatCell(
                 "Total range",
                 "${kotlin.math.round(totalRangeKm).toInt()}",
                 unit = "km",
-                valueStyle = CockpitTheme.typography.headlineSmall,
+                valueStyle = CockpitTheme.typography.headlineMedium,
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.End
             )

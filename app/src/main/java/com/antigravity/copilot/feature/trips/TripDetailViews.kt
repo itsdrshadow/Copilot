@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.trips
 
+import com.antigravity.copilot.core.designsystem.components.Raahi
+
 import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
@@ -327,13 +329,13 @@ internal fun TripMapReplayView(
                 .padding(6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // 1. TOP: Map viewport - 100% visible, fully interactive, never blocked by controls
+            // 1. TOP: Map viewport (route drawn once; playback only moves the puck)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(CopilotShapes.R12)
-                    .border(1.dp, Palette.Ink750, CopilotShapes.R12)
+                    .clip(CopilotShapes.R16)
+                    .border(1.dp, CockpitTheme.colors.border, CopilotShapes.R16)
             ) {
                 TripPlaybackMapView(
                     points = points,
@@ -348,34 +350,34 @@ internal fun TripMapReplayView(
                     onSelect = { mapLayer = it },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                        .padding(10.dp)
                 )
 
-                // Top Status HUD
+                // Status HUD: playback state + live speed at the puck
+                val statusDotColor = when (playbackStatus) {
+                    PlaybackStatus.PLAYING -> CockpitTheme.colors.positive
+                    PlaybackStatus.PAUSED -> CockpitTheme.colors.warning
+                    PlaybackStatus.COMPLETED -> CockpitTheme.colors.accent
+                    PlaybackStatus.STOPPED -> CockpitTheme.colors.textSecondary
+                }
                 Row(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .clip(CopilotShapes.R8)
-                        .background(CockpitTheme.colors.cardElevated.copy(alpha = 0.92f))
-                        .border(1.dp, Palette.Ink750, CopilotShapes.R8)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .align(Alignment.BottomStart)
+                        .padding(10.dp)
+                        .height(44.dp)
+                        .clip(Raahi.PillShape)
+                        .background(CockpitTheme.colors.card.copy(alpha = 0.92f))
+                        .border(1.dp, CockpitTheme.colors.border, Raahi.PillShape)
+                        .padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val statusDotColor = when (playbackStatus) {
-                        PlaybackStatus.PLAYING -> Palette.Emerald500
-                        PlaybackStatus.PAUSED -> Palette.Amber500
-                        PlaybackStatus.COMPLETED -> Palette.Sky400
-                        PlaybackStatus.STOPPED -> Palette.Steel400
-                    }
                     Box(
                         modifier = Modifier
-                            .size(7.dp)
+                            .size(10.dp)
                             .clip(CircleShape)
                             .background(statusDotColor)
                     )
-
                     Text(
                         text = when (playbackStatus) {
                             PlaybackStatus.PLAYING -> "REPLAYING"
@@ -383,123 +385,103 @@ internal fun TripMapReplayView(
                             PlaybackStatus.COMPLETED -> "FINISHED"
                             PlaybackStatus.STOPPED -> "READY"
                         },
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
+                        style = CockpitTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                         color = statusDotColor
                     )
-
                     Text(
-                        text = "• ${NumberFormatUtils.formatSpeedWithUnit(currentPt?.speedKmh ?: 0f, 2)}",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
+                        text = NumberFormatUtils.formatSpeedWithUnit(currentPt?.speedKmh ?: 0f, 2),
+                        style = CockpitTheme.typography.headlineSmall,
                         color = CockpitTheme.colors.textPrimary
-                    )
-
-                    Text(
-                        text = "• ${formatDurationShort(elapsedMs)} / ${formatDurationShort(totalDurationMs)}",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Steel400
                     )
                 }
             }
 
-            // 2. BOTTOM: Dedicated Replay Controls Panel BELOW the Map
-            Box(
+            // 2. BOTTOM: replay controls, sized for a car screen (56 dp play button)
+            val playColor = if (playbackStatus == PlaybackStatus.PLAYING) CockpitTheme.colors.warning else CockpitTheme.colors.accent
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .cockpitSurface(CockpitTheme.colors.cardElevated, Palette.Ink750, CopilotShapes.R12)
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .height(76.dp)
+                    .clip(CopilotShapes.R16)
+                    .background(CockpitTheme.colors.card)
+                    .border(1.dp, CockpitTheme.colors.border, CopilotShapes.R16)
+                    .padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    // Scrubbing Slider
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(playColor)
+                        .clickable(
+                            role = androidx.compose.ui.semantics.Role.Button,
+                            onClickLabel = when (playbackStatus) {
+                                PlaybackStatus.PLAYING -> "Pause"
+                                PlaybackStatus.COMPLETED -> "Replay"
+                                else -> "Play"
+                            },
+                            onClick = if (playbackStatus == PlaybackStatus.COMPLETED) onRestart else onPlayPause
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = when (playbackStatus) {
+                            PlaybackStatus.PLAYING -> Icons.Default.Pause
+                            PlaybackStatus.COMPLETED -> Icons.Default.Replay
+                            else -> Icons.Default.PlayArrow
+                        },
+                        contentDescription = null,
+                        tint = contentColorOn(playColor),
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Slider(
                         value = currentIndex.toFloat(),
                         onValueChange = { onSeek(it.toInt()) },
                         valueRange = 0f..(points.size - 1).coerceAtLeast(1).toFloat(),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(18.dp),
+                            .height(32.dp),
                         colors = SliderDefaults.colors(
-                            thumbColor = Palette.Sky400,
-                            activeTrackColor = Palette.Sky600,
-                            inactiveTrackColor = Palette.Ink750
+                            thumbColor = CockpitTheme.colors.accent,
+                            activeTrackColor = CockpitTheme.colors.accent,
+                            inactiveTrackColor = CockpitTheme.colors.cardElevated
                         )
                     )
-
-                    // Control Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Left: Essential Play/Pause/Replay Button
-                        Button(
-                            onClick = if (playbackStatus == PlaybackStatus.COMPLETED) onRestart else onPlayPause,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (playbackStatus == PlaybackStatus.PLAYING) Palette.Amber500 else Palette.Sky600,
-                                contentColor = CockpitTheme.colors.textPrimary
-                            ),
-                            shape = CopilotShapes.R8,
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier.height(28.dp)
-                        ) {
-                            Icon(
-                                imageVector = when (playbackStatus) {
-                                    PlaybackStatus.PLAYING -> Icons.Default.Pause
-                                    PlaybackStatus.COMPLETED -> Icons.Default.Replay
-                                    else -> Icons.Default.PlayArrow
-                                },
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = when (playbackStatus) {
-                                    PlaybackStatus.PLAYING -> "Pause"
-                                    PlaybackStatus.PAUSED -> "Resume"
-                                    PlaybackStatus.COMPLETED -> "Replay"
-                                    PlaybackStatus.STOPPED -> "Play"
-                                },
-                                style = CockpitTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = contentColorOn(if (playbackStatus == PlaybackStatus.PLAYING) Palette.Amber500 else Palette.Sky600)
-                            )
-                        }
-
-                        // Right: Point Progress & Playback Speed
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "Pt ${currentIndex + 1}/${points.size}",
-                                style = CockpitTheme.typography.labelSmall.copy(
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                ),
-                                color = Palette.Steel400
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .cockpitSurface(CockpitTheme.colors.border, Palette.Sky400.copy(alpha = 0.4f), CopilotShapes.R8)
-                                    .clickable { onCycleSpeed() }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "${playbackSpeed.toInt()}x Speed",
-                                    style = CockpitTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                    ),
-                                    color = Palette.Sky400
-                                )
-                            }
-                        }
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
+                        Text(
+                            text = formatDurationShort(elapsedMs),
+                            style = CockpitTheme.typography.labelLarge,
+                            color = CockpitTheme.colors.textPrimary
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = formatDurationShort(totalDurationMs),
+                            style = CockpitTheme.typography.labelLarge,
+                            color = CockpitTheme.colors.textSecondary
+                        )
                     }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .widthIn(min = 64.dp)
+                        .clip(Raahi.PillShape)
+                        .background(CockpitTheme.colors.accent.copy(alpha = 0.14f))
+                        .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), Raahi.PillShape)
+                        .clickable(onClickLabel = "Change playback speed") { onCycleSpeed() }
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "${playbackSpeed.toInt()}x",
+                        style = CockpitTheme.typography.headlineSmall,
+                        color = CockpitTheme.colors.accentText
+                    )
                 }
             }
         }

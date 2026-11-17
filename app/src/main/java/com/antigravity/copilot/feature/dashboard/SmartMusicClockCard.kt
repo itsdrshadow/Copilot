@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.sp
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.AutomotiveTypographyTokens
 import com.antigravity.copilot.core.designsystem.CockpitTheme
+import com.antigravity.copilot.core.designsystem.components.StatCell
+import com.antigravity.copilot.core.designsystem.components.VDivider
 import com.antigravity.copilot.core.media.MediaPlaybackManager
 import com.antigravity.copilot.core.media.MediaPlaybackState
 import kotlinx.coroutines.delay
@@ -114,8 +116,8 @@ fun SmartMusicClockCard(
 
     Box(
         modifier = modifier
-            .cockpitSurface(cardBg, cardBorder, RoundedCornerShape(cornerRadius), borderWidth = 1.25.dp)
-            .padding(cardPadding)
+            .dashCardSurface()
+            .padding(DashCard.Padding)
     ) {
         AnimatedContent(
             targetState = isMusicActive,
@@ -129,19 +131,8 @@ fun SmartMusicClockCard(
                 ClockOnlyState(
                     timeString = timeString,
                     amPmString = amPmString,
-                    dateString = dateString,
-                    onOpenMusicApp = {
-                        if (!MediaPlaybackManager.isNotificationAccessGranted(context)) {
-                            android.widget.Toast.makeText(
-                                context,
-                                "Please allow Notification Access for Copilot to sync Bluetooth Music details",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                            MediaPlaybackManager.openNotificationAccessSettings(context)
-                        } else {
-                            MediaPlaybackManager.openActivePlayerApp(context)
-                        }
-                    }
+                    dayString = remember(calendar) { SimpleDateFormat("EEEE", Locale.getDefault()).format(calendar.time) },
+                    shortDateString = remember(calendar) { SimpleDateFormat("d MMM", Locale.getDefault()).format(calendar.time) }
                 )
             } else {
                 // ==================== STATE B: MUSIC PLAYING (CLOCK + MUSIC PLAYER) ====================
@@ -169,65 +160,18 @@ fun SmartMusicClockCard(
 private fun ClockOnlyState(
     timeString: String,
     amPmString: String,
-    dateString: String,
-    onOpenMusicApp: () -> Unit
+    dayString: String,
+    shortDateString: String
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Header: System Time Label & Quick Launch Music Pill
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CopilotShapes.R6)
-                        .background(CockpitTheme.colors.accent.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Text(
-                    text = "CLOCK",
-                    style = CockpitTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.1.sp
-                    ),
-                    color = CockpitTheme.colors.textSecondary,
-                    maxLines = 1
-                )
-            }
+        DashCardHeader(icon = Icons.Default.Schedule, title = "CLOCK")
 
-            // Permanent Automotive Media Pill
-            AutomotiveMusicPill(
-                isPlaying = false,
-                label = "Media",
-                onClick = onOpenMusicApp
-            )
-        }
-
-        // Center Hero Clock: Big Tabular Time
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.weight(1f)
-        ) {
+        // Center hero clock
+        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.Center
@@ -237,7 +181,6 @@ private fun ClockOnlyState(
                     style = AutomotiveTypographyTokens.NumericClock,
                     color = CockpitTheme.colors.textPrimary
                 )
-
                 if (amPmString.isNotBlank()) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
@@ -248,40 +191,23 @@ private fun ClockOnlyState(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Date & Day Subtitle
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CalendarToday,
-                    contentDescription = null,
-                    tint = CockpitTheme.colors.textSecondary,
-                    modifier = Modifier.size(14.dp)
-                )
-                Text(
-                    text = dateString,
-                    style = CockpitTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = CockpitTheme.colors.textSecondary
-                )
-            }
         }
 
-        // Subtle Bottom Ambient Info
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Vehicle Time • Synchronized",
-                style = CockpitTheme.typography.labelSmall,
-                color = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
+        // Same bottom strip as the other cards: Date | Day
+        DashStatStrip {
+            StatCell(
+                label = "Date",
+                value = shortDateString,
+                valueStyle = CockpitTheme.typography.headlineMedium,
+                modifier = Modifier.weight(1f).padding(horizontal = 10.dp)
+            )
+            VDivider()
+            StatCell(
+                label = "Day",
+                value = dayString,
+                valueStyle = CockpitTheme.typography.headlineMedium,
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.weight(1.4f).padding(horizontal = 10.dp)
             )
         }
     }
@@ -319,59 +245,10 @@ private fun ClockWithMusicState(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         // ==================== 1. PERMANENT CLOCK BANNER ====================
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Permanent Clock
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CopilotShapes.R6)
-                        .background(CockpitTheme.colors.accent.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = CockpitTheme.colors.accent,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                Column {
-                    Text(
-                        text = if (amPmString.isNotBlank()) "$timeString $amPmString" else timeString,
-                        style = CockpitTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum"
-                        ),
-                        color = CockpitTheme.colors.textPrimary
-                    )
-                    Text(
-                        text = dateString,
-                        style = CockpitTheme.typography.bodySmall.copy(
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = CockpitTheme.colors.textSecondary
-                    )
-                }
-            }
-
-            // Permanent Music Pill
-            AutomotiveMusicPill(
-                isPlaying = playbackState.isPlaying,
-                label = if (playbackState.isPlaying) "Playing" else "Paused",
-                onClick = onOpenMusicApp
-            )
-        }
+        DashCardHeader(
+            icon = Icons.Default.Schedule,
+            title = if (amPmString.isNotBlank()) "$timeString $amPmString" else timeString
+        )
 
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -570,45 +447,3 @@ fun formatDuration(ms: Long): String {
     }
 }
 
-/**
- * Automotive Equalizer Media Pill:
- * Permanently displayed in the top header.
- * Uses high-tech GraphicEq audio frequency spectrum bars icon.
- */
-@Composable
-private fun AutomotiveMusicPill(
-    isPlaying: Boolean,
-    label: String,
-    onClick: () -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    Row(
-        modifier = Modifier
-            .defaultMinSize(minHeight = 44.dp)
-            .cockpitSurface(CockpitTheme.colors.cardElevated, if (isPlaying) CockpitTheme.colors.accent.copy(alpha = 0.6f) else CockpitTheme.colors.border, CopilotShapes.R12, borderWidth = 1.2.dp)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),
-                onClick = onClick
-            )
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Icon(
-            imageVector = Icons.Default.GraphicEq,
-            contentDescription = "Media Player",
-            tint = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = label,
-            maxLines = 1,
-            softWrap = false,
-            style = CockpitTheme.typography.labelSmall.copy(
-                fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Medium
-            ),
-            color = if (isPlaying) CockpitTheme.colors.accent else CockpitTheme.colors.textSecondary
-        )
-    }
-}
