@@ -2,7 +2,7 @@
 
 UI-only rework, plus the fuel/odometer/map fixes requested during the work (listed separately
 below). App name, icon, applicationId, database schema, tracking, geofence and map logic are
-unchanged. All 383 unit tests pass.
+unchanged. All 384 unit tests pass.
 
 ## Screens and toolkit
 The UI is 100 % **Jetpack Compose**; there are no XML layouts (only `MainActivity` + `RecoveryActivity`).
