@@ -314,6 +314,7 @@ fun TripHistoryScreen(
                             isPointsLoading = isPointsLoading,
                             selectedTab = selectedDetailTab,
                             onSelectTab = { selectedDetailTab = it },
+                            fuelPricePerLiter = fuelPrice,
                             playbackStatus = playbackStatus,
                             currentIndex = currentIndex,
                             playbackSpeed = playbackSpeedMultiplier,
@@ -410,6 +411,7 @@ fun TripHistoryScreen(
                             isPointsLoading = isPointsLoading,
                             selectedTab = selectedDetailTab,
                             onSelectTab = { selectedDetailTab = it },
+                            fuelPricePerLiter = fuelPrice,
                             playbackStatus = playbackStatus,
                             currentIndex = currentIndex,
                             playbackSpeed = playbackSpeedMultiplier,
@@ -837,8 +839,9 @@ internal fun TripCardItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
+                    val title = tripTitle(trip, LocalTripViaNames.current[trip.id])
                     Text(
-                        text = "${trip.startLocationName.ifBlank { "Trip Origin" }} ➔ ${trip.endLocationName.ifBlank { "Destination" }}",
+                        text = title.title,
                         style = CockpitTheme.typography.titleSmall,
                         color = CockpitTheme.colors.textPrimary,
                         maxLines = 1,

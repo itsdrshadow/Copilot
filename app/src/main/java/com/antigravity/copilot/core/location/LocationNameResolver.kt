@@ -281,6 +281,15 @@ object LocationNameResolver {
      */
     suspend fun resolveTripLocation(context: Context, lat: Double, lon: Double): String {
         if (lat == 0.0 && lon == 0.0) return "Raigarh"
+        return resolvePlaceNameOrNull(context, lat, lon) ?: "Pusaur, Raigarh"
+    }
+
+    /**
+     * Same lookup as [resolveTripLocation] (Geocoder, then Nominatim when online) but returns null
+     * when nothing resolves, so callers can retry later instead of storing a placeholder.
+     */
+    suspend fun resolvePlaceNameOrNull(context: Context, lat: Double, lon: Double): String? {
+        if (lat == 0.0 && lon == 0.0) return null
         return withContext(Dispatchers.IO) {
             // 1. Try Android Geocoder first
             try {
@@ -330,7 +339,7 @@ object LocationNameResolver {
                 }
             }
 
-            "Pusaur, Raigarh"
+            null
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.antigravity.copilot.feature.trips
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -15,6 +16,8 @@ fun TripHistoryRoute(
 ) {
     val trips by viewModel.trips.collectAsStateWithLifecycle()
     val fuelPrice by viewModel.fuelPricePerLiter.collectAsStateWithLifecycle()
+    val viaNames by viewModel.viaNames.collectAsStateWithLifecycle()
+    CompositionLocalProvider(LocalTripViaNames provides viaNames) {
     TripHistoryScreen(
         trips = trips,
         onLoadTripPoints = viewModel::loadPoints,
@@ -25,4 +28,5 @@ fun TripHistoryRoute(
         fuelPrice = fuelPrice,
         modifier = modifier
     )
+    }
 }

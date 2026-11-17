@@ -49,10 +49,6 @@ fun TripSummaryPanel(
     modifier: Modifier = Modifier,
 ) {
     val c = CockpitTheme.colors
-    val date =
-        remember(trip.startTime) {
-            SimpleDateFormat("EEE, d MMM yyyy · h:mm a", Locale.getDefault()).format(Date(trip.startTime))
-        }
     val totalMs =
         if (trip.endTime > trip.startTime) {
             trip.endTime - trip.startTime
@@ -64,18 +60,6 @@ fun TripSummaryPanel(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column {
-            Text(date, style = CockpitTheme.typography.titleMedium, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            val from = trip.startLocationName.ifBlank { "Start" }
-            val to = trip.endLocationName.ifBlank { "End" }
-            Text(
-                "$from → $to",
-                style = CockpitTheme.typography.bodyMedium,
-                color = c.textSecondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
 
         @Composable
         fun pair(

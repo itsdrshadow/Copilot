@@ -49,6 +49,7 @@ internal fun TripDetailContainer(
     isPointsLoading: Boolean,
     selectedTab: TripDetailTab,
     onSelectTab: (TripDetailTab) -> Unit,
+    fuelPricePerLiter: Double = 96.5,
     playbackStatus: PlaybackStatus,
     currentIndex: Int,
     playbackSpeed: Float,
@@ -94,107 +95,14 @@ internal fun TripDetailContainer(
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Top Detail Tabs Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .zIndex(10f)
-                        .background(CockpitTheme.colors.border)
-                        .padding(horizontal = 12.dp, vertical = 7.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Tab Selector
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TripDetailTab.values().forEach { tab ->
-                            val isSelected = tab == selectedTab
-                            Row(
-                                modifier = Modifier
-                                    .height(46.dp)
-                                    .clip(CopilotShapes.R10)
-                                    .background(if (isSelected) Palette.Ink600 else CockpitTheme.colors.border)
-                                    .border(
-                                        width = 1.25.dp,
-                                        color = if (isSelected) Palette.Sky400 else Palette.Ink750,
-                                        shape = CopilotShapes.R10
-                                    )
-                                    .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = rememberRipple(color = Palette.Sky400),
-                                        role = Role.Button,
-                                        onClick = { onSelectTab(tab) }
-                                    )
-                                    .padding(horizontal = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-                            ) {
-                                Icon(
-                                    imageVector = tab.icon,
-                                    contentDescription = null,
-                                    tint = if (isSelected) Palette.Sky400 else Palette.Steel400,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = tab.title,
-                                    style = CockpitTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                        platformStyle = PlatformTextStyle(includeFontPadding = false)
-                                    ),
-                                    color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
-                                )
-                            }
-                        }
-                    }
-
-                    // Trip quick badge + Delete Option (badges ellipsize; delete always fits)
-                    Row(
-                        modifier = Modifier.weight(1f).padding(start = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End)
-                    ) {
-                        Text(
-                            maxLines = 1,
-                            softWrap = false,
-                            text = "${NumberFormatUtils.formatDistanceWithUnit(trip.distanceMeters / 1000.0, 2)} • ${NumberFormatUtils.formatSpeedWithUnit(trip.avgSpeedKmh, 2)}",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                            ),
-                            color = Palette.Sky400
-                        )
-                        // Trip-history extras: moving/idle split, brake/accel counts, best mileage.
-                        Text(
-                            modifier = Modifier.weight(1f, fill = false),
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            text = "move ${trip.drivingDurationMs / 60000}m • idle ${trip.stationaryDurationMs / 60000}m • " +
-                                "${trip.brakeCount} brakes • ${trip.accelCount} accels" +
-                                (if (trip.bestMileageKmpl > 0.0) " • best ${NumberFormatUtils.formatPrecision(trip.bestMileageKmpl, 1)} km/L" else ""),
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                            ),
-                            color = Palette.Steel400
-                        )
-
-                        if (onDeleteTrip != null) {
-                            IconButton(
-                                onClick = { showDeleteConfirm = true },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .cockpitSurface(CockpitTheme.colors.critical.copy(alpha = 0.14f), Palette.Red500.copy(alpha = 0.5f), CircleShape, borderWidth = 1.2.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.DeleteOutline,
-                                    contentDescription = "Delete Trip",
-                                    tint = Palette.Red500,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
-                    }
-                }
+                // Header: trip name + time on the left, view dropdown + delete on the right.
+                // One slim row instead of a tab strip, so the views get the height.
+                TripDetailHeader(
+                    trip = trip,
+                    selectedTab = selectedTab,
+                    onSelectTab = onSelectTab,
+                    onDelete = if (onDeleteTrip != null) ({ showDeleteConfirm = true }) else null
+                )
 
                 if (showDeleteConfirm) {
                     AlertDialog(
@@ -270,11 +178,176 @@ internal fun TripDetailContainer(
                             TripChartsView(
                                 trip = trip,
                                 points = points,
+                                fuelPricePerLiter = fuelPricePerLiter,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** Trip name, time range and kind, plus the view selector dropdown and delete. */
+@Composable
+private fun TripDetailHeader(
+    trip: TripEntity,
+    selectedTab: TripDetailTab,
+    onSelectTab: (TripDetailTab) -> Unit,
+    onDelete: (() -> Unit)?
+) {
+    val c = CockpitTheme.colors
+    val title = tripTitle(trip, LocalTripViaNames.current[trip.id])
+    val timeText = remember(trip.startTime, trip.endTime) {
+        val day = SimpleDateFormat("EEE, d MMM", Locale.getDefault()).format(Date(trip.startTime))
+        val t = SimpleDateFormat("h:mm a", Locale.getDefault())
+        val end = if (trip.endTime > trip.startTime) " – ${t.format(Date(trip.endTime))}" else ""
+        "$day · ${t.format(Date(trip.startTime))}$end"
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .zIndex(10f)
+            .background(c.card)
+            .padding(start = 16.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CopilotShapes.R10)
+                .background(c.accent.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (title.isRoundTrip) Icons.Default.Sync else Icons.Default.Route,
+                contentDescription = null,
+                tint = c.accent,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = title.title,
+                    style = CockpitTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = c.textPrimary,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                title.tag?.let {
+                    Text(
+                        text = it,
+                        style = CockpitTheme.typography.labelMedium,
+                        color = c.accentText,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .clip(Raahi.PillShape)
+                            .background(c.accent.copy(alpha = 0.12f))
+                            .border(1.dp, c.accent.copy(alpha = 0.4f), Raahi.PillShape)
+                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            Text(
+                text = timeText,
+                style = CockpitTheme.typography.bodyMedium,
+                color = c.textSecondary,
+                maxLines = 1
+            )
+        }
+
+        TripViewDropdown(selected = selectedTab, onSelect = onSelectTab)
+
+        if (onDelete != null) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier
+                    .size(48.dp)
+                    .cockpitSurface(c.critical.copy(alpha = 0.14f), Palette.Red500.copy(alpha = 0.5f), CircleShape, borderWidth = 1.2.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DeleteOutline,
+                    contentDescription = "Delete Trip",
+                    tint = Palette.Red500,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
+    }
+}
+
+/** Compact view picker (Route Replay / Timeline / Trip Charts) in place of the old tab strip. */
+@Composable
+private fun TripViewDropdown(
+    selected: TripDetailTab,
+    onSelect: (TripDetailTab) -> Unit
+) {
+    val c = CockpitTheme.colors
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            modifier = Modifier
+                .height(48.dp)
+                .clip(Raahi.PillShape)
+                .background(c.accent.copy(alpha = 0.12f))
+                .border(1.25.dp, c.accent.copy(alpha = 0.6f), Raahi.PillShape)
+                .clickable(role = Role.Button, onClickLabel = "Change view") { expanded = true }
+                .padding(start = 14.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(selected.icon, contentDescription = null, tint = c.accent, modifier = Modifier.size(22.dp))
+            Text(
+                selected.title,
+                style = CockpitTheme.typography.labelLarge,
+                color = c.textPrimary,
+                maxLines = 1
+            )
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = c.textSecondary,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(c.cardElevated)
+        ) {
+            TripDetailTab.values().forEach { tab ->
+                val isSel = tab == selected
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(
+                                tab.title,
+                                style = CockpitTheme.typography.titleMedium,
+                                color = if (isSel) c.accentText else c.textPrimary
+                            )
+                            Text(
+                                tab.subtitle,
+                                style = CockpitTheme.typography.bodySmall,
+                                color = c.textSecondary
+                            )
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(tab.icon, contentDescription = null, tint = if (isSel) c.accent else c.textSecondary, modifier = Modifier.size(24.dp))
+                    },
+                    trailingIcon = if (isSel) {
+                        { Icon(Icons.Default.Check, contentDescription = "Selected", tint = c.accent) }
+                    } else null,
+                    onClick = {
+                        expanded = false
+                        onSelect(tab)
+                    },
+                    modifier = Modifier.heightIn(min = 60.dp).widthIn(min = 280.dp)
+                )
             }
         }
     }
@@ -496,110 +569,5 @@ internal fun TripMapReplayView(
         }
       }
       }
-    }
-}
-
-@Composable
-internal fun TripTimelineView(
-    trip: TripEntity,
-    points: List<TripPointEntity>,
-    transitions: List<VehicleStateTransitionEntity> = emptyList(),
-    fuelEvents: List<FuelLedgerEntity> = emptyList(),
-    modifier: Modifier = Modifier
-) {
-    val timelineEvents = remember(trip, points, transitions, fuelEvents) {
-        generateTripTimeline(trip, points, transitions, fuelEvents)
-    }
-
-    if (timelineEvents.isEmpty()) {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) {
-            Text(
-                text = "No timeline events available for this journey.",
-                color = Palette.Steel400,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-    } else {
-        LazyColumn(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(timelineEvents) { event ->
-                val timeStr = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date(event.timestamp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    // Node Icon & Connector
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.width(36.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(event.accentColor.copy(alpha = 0.15f))
-                                .border(1.2.dp, event.accentColor, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = event.icon,
-                                contentDescription = null,
-                                tint = event.accentColor,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .width(2.dp)
-                                .height(28.dp)
-                                .background(Palette.Ink750)
-                        )
-                    }
-
-                    // Content Box
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .cockpitSurface(Palette.Ink925, Palette.Ink750, CopilotShapes.R10)
-                            .padding(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(
-                                    text = event.title,
-                                    style = CockpitTheme.typography.titleSmall.copy(
-                                        fontWeight = FontWeight.Black
-                                    ),
-                                    color = CockpitTheme.colors.textPrimary
-                                )
-                                Text(
-                                    text = event.description,
-                                    style = CockpitTheme.typography.bodySmall,
-                                    color = Palette.Slate400
-                                )
-                            }
-
-                            Text(
-                                text = timeStr,
-                                style = CockpitTheme.typography.labelSmall.copy(
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                ),
-                                color = event.accentColor
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }

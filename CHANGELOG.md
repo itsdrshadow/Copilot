@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.8.0] - 2026-11-18
+
+### Added
+- **Round trips are named after where they went.** Geofences make most trips start and end at Home. Instead of "Home → Home", a round trip is named after its farthest point, for example "Home ⇄ Sarwani", and gets a "Round trip" tag.
+  - The farthest point takes a geofence name when it is inside one, and otherwise its reverse-geocoded locality. "Unnamed Road" is dropped.
+  - Each name is resolved once and cached on the device, so the database schema is unchanged.
+  - A loop that never went more than 300 m from the start is named by time of day, for example "Home · Evening loop".
+- **The trip timeline is rebuilt and has new events.** The new events are:
+  - Leaving the start geofence zone
+  - First movement
+  - Distance milestones (every 1, 5, 10 or 25 km, depending on trip length)
+  - Stops and resumes
+  - Hard braking and quick acceleration, with m/s² values
+  - Top speed
+  - The turnaround point of a round trip
+  - Arriving in the end zone
+  - Trip completed, with distance and duration
+- **New timeline layout.** It has:
+  - A journey ribbon that places every event on the trip clock; tap a marker to jump to that event.
+  - A vertical timeline with coloured nodes, elapsed time, the trip km at each event and fact chips.
+  - An "At a glance" panel with duration, distance, top speed, stops, harsh events and a smoothness bar.
+- **New trip charts:**
+  - KPI tiles: avg speed, top speed, moving %, est. fuel, trip cost and mileage.
+  - A speed profile with axes, an average-speed line, a top-speed marker and hard-brake/quick-accel ticks.
+  - A time-in-speed-bands histogram, weighted by time.
+  - An acceleration and braking chart with harsh-limit lines.
+  - A moving/idle/parked donut.
+  - Elevation, or distance progress when altitude is missing.
+  - A driving-behaviour card with a score ring, harsh events, eco-speed share and best km/L.
+
+### Changed
+- **Route Replay, Timeline and Trip Charts are now in a dropdown.** It sits in a slim header that also shows the trip name, date and time range. The old tab strip and the stats line are gone, so every view gets more height. The date and route are no longer repeated in the summary panel.
+- The timeline and charts use the same rules for harsh events (GPS gap filter, above 12 km/h, merged within 15 s), so their counts match.
+
 ## [2.7.0] - 2026-11-18
 
 ### Changed
