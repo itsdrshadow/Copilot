@@ -150,6 +150,12 @@ fun LiveMapPanel(
                 MapView(ctx, options).apply {
                     onCreate(Bundle())
                     mapViewInstance = this
+                    // The lifecycle observer may already have replayed ON_START/ON_RESUME before this
+                    // view existed (fresh launch) — bring the MapView up to the current state, or it
+                    // never renders until the app is backgrounded once.
+                    val current = lifecycleOwner.lifecycle.currentState
+                    if (current.isAtLeast(Lifecycle.State.STARTED)) onStart()
+                    if (current.isAtLeast(Lifecycle.State.RESUMED)) onResume()
                     getMapAsync { map ->
                         map.uiSettings.isRotateGesturesEnabled = true
                         map.uiSettings.isTiltGesturesEnabled = true
@@ -194,7 +200,7 @@ fun LiveMapPanel(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = if (activeRegionTitle != null) "Download $activeRegionTitle pack (~1.2 GB) or copy via USB" else "Download regional map pack or copy .mbtiles via USB",
+                            text = "Import india.pmtiles (Import map file) or set a download URL — see MAP_SETUP.md",
                             fontSize = 13.sp,
                             color = Color.White.copy(alpha = 0.7f)
                         )

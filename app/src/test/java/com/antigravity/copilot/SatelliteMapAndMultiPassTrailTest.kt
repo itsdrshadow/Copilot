@@ -17,18 +17,15 @@ class SatelliteMapAndMultiPassTrailTest {
 
     @Test
     fun testOfflineVectorTileUriGeneration() {
-        val masterPkg = OfflineMapManager.AVAILABLE_PACKAGES.find { it.id == "india_vector_map" }
+        val masterPkg = OfflineMapManager.AVAILABLE_PACKAGES.find { it.id == "india_pmtiles" }
         assertNotNull(masterPkg)
-        assertEquals("india.mbtiles", masterPkg?.fileName)
+        assertEquals("india.pmtiles", masterPkg?.fileName)
 
-        val northPkg = OfflineMapManager.AVAILABLE_PACKAGES.find { it.id == "india_north" }
-        assertNotNull(northPkg)
-        assertEquals("india_north.mbtiles", northPkg?.fileName)
-
-        val samplePath = "/storage/emulated/0/Android/data/com.antigravity.copilot/files/maps/india.mbtiles"
-        val mbtilesUri = "mbtiles://$samplePath"
-        assertTrue(mbtilesUri.startsWith("mbtiles:///"))
-        assertTrue(mbtilesUri.endsWith(".mbtiles"))
+        // Tiles are served in-process from the PMTiles file under a reserved .invalid host.
+        val policy = com.antigravity.copilot.core.logic.MapOfflinePolicy
+        val url = policy.LOCAL_TILE_TEMPLATE.replace("{map_id}", "abc-123").replace("{z}", "14").replace("{x}", "11800").replace("{y}", "7000")
+        assertTrue(policy.isLocalUrl(url))
+        assertEquals(com.antigravity.copilot.core.logic.MapOfflinePolicy.LocalTile("abc-123", 14, 11800, 7000), policy.parseLocalTileUrl(url))
     }
 
     @Test

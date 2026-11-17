@@ -68,6 +68,10 @@ fun OfflineMapsManagerContent(
     val storageInfo by viewModel.storageInfo.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
     val usbImportProgressText by viewModel.usbImportProgress.collectAsStateWithLifecycle()
+    // Storage Access Framework picker for the India .pmtiles file (no storage permission needed)
+    val importMapLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri -> if (uri != null) viewModel.importMapFile(uri) }
     val isImportingUsb = usbImportProgressText != null
 
     LaunchedEffect(viewModel) {
@@ -123,7 +127,7 @@ fun OfflineMapsManagerContent(
                             color = Color.White
                         )
                         Text(
-                            text = "5 Regional Macro-Zones + All-India Navigation (Max 15 GB Budget)",
+                            text = "India PMTiles map + routing graph, 100% offline (Max 15 GB Budget)",
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -250,10 +254,10 @@ fun OfflineMapsManagerContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // USB / SD Card Import Button
+                // Import map file (.pmtiles) via Storage Access Framework
                 Button(
                     onClick = {
-                        viewModel.importFromUsb("Scanning USB drive...")
+                        importMapLauncher.launch(arrayOf("application/octet-stream", "application/vnd.pmtiles", "*/*"))
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -269,7 +273,7 @@ fun OfflineMapsManagerContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "IMPORT FROM USB / SD",
+                        text = "IMPORT MAP FILE",
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         fontSize = 13.sp

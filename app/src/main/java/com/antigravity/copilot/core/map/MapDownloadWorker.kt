@@ -109,6 +109,15 @@ class MapDownloadWorker(
                 if (contentLength > 0) contentLength else estimatedTotalBytes
             }
 
+            // Free-space check against the real remaining size (plus a safety margin).
+            val remaining = (totalBytes - (if (responseCode == 206) downloadedBytes else 0L)).coerceAtLeast(0L)
+            val freeBytes = android.os.StatFs((tempDownloadFile.parentFile ?: tempDownloadFile).path).availableBytes
+            if (remaining > 0 && remaining + 512L * 1024 * 1024 > freeBytes) {
+                response.close()
+                OfflineMapManager.notifyDownloadError(packageId, "Not enough free space: need ${remaining / (1024 * 1024)} MB more")
+                return@withContext Result.failure()
+            }
+
             outputRaf = RandomAccessFile(tempDownloadFile, "rw")
             if (responseCode == 206) {
                 outputRaf.seek(downloadedBytes)
@@ -177,7 +186,7 @@ class MapDownloadWorker(
                     Log.i(TAG, "Deleted temp routing archive to conserve storage budget")
                 }
             } else {
-                // Vector Map (.mbtiles)
+                // Vector Map (.pmtiles)
                 if (targetFile.exists()) {
                     targetFile.delete()
                 }

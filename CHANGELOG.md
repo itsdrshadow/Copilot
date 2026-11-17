@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Trip history stores brake/accel counts and best mileage (DB v10, strict migration); shown with moving/idle split in trip details.
 - Live map now draws the trail (it was passed but never rendered) plus a vehicle puck; `TrailOverlap` colours runs by ~15 m grid pass count (1 blue, 2 orange, 3+ red; opposite lane counts as the same road) with Douglas–Peucker simplification. Trip playback uses the same colouring.
 - Per-road mileage map (`RoadMileage`): each finished trip's tank-model fuel (km / learned km/L, idle excluded) is spread over ~40 m cells by driving load; cells aggregate over all passes (`road_cells`, DB v11, in backup). Map toggle colours roads red (low km/L) → green (high); tap shows avg mileage, passes, avg speed.
+- Offline maps rebuilt around one local `india.pmtiles` (OpenMapTiles schema): pure-Kotlin `PmTilesReader` (PMTiles v3, gzip) serves tiles in-process to MapLibre 10.3.2 through `MapNetworkGuard`, which also blocks every other map request (debug builds crash loudly). Works in airplane mode on a fresh launch (verified on the emulator).
+- "IMPORT MAP FILE" (Storage Access Framework) with PMTiles header/compression validation, free-space and 15 GB budget checks, atomic swap; download from a user-set URL with resume and a real free-space check.
+- Bundled local sprite + glyph folder; `MAP_SETUP.md` (Planetiler/Protomaps build steps, copy/import).
 - Refill dialog: "Filled to FULL tank" flag; real odometer at refill re-bases the odometer and teaches *k*.
 - Gauge calibration popup supports half points (tap the top bar again).
 - `OdometerAccumulator` (filtered haversine segments) and odometer correction factor *k* learned from real-odometer entries (shown = base + k·app_delta).
@@ -33,7 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Speedometer no longer max()-fuses position-derived speed (overshoot); trip distance uses the new accumulator.
 - Trip moving/idle time: short stops (< 30 s) are moving time; trip idle at completion = wall clock − moving.
 
+### Fixed
+- Live map never rendered on a fresh launch until the app was backgrounded once: the MapView missed `onStart/onResume` when created after the lifecycle replay.
+- Offline map download always failed: Geofabrik `.mbtiles` URLs do not exist and MapLibre 10.3.2 cannot read `mbtiles://`.
+
 ### Removed
+- Non-existent Geofabrik regional `.mbtiles` packages and the GitHub demo pack.
 - Blocking "missed refuel" alert on gauge calibration (replaced by automatic reconciliation).
 - Idle fuel-burn model (0.75 L/h) from `FuelAIEngine`.
 

@@ -4,14 +4,17 @@
   "metadata": {
     "maputnik:renderer": "mbgljs"
   },
+  "glyphs": "asset://offline_style/glyphs/{fontstack}/{range}.pbf",
+  "sprite": "asset://offline_style/sprites/sprite",
   "sources": {
     "openmaptiles": {
       "type": "vector",
       "tiles": [
-        "mbtiles://{mbtiles_path}"
+        "http://tiles.copilot.invalid/{map_id}/{z}/{x}/{y}.pbf"
       ],
       "minzoom": 0,
-      "maxzoom": 14
+      "maxzoom": 14,
+      "attribution": "© OpenStreetMap contributors"
     }
   },
   "layers": [
@@ -67,7 +70,21 @@
       "type": "line",
       "source": "openmaptiles",
       "source-layer": "transportation",
-      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "minor", "service", "track"]],
+      "filter": [
+        "all",
+        [
+          "==",
+          "$type",
+          "LineString"
+        ],
+        [
+          "in",
+          "class",
+          "minor",
+          "service",
+          "track"
+        ]
+      ],
       "paint": {
         "line-color": "#1C2433",
         "line-width": 1.2
@@ -78,7 +95,20 @@
       "type": "line",
       "source": "openmaptiles",
       "source-layer": "transportation",
-      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "secondary", "tertiary"]],
+      "filter": [
+        "all",
+        [
+          "==",
+          "$type",
+          "LineString"
+        ],
+        [
+          "in",
+          "class",
+          "secondary",
+          "tertiary"
+        ]
+      ],
       "paint": {
         "line-color": "#28354A",
         "line-width": 2.2
@@ -89,7 +119,19 @@
       "type": "line",
       "source": "openmaptiles",
       "source-layer": "transportation",
-      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "primary"]],
+      "filter": [
+        "all",
+        [
+          "==",
+          "$type",
+          "LineString"
+        ],
+        [
+          "in",
+          "class",
+          "primary"
+        ]
+      ],
       "paint": {
         "line-color": "#3A4D6B",
         "line-width": 3.2
@@ -100,7 +142,20 @@
       "type": "line",
       "source": "openmaptiles",
       "source-layer": "transportation",
-      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "motorway", "trunk"]],
+      "filter": [
+        "all",
+        [
+          "==",
+          "$type",
+          "LineString"
+        ],
+        [
+          "in",
+          "class",
+          "motorway",
+          "trunk"
+        ]
+      ],
       "paint": {
         "line-color": "#00B4D8",
         "line-width": 4.5

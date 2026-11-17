@@ -94,7 +94,7 @@ class CarMapController(
     }
 
     /**
-     * Loads the bundled offline style.json and dynamically binds the best regional/national .mbtiles file URI.
+     * Loads the bundled offline style.json and binds the installed local PMTiles map (served in-process).
      */
     fun loadLocalOfflineStyle(
         lat: Double = lastLocation.latitude,
@@ -120,12 +120,17 @@ class CarMapController(
                 .bufferedReader()
                 .use { it.readText() }
 
-            val resolvedJson = if (hasMap && mbtilesFile != null) {
-                // Dynamically bind local mbtiles file path into the vector tile source
-                styleTemplate.replace("mbtiles://{mbtiles_path}", "mbtiles://${mbtilesFile.absolutePath}")
+            // Local PMTiles only; with no (valid) map installed render the background-only style
+            // so nothing ever points at a missing or remote source.
+            // Tiles are served in-process from the local PMTiles file (MapNetworkGuard).
+            val mapId = if (hasMap) MapNetworkGuard.setMapFile(mbtilesFile) else MapNetworkGuard.setMapFile(null)
+            val resolvedJson = if (mapId != null) {
+                com.antigravity.copilot.core.logic.MapOfflinePolicy.bindStyle(styleTemplate, mapId)
             } else {
-                styleTemplate.replace("mbtiles://{mbtiles_path}", "")
+                backgroundOnlyStyle(styleTemplate)
             }
+            val remote = com.antigravity.copilot.core.logic.MapOfflinePolicy.remoteUrls(resolvedJson)
+            if (remote.isNotEmpty()) Log.e(TAG, "Style contains remote URLs (will be blocked): $remote")
 
             map.setStyle(Style.Builder().fromJson(resolvedJson)) { style ->
                 setupRoadMileageLayer(style)
@@ -322,6 +327,21 @@ class CarMapController(
             )
         }
         return f != null
+    }
+
+    private fun backgroundOnlyStyle(template: String): String = try {
+        val json = org.json.JSONObject(template)
+        json.put("sources", org.json.JSONObject())
+        val layers = json.getJSONArray("layers")
+        val kept = org.json.JSONArray()
+        for (i in 0 until layers.length()) {
+            val l = layers.getJSONObject(i)
+            if (l.optString("type") == "background") kept.put(l)
+        }
+        json.put("layers", kept)
+        json.toString()
+    } catch (e: Exception) {
+        """{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#0B0E14"}}]}"""
     }
 
     private fun setupRouteLayers(style: Style) {

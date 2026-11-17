@@ -90,73 +90,24 @@ object OfflineMapManager {
         val isLowStorageWarning: Boolean = false
     )
 
-    // 5 Macro-Regions + All-India National Packages
+    /**
+     * Map packages. MapLibre renders ONE local India vector file (PMTiles, OpenMapTiles schema)
+     * via pmtiles://file://. Public tile servers forbid bulk download and Geofabrik does not
+     * publish MBTiles, so the file is built on a PC (MAP_SETUP.md) and imported via SAF, or
+     * downloaded from a URL the user sets (custom URL) with resume + free-space check.
+     */
+    const val INDIA_MAP_FILE = "india.pmtiles"
     val AVAILABLE_PACKAGES = listOf(
         OfflinePackage(
-            id = "india_north",
-            title = "North India Zone",
-            description = "High-speed regional vector map (.mbtiles)",
-            coveredStates = "Delhi-NCR, Punjab, Haryana, Rajasthan, HP, J&K, Ladakh, Chandigarh, Uttarakhand",
+            id = "india_pmtiles",
+            title = "India Vector Map (PMTiles)",
+            description = "Local vector map (.pmtiles, OpenMapTiles schema). Import the file, or set your own download URL.",
+            coveredStates = "All of India",
             type = PackageType.VECTOR_MAP,
-            estimatedSizeBytes = 1200L * 1024L * 1024L, // ~1.2 GB
-            downloadUrl = "https://download.geofabrik.de/asia/india/north-zone-latest.mbtiles",
-            fileName = "india_north.mbtiles",
-            boundingBox = GeoBoundingBox(minLat = 23.5, maxLat = 37.1, minLon = 68.5, maxLon = 81.5)
-        ),
-        OfflinePackage(
-            id = "india_west_central",
-            title = "West & Central India Zone",
-            description = "High-speed regional vector map (.mbtiles)",
-            coveredStates = "Maharashtra, Gujarat, Madhya Pradesh, Chhattisgarh, Goa",
-            type = PackageType.VECTOR_MAP,
-            estimatedSizeBytes = 1400L * 1024L * 1024L, // ~1.4 GB
-            downloadUrl = "https://download.geofabrik.de/asia/india/west-central-zone-latest.mbtiles",
-            fileName = "india_west_central.mbtiles",
-            boundingBox = GeoBoundingBox(minLat = 15.0, maxLat = 26.9, minLon = 68.1, maxLon = 84.4)
-        ),
-        OfflinePackage(
-            id = "india_south",
-            title = "South India Zone",
-            description = "High-speed regional vector map (.mbtiles)",
-            coveredStates = "Karnataka, Tamil Nadu, Kerala, Andhra Pradesh, Telangana, Puducherry",
-            type = PackageType.VECTOR_MAP,
-            estimatedSizeBytes = 1300L * 1024L * 1024L, // ~1.3 GB
-            downloadUrl = "https://download.geofabrik.de/asia/india/south-zone-latest.mbtiles",
-            fileName = "india_south.mbtiles",
-            boundingBox = GeoBoundingBox(minLat = 8.0, maxLat = 19.9, minLon = 74.0, maxLon = 84.8)
-        ),
-        OfflinePackage(
-            id = "india_east",
-            title = "East India Zone",
-            description = "High-speed regional vector map (.mbtiles)",
-            coveredStates = "West Bengal, Bihar, Jharkhand, Odisha",
-            type = PackageType.VECTOR_MAP,
-            estimatedSizeBytes = 1100L * 1024L * 1024L, // ~1.1 GB
-            downloadUrl = "https://download.geofabrik.de/asia/india/east-zone-latest.mbtiles",
-            fileName = "india_east.mbtiles",
-            boundingBox = GeoBoundingBox(minLat = 17.8, maxLat = 27.5, minLon = 81.3, maxLon = 89.9)
-        ),
-        OfflinePackage(
-            id = "india_northeast",
-            title = "North-East India Zone",
-            description = "High-speed regional vector map (.mbtiles)",
-            coveredStates = "Assam, Meghalaya, Arunachal Pradesh, Manipur, Mizoram, Nagaland, Tripura, Sikkim",
-            type = PackageType.VECTOR_MAP,
-            estimatedSizeBytes = 500L * 1024L * 1024L, // ~500 MB
-            downloadUrl = "https://download.geofabrik.de/asia/india/northeast-zone-latest.mbtiles",
-            fileName = "india_northeast.mbtiles",
-            boundingBox = GeoBoundingBox(minLat = 21.9, maxLat = 29.5, minLon = 87.9, maxLon = 97.4)
-        ),
-        OfflinePackage(
-            id = "india_vector_map",
-            title = "All-India Master Vector Map",
-            description = "Complete nationwide arterial highways & all states (.mbtiles)",
-            coveredStates = "All 28 States & 8 Union Territories Nationwide",
-            type = PackageType.VECTOR_MAP,
-            estimatedSizeBytes = 4L * 1024L * 1024L * 1024L, // ~4.0 GB
-            downloadUrl = "https://download.geofabrik.de/asia/india-latest.mbtiles",
-            fileName = "india.mbtiles",
-            boundingBox = GeoBoundingBox(minLat = 6.5, maxLat = 37.5, minLon = 68.0, maxLon = 97.5)
+            estimatedSizeBytes = 6L * 1024L * 1024L * 1024L, // ~6 GB for z0-14
+            downloadUrl = "",
+            fileName = INDIA_MAP_FILE,
+            boundingBox = GeoBoundingBox(minLat = 6.0, maxLat = 37.5, minLon = 68.0, maxLon = 97.5)
         ),
         OfflinePackage(
             id = "india_routing_graph",
@@ -167,17 +118,6 @@ object OfflineMapManager {
             estimatedSizeBytes = 4500L * 1024L * 1024L, // ~4.5 GB
             downloadUrl = "https://graphhopper.com/public/maps/india-gh.zip",
             fileName = "india-gh.zip"
-        ),
-        OfflinePackage(
-            id = "demo_sample_map",
-            title = "Demo / Quick Test Vector Map",
-            description = "Lightweight test vector map pack (.mbtiles) for instant testing",
-            coveredStates = "OpenMapTiles Standard Test Geometry (550 KB)",
-            type = PackageType.VECTOR_MAP,
-            estimatedSizeBytes = 561152L, // 550 KB
-            downloadUrl = "https://raw.githubusercontent.com/mapbox/node-mbtiles/master/test/fixtures/plain_1.mbtiles",
-            fileName = "demo_sample.mbtiles",
-            boundingBox = null
         )
     )
 
@@ -270,10 +210,10 @@ object OfflineMapManager {
     }
 
     /**
-     * Resolves the best available local .mbtiles map file for the given location:
-     * 1. Specific regional file if installed (e.g. india_north.mbtiles).
-     * 2. All-India master file if installed (india.mbtiles).
-     * 3. Any installed .mbtiles file as fallback.
+     * Resolves the local PMTiles map file to render:
+     * 1. Package file matching the GPS region (india.pmtiles).
+     * 2. All-India master file.
+     * 3. Any other imported .pmtiles file.
      */
     fun getBestMapFileForLocation(context: Context, lat: Double, lon: Double): File? {
         val mapsDir = getMapsDir(context)
@@ -285,14 +225,16 @@ object OfflineMapManager {
             }
         }
 
-        // Master All-India fallback
-        val masterFile = File(mapsDir, "india.mbtiles")
+        // Master All-India file
+        val masterFile = File(mapsDir, INDIA_MAP_FILE)
         if (masterFile.exists() && masterFile.length() > 0) {
             return masterFile
         }
 
-        // Return any valid installed .mbtiles file
-        return mapsDir.listFiles { _, name -> name.endsWith(".mbtiles") }?.firstOrNull()
+        // Any other imported .pmtiles file (largest first)
+        return mapsDir.listFiles { _, name -> name.endsWith(".pmtiles", ignoreCase = true) }
+            ?.filter { it.length() > 0 }
+            ?.maxByOrNull { it.length() }
     }
 
     fun getMapFile(context: Context): File? {
@@ -311,9 +253,8 @@ object OfflineMapManager {
         val updated = AVAILABLE_PACKAGES.map { pkg ->
             if (pkg.type == PackageType.VECTOR_MAP) {
                 val target = File(getMapsDir(context), pkg.fileName)
-                val plain1 = File(getMapsDir(context), "plain_1.mbtiles")
-                val installed = (target.exists() && target.length() > 0) || (pkg.id == "demo_sample_map" && plain1.exists() && plain1.length() > 0)
-                val size = if (target.exists() && target.length() > 0) target.length() else if (plain1.exists()) plain1.length() else 0L
+                val installed = target.exists() && target.length() > 0
+                val size = if (installed) target.length() else 0L
                 pkg.copy(isInstalled = installed, installedSizeBytes = size)
             } else {
                 val routingDir = File(getRoutingDir(context), "india")
@@ -371,6 +312,12 @@ object OfflineMapManager {
         }
 
         val effectiveUrl = getEffectiveDownloadUrl(context, pkg)
+        if (effectiveUrl.isBlank()) {
+            _statusMessage.value = "Set a download URL for ${pkg.title} first (or use Import map file)"
+            _downloadState.value = DownloadState.ERROR
+            _activePackageId.value = null
+            return
+        }
         val workData = workDataOf(
             MapDownloadWorker.KEY_URL to effectiveUrl,
             MapDownloadWorker.KEY_DEST_PATH to targetDest,
@@ -432,6 +379,7 @@ object OfflineMapManager {
             val pkg = AVAILABLE_PACKAGES.find { it.id == packageId } ?: return@launch
             if (pkg.type == PackageType.VECTOR_MAP) {
                 val file = File(getMapsDir(context), pkg.fileName)
+                MapNetworkGuard.setMapFile(null) // close the reader before deleting
                 if (file.exists()) file.delete()
             } else {
                 val routingDir = File(getRoutingDir(context), "india")
@@ -470,7 +418,7 @@ object OfflineMapManager {
                     for (entry in entries) {
                         if (entry.isFile) {
                             val lower = entry.name.lowercase()
-                            if (lower.endsWith(".mbtiles") || (lower.contains("routing") && lower.endsWith(".zip"))) {
+                            if (lower.endsWith(".pmtiles") || (lower.contains("routing") && lower.endsWith(".zip"))) {
                                 candidateFiles.add(entry)
                             }
                         } else if (entry.isDirectory && depth < 2) {
@@ -485,19 +433,11 @@ object OfflineMapManager {
 
                 val distinctCandidates = candidateFiles.distinctBy { it.absolutePath }
                 for (sf in distinctCandidates) {
-                    if (sf.name.endsWith(".mbtiles", ignoreCase = true)) {
+                    if (sf.name.endsWith(".pmtiles", ignoreCase = true)) {
                         withContext(Dispatchers.Main) { onProgress("Importing ${sf.name}...", 0.5f) }
                         val dest = File(getMapsDir(context), sf.name)
                         copyFileWithProgress(sf, dest)
                         importedCount++
-
-                        // If plain_1.mbtiles was downloaded from browser, also map it to demo_sample.mbtiles
-                        if (sf.name.equals("plain_1.mbtiles", ignoreCase = true)) {
-                            val demoDest = File(getMapsDir(context), "demo_sample.mbtiles")
-                            if (!demoDest.exists()) {
-                                copyFileWithProgress(sf, demoDest)
-                            }
-                        }
                     } else if (sf.name.contains("routing", ignoreCase = true) && sf.name.endsWith(".zip", ignoreCase = true)) {
                         withContext(Dispatchers.Main) { onProgress("Extracting ${sf.name}...", 0.7f) }
                         val destDir = File(getRoutingDir(context), "india")
@@ -513,7 +453,7 @@ object OfflineMapManager {
                     if (importedCount > 0) {
                         onComplete(true, "Successfully imported $importedCount offline package(s)")
                     } else {
-                        onComplete(false, "No .mbtiles or routing archives found on USB/SD card.")
+                        onComplete(false, "No .pmtiles maps or routing archives found on USB/SD card.")
                     }
                 }
             } catch (e: Exception) {
@@ -521,6 +461,89 @@ object OfflineMapManager {
                 withContext(Dispatchers.Main) {
                     onComplete(false, "Import error: ${e.message}")
                 }
+            }
+        }
+    }
+
+    /**
+     * Import a map file picked with the Storage Access Framework. Validates the PMTiles v3
+     * header, checks free space against the file size, copies with progress to
+     * maps/india.pmtiles (atomic rename) and refreshes the map.
+     */
+    fun importMapFile(
+        context: Context,
+        uri: android.net.Uri,
+        onProgress: (String, Float) -> Unit,
+        onComplete: (Boolean, String) -> Unit
+    ) {
+        managerScope.launch {
+            val resolver = context.contentResolver
+            try {
+                var size = -1L
+                var name = INDIA_MAP_FILE
+                resolver.query(uri, null, null, null, null)?.use { c ->
+                    if (c.moveToFirst()) {
+                        val si = c.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                        val ni = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        if (si >= 0 && !c.isNull(si)) size = c.getLong(si)
+                        if (ni >= 0) name = c.getString(ni) ?: name
+                    }
+                }
+                val header = ByteArray(8)
+                val headerRead = resolver.openInputStream(uri)?.use { it.read(header) } ?: -1
+                if (headerRead < 8 || !com.antigravity.copilot.core.logic.MapOfflinePolicy.isPmtilesHeader(header)) {
+                    onComplete(false, "\"$name\" is not a PMTiles v3 file. Build india.pmtiles as described in MAP_SETUP.md.")
+                    return@launch
+                }
+                val mapsDir = getMapsDir(context).apply { mkdirs() }
+                val free = StatFs(mapsDir.path).availableBytes
+                val existing = File(mapsDir, INDIA_MAP_FILE).takeIf { it.exists() }?.length() ?: 0L
+                if (size > 0 && size + LOW_STORAGE_WARNING_THRESHOLD_BYTES / 4 > free + existing) {
+                    onComplete(false, "Not enough free space: need ${size / (1024 * 1024)} MB, free ${free / (1024 * 1024)} MB.")
+                    return@launch
+                }
+                if (size > MAX_OFFLINE_STORAGE_BUDGET_BYTES) {
+                    onComplete(false, "Map file exceeds the 15 GB offline budget.")
+                    return@launch
+                }
+                val tmp = File(mapsDir, "$INDIA_MAP_FILE.importing")
+                resolver.openInputStream(uri)?.use { input ->
+                    tmp.outputStream().use { out ->
+                        val buf = ByteArray(1024 * 1024)
+                        var copied = 0L
+                        var lastReport = 0L
+                        while (true) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            out.write(buf, 0, n)
+                            copied += n
+                            if (copied - lastReport >= 32L * 1024 * 1024) {
+                                lastReport = copied
+                                val frac = if (size > 0) copied.toFloat() / size else 0f
+                                onProgress("Importing $name… ${copied / (1024 * 1024)} MB", frac)
+                            }
+                        }
+                    }
+                } ?: throw java.io.IOException("Cannot open $uri")
+                // Verify the whole archive is readable (header + supported compression) before swapping.
+                try {
+                    PmTilesReader(tmp).close()
+                } catch (e: Exception) {
+                    tmp.delete()
+                    onComplete(false, "Map file rejected: ${e.message}")
+                    return@launch
+                }
+                val dest = File(mapsDir, INDIA_MAP_FILE)
+                MapNetworkGuard.setMapFile(null) // release the old file before replacing it
+                if (dest.exists()) dest.delete()
+                if (!tmp.renameTo(dest)) throw java.io.IOException("Rename failed")
+                refreshPackageStatus(context)
+                refreshStorageInfo(context)
+                onComplete(true, "Imported $name (${dest.length() / (1024 * 1024)} MB)")
+            } catch (e: Exception) {
+                File(getMapsDir(context), "$INDIA_MAP_FILE.importing").delete()
+                Log.e(TAG, "Map import failed: ${e.message}", e)
+                onComplete(false, "Import failed: ${e.message}")
             }
         }
     }

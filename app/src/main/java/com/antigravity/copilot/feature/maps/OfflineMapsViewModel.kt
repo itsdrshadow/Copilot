@@ -65,6 +65,22 @@ class OfflineMapsViewModel @Inject constructor(
     fun setCustomDownloadUrl(packageId: String, url: String?) =
         OfflineMapManager.setCustomDownloadUrl(context, packageId, url)
 
+    /** SAF "Import map file" (PMTiles). */
+    fun importMapFile(uri: android.net.Uri) {
+        if (_usbImportProgress.value != null) return
+        _usbImportProgress.value = "Checking map file…"
+        OfflineMapManager.importMapFile(
+            context = context,
+            uri = uri,
+            onProgress = { msg, _ -> _usbImportProgress.value = msg },
+            onComplete = { _, msg ->
+                _usbImportProgress.value = null
+                refresh()
+                _messages.trySend(msg)
+            }
+        )
+    }
+
     fun importFromUsb(initialMessage: String) {
         if (_usbImportProgress.value != null) return
         _usbImportProgress.value = initialMessage
