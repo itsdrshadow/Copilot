@@ -16,8 +16,8 @@ class DeadCodeCleanupVerificationTest {
 
     @Test
     fun testAppVersionBumpedToSemVerMinor() {
-        assertEquals("1.40.2", BuildConfig.VERSION_NAME)
-        assertEquals(67, BuildConfig.VERSION_CODE)
+        assertEquals("1.41.0", BuildConfig.VERSION_NAME)
+        assertEquals(68, BuildConfig.VERSION_CODE)
     }
 
     @Test

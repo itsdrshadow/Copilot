@@ -40,8 +40,8 @@ class PersistentStorageAndMigrationTest {
         val appVersionCode = BuildConfig.VERSION_CODE
         val appVersionName = BuildConfig.VERSION_NAME
 
-        assertEquals(67, appVersionCode)
-        assertEquals("1.40.2", appVersionName)
+        assertEquals(68, appVersionCode)
+        assertEquals("1.41.0", appVersionName)
         assertNotEquals(appVersionCode, StorageMigrationManager.CURRENT_STORAGE_VERSION)
     }
 
