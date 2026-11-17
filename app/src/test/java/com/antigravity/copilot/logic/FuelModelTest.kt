@@ -121,4 +121,17 @@ class FuelModelTest {
         assertEquals(s.actualCapacityL, est.displayLitres, 1e-9)
         assertEquals(10.0, est.gaugePoints, 1e-9)
     }
+
+    @Test
+    fun firstOdometerCalibrationJumpDoesNotBurnFuel() {
+        // Uncalibrated app odometer at 12 km, 30 L in the tank; the driver then enters 45,012 km.
+        val s = FuelModelState(anchorLitres = 30.0, anchorOdoKm = 12.0, defaultKmpl = 15.0)
+        val before = FuelModel.rawLitres(s, 12.0, 0L)
+        val rebased = FuelModel.rebaseOdometer(s, 45_000.0)
+        assertEquals(before, FuelModel.rawLitres(rebased, 45_012.0, 0L), 1e-9)
+        // Driving 30 km after the calibration still consumes fuel normally (2 L at 15 km/L).
+        assertEquals(28.0, FuelModel.rawLitres(rebased, 45_042.0, 0L), 1e-9)
+        // Without the re-base the jump would read as ~3,000 L burned (deep negative).
+        assertTrue(FuelModel.rawLitres(s, 45_012.0, 0L) < 0.0)
+    }
 }

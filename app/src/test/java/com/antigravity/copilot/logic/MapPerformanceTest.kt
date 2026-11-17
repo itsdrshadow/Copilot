@@ -14,13 +14,14 @@ class MapPerformanceTest {
     fun `auto zoom follows the speed bands`() {
         val z = CarMapController.Companion::autoZoomForSpeed
         assertEquals(17.5, z(0.0), 1e-9)
-        assertEquals(17.5, z(5.0), 1e-9)
-        assertEquals(16.75, z(17.5), 1e-9)
-        assertEquals(16.0, z(30.0), 1e-9)
-        assertEquals(15.4, z(45.0), 1e-9)
-        assertEquals(14.8, z(60.0), 1e-9)
-        assertEquals(13.5, z(100.0), 1e-9)
-        assertEquals(13.5, z(160.0), 1e-9)
+        assertEquals(17.5, z(15.0), 1e-9)
+        assertEquals(17.0, z(40.0), 1e-9)
+        assertEquals(16.2, z(70.0), 1e-9)
+        assertEquals(15.2, z(100.0), 1e-9)
+        assertEquals(14.8, z(130.0), 1e-9)
+        assertEquals(14.8, z(160.0), 1e-9)
+        // Town speeds stay close in (regression: was 16.0 at 30 km/h).
+        assertTrue(z(30.0) >= 17.1)
         assertEquals(17.5, z(-4.0), 1e-9)
     }
 

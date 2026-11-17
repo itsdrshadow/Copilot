@@ -3,6 +3,11 @@ package com.antigravity.copilot.feature.dashboard
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
+import com.antigravity.copilot.core.designsystem.components.Raahi
+import com.antigravity.copilot.core.designsystem.components.RaahiLabel
+import com.antigravity.copilot.core.designsystem.components.RaahiPill
+import com.antigravity.copilot.core.designsystem.components.raahiCard
+import com.antigravity.copilot.core.designsystem.components.RaahiDialogHost
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
@@ -213,318 +218,131 @@ fun SpeedometerCluster(
     val textPrimary = CockpitTheme.colors.textPrimary
     val textSecondary = CockpitTheme.colors.textSecondary
 
-    Box(
+    // ==================== RAAHI SPEED CARD ====================
+    // Label + "Limit N" · very large speed · km/h · thin bar with a red tick at the limit ·
+    // driving-state chip + acceleration. The speed-limit *sign* is shown once, on the map.
+    val c = CockpitTheme.colors
+    val overLimit = speedLimit > 0 && rawSpeed > speedLimit * 1.05f
+    val stateLabel: String
+    val stateColor: Color
+    when {
+        !isGpsValid -> { stateLabel = "No GPS"; stateColor = textSecondary }
+        rawSpeed < 1.0f -> { stateLabel = "Idle"; stateColor = textSecondary }
+        else -> when (latestPoint?.drivingState?.uppercase()) {
+            "BRAKING" -> { stateLabel = "Braking"; stateColor = c.critical }
+            "ACCELERATING" -> { stateLabel = "Accelerating"; stateColor = c.accent }
+            "IDLE" -> { stateLabel = "Idle"; stateColor = textSecondary }
+            "CRUISING" -> { stateLabel = "Cruising"; stateColor = c.positive }
+            // No classifier label yet: fall back to the GPS acceleration trend.
+            else -> when {
+                isAccelerating -> { stateLabel = "Accelerating"; stateColor = c.accent }
+                isDecelerating -> { stateLabel = "Braking"; stateColor = c.critical }
+                else -> { stateLabel = "Cruising"; stateColor = c.positive }
+            }
+        }
+    }
+    val accelText = String.format(Locale.US, "%+.1f m/s²", smoothedAccelMss)
+
+    Column(
         modifier = modifier
-            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
-            .background(cardBg)
-            .border(
-                width = 1.25.dp,
-                color = cardBorder,
-                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
-            )
-            .padding(14.dp)
+            .raahiCard()
+            .padding(Raahi.CardPadding),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // ==================== 1. SPEED LIMIT SIGN & CLUSTER HEADER ====================
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CopilotShapes.R6)
-                            .background(cyanAccent.copy(alpha = 0.12f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Speed,
-                            contentDescription = null,
-                            tint = cyanAccent,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    Text(
-                        text = "SPEEDOMETER",
-                        style = CockpitTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.1.sp
-                        ),
-                        color = textSecondary,
-                        maxLines = 1
-                    )
-                }
-
-                if (speedLimit > 0) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .cockpitSurface(Color.White, CockpitTheme.colors.critical, CircleShape, borderWidth = 2.5.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "$speedLimit",
-                            style = CockpitTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Black
-                            ),
-                            color = Color.Black
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.size(32.dp))
-                }
-            }
-
-            // ==================== 2. 240° STUDIO DIAL CANVAS ====================
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(top = 14.dp)
-                    .offset(y = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {}) { // own layer: dial redraws stay isolated
-                    val w = size.width
-                    val h = size.height
-                    val dialRadius = (minOf(w, h) / 2f) * 0.88f
-                    val center = Offset(w / 2f, h / 2f + dialRadius * 0.08f)
-
-                    val startAngle = 150f
-                    val sweepRange = 240f
-                    val maxDisplaySpeed = 160f
-                    val speedProgress = (animatedSpeedState.value / maxDisplaySpeed).coerceIn(0f, 1f)
-
-                    // 1. Background Arc Track
-                    drawArc(
-                        color = Color.White.copy(alpha = 0.08f),
-                        startAngle = startAngle,
-                        sweepAngle = sweepRange,
-                        useCenter = false,
-                        topLeft = Offset(center.x - dialRadius, center.y - dialRadius),
-                        size = Size(dialRadius * 2, dialRadius * 2),
-                        style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
-                    )
-
-                    // 2. Active Glowing Speed Arc
-                    val activeSweep = sweepRange * speedProgress
-                    if (activeSweep > 0.5f) {
-                        drawArc(
-                            color = statusColor,
-                            startAngle = startAngle,
-                            sweepAngle = activeSweep,
-                            useCenter = false,
-                            topLeft = Offset(center.x - dialRadius, center.y - dialRadius),
-                            size = Size(dialRadius * 2, dialRadius * 2),
-                            style = Stroke(width = 9.dp.toPx(), cap = StrokeCap.Round)
-                        )
-
-                        // Head pip
-                        val headAngleRad = Math.toRadians((startAngle + activeSweep).toDouble())
-                        val pipCenter = Offset(
-                            (center.x + dialRadius * cos(headAngleRad)).toFloat(),
-                            (center.y + dialRadius * sin(headAngleRad)).toFloat()
-                        )
-                        drawCircle(
-                            color = Color.White,
-                            radius = 6.dp.toPx(),
-                            center = pipCenter
-                        )
-                        drawCircle(
-                            color = statusColor,
-                            radius = 3.dp.toPx(),
-                            center = pipCenter
-                        )
-                    }
-
-                    // 3. Speed Limit Notch
-                    if (speedLimit in 10..160) {
-                        val limitAngle = startAngle + sweepRange * (speedLimit / maxDisplaySpeed)
-                        val limitRad = Math.toRadians(limitAngle.toDouble())
-                        val notchStart = Offset(
-                            (center.x + (dialRadius - 6.dp.toPx()) * cos(limitRad)).toFloat(),
-                            (center.y + (dialRadius - 6.dp.toPx()) * sin(limitRad)).toFloat()
-                        )
-                        val notchEnd = Offset(
-                            (center.x + (dialRadius + 6.dp.toPx()) * cos(limitRad)).toFloat(),
-                            (center.y + (dialRadius + 6.dp.toPx()) * sin(limitRad)).toFloat()
-                        )
-                        drawLine(
-                            color = criticalColor,
-                            start = notchStart,
-                            end = notchEnd,
-                            strokeWidth = 3.5.dp.toPx(),
-                            cap = StrokeCap.Round
-                        )
-                    }
-                }
-
-                // Center Speed Readout
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
-                        style = CockpitTheme.typography.displayLarge,
-                        color = textPrimary
-                    )
-                    Text(
-                        text = "KM/H",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.0.sp
-                        ),
-                        color = statusColor
-                    )
-                    Spacer(Modifier.height(6.dp))
-
-                    // Prominent Dynamic Speed Trend Readout
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .clip(CopilotShapes.R8)
-                            .background(
-                                when {
-                                    !isGpsValid -> CockpitTheme.colors.cardElevated
-                                    isAccelerating -> cyanAccent.copy(alpha = 0.15f)
-                                    isDecelerating -> CockpitTheme.colors.warning.copy(alpha = 0.15f)
-                                    else -> CockpitTheme.colors.cardElevated
-                                }
-                            )
-                            .padding(
-                                horizontal = 12.dp,
-                                vertical = 4.dp
-                            )
-                    ) {
-                        Icon(
-                            imageVector = when {
-                                !isGpsValid -> Icons.Default.GpsNotFixed
-                                isAccelerating -> Icons.AutoMirrored.Filled.TrendingUp
-                                isDecelerating -> Icons.AutoMirrored.Filled.TrendingDown
-                                else -> Icons.Default.SwapHoriz
-                            },
-                            contentDescription = null,
-                            tint = when {
-                                !isGpsValid -> textSecondary
-                                isAccelerating -> cyanAccent
-                                isDecelerating -> CockpitTheme.colors.warning
-                                else -> textSecondary
-                            },
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = when {
-                                !isGpsValid -> "-- GPS"
-                                isAccelerating -> "+${String.format(Locale.US, "%.1f", smoothedAccelMss)} m/s² ACCEL"
-                                isDecelerating -> "${String.format(Locale.US, "%.1f", smoothedAccelMss)} m/s² DECEL"
-                                rawSpeed < 1.0f -> "0.0 m/s²"
-                                else -> "STEADY"
-                            },
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.4.sp
-                            ),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            softWrap = false,
-                            color = when {
-                                !isGpsValid -> textSecondary
-                                isAccelerating -> cyanAccent
-                                isDecelerating -> CockpitTheme.colors.warning
-                                else -> textPrimary
-                            }
-                        )
-                    }
-                }
-            }
-
-            // ==================== 3. BOTTOM TELEMETRY DOCK (ODOMETER + SINCE CAL) ====================
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .cockpitSurface(CockpitTheme.colors.dockActionBrush, CockpitTheme.colors.border, CopilotShapes.R10)
-                    .padding(horizontal = 12.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Cell 1: ODOMETER (Tap to calibrate)
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(CopilotShapes.R6)
-                        .clickable { showOdometerDialog = true },
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Text(
-                        text = String.format(Locale.US, "%,.1f km", currentOdometerKm),
-                        style = CockpitTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum"
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                        color = textPrimary
-                    )
-                    Text(
-                        text = "ODOMETER",
-                        style = CockpitTheme.typography.labelSmall,
-                        maxLines = 1,
-                        softWrap = false,
-                        color = textSecondary
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .height(24.dp)
-                        .width(1.dp)
-                        .background(CockpitTheme.colors.border.copy(alpha = 0.6f))
+            RaahiLabel("Speed", modifier = Modifier.weight(1f))
+            if (speedLimit > 0) {
+                Text(
+                    text = "Limit $speedLimit",
+                    style = CockpitTheme.typography.labelLarge,
+                    color = if (overLimit) c.criticalText else textSecondary,
+                    maxLines = 1
                 )
-
-                // Cell 2: SINCE CAL. (Delta since calibration, tap to sync)
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(CopilotShapes.R6)
-                        .clickable { showOdometerDialog = true },
-                    horizontalAlignment = Alignment.End
-                ) {
-                    val deltaText = String.format(Locale.US, "+%.1f km", deltaKmSinceCalibration.coerceAtLeast(0.0))
-                    Text(
-                        text = deltaText,
-                        style = CockpitTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum"
-                        ),
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                        color = cyanAccent
-                    )
-                    Text(
-                        text = "SINCE CAL.",
-                        style = CockpitTheme.typography.labelSmall,
-                        maxLines = 1,
-                        softWrap = false,
-                        color = textSecondary
-                    )
-                }
             }
+        }
+
+        // Hero speed: sized to the room the card actually has (font scale included).
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.Center
+        ) {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val byHeight = maxHeight.value * 0.92f / density.fontScale
+            val byWidth = maxWidth.value * 0.42f / density.fontScale
+            val heroSp = minOf(112f, byHeight, byWidth).coerceAtLeast(28f)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
+                    style = AutomotiveTypographyTokens.SpeedHero.copy(
+                        fontSize = heroSp.sp,
+                        lineHeight = heroSp.sp
+                    ),
+                    color = if (overLimit) c.criticalText else textPrimary,
+                    maxLines = 1,
+                    softWrap = false
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "km/h",
+                    style = CockpitTheme.typography.titleMedium,
+                    color = textSecondary,
+                    modifier = Modifier.padding(bottom = (heroSp * 0.14f).dp)
+                )
+            }
+        }
+
+        // Thin progress bar with a red tick at the limit.
+        val maxDisplaySpeed = if (speedLimit > 130) speedLimit * 1.25f else 160f
+        val trackColor = c.cardElevated
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(14.dp)
+                .graphicsLayer {}
+        ) {
+            val barH = 6.dp.toPx()
+            val y = (size.height - barH) / 2f
+            val r = androidx.compose.ui.geometry.CornerRadius(barH / 2f)
+            drawRoundRect(trackColor, topLeft = Offset(0f, y), size = Size(size.width, barH), cornerRadius = r)
+            val p = (animatedSpeedState.value / maxDisplaySpeed).coerceIn(0f, 1f)
+            if (p > 0f) {
+                drawRoundRect(statusColor, topLeft = Offset(0f, y), size = Size(size.width * p, barH), cornerRadius = r)
+            }
+            if (speedLimit in 1..maxDisplaySpeed.toInt()) {
+                val x = size.width * (speedLimit / maxDisplaySpeed)
+                drawLine(
+                    color = criticalColor,
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = 3.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            RaahiPill(
+                text = stateLabel,
+                color = stateColor,
+                filled = stateColor != textSecondary,
+                icon = if (!isGpsValid) Icons.Default.GpsNotFixed else null
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = accelText,
+                style = CockpitTheme.typography.headlineSmall,
+                color = textSecondary,
+                maxLines = 1
+            )
         }
     }
 
@@ -657,17 +475,6 @@ fun SpeedometerCluster(
         }
     }
 
-    // Modal Dialog 3: Vehicle Odometer Calibration
-    if (showOdometerDialog) {
-        SpeedometerOdometerCalibrationDialog(
-            currentOdometerKm = currentOdometerKm,
-            onDismiss = { showOdometerDialog = false },
-            onConfirmCalibration = { newKm ->
-                OdometerManager.setBaselineOdometer(context, newKm, totalLifetimeKm)
-                showOdometerDialog = false
-            }
-        )
-    }
 }
 
 /**
@@ -675,7 +482,7 @@ fun SpeedometerCluster(
  * with physical dashboard cluster reading.
  */
 @Composable
-private fun SpeedometerOdometerCalibrationDialog(
+internal fun SpeedometerOdometerCalibrationDialog(
     currentOdometerKm: Double,
     onDismiss: () -> Unit,
     onConfirmCalibration: (Double) -> Unit
@@ -683,14 +490,14 @@ private fun SpeedometerOdometerCalibrationDialog(
     var textValue by remember { mutableStateOf(String.format(Locale.US, "%.1f", currentOdometerKm)) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 960.dp) {
         Box(
             modifier = Modifier
-                .width(780.dp)
-                .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CopilotShapes.R22, borderWidth = 1.5.dp)
-                .padding(20.dp)
+                .fillMaxWidth()
+                .raahiCard()
+                .padding(24.dp)
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -703,9 +510,9 @@ private fun SpeedometerOdometerCalibrationDialog(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(42.dp)
-                                .clip(CopilotShapes.R10)
-                                .background(CockpitTheme.colors.accentSoft),
+                                .size(48.dp)
+                                .clip(CopilotShapes.R12)
+                                .background(CockpitTheme.colors.cardElevated),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -717,13 +524,13 @@ private fun SpeedometerOdometerCalibrationDialog(
                         }
                         Column {
                             Text(
-                                text = "Calibrate Vehicle Odometer",
-                                style = CockpitTheme.typography.headlineMedium,
+                                text = "Calibrate odometer",
+                                style = CockpitTheme.typography.titleLarge,
                                 color = CockpitTheme.colors.textPrimary
                             )
                             Text(
-                                text = "Sync with physical car dashboard cluster reading",
-                                style = CockpitTheme.typography.bodySmall,
+                                text = "Enter the reading shown on the car's instrument cluster",
+                                style = CockpitTheme.typography.bodyMedium,
                                 color = CockpitTheme.colors.textSecondary
                             )
                         }
@@ -734,21 +541,18 @@ private fun SpeedometerOdometerCalibrationDialog(
                     if (currentVal != null) {
                         val diff = currentVal - currentOdometerKm
                         val diffText = if (kotlin.math.abs(diff) < 0.05) "Exact Match" else String.format(Locale.US, "%+.1f km", diff)
-                        val diffColor = if (kotlin.math.abs(diff) < 0.05) CockpitTheme.colors.accent else CockpitTheme.colors.warning
+                        val diffColor = if (kotlin.math.abs(diff) < 0.05) CockpitTheme.colors.positive else CockpitTheme.colors.warning
                         Box(
                             modifier = Modifier
-                                .clip(CopilotShapes.R8)
+                                .clip(Raahi.PillShape)
                                 .background(diffColor.copy(alpha = 0.15f))
-                                .border(1.2.dp, diffColor.copy(alpha = 0.5f), CopilotShapes.R8)
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .border(1.dp, diffColor.copy(alpha = 0.6f), Raahi.PillShape)
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 text = diffText,
-                                style = CockpitTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    fontFeatureSettings = "tnum"
-                                ),
-                                color = diffColor
+                                style = CockpitTheme.typography.headlineSmall,
+                                color = CockpitTheme.colors.textPrimary
                             )
                         }
                     }
@@ -769,8 +573,8 @@ private fun SpeedometerOdometerCalibrationDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.accent.copy(alpha = 0.6f), CopilotShapes.R12, borderWidth = 1.5.dp)
-                                .padding(horizontal = 16.dp, vertical = 14.dp)
+                                .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.accent, CopilotShapes.R14, borderWidth = 1.dp)
+                                .padding(horizontal = 18.dp, vertical = 18.dp)
                         ) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -778,27 +582,23 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "ODOMETER",
-                                    style = CockpitTheme.typography.labelMedium.copy(
-                                        letterSpacing = 0.5.sp
-                                    ),
+                                    text = "Odometer",
+                                    style = CockpitTheme.typography.labelLarge,
                                     color = CockpitTheme.colors.textSecondary
                                 )
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text(
                                         text = textValue.ifEmpty { "0.0" },
-                                        style = CockpitTheme.typography.displaySmall.copy(
-                                            fontFeatureSettings = "tnum"
-                                        ),
+                                        style = CockpitTheme.typography.displayMedium,
+                                        maxLines = 1,
+                                        softWrap = false,
                                         color = CockpitTheme.colors.textPrimary
                                     )
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        text = "KM",
-                                        style = CockpitTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Black
-                                        ),
-                                        color = CockpitTheme.colors.accent,
+                                        text = "km",
+                                        style = CockpitTheme.typography.titleMedium,
+                                        color = CockpitTheme.colors.textSecondary,
                                         modifier = Modifier.padding(bottom = 3.dp)
                                     )
                                 }
@@ -806,18 +606,16 @@ private fun SpeedometerOdometerCalibrationDialog(
                         }
 
                         Text(
-                            text = "Enter physical dashboard odometer reading. GPS trip tracking and lifetime distance will automatically calibrate.",
-                            style = CockpitTheme.typography.bodySmall,
+                            text = "GPS distance is scaled to match this reading. The first calibration only sets the starting point and never counts as fuel used.",
+                            style = CockpitTheme.typography.bodyMedium,
                             color = CockpitTheme.colors.textSecondary
                         )
 
                         if (errorMessage != null) {
                             Text(
                                 text = errorMessage ?: "",
-                                color = CockpitTheme.colors.critical,
-                                style = CockpitTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Bold
-                                )
+                                color = CockpitTheme.colors.criticalText,
+                                style = CockpitTheme.typography.bodyMedium
                             )
                         }
 
@@ -834,13 +632,13 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 onClick = onDismiss,
                                 modifier = Modifier
                                     .weight(0.40f)
-                                    .height(50.dp),
-                                shape = CopilotShapes.R10,
-                                border = androidx.compose.foundation.BorderStroke(1.2.dp, CockpitTheme.colors.border)
+                                    .height(56.dp),
+                                shape = CopilotShapes.R12,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, CockpitTheme.colors.border)
                             ) {
                                 Text(
                                     text = "Cancel",
-                                    color = CockpitTheme.colors.textSecondary,
+                                    color = CockpitTheme.colors.textPrimary,
                                     style = CockpitTheme.typography.labelLarge
                                 )
                             }
@@ -856,14 +654,14 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 },
                                 modifier = Modifier
                                     .weight(0.60f)
-                                    .height(50.dp),
-                                shape = CopilotShapes.R10,
+                                    .height(56.dp),
+                                shape = CopilotShapes.R12,
                                 colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
                             ) {
                                 Text(
-                                    text = "CONFIRM",
+                                    text = "Save reading",
                                     color = CockpitTheme.colors.onAccent,
-                                    style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Black)
+                                    style = CockpitTheme.typography.labelLarge
                                 )
                             }
                         }
@@ -873,12 +671,12 @@ private fun SpeedometerOdometerCalibrationDialog(
                     Box(
                         modifier = Modifier
                             .weight(0.45f)
-                            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R14, borderWidth = 1.2.dp)
-                            .padding(8.dp)
+                            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R16, borderWidth = 1.dp)
+                            .padding(10.dp)
                     ) {
                         Column(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             val keyRows = listOf(
                                 listOf("1", "2", "3"),
@@ -890,7 +688,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                             keyRows.forEach { row ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     row.forEach { key ->
                                         val isDel = key == "DEL"
@@ -901,10 +699,10 @@ private fun SpeedometerOdometerCalibrationDialog(
                                             textStyle = CockpitTheme.typography.headlineLarge.copy(fontFeatureSettings = "tnum"),
                                             text = if (isDel) "" else key,
                                             icon = if (isDel) Icons.AutoMirrored.Filled.Backspace else null,
-                                            accentColor = if (isDel) CockpitTheme.colors.critical else CockpitTheme.colors.textPrimary,
+                                            accentColor = CockpitTheme.colors.textPrimary,
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .height(52.dp),
+                                                .height(60.dp),
                                             onClick = {
                                                 errorMessage = null
                                                 when (key) {
@@ -928,11 +726,11 @@ private fun SpeedometerOdometerCalibrationDialog(
                                     pressedFillAlpha = 0.25f,
                                     showRipple = true,
                                     textStyle = CockpitTheme.typography.headlineLarge.copy(fontFeatureSettings = "tnum"),
-                                    text = "CLR",
-                                    accentColor = CockpitTheme.colors.critical,
+                                    text = "Clear",
+                                    accentColor = CockpitTheme.colors.textPrimary,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(48.dp),
+                                        .height(56.dp),
                                     onClick = {
                                         errorMessage = null
                                         textValue = ""

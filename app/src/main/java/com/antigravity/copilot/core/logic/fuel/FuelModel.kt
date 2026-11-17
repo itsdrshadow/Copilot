@@ -112,6 +112,20 @@ data class RefillOutcome(
  */
 object FuelModel {
 
+    /**
+     * Moves every stored odometer reference by [deltaKm]. Used when the uncalibrated app odometer
+     * is first set to the real dashboard reading: that jump is not distance driven, so it must not
+     * be divided by km/L into "burned" litres (which drove the tank negative / into unlogged debt).
+     */
+    fun rebaseOdometer(s: FuelModelState, deltaKm: Double): FuelModelState {
+        if (deltaKm == 0.0 || !deltaKm.isFinite()) return s
+        return s.copy(
+            anchorOdoKm = s.anchorOdoKm + deltaKm,
+            lastFullOdoKm = if (s.lastFullOdoKm >= 0.0) s.lastFullOdoKm + deltaKm else s.lastFullOdoKm,
+            lastGauge = s.lastGauge?.let { it.copy(odoKm = it.odoKm + deltaKm) }
+        )
+    }
+
     fun curve(s: FuelModelState): GaugeCurve = GaugeCurve.fit(s.actualCapacityL, s.observations)
 
     fun mileage(s: FuelModelState, nowMs: Long): MileageEstimate {

@@ -496,9 +496,39 @@ class FuelRepository private constructor(context: Context) {
     }
 
     fun calibrateOdometer(newOdometerReadingKm: Double, currentRecordedKm: Double) {
-        latestAppLifetimeKm = currentRecordedKm
-        OdometerManager.setBaselineOdometer(appContext, newOdometerReadingKm, currentRecordedKm)
-        _fuelState.update { buildFuelState() }
+        scope.launch {
+            stateMutex.withLock {
+                latestAppLifetimeKm = currentRecordedKm
+                applyRealOdometerLocked(newOdometerReadingKm, currentRecordedKm)
+                _fuelState.update { buildFuelState() }
+            }
+        }
+    }
+
+    /**
+     * Re-bases the app odometer on a real dashboard reading (caller holds [stateMutex]).
+     *
+     * The *first* real reading only sets the scale: the jump from the uncalibrated (near-zero)
+     * odometer to e.g. 45,000 km is not driven distance. The fuel model's odometer references move
+     * with it, so no litres are "burned" for it (no negative tank, no unlogged-fuel debt). Later
+     * readings are real corrections and keep the existing behaviour.
+     */
+    private suspend fun applyRealOdometerLocked(readingKm: Double, lifetimeKm: Double) {
+        if (!OdometerManager.isInitialized) OdometerManager.init(appContext)
+        val firstCalibration = !OdometerManager.odometerConfig.value.isManuallyVerified
+        latestAppLifetimeKm = lifetimeKm
+        val before = getEffectiveOdometer()
+        OdometerManager.setBaselineOdometer(appContext, readingKm, lifetimeKm)
+        if (!firstCalibration) return
+        val delta = getEffectiveOdometer() - before
+        if (delta == 0.0) return
+        model = FuelModel.rebaseOdometer(model, delta)
+        if (pendingAnchorOdometerKm > 0.0) {
+            pendingAnchorOdometerKm += delta
+            prefs.edit().putFloat("pending_anchor_odo", pendingAnchorOdometerKm.toFloat()).apply()
+        }
+        persistModelNow()
+        Log.i(TAG, "First odometer calibration: fuel model re-based by ${"%.1f".format(delta)} km")
     }
 
     fun syncOdometerDistance(currentRecordedKm: Double) {
@@ -665,7 +695,7 @@ class FuelRepository private constructor(context: Context) {
                     // The real dashboard odometer entered at every refill re-bases the app odometer
                     // and teaches the correction factor k (OdometerCorrection).
                     if (odometerKm > 0.0) {
-                        OdometerManager.setBaselineOdometer(appContext, odometerKm, recordedLifetimeKm)
+                        applyRealOdometerLocked(odometerKm, recordedLifetimeKm)
                     }
                     val effectiveOdo = if (odometerKm > 0.0) odometerKm else getEffectiveOdometer()
                     val safeTotalCost = if (totalCost > 0.0) totalCost else FuelMath.roundCurrency(litersAdded * pricePerLiter)

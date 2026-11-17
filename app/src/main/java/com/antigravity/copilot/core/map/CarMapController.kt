@@ -52,6 +52,10 @@ class CarMapController(
         private const val TRAIL_LAYER_ID = "copilot_trail_layer"
         private const val VEHICLE_SOURCE_ID = "copilot_vehicle_source"
         private const val VEHICLE_LAYER_ID = "copilot_vehicle_layer"
+        private const val VEHICLE_RING_LAYER_ID = "copilot_vehicle_ring_layer"
+        private const val GEOFENCE_SOURCE_ID = "copilot_geofence_source"
+        private const val GEOFENCE_LINE_LAYER_ID = "copilot_geofence_line_layer"
+        private const val GEOFENCE_LABEL_LAYER_ID = "copilot_geofence_label_layer"
         private const val TRAIL_MIN_INTERVAL_MS = 2_000L
         private const val ROAD_SOURCE_ID = "copilot_road_mileage_source"
         private const val ROAD_LAYER_ID = "copilot_road_mileage_layer"
@@ -83,22 +87,27 @@ class CarMapController(
         private const val RECENTER_EASE_MS = 800L
 
         // Speed EMA time constant and minimum zoom delta worth animating.
-        private const val SPEED_EMA_TAU_MS = 2_500.0
-        private const val ZOOM_EPSILON = 0.04
+        private const val SPEED_EMA_TAU_MS = 4_000.0
+        private const val ZOOM_EPSILON = 0.08
+        /** Puck GeoJSON updates are capped (each one re-serialises and re-tiles the source). */
+        private const val PUCK_FRAME_MS = 33L
 
         /**
-         * Speed → follow zoom. Piecewise-linear so the camera never steps:
-         * 0–5 km/h 17.5 · 5–30 → 16.0 · 30–60 → 14.8 · 60–100 → 13.5 · >100 13.5.
+         * Speed → follow zoom. Piecewise-linear so the camera never steps. Kept close in at town
+         * speeds (the old curve was already at 16.0 by 30 km/h, which read as "zoomed out" in
+         * slow traffic):
+         * 0–15 km/h 17.5 · 15–40 → 17.0 · 40–70 → 16.2 · 70–100 → 15.2 · 100–130 → 14.8 · >130 14.8.
          */
         fun autoZoomForSpeed(speedKmh: Double): Double {
             val v = speedKmh.coerceAtLeast(0.0)
             fun lerp(a: Double, b: Double, t: Double) = a + (b - a) * t.coerceIn(0.0, 1.0)
             return when {
-                v <= 5.0 -> 17.5
-                v <= 30.0 -> lerp(17.5, 16.0, (v - 5.0) / 25.0)
-                v <= 60.0 -> lerp(16.0, 14.8, (v - 30.0) / 30.0)
-                v <= 100.0 -> lerp(14.8, 13.5, (v - 60.0) / 40.0)
-                else -> 13.5
+                v <= 15.0 -> 17.5
+                v <= 40.0 -> lerp(17.5, 17.0, (v - 15.0) / 25.0)
+                v <= 70.0 -> lerp(17.0, 16.2, (v - 40.0) / 30.0)
+                v <= 100.0 -> lerp(16.2, 15.2, (v - 70.0) / 30.0)
+                v <= 130.0 -> lerp(15.2, 14.8, (v - 100.0) / 30.0)
+                else -> 14.8
             }
         }
 
@@ -266,6 +275,7 @@ class CarMapController(
             isStyleLoaded = false
             map.setStyle(Style.Builder().fromJson(json)) { style ->
                 if (mapboxMap !== map) return@setStyle
+                setupGeofenceLayers(style)
                 setupRoadMileageLayer(style)
                 setupTrailLayers(style)
                 setupVehicleLayer(style)
@@ -290,19 +300,21 @@ class CarMapController(
                 style.addSource(GeoJsonSource(TRAIL_SOURCE_ID, lastTrailCollection))
             }
             if (style.getLayer(TRAIL_LAYER_ID) == null) {
-                // 1 pass blue, 2 orange, 3+ red (PassColor)
+                // Raahi: single pass = trail cyan; overlaps 2 = orange, 3+ = red (pass classes
+                // from TrailOverlap / PassColor are unchanged).
+                val pal = mapPalette
                 val colour = Expression.step(
                     Expression.get("passes"),
-                    Expression.color(Color.parseColor("#2F80ED")),
-                    Expression.stop(2, Expression.color(Color.parseColor("#F2994A"))),
-                    Expression.stop(3, Expression.color(Color.parseColor("#EB5757")))
+                    Expression.color(Color.parseColor(pal.trail)),
+                    Expression.stop(2, Expression.color(Color.parseColor(pal.overlap2))),
+                    Expression.stop(3, Expression.color(Color.parseColor(pal.overlap3)))
                 )
                 style.addLayer(
                     LineLayer(TRAIL_LAYER_ID, TRAIL_SOURCE_ID).apply {
                         setProperties(
                             lineColor(colour),
-                            lineWidth(5.0f),
-                            lineOpacity(0.9f),
+                            lineWidth(6.0f),
+                            lineOpacity(0.95f),
                             lineCap(Property.LINE_CAP_ROUND),
                             lineJoin(Property.LINE_JOIN_ROUND)
                         )
@@ -320,13 +332,30 @@ class CarMapController(
             if (style.getSource(VEHICLE_SOURCE_ID) == null) {
                 style.addSource(GeoJsonSource(VEHICLE_SOURCE_ID, Point.fromLngLat(pos.longitude, pos.latitude)))
             }
+            val pal = mapPalette
+            if (style.getLayer(VEHICLE_RING_LAYER_ID) == null) {
+                // Soft cyan ring around the position dot.
+                style.addLayer(
+                    CircleLayer(VEHICLE_RING_LAYER_ID, VEHICLE_SOURCE_ID).apply {
+                        setProperties(
+                            circleRadius(20.0f),
+                            circleColor(Color.parseColor(pal.trail)),
+                            circleOpacity(0.18f),
+                            circleStrokeColor(Color.parseColor(pal.trail)),
+                            circleStrokeWidth(1.5f),
+                            circleStrokeOpacity(0.55f),
+                            circlePitchAlignment(Property.CIRCLE_PITCH_ALIGNMENT_MAP)
+                        )
+                    }
+                )
+            }
             if (style.getLayer(VEHICLE_LAYER_ID) == null) {
                 style.addLayer(
                     CircleLayer(VEHICLE_LAYER_ID, VEHICLE_SOURCE_ID).apply {
                         setProperties(
                             circleRadius(8.0f),
-                            circleColor(Color.parseColor("#00E5FF")),
-                            circleStrokeColor(Color.WHITE),
+                            circleColor(Color.parseColor(pal.trail)),
+                            circleStrokeColor(Color.parseColor(pal.puckRing)),
                             circleStrokeWidth(3.0f),
                             // Keep the puck flat on the road in 3D tilt.
                             circlePitchAlignment(Property.CIRCLE_PITCH_ALIGNMENT_MAP)
@@ -369,6 +398,74 @@ class CarMapController(
                 lastTrailCollection = fc
                 mapboxMap?.style?.getSourceAs<GeoJsonSource>(TRAIL_SOURCE_ID)?.setGeoJson(fc)
             }
+        }
+    }
+
+    // ---------------- Geofences (display only) ----------------
+    data class GeofenceRing(val name: String, val lat: Double, val lon: Double, val radiusM: Double)
+
+    @Volatile private var geofenceCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())
+
+    /** Enabled geofences drawn as dashed cyan circles with their name. Purely visual. */
+    fun updateGeofences(rings: List<GeofenceRing>) {
+        coroutineScope.launch(Dispatchers.Default) {
+            val features = rings.flatMap { g ->
+                val circle = Feature.fromGeometry(LineString.fromLngLats(circlePoints(g.lat, g.lon, g.radiusM)))
+                val label = Feature.fromGeometry(Point.fromLngLat(g.lon, g.lat)).apply { addStringProperty("name", g.name) }
+                listOf(circle, label)
+            }
+            val fc = FeatureCollection.fromFeatures(features)
+            withContext(Dispatchers.Main) {
+                geofenceCollection = fc
+                mapboxMap?.style?.getSourceAs<GeoJsonSource>(GEOFENCE_SOURCE_ID)?.setGeoJson(fc)
+            }
+        }
+    }
+
+    private fun circlePoints(lat: Double, lon: Double, radiusM: Double, steps: Int = 64): List<Point> {
+        val dLat = radiusM / 111_320.0
+        val dLon = radiusM / (111_320.0 * kotlin.math.cos(Math.toRadians(lat)).coerceAtLeast(0.01))
+        return (0..steps).map { i ->
+            val a = 2.0 * Math.PI * i / steps
+            Point.fromLngLat(lon + dLon * kotlin.math.cos(a), lat + dLat * kotlin.math.sin(a))
+        }
+    }
+
+    private fun setupGeofenceLayers(style: Style) {
+        try {
+            if (style.getSource(GEOFENCE_SOURCE_ID) == null) style.addSource(GeoJsonSource(GEOFENCE_SOURCE_ID, geofenceCollection))
+            val pal = mapPalette
+            if (style.getLayer(GEOFENCE_LINE_LAYER_ID) == null) {
+                style.addLayer(
+                    LineLayer(GEOFENCE_LINE_LAYER_ID, GEOFENCE_SOURCE_ID).apply {
+                        setFilter(Expression.eq(Expression.geometryType(), Expression.literal("LineString")))
+                        setProperties(
+                            lineColor(Color.parseColor(pal.geofence)),
+                            lineWidth(2.5f),
+                            lineOpacity(0.9f),
+                            lineDasharray(arrayOf(2f, 2f))
+                        )
+                    }
+                )
+            }
+            if (style.getLayer(GEOFENCE_LABEL_LAYER_ID) == null) {
+                style.addLayer(
+                    com.mapbox.mapboxsdk.style.layers.SymbolLayer(GEOFENCE_LABEL_LAYER_ID, GEOFENCE_SOURCE_ID).apply {
+                        setFilter(Expression.eq(Expression.geometryType(), Expression.literal("Point")))
+                        setProperties(
+                            textField(Expression.get("name")),
+                            textFont(arrayOf("Noto Sans Medium")),
+                            textSize(13f),
+                            textColor(Color.parseColor(pal.geofence)),
+                            textHaloColor(Color.parseColor(pal.labelHalo)),
+                            textHaloWidth(1.5f),
+                            textAllowOverlap(true)
+                        )
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error setting up geofence layers: ${e.message}")
         }
     }
 
@@ -432,9 +529,9 @@ class CarMapController(
                 // red (low km/L) -> yellow -> green (high km/L), relative to learned mileage
                 val colour = Expression.interpolate(
                     Expression.linear(), Expression.get("frac"),
-                    Expression.stop(0.0, Expression.color(Color.parseColor("#E53935"))),
-                    Expression.stop(0.5, Expression.color(Color.parseColor("#FDD835"))),
-                    Expression.stop(1.0, Expression.color(Color.parseColor("#43A047")))
+                    Expression.stop(0.0, Expression.color(Color.parseColor(mapPalette.mileageLow))),
+                    Expression.stop(0.5, Expression.color(Color.parseColor(mapPalette.mileageMid))),
+                    Expression.stop(1.0, Expression.color(Color.parseColor(mapPalette.mileageHigh)))
                 )
                 style.addLayer(
                     CircleLayer(ROAD_LAYER_ID, ROAD_SOURCE_ID).apply {
@@ -621,8 +718,12 @@ class CarMapController(
         puckAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = durationMs
             interpolator = LinearInterpolator()
+            var lastFrameMs = 0L
             addUpdateListener { a ->
                 val t = a.animatedFraction.toDouble()
+                val nowMs = SystemClock.uptimeMillis()
+                if (t < 1.0 && nowMs - lastFrameMs < PUCK_FRAME_MS) return@addUpdateListener
+                lastFrameMs = nowMs
                 setPuck(
                     LatLng(
                         from.latitude + (target.latitude - from.latitude) * t,

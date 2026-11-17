@@ -43,6 +43,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.designsystem.CockpitTheme
 
 /** Raahi layout constants. */
@@ -360,4 +368,48 @@ fun <T> SegmentedToggle(
 @Composable
 fun RowScope.VDivider(height: Dp = 28.dp) {
     Box(Modifier.width(1.dp).height(height).background(CockpitTheme.colors.border))
+}
+
+/**
+ * Raahi dialog host. Not limited to the platform's narrow default dialog width: the content gets
+ * up to [maxWidth] (never more than the screen), is centred, and scrolls when the screen is short
+ * or the font scale is large, so nothing is clipped. Tapping outside dismisses.
+ */
+@Composable
+fun RaahiDialogHost(
+    onDismissRequest: () -> Unit,
+    maxWidth: Dp = 880.dp,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onDismissRequest
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .widthIn(max = minOf(maxWidth, this.maxWidth))
+                    .fillMaxWidth()
+                    .heightIn(max = this.maxHeight)
+                    .verticalScroll(rememberScrollState())
+                    // Taps inside the dialog must not reach the dismiss handler behind it.
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {}
+                    ),
+                content = content
+            )
+        }
+    }
 }

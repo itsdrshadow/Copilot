@@ -115,7 +115,17 @@ data class MapPalette(
     val label: String,
     val labelMajor: String,
     val labelHalo: String,
-    val waterLabel: String
+    val waterLabel: String,
+    // Overlays drawn on the map (live + trip maps)
+    val trail: String = "#38D6FF",
+    val overlap2: String = "#FFA94D",
+    val overlap3: String = "#FF5C5C",
+    val overlap1Blue: String = "#5BA8FF",
+    val puckRing: String = "#EDF3FB",
+    val geofence: String = "#38D6FF",
+    val mileageLow: String = "#FF5C5C",
+    val mileageMid: String = "#FFB224",
+    val mileageHigh: String = "#34D399"
 )
 
 // ==================== RAAHI NIGHT ====================
@@ -188,7 +198,16 @@ object RaahiDay {
         label = "#4A5B75",
         labelMajor = "#0B1220",
         labelHalo = "#FFFFFF",
-        waterLabel = "#2C5F8E"
+        waterLabel = "#2C5F8E",
+        trail = "#0A9CC4",
+        overlap2 = "#E07B12",
+        overlap3 = "#D93A3A",
+        overlap1Blue = "#2F7FE0",
+        puckRing = "#FFFFFF",
+        geofence = "#0A9CC4",
+        mileageLow = "#D93A3A",
+        mileageMid = "#C27A00",
+        mileageHigh = "#0F9F6E"
     )
 }
 

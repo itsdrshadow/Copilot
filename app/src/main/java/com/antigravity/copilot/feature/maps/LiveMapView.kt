@@ -16,7 +16,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import com.antigravity.copilot.core.designsystem.components.Raahi
+import com.antigravity.copilot.core.designsystem.components.RaahiButton
+import com.antigravity.copilot.core.designsystem.components.raahiCard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -94,6 +100,8 @@ private class MapViewLifecycleHolder {
  * The panel is meant to stay composed for the whole session (see MainAppScreen): pass
  * [isCovered] = true while an opaque full-screen overlay hides it instead of removing it.
  */
+private const val MAP_MAX_FPS = 30
+
 @Composable
 fun LiveMapPanel(
     latestPoint: () -> TripPoint?,
@@ -156,6 +164,17 @@ fun LiveMapPanel(
         }
     }
 
+    // Enabled geofences as dashed circles with their names (display only).
+    val geofences by remember { com.antigravity.copilot.core.trip.TripGeofenceManager.getInstance(context.applicationContext).geofences }
+        .collectAsStateWithLifecycle()
+    LaunchedEffect(mapController, geofences) {
+        mapController.updateGeofences(
+            geofences.filter { it.isEnabled }.map {
+                CarMapController.GeofenceRing(it.name, it.latitude, it.longitude, it.radiusMeters.toDouble())
+            }
+        )
+    }
+
     // Live trail with overlap colouring (throttled + computed off the main thread)
     LaunchedEffect(mapController) {
         snapshotFlow { currentTrail() }.collect { mapController.updateTrail(it) }
@@ -208,7 +227,7 @@ fun LiveMapPanel(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0B0E14))
+            .background(CockpitTheme.colors.bg)
     ) {
         // MapLibre MapView with textureMode(true) to avoid black-screen head unit GPU bugs
         AndroidView(
@@ -225,6 +244,9 @@ fun LiveMapPanel(
 
                 MapView(ctx, options).apply {
                     onCreate(null)
+                    // Follow mode re-renders continuously while driving; 30 fps is smooth for a
+                    // car display and halves map GL + window composite work on head units.
+                    setMaximumFps(MAP_MAX_FPS)
                     lifecycleHolder.mapView = this
                     // The lifecycle observer may already have replayed ON_START/ON_RESUME before this
                     // view existed (fresh launch): bring the MapView up to the current state, or it
@@ -242,143 +264,122 @@ fun LiveMapPanel(
             }
         )
 
-        // Missing Offline Map Prompt Overlay (if no .mbtiles file found)
+        // Missing offline map prompt
         if (!hasMapInstalled) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .zIndex(15f)
-                    .background(Color.Black.copy(alpha = 0.75f)),
+                    .background(CockpitTheme.colors.scrim),
                 contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    color = Color(0xFF131C28),
-                    shape = CopilotShapes.R16,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.6f)),
-                    modifier = Modifier.padding(24.dp)
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .widthIn(max = 460.dp)
+                        .raahiCard()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CloudDownload,
-                            contentDescription = null,
-                            tint = CockpitTheme.colors.accent,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = if (activeRegionTitle != null) "NO MAP FOR ${activeRegionTitle?.uppercase()}" else "NO OFFLINE MAP INSTALLED",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Import india.pmtiles (Import map file) or set a download URL — see MAP_SETUP.md",
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
-                        Spacer(modifier = Modifier.height(18.dp))
-                        Button(
-                            onClick = { showOfflineManagerDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent),
-                            shape = CopilotShapes.R12,
-                            modifier = Modifier.height(52.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Map, contentDescription = null, tint = Color.Black)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "OPEN OFFLINE MAPS MANAGER",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Black
-                            )
-                        }
-                    }
+                    Icon(Icons.Outlined.CloudDownload, contentDescription = null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(40.dp))
+                    Text(
+                        text = if (activeRegionTitle != null) "No map for $activeRegionTitle" else "No offline map installed",
+                        style = CockpitTheme.typography.titleLarge,
+                        color = CockpitTheme.colors.textPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = "Import india.pmtiles or set a download URL in the offline maps manager (see MAP_SETUP.md).",
+                        style = CockpitTheme.typography.bodyMedium,
+                        color = CockpitTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                    RaahiButton(
+                        text = "Open offline maps",
+                        icon = Icons.Outlined.Map,
+                        onClick = { showOfflineManagerDialog = true }
+                    )
                 }
             }
         }
 
-        // Left Speed Limit Badge
+        // Speed-limit sign: shown once, top-left of the map.
         if (speedLimitInfo.speedLimitKmh > 0) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .size(54.dp)
-                    .background(Color.White, CircleShape)
-                    .border(4.dp, Color.Red, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "${speedLimitInfo.speedLimitKmh}",
-                    fontWeight = FontWeight.Black,
-                    fontSize = 20.sp,
-                    color = Color.Black
-                )
-            }
+            SpeedLimitSign(
+                limitKmh = speedLimitInfo.speedLimitKmh,
+                modifier = Modifier.align(Alignment.TopStart).padding(14.dp)
+            )
         }
 
-        // Right-side driving controls: three large targets (Compass, Recenter, Menu); secondary
-        // actions live in an expandable menu. Zoom is pinch / double-tap only.
+        // Legend chip top-right: trail overlap, or the mileage scale while that overlay is on.
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(14.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OverlapLegendChip()
+            if (roadMileageVisible) MileageLegendChip()
+        }
+
+        // Map controls, bottom-right: secondary menu, heading, recenter (52 dp).
         Row(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
+                .align(Alignment.BottomEnd)
                 .zIndex(20f)
-                .padding(end = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(14.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             AnimatedVisibility(visible = menuExpanded, enter = fadeIn(), exit = fadeOut()) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.End) {
                     MapMenuItem(
-                        icon = if (is3DActive) Icons.Default.ViewInAr else Icons.Default.Layers,
+                        icon = if (is3DActive) Icons.Outlined.ViewInAr else Icons.Outlined.Layers,
                         label = if (is3DActive) "Auto 3D (moving)" else "2D only",
                         isActive = is3DActive,
                         onClick = { mapController.toggle3DTilt(); menuExpanded = false }
                     )
                     MapMenuItem(
-                        icon = Icons.Default.LocalGasStation,
-                        label = "Fuel overlay",
+                        icon = Icons.Outlined.LocalGasStation,
+                        label = "Mileage overlay",
                         isActive = roadMileageVisible,
                         onClick = { mapController.toggleRoadMileage(); menuExpanded = false }
                     )
                     MapMenuItem(
-                        icon = Icons.Default.CloudDownload,
+                        icon = Icons.Outlined.CloudDownload,
                         label = "Offline maps",
                         isActive = false,
                         onClick = { showOfflineManagerDialog = true; menuExpanded = false }
                     )
                     MapMenuItem(
-                        icon = if (isFullScreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                        icon = if (isFullScreen) Icons.Outlined.FullscreenExit else Icons.Outlined.Fullscreen,
                         label = if (isFullScreen) "Exit full screen" else "Full screen",
                         isActive = isFullScreen,
                         onClick = { onToggleFullScreen(); menuExpanded = false }
                     )
                 }
             }
-
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                // Heading-Up / North-Up
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 MapFloatingButton(
-                    icon = if (isHeadingUp) Icons.Default.Explore else Icons.Default.Navigation,
+                    icon = if (menuExpanded) Icons.Outlined.Close else Icons.Outlined.MoreVert,
+                    contentDescription = if (menuExpanded) "Close map menu" else "Map options",
+                    isActive = menuExpanded,
+                    onClick = { menuExpanded = !menuExpanded }
+                )
+                MapFloatingButton(
+                    icon = if (isHeadingUp) Icons.Outlined.Explore else Icons.Outlined.Navigation,
                     contentDescription = if (isHeadingUp) "Heading up (tap for north up)" else "North up (tap for heading up)",
-                    isActive = isHeadingUp,
+                    isActive = false,
                     onClick = { mapController.toggleHeadingMode() }
                 )
                 // Highlighted while follow / auto-zoom is suspended by a gesture: tap to resume.
                 MapFloatingButton(
-                    icon = if (isFollowing) Icons.Default.MyLocation else Icons.Default.LocationSearching,
+                    icon = if (isFollowing) Icons.Outlined.MyLocation else Icons.Outlined.LocationSearching,
                     contentDescription = if (isFollowing) "Recenter" else "Resume follow",
                     isActive = !isFollowing,
                     onClick = { mapController.recenter() }
-                )
-                MapFloatingButton(
-                    icon = if (menuExpanded) Icons.Default.Close else Icons.Default.Menu,
-                    contentDescription = if (menuExpanded) "Close map menu" else "Open map menu",
-                    isActive = menuExpanded,
-                    onClick = { menuExpanded = !menuExpanded }
                 )
             }
         }
@@ -409,16 +410,15 @@ fun LiveMapPanel(
     }
 }
 
-/** Map HUD chrome: dark capsule, vivid cyan when active. */
+/** Map control surface: solid card, cyan fill when active (icon then on-accent). */
 @Composable
-private fun Modifier.mapHudSurface(isActive: Boolean, idleAlpha: Float): Modifier {
-    return this.clip(CircleShape)
-        .background(if (isActive) CockpitTheme.colors.accent else Color(0xFF141C28).copy(alpha = idleAlpha))
-        .border(1.dp, if (isActive) CockpitTheme.colors.accent else Color(0xFF263346), CircleShape)
+private fun Modifier.mapControlSurface(isActive: Boolean, shape: androidx.compose.ui.graphics.Shape): Modifier {
+    val c = CockpitTheme.colors
+    return this
+        .clip(shape)
+        .background(if (isActive) c.accent else c.card)
+        .border(1.dp, if (isActive) c.accent else c.border, shape)
 }
-
-@Composable
-private fun mapHudOnActive(): Color = Color.Black
 
 @Composable
 private fun MapFloatingButton(
@@ -427,18 +427,19 @@ private fun MapFloatingButton(
     isActive: Boolean,
     onClick: () -> Unit
 ) {
+    val c = CockpitTheme.colors
     Box(
         modifier = Modifier
-            .size(68.dp)
-            .mapHudSurface(isActive, idleAlpha = 0.9f)
-            .clickable { onClick() },
+            .size(Raahi.RecenterSize)
+            .mapControlSurface(isActive, RoundedCornerShape(16.dp))
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (isActive) mapHudOnActive() else CockpitTheme.colors.textPrimary,
-            modifier = Modifier.size(32.dp)
+            tint = if (isActive) c.onAccent else c.textPrimary,
+            modifier = Modifier.size(24.dp)
         )
     }
 }
@@ -450,17 +451,89 @@ private fun MapMenuItem(
     isActive: Boolean,
     onClick: () -> Unit
 ) {
+    val c = CockpitTheme.colors
     Row(
         modifier = Modifier
-            .height(56.dp)
-            .mapHudSurface(isActive, idleAlpha = 0.95f)
-            .clickable { onClick() }
-            .padding(horizontal = 18.dp),
+            .height(Raahi.RecenterSize)
+            .mapControlSurface(isActive, Raahi.PillShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val tint = if (isActive) mapHudOnActive() else CockpitTheme.colors.textPrimary
-        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+        val tint = if (isActive) c.onAccent else c.textPrimary
+        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
         Spacer(modifier = Modifier.width(10.dp))
-        Text(text = label, color = tint, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Text(text = label, color = tint, style = CockpitTheme.typography.labelLarge, maxLines = 1)
+    }
+}
+
+/** Regulatory speed-limit sign (white disc, red ring); the sign colours are fixed by law, not theme. */
+@Composable
+fun SpeedLimitSign(limitKmh: Int, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 56.dp) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(SignWhite)
+            .border(size * 0.09f, SignRed, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "$limitKmh",
+            style = CockpitTheme.typography.headlineMedium,
+            color = SignBlack,
+            maxLines = 1
+        )
+    }
+}
+
+private val SignWhite = Color(0xFFFFFFFF)
+private val SignRed = Color(0xFFD7262E)
+private val SignBlack = Color(0xFF0B1220)
+
+@Composable
+private fun LegendDot(color: Color) {
+    Box(Modifier.size(10.dp).clip(CircleShape).background(color))
+}
+
+@Composable
+private fun LegendChipFrame(content: @Composable RowScope.() -> Unit) {
+    val c = CockpitTheme.colors
+    Row(
+        modifier = Modifier
+            .clip(Raahi.PillShape)
+            .background(c.card)
+            .border(1.dp, c.border, Raahi.PillShape)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        content = content
+    )
+}
+
+/** Trail legend: single pass (cyan), 2 passes (orange), 3+ passes (red). */
+@Composable
+fun OverlapLegendChip() {
+    val c = CockpitTheme.colors
+    val label = CockpitTheme.typography.labelMedium
+    LegendChipFrame {
+        LegendDot(c.accent); Text("1×", style = label, color = c.textPrimary)
+        Spacer(Modifier.width(4.dp))
+        LegendDot(c.overlapOrange); Text("2×", style = label, color = c.textPrimary)
+        Spacer(Modifier.width(4.dp))
+        LegendDot(c.critical); Text("3×+", style = label, color = c.textPrimary)
+    }
+}
+
+/** Mileage scale: red (low km/L) → amber → green (high km/L), relative to learned mileage. */
+@Composable
+fun MileageLegendChip() {
+    val c = CockpitTheme.colors
+    val label = CockpitTheme.typography.labelMedium
+    LegendChipFrame {
+        Text("km/L", style = label, color = c.textSecondary)
+        LegendDot(c.critical); Text("Low", style = label, color = c.textPrimary)
+        LegendDot(c.warning)
+        LegendDot(c.positive); Text("High", style = label, color = c.textPrimary)
     }
 }
