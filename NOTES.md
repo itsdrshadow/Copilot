@@ -1,3 +1,89 @@
+# NOTES — `raahi-ui` branch (v2.1.0): Raahi UI theme
+
+UI-only rework, plus the fuel/odometer/map fixes requested during the work (listed separately
+below). App name, icon, applicationId, database schema, tracking, geofence and map logic are
+unchanged. All 383 unit tests pass.
+
+## Screens and toolkit
+The UI is 100 % **Jetpack Compose**; there are no XML layouts (only `MainActivity` + `RecoveryActivity`).
+
+| Screen | Files |
+|---|---|
+| Drive (dashboard) | `feature/dashboard/DashboardScreen.kt`, `DrivePanel.kt`, `SpeedometerCluster.kt`, `FuelTankCard.kt`, `CurrentTripCard.kt`, `SmartMusicClockCard.kt`, `feature/maps/LiveMapView.kt` |
+| Maps (full-screen map) | same map panel, expanded in place (tab 1) |
+| Trips list + Trip summary | `feature/trips/TripHistoryScreen.kt`, `TripDetailViews.kt`, `TripSummaryPanel.kt`, `TripPlaybackMapView.kt`, `TripCharts.kt` |
+| Fuel | `feature/fuel/FuelHistoryScreen.kt`, `FuelScreenPanels.kt` |
+| Log refuel dialog | `feature/fuel/FuelEntryDialog.kt`, `FuelGaugeCard.kt` |
+| Refuel-station prompt | `feature/fuel/RefuelStationPromptDialog.kt` |
+| Settings (General / Vehicle / Geofences / Data / About) | `feature/settings/LauncherSettingsDialog.kt`, `GeofenceSettingsContent.kt` |
+| Offline maps manager | `feature/maps/OfflineMapsManagerScreen.kt` |
+| App drawer | `feature/launcher/AppDrawerScreen.kt` |
+| Splash | `feature/splash/*` |
+| Crash recovery | `core/recovery/RecoveryActivity.kt` |
+
+## What changed (commits)
+| Commit | Step |
+|---|---|
+| `UI: theme` | One theme file `core/designsystem/colors/CockpitColors.kt` (Raahi Night + Day, map palette), `Theme.kt` (Auto/Night/Day), `DayNight.kt` (light sensor → clock fallback), `typography/AutomotiveTypography.kt` (Barlow Semi Condensed + Inter, bundled), `components/RaahiComponents.kt` (card, pill, segment bar, stat cells, buttons, info line, dialog host). |
+| `UI: navigation` | `RaahiNavRail` (76 dp). Drive / Trips / Fuel / Maps / Apps, Settings pinned bottom. Dock removed. |
+| `UI: drive` | Drive screen, map styling, odometer popup, gauge calibration popup, zoom curve, map frame cap. |
+| `UI: fuel dialogs + fuel/odometer logic fixes` | Log refuel redesign and the fuel fixes below. |
+| `UI: fuel` | Fuel screen layout, Auto chip, fuel-log distance fix. |
+| `UI: rest of app` | `Palette` → role mapping onto Raahi tokens; remaining literals mapped; black/white button labels. |
+| `UI: trip summary` | Trail/Overlap toggle + summary panel. |
+| final | Small-screen fixes, backup disk-write reduction, docs, version 2.1.0. |
+
+## Defaults chosen (no questions asked, per the brief)
+- **Screenshots:** the brief mentions attached screenshots of the target UI, but none reached me. The layout follows the written spec exactly.
+- **Default appearance:** the stored setting is respected. A fresh install starts on Auto. This device already had `night` stored by the old version, so it stays on Night (the spec's default) until the driver picks Auto or Day.
+- **Auto day/night:** day above 400 lux, night below 40 lux, no change in between, and a change must hold for 8 s (tunnels, overpasses). With no light sensor it follows the clock: day is 06:30–18:30.
+- **Day theme contrast:** the spec's Day cyan, amber and green measure 2.7–3.5:1 against white, below the 4.5:1 target. They are kept as specified for fills, bars and icons. Coloured *text* uses darker tokens (`accentText`, `warningText`, `positiveText`, `criticalText`) that pass 4.5:1. Night passes everywhere. All of this is pinned by `CockpitThemeSystemTest`.
+- **Button labels:** always near-black or white, chosen by contrast (`contentColorOn`). This was your request.
+- **Overlap colours:**
+  - **Live Drive map:** a single pass is the cyan trail, 2 passes orange, 3+ red.
+  - **Trip summary Overlap layer:** the spec's blue / orange / red, mapped to the existing pass classes (1 / 2 / 3+).
+  - The pass logic (`TrailOverlap` / `PassColor`) is unchanged.
+- **Mileage map layer on the trip summary:** there is no per-trip mileage data, so the toggle exists in code (`TripMapLayer.MILEAGE`) but stays hidden (`TRIP_MILEAGE_LAYER_AVAILABLE = false`). The *live* map's road-mileage overlay (menu › Mileage overlay) keeps working and has a red → amber → green legend.
+- **Features with no place in the new Drive layout, kept in secondary areas:**
+  - **Rotating trip metrics** (score, cost, peak braking, fuel used): tap the trip pill or the trip strip.
+  - **Manual start/end trip:** long-press the trip pill.
+  - **Music player:** tap the clock.
+  - **Odometer calibration:** tap Odometer in the trip strip.
+  - **Gauge calibration:** tap the fuel bar.
+  - **3D, mileage overlay, offline maps, full screen:** the map ⋮ menu.
+  - **Apps drawer:** its own rail item.
+- **Calibrate gauge card on the Fuel screen:** your later instruction was that calibration happens only from the home-screen gauge. So the Fuel screen shows a read-only gauge card with "Go to Drive". The Log refuel gauge is display-only.
+- **Add fuel form on the Fuel screen:** opens the same Log refuel dialog as the Drive card, so the refuel maths lives in one place.
+- **Rail labels** follow the font scale up to 1.15×, never below 12 sp, so "Settings" fits the 76 dp rail at 1.3×.
+- **Speed-limit sign colours** (white / red / black) are fixed by road-sign convention, not by the theme. The splash animation keeps a fixed dark brand palette (`BrandPalette`).
+- Google Sans was removed. Barlow Semi Condensed 500/600 and Inter 400/500 are in `res/font`, with their OFL licences in `assets/licenses`.
+
+## Logic fixes requested during the work
+1. **First odometer calibration and negative litres:** `FuelModel.isCalibrationJump` + `rebaseOdometer`. Any real reading whose jump would push the tank below 0 L, or the first reading, re-bases the model instead of burning fuel. The "verified" flag alone was unreliable, because backup restore and legacy migration set it. Tested in `FuelModelTest`, and verified on the emulator: 45,000 → 90,000 km kept 48 L.
+2. **Log refuel:** saves "gauge not observed" (`-1`). Before, an auto-computed whole-bar value overrode the litres and trained the gauge curve on its own estimate. The odometer is sent only if typed. On a full fill the projection shows capacity. Verified: ₹2000 at ₹96.50 → 20.73 L, and the tank went 8.8 → 29.5 L.
+3. **Fuel log summary:** odometer recalibration steps (> 45 km per litre) are not counted as distance (`FuelHistoryDistanceTest`).
+4. **Map lag** (measured on the emulator with a simulated 40 km/h drive):
+
+   | Metric | Before | After |
+   |---|---|---|
+   | CPU | ~165 % | ~98 % |
+   | Median frame | 57 ms | 34 ms |
+   | 90th-percentile frame | 93 ms | 46 ms |
+   | Slow main-thread frames | 57 % | 10 % |
+   | RSS | ~240 MB | ~250 MB (steady) |
+
+   Causes and fixes: the map now renders at max 30 fps (`setMaximumFps`), and puck GeoJSON updates are capped at 30 Hz (they ran every 60 Hz animation frame on the main thread). The remaining "slow draw issue" frames come from emulator GPU emulation.
+5. **Zoom at low speed:** `autoZoomForSpeed` gives 17.5 up to 15 km/h, 17.0 at 40, 16.2 at 70, 15.2 at 100 and 14.8 at 130+. It used to be 16.0 at 30 km/h. The speed EMA τ is 4 s and the zoom dead-band is 0.08.
+6. **Disk:** backups skip the write when the content is unchanged, and paths the OS refuses (`/sdcard/Copilot` on Android 11) are no longer retried every 30 s.
+7. **Trail:** a throttled update is now re-run, so the trail reaches the car after you stop.
+
+## Verification
+- Emulator (API 30, 1280×800 tablet, landscape): Night and Day; small phone emulated at 640×360 dp at 1.3× font scale, with no clipped text after the rail-label and legend fixes; tablet at 1.3×. The app launches, the process stays alive, and the crash buffer is empty.
+- Screenshots: `docs/raahi/` (`before_*.png` from v2.0.0, `after_*.png` from v2.1.0).
+- Known, not caused by this change: the first tap after launch can be swallowed by Android's immersive-mode hint.
+
+---
+
 # NOTES — `improve-logic` branch (v1.43.0)
 
 Companion docs: `AUDIT.md` (state before), `MAP_SETUP.md` (building and installing the India map),

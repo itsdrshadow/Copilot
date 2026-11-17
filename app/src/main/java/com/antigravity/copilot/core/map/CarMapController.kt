@@ -423,7 +423,8 @@ class CarMapController(
         coroutineScope.launch(Dispatchers.Default) {
             val features = rings.flatMap { g ->
                 val circle = Feature.fromGeometry(LineString.fromLngLats(circlePoints(g.lat, g.lon, g.radiusM)))
-                val label = Feature.fromGeometry(Point.fromLngLat(g.lon, g.lat)).apply { addStringProperty("name", g.name) }
+                // Label on the top edge of the circle so the vehicle dot at the centre never hides it.
+                val label = Feature.fromGeometry(Point.fromLngLat(g.lon, g.lat + g.radiusM / 111_320.0)).apply { addStringProperty("name", g.name) }
                 listOf(circle, label)
             }
             val fc = FeatureCollection.fromFeatures(features)

@@ -358,6 +358,12 @@ object PersistentDataManager {
      * Atomically backs up current database state and preferences to permanent storage.
      * Throttles disk writes to minimum 30s interval to prevent automotive NAND flash wear (Feature 23).
      */
+    /** Hash of the last backup body actually written (timestamp excluded): unchanged data is not rewritten. */
+    @Volatile private var lastWrittenContentHash: Int = 0
+
+    /** Backup paths the OS refused (EACCES / EPERM on scoped storage): not retried in this process. */
+    private val deniedTargets: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+
     fun backupAsync(context: Context, minIntervalMs: Long = MIN_BACKUP_INTERVAL_MS, force: Boolean = false) {
         val now = System.currentTimeMillis()
         synchronized(backupLock) {
@@ -527,8 +533,17 @@ object PersistentDataManager {
                 val stationJson = com.antigravity.copilot.core.fuel.StationPriceManager.exportToJsonString(appContext)
                 root.put("station_prices", stationJson)
 
+                // Skip the disk write entirely when nothing changed since the last backup
+                // (the 30 s cadence while driving used to rewrite identical data every time).
+                val stamp = root.remove("backupTimestamp")
+                val contentHash = root.toString().hashCode()
+                root.put("backupTimestamp", stamp)
+                if (!force && contentHash == lastWrittenContentHash) {
+                    Log.d(TAG, "Backup unchanged; skipping write")
+                    return@launch
+                }
                 val jsonContent = root.toString()
-                val targetFiles = getBackupFiles(appContext)
+                val targetFiles = getBackupFiles(appContext).filter { it.absolutePath !in deniedTargets }
                 for (target in targetFiles) {
                     try {
                         val parent = target.parentFile
@@ -547,10 +562,15 @@ object PersistentDataManager {
                             if (target.exists()) target.delete()
                             tempFile.renameTo(target)
                         }
+                    } catch (fe: java.io.FileNotFoundException) {
+                        // Permission denied (scoped storage): remember it, log once, never retry.
+                        deniedTargets += target.absolutePath
+                        Log.w(TAG, "Backup target not writable, skipping from now on: ${target.absolutePath} (${fe.message})")
                     } catch (fe: Exception) {
                         Log.w(TAG, "Failed writing to target ${target.absolutePath}", fe)
                     }
                 }
+                lastWrittenContentHash = contentHash
                 Log.d(TAG, "Permanent backup saved (${trips.size} trips, ${fuelEvents.size} fuel events, ${ledgerEvents.size} ledger events)")
             } catch (e: Exception) {
                 Log.e(TAG, "Error performing backup", e)

@@ -20,7 +20,13 @@ import java.util.Date
 import java.util.Locale
 
 /** Map layers on the trip map. MILEAGE is defined but hidden: there is no per-trip mileage data. */
-enum class TripMapLayer(val label: String) { TRAIL("Trail"), OVERLAP("Overlap"), MILEAGE("Mileage") }
+enum class TripMapLayer(
+    val label: String,
+) {
+    TRAIL("Trail"),
+    OVERLAP("Overlap"),
+    MILEAGE("Mileage"),
+}
 
 /** Per-trip mileage colouring does not exist in the app yet, so the Mileage toggle stays hidden. */
 const val TRIP_MILEAGE_LAYER_AVAILABLE = false
@@ -38,27 +44,44 @@ private fun minutesText(ms: Long): String {
  * that fuel figures are estimates.
  */
 @Composable
-fun TripSummaryPanel(trip: TripEntity, modifier: Modifier = Modifier) {
+fun TripSummaryPanel(
+    trip: TripEntity,
+    modifier: Modifier = Modifier,
+) {
     val c = CockpitTheme.colors
-    val date = remember(trip.startTime) {
-        SimpleDateFormat("EEE, d MMM yyyy · h:mm a", Locale.getDefault()).format(Date(trip.startTime))
-    }
-    val totalMs = if (trip.endTime > trip.startTime) trip.endTime - trip.startTime
-    else trip.drivingDurationMs + trip.stationaryDurationMs
+    val date =
+        remember(trip.startTime) {
+            SimpleDateFormat("EEE, d MMM yyyy · h:mm a", Locale.getDefault()).format(Date(trip.startTime))
+        }
+    val totalMs =
+        if (trip.endTime > trip.startTime) {
+            trip.endTime - trip.startTime
+        } else {
+            trip.drivingDurationMs + trip.stationaryDurationMs
+        }
 
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Column {
             Text(date, style = CockpitTheme.typography.titleMedium, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val from = trip.startLocationName.ifBlank { "Start" }
             val to = trip.endLocationName.ifBlank { "End" }
-            Text("$from → $to", style = CockpitTheme.typography.bodyMedium, color = c.textSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                "$from → $to",
+                style = CockpitTheme.typography.bodyMedium,
+                color = c.textSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
 
         @Composable
-        fun pair(a: @Composable (Modifier) -> Unit, b: @Composable (Modifier) -> Unit) {
+        fun pair(
+            a: @Composable (Modifier) -> Unit,
+            b: @Composable (Modifier) -> Unit,
+        ) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 a(Modifier.weight(1f))
                 b(Modifier.weight(1f))
@@ -67,15 +90,15 @@ fun TripSummaryPanel(trip: TripEntity, modifier: Modifier = Modifier) {
 
         pair(
             { StatCard("Distance", NumberFormatUtils.formatDistance(trip.distanceMeters / 1000.0), unit = "km", modifier = it) },
-            { StatCard("Trip time", minutesText(totalMs), modifier = it) }
+            { StatCard("Trip time", minutesText(totalMs), modifier = it) },
         )
         pair(
             { StatCard("Moving", minutesText(trip.drivingDurationMs), modifier = it) },
-            { StatCard("Idle", minutesText(trip.stationaryDurationMs), modifier = it) }
+            { StatCard("Idle", minutesText(trip.stationaryDurationMs), modifier = it) },
         )
         pair(
             { StatCard("Max speed", "${trip.maxSpeedKmh.toInt()}", unit = "km/h", modifier = it) },
-            { StatCard("Avg speed", "${trip.avgSpeedKmh.toInt()}", unit = "km/h", modifier = it) }
+            { StatCard("Avg speed", "${trip.avgSpeedKmh.toInt()}", unit = "km/h", modifier = it) },
         )
         pair(
             { StatCard("Est. fuel", NumberFormatUtils.formatFuelLiters(trip.estimatedFuelLiters, 2), unit = "L", modifier = it) },
@@ -84,9 +107,9 @@ fun TripSummaryPanel(trip: TripEntity, modifier: Modifier = Modifier) {
                     "Trip mileage",
                     if (trip.calculatedMileageKmpl > 0) NumberFormatUtils.formatMileage(trip.calculatedMileageKmpl, 1) else "--",
                     unit = "km/L",
-                    modifier = it
+                    modifier = it,
                 )
-            }
+            },
         )
         pair(
             {
@@ -94,22 +117,44 @@ fun TripSummaryPanel(trip: TripEntity, modifier: Modifier = Modifier) {
                     "Best mileage",
                     if (trip.bestMileageKmpl > 0) NumberFormatUtils.formatMileage(trip.bestMileageKmpl, 1) else "--",
                     unit = "km/L",
-                    modifier = it
+                    modifier = it,
                 )
             },
-            { StatCard("Drive score", "${trip.driverScore}", modifier = it) }
+            { StatCard("Drive score", "${trip.driverScore}", modifier = it) },
         )
 
         RaahiLabel("Driving events")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            RaahiPill("${trip.brakeCount} braking", color = if (trip.brakeCount > 0) c.critical else c.textSecondary, filled = trip.brakeCount > 0)
-            RaahiPill("${trip.accelCount} hard accel.", color = if (trip.accelCount > 0) c.accent else c.textSecondary, filled = trip.accelCount > 0)
+            RaahiPill(
+                "${trip.brakeCount} braking",
+                color =
+                    if (trip.brakeCount >
+                        0
+                    ) {
+                        c.critical
+                    } else {
+                        c.textSecondary
+                    },
+                filled = trip.brakeCount > 0,
+            )
+            RaahiPill(
+                "${trip.accelCount} hard accel.",
+                color =
+                    if (trip.accelCount >
+                        0
+                    ) {
+                        c.accent
+                    } else {
+                        c.textSecondary
+                    },
+                filled = trip.accelCount > 0,
+            )
         }
 
         Text(
             "Fuel and mileage for a trip are estimates from distance, speed and your learned km/L. They never change the tank level.",
             style = CockpitTheme.typography.bodySmall,
-            color = c.textSecondary
+            color = c.textSecondary,
         )
     }
 }

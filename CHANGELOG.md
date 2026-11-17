@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-11-17
+
+### Changed
+- **New "Raahi" look across the app.** Raahi Night is the default, and there is a Raahi Day theme. It uses flat solid cards (20dp radius, 1dp border, no blur), with Barlow Semi Condensed for numbers (tabular digits) and Inter for labels, both bundled for offline use. Colour only carries meaning: cyan is live, green/amber/red show fuel level and state, green means cruising and red means braking. All colours come from one theme file (`CockpitColors.kt`). The old `Palette` names now point at the active Raahi colours.
+- **Day/night switching.** Settings › General › Appearance offers Auto, Raahi Night and Raahi Day. Auto follows the ambient light sensor, with hysteresis and an 8s settle. If the device has no light sensor, Auto follows the clock (day is 06:30–18:30). The map's basemap switches with the theme.
+- **Left navigation rail (76dp).** It holds Drive, Trips, Fuel, Maps and Apps, with Settings pinned at the bottom. It replaces the dashboard dock and keeps the same destinations.
+- **Drive screen.** The map sits in the centre and the right panel holds:
+  - a trip pill (live state with from → to) and a clock
+  - a Speed card with a large readout, a limit bar with a red tick, a state chip and the acceleration
+  - a Fuel card (colour-coded percent, 10 segments, range, km/L, Add fuel)
+  - a trip strip (time, distance, odometer)
+
+  The speed-limit sign appears once, on the map. Tap the trip pill for the full trip card, or long-press it to start or end a trip by hand. Tap the clock for the music player.
+- **Map.** The trail is drawn 6dp in cyan, with orange or red where a road is driven again. The car's position dot has a ring. Each geofence shows as a dashed circle with its name. There is an overlap legend, the recenter button is 52dp, and the controls sit bottom-right.
+- **Trip summary.** The map has a Trail | Overlap toggle next to a stats panel with 2-column stat cards, a driving-events row and a note that fuel figures are estimates.
+- **Fuel screen.** The left side has a Tank card and a gauge status card. The right side has Add fuel and the fuel log, where entries the app created automatically carry an "Auto" chip.
+- **Log refuel, odometer and gauge calibration popups were redrawn for Raahi.** They are larger and fit the screen, scrolling when the screen is short or the font is large. The gauge calibration buttons look like the home-screen gauge. Every button label is now black or white, whichever has more contrast.
+- **The car stays closer on the map at town speeds.** Driving zoom is 17.5 up to 15 km/h and about 17.0 at 40 km/h; it used to be 16.0 by 30 km/h. Speed smoothing is slower, so the zoom no longer pumps in stop-go traffic.
+
+### Fixed
+- **Calibrating the odometer no longer empties the tank.** When the first real reading jumps the odometer (for example from 4 km to 45,000 km), the fuel system used to count that jump as distance driven and drop to 0 L or create "unlogged fuel". Now the first reading, or any jump that would push the tank below 0 L, only resets the starting point.
+- **Log refuel no longer saves an automatic gauge reading.** The dialog's gauge now only shows the projection. Before, the app's own estimate, rounded to whole bars, was saved as if you had read it off the car, which skewed the gauge learning and could round the tank level by up to ±2.4 L. The gauge is calibrated only from the home-screen gauge.
+- **Log refuel only sends the odometer if you type it.** The pre-filled value used to be saved as a real odometer reading.
+- **The fuel log summary no longer counts an odometer recalibration as distance.** Before this fix it showed 44,999 km and 723 km/L.
+- **The map trail now reaches the car after you stop.** Previously the last throttled update was dropped.
+- **Map frame lag while driving.** The map is capped at 30fps and the car-dot updates are throttled. On the emulator, CPU while driving dropped from about 165% to 98%, the median frame time from 57ms to 34ms, and frames with a slow main thread from 57% to 10%.
+- **Backups write less.** A backup is skipped when nothing changed, and storage locations the OS refuses are no longer retried and logged every 30s.
+
+### Removed
+- The bundled Google Sans font files (replaced by Barlow Semi Condensed and Inter).
+
 ## [2.0.0] - 2026-11-17
 
 ### Removed

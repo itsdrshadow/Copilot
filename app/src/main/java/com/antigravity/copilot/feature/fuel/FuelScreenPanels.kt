@@ -27,7 +27,10 @@ import java.util.Locale
 
 /** Fuel screen › Tank: litres, percent, 10 segments, OEM vs learned (actual) capacity, km/L. */
 @Composable
-fun FuelTankSummaryCard(fuelState: FuelState, modifier: Modifier = Modifier) {
+fun FuelTankSummaryCard(
+    fuelState: FuelState,
+    modifier: Modifier = Modifier,
+) {
     val c = CockpitTheme.colors
     val pct = fuelState.fuelPercentage.toDouble().coerceIn(0.0, 100.0)
     RaahiCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -36,7 +39,7 @@ fun FuelTankSummaryCard(fuelState: FuelState, modifier: Modifier = Modifier) {
             Text(
                 NumberFormatUtils.formatFuelLiters(fuelState.remainingLiters, 1),
                 style = CockpitTheme.typography.displaySmall,
-                color = c.textPrimary
+                color = c.textPrimary,
             )
             Spacer(Modifier.width(4.dp))
             Text("L", style = CockpitTheme.typography.titleMedium, color = c.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
@@ -56,7 +59,7 @@ fun FuelTankSummaryCard(fuelState: FuelState, modifier: Modifier = Modifier) {
                 "Est. range",
                 if (fuelState.remainingRangeKm > 0) "${fuelState.remainingRangeKm.toInt()}" else "--",
                 unit = "km",
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
         }
         fuelState.fuelNotice?.let { InfoLine(it, title = "Fuel notice") }
@@ -68,7 +71,11 @@ fun FuelTankSummaryCard(fuelState: FuelState, modifier: Modifier = Modifier) {
  * Drive screen. Shows where the app currently reads the gauge.
  */
 @Composable
-fun GaugeStatusCard(fuelState: FuelState, onOpenDrive: () -> Unit, modifier: Modifier = Modifier) {
+fun GaugeStatusCard(
+    fuelState: FuelState,
+    onOpenDrive: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val c = CockpitTheme.colors
     RaahiCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         RaahiLabel("Fuel gauge")
@@ -77,21 +84,25 @@ fun GaugeStatusCard(fuelState: FuelState, onOpenDrive: () -> Unit, modifier: Mod
         Text(
             "To log a gauge reading, tap the fuel gauge on the Drive screen and pick the bars your car shows.",
             style = CockpitTheme.typography.bodyMedium,
-            color = c.textSecondary
+            color = c.textSecondary,
         )
         RaahiButton(
             text = "Go to Drive",
             icon = Icons.Outlined.DirectionsCar,
             kind = RaahiButtonKind.Secondary,
             onClick = onOpenDrive,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
 
 /** Fuel screen › Add fuel: opens the Log refuel form (amount, price, odometer, live litres). */
 @Composable
-fun AddFuelCard(fuelState: FuelState, onAddFuel: () -> Unit, modifier: Modifier = Modifier) {
+fun AddFuelCard(
+    fuelState: FuelState,
+    onAddFuel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val c = CockpitTheme.colors
     RaahiCard(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -100,7 +111,7 @@ fun AddFuelCard(fuelState: FuelState, onAddFuel: () -> Unit, modifier: Modifier 
                 Text(
                     "Amount, price per litre and odometer; litres are worked out for you.",
                     style = CockpitTheme.typography.bodyMedium,
-                    color = c.textSecondary
+                    color = c.textSecondary,
                 )
             }
             Spacer(Modifier.width(12.dp))
@@ -110,7 +121,7 @@ fun AddFuelCard(fuelState: FuelState, onAddFuel: () -> Unit, modifier: Modifier 
             Text(
                 "Last price ₹${NumberFormatUtils.formatPrecision(fuelState.fuelPricePerLiter, 2)} / L",
                 style = CockpitTheme.typography.bodySmall,
-                color = c.textSecondary
+                color = c.textSecondary,
             )
         }
     }

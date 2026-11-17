@@ -3,8 +3,11 @@ package com.antigravity.copilot.core.designsystem.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,11 +16,14 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,12 +50,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.designsystem.CockpitTheme
@@ -74,15 +74,19 @@ object Raahi {
 
 /** Fuel level colour by percent: > 40 % green, 15–40 % amber, < 15 % red. */
 @Composable
-fun fuelLevelColor(percent: Double): Color = when {
-    percent < 15.0 -> CockpitTheme.colors.critical
-    percent <= 40.0 -> CockpitTheme.colors.warning
-    else -> CockpitTheme.colors.positive
-}
+fun fuelLevelColor(percent: Double): Color =
+    when {
+        percent < 15.0 -> CockpitTheme.colors.critical
+        percent <= 40.0 -> CockpitTheme.colors.warning
+        else -> CockpitTheme.colors.positive
+    }
 
 /** Flat solid card surface: 20 dp radius, 1 dp border, no blur, no gradient. */
 @Composable
-fun Modifier.raahiCard(raised: Boolean = false, borderColor: Color? = null): Modifier {
+fun Modifier.raahiCard(
+    raised: Boolean = false,
+    borderColor: Color? = null,
+): Modifier {
     val c = CockpitTheme.colors
     return this
         .clip(Raahi.CardShape)
@@ -96,25 +100,29 @@ fun RaahiCard(
     raised: Boolean = false,
     padding: PaddingValues = PaddingValues(Raahi.CardPadding),
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(8.dp),
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
         modifier = modifier.raahiCard(raised).padding(padding),
         verticalArrangement = verticalArrangement,
-        content = content
+        content = content,
     )
 }
 
 /** Small uppercase-free card caption in textSecondary. */
 @Composable
-fun RaahiLabel(text: String, modifier: Modifier = Modifier, color: Color = CockpitTheme.colors.textSecondary) {
+fun RaahiLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = CockpitTheme.colors.textSecondary,
+) {
     Text(
         text = text,
         style = CockpitTheme.typography.labelMedium,
         color = color,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
-        modifier = modifier
+        modifier = modifier,
     )
 }
 
@@ -126,19 +134,20 @@ fun RaahiPill(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     filled: Boolean = false,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
 ) {
     val c = CockpitTheme.colors
     Row(
-        modifier = modifier
-            .defaultMinSize(minHeight = 32.dp)
-            .clip(Raahi.PillShape)
-            .background(if (filled) color.copy(alpha = 0.16f) else c.cardElevated)
-            .border(Raahi.Border, if (filled) color.copy(alpha = 0.55f) else c.border, Raahi.PillShape)
-            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier =
+            modifier
+                .defaultMinSize(minHeight = 32.dp)
+                .clip(Raahi.PillShape)
+                .background(if (filled) color.copy(alpha = 0.16f) else c.cardElevated)
+                .border(Raahi.Border, if (filled) color.copy(alpha = 0.55f) else c.border, Raahi.PillShape)
+                .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (icon != null) {
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
@@ -150,7 +159,7 @@ fun RaahiPill(
             style = CockpitTheme.typography.labelMedium,
             color = c.textPrimary,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -164,24 +173,25 @@ fun SegmentBar(
     color: Color,
     modifier: Modifier = Modifier,
     segments: Int = 10,
-    height: Dp = 12.dp
+    height: Dp = 12.dp,
 ) {
     val track = CockpitTheme.colors.cardElevated
     val trackBorder = CockpitTheme.colors.border
     Row(
         modifier = modifier.fillMaxWidth().height(height),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         val fill = fillPoints.coerceIn(0.0, segments.toDouble())
         for (i in 1..segments) {
             val seg = (fill - (i - 1)).coerceIn(0.0, 1.0).toFloat()
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(track)
-                    .border(Raahi.Border, trackBorder, RoundedCornerShape(3.dp))
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(track)
+                        .border(Raahi.Border, trackBorder, RoundedCornerShape(3.dp)),
             ) {
                 if (seg > 0f) {
                     Box(Modifier.fillMaxHeight().fillMaxWidth(seg).background(color))
@@ -200,7 +210,7 @@ fun StatCell(
     unit: String? = null,
     valueColor: Color = CockpitTheme.colors.textPrimary,
     valueStyle: TextStyle = CockpitTheme.typography.headlineMedium,
-    horizontalAlignment: Alignment.Horizontal = Alignment.Start
+    horizontalAlignment: Alignment.Horizontal = Alignment.Start,
 ) {
     Column(modifier = modifier, horizontalAlignment = horizontalAlignment) {
         RaahiLabel(label)
@@ -214,7 +224,7 @@ fun StatCell(
                     style = CockpitTheme.typography.labelMedium,
                     color = CockpitTheme.colors.textSecondary,
                     maxLines = 1,
-                    modifier = Modifier.padding(bottom = 2.dp)
+                    modifier = Modifier.padding(bottom = 2.dp),
                 )
             }
         }
@@ -228,12 +238,13 @@ fun StatCard(
     value: String,
     modifier: Modifier = Modifier,
     unit: String? = null,
-    valueColor: Color = CockpitTheme.colors.textPrimary
+    valueColor: Color = CockpitTheme.colors.textPrimary,
 ) {
     Box(
-        modifier = modifier
-            .raahiCard()
-            .padding(horizontal = Raahi.CardPaddingTight, vertical = 12.dp)
+        modifier =
+            modifier
+                .raahiCard()
+                .padding(horizontal = Raahi.CardPaddingTight, vertical = 12.dp),
     ) {
         StatCell(label = label, value = value, unit = unit, valueColor = valueColor)
     }
@@ -249,24 +260,26 @@ fun RaahiButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     kind: RaahiButtonKind = RaahiButtonKind.Primary,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     val c = CockpitTheme.colors
-    val (bg, fg, bd) = when (kind) {
-        RaahiButtonKind.Primary -> Triple(c.accent, c.onAccent, c.accent)
-        RaahiButtonKind.Secondary -> Triple(c.cardElevated, c.textPrimary, c.border)
-        RaahiButtonKind.Danger -> Triple(c.critical.copy(alpha = 0.14f), c.textPrimary, c.critical)
-    }
+    val (bg, fg, bd) =
+        when (kind) {
+            RaahiButtonKind.Primary -> Triple(c.accent, c.onAccent, c.accent)
+            RaahiButtonKind.Secondary -> Triple(c.cardElevated, c.textPrimary, c.border)
+            RaahiButtonKind.Danger -> Triple(c.critical.copy(alpha = 0.14f), c.textPrimary, c.critical)
+        }
     Row(
-        modifier = modifier
-            .defaultMinSize(minHeight = Raahi.MinTouch)
-            .clip(Raahi.InnerShape)
-            .background(if (enabled) bg else c.cardElevated)
-            .border(Raahi.Border, if (enabled) bd else c.border, Raahi.InnerShape)
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier =
+            modifier
+                .defaultMinSize(minHeight = Raahi.MinTouch)
+                .clip(Raahi.InnerShape)
+                .background(if (enabled) bg else c.cardElevated)
+                .border(Raahi.Border, if (enabled) bd else c.border, Raahi.InnerShape)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         val tint = if (enabled) fg else c.textDisabled
         if (icon != null) Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
@@ -284,18 +297,19 @@ fun InfoLine(
     modifier: Modifier = Modifier,
     title: String = "Details",
     color: Color = CockpitTheme.colors.textSecondary,
-    onDismiss: (() -> Unit)? = null
+    onDismiss: (() -> Unit)? = null,
 ) {
     var open by remember { mutableStateOf(false) }
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = Raahi.MinTouch)
-            .clip(Raahi.InnerShape)
-            .clickable(role = Role.Button, onClickLabel = "Show full text") { open = true }
-            .padding(horizontal = 4.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = Raahi.MinTouch)
+                .clip(Raahi.InnerShape)
+                .clickable(role = Role.Button, onClickLabel = "Show full text") { open = true }
+                .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(Icons.Outlined.Info, contentDescription = "Show full text", tint = color, modifier = Modifier.size(20.dp))
         Text(
@@ -304,7 +318,7 @@ fun InfoLine(
             color = color,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
     }
     if (open) {
@@ -315,13 +329,19 @@ fun InfoLine(
                 Text(
                     text,
                     style = CockpitTheme.typography.bodyLarge,
-                    modifier = Modifier.verticalScroll(rememberScrollState())
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
                 )
             },
             confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } },
-            dismissButton = onDismiss?.let { d ->
-                { TextButton(onClick = { open = false; d() }) { Text("Dismiss notice") } }
-            }
+            dismissButton =
+                onDismiss?.let { d ->
+                    {
+                        TextButton(onClick = {
+                            open = false
+                            d()
+                        }) { Text("Dismiss notice") }
+                    }
+                },
         )
     }
 }
@@ -332,33 +352,35 @@ fun <T> SegmentedToggle(
     options: List<Pair<T, String>>,
     selected: T,
     onSelect: (T) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val c = CockpitTheme.colors
     Row(
-        modifier = modifier
-            .clip(Raahi.PillShape)
-            .background(c.card)
-            .border(Raahi.Border, c.border, Raahi.PillShape)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        modifier =
+            modifier
+                .clip(Raahi.PillShape)
+                .background(c.card)
+                .border(Raahi.Border, c.border, Raahi.PillShape)
+                .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         options.forEach { (value, label) ->
             val isSel = value == selected
             Box(
-                modifier = Modifier
-                    .defaultMinSize(minWidth = 72.dp, minHeight = 48.dp)
-                    .clip(Raahi.PillShape)
-                    .background(if (isSel) c.cardElevated else Color.Transparent)
-                    .clickable(role = Role.Tab) { onSelect(value) }
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .defaultMinSize(minWidth = 72.dp, minHeight = 48.dp)
+                        .clip(Raahi.PillShape)
+                        .background(if (isSel) c.cardElevated else Color.Transparent)
+                        .clickable(role = Role.Tab) { onSelect(value) }
+                        .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
                     style = CockpitTheme.typography.labelLarge,
                     color = if (isSel) c.accent else c.textSecondary,
-                    maxLines = 1
+                    maxLines = 1,
                 )
             }
         }
@@ -380,36 +402,37 @@ fun RowScope.VDivider(height: Dp = 28.dp) {
 fun RaahiDialogHost(
     onDismissRequest: () -> Unit,
     maxWidth: Dp = 880.dp,
-    content: @Composable BoxScope.() -> Unit
+    content: @Composable BoxScope.() -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onDismissRequest
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .widthIn(max = minOf(maxWidth, this.maxWidth))
-                    .fillMaxWidth()
-                    .heightIn(max = this.maxHeight)
-                    .verticalScroll(rememberScrollState())
-                    // Taps inside the dialog must not reach the dismiss handler behind it.
+            modifier =
+                Modifier
+                    .fillMaxSize()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = {}
-                    ),
-                content = content
+                        onClick = onDismissRequest,
+                    ).padding(horizontal = 16.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier =
+                    Modifier
+                        .widthIn(max = minOf(maxWidth, this.maxWidth))
+                        .fillMaxWidth()
+                        .heightIn(max = this.maxHeight)
+                        .verticalScroll(rememberScrollState())
+                        // Taps inside the dialog must not reach the dismiss handler behind it.
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {},
+                        ),
+                content = content,
             )
         }
     }

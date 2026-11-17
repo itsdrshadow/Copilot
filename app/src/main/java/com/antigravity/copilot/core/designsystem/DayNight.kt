@@ -38,11 +38,15 @@ object DayNightPolicy {
     }
 
     /** Hysteresis step: returns the new day flag for a lux reading, or [current] inside the band. */
-    fun nextFromLux(current: Boolean, lux: Float): Boolean = when {
-        lux >= DAY_LUX -> true
-        lux <= NIGHT_LUX -> false
-        else -> current
-    }
+    fun nextFromLux(
+        current: Boolean,
+        lux: Float,
+    ): Boolean =
+        when {
+            lux >= DAY_LUX -> true
+            lux <= NIGHT_LUX -> false
+            else -> current
+        }
 }
 
 @Composable
@@ -59,23 +63,28 @@ fun rememberIsDay(mode: ThemeAppearanceMode): Boolean {
         DisposableEffect(lightSensor) {
             var candidate = isDay
             var candidateSince = 0L
-            val listener = object : SensorEventListener {
-                override fun onSensorChanged(event: SensorEvent) {
-                    val proposed = DayNightPolicy.nextFromLux(isDay, event.values.firstOrNull() ?: return)
-                    val now = System.currentTimeMillis()
-                    if (proposed == isDay) {
-                        candidate = isDay
-                        return
+            val listener =
+                object : SensorEventListener {
+                    override fun onSensorChanged(event: SensorEvent) {
+                        val proposed = DayNightPolicy.nextFromLux(isDay, event.values.firstOrNull() ?: return)
+                        val now = System.currentTimeMillis()
+                        if (proposed == isDay) {
+                            candidate = isDay
+                            return
+                        }
+                        if (proposed != candidate) {
+                            candidate = proposed
+                            candidateSince = now
+                        } else if (now - candidateSince >= DayNightPolicy.SETTLE_MS) {
+                            isDay = proposed
+                        }
                     }
-                    if (proposed != candidate) {
-                        candidate = proposed
-                        candidateSince = now
-                    } else if (now - candidateSince >= DayNightPolicy.SETTLE_MS) {
-                        isDay = proposed
-                    }
+
+                    override fun onAccuracyChanged(
+                        sensor: Sensor?,
+                        accuracy: Int,
+                    ) {}
                 }
-                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-            }
             sensorManager.registerListener(listener, lightSensor, SensorManager.SENSOR_DELAY_NORMAL)
             onDispose { sensorManager.unregisterListener(listener) }
         }

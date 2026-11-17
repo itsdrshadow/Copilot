@@ -313,15 +313,20 @@ fun LiveMapPanel(
         }
 
         // Legend chip top-right: trail overlap, or the mileage scale while that overlay is on.
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(14.dp),
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OverlapLegendChip()
-            if (roadMileageVisible) MileageLegendChip()
+        // On a narrow map (small phones) it sits under the limit sign, clear of the map controls.
+        BoxWithConstraints(modifier = Modifier.matchParentSize()) {
+            val narrow = maxWidth < 420.dp
+            Column(
+                modifier = Modifier
+                    .align(if (narrow) Alignment.TopStart else Alignment.TopEnd)
+                    // Narrow map: stacked under the speed-limit sign, clear of the controls.
+                    .padding(start = 14.dp, end = 14.dp, top = if (narrow) 84.dp else 14.dp),
+                horizontalAlignment = if (narrow) Alignment.Start else Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OverlapLegendChip()
+                if (roadMileageVisible) MileageLegendChip()
+            }
         }
 
         // Map controls, bottom-right: secondary menu, heading, recenter (52 dp).

@@ -32,7 +32,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.antigravity.copilot.core.designsystem.CockpitTheme
 
-data class RailItem<K>(val key: K, val label: String, val icon: ImageVector)
+data class RailItem<K>(
+    val key: K,
+    val label: String,
+    val icon: ImageVector,
+)
 
 /**
  * Left navigation rail (76 dp). Active item: cardRaised background with cyan icon and label;
@@ -44,28 +48,29 @@ fun <K> RaahiNavRail(
     bottomItems: List<RailItem<K>>,
     selected: K?,
     onSelect: (K) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val c = CockpitTheme.colors
     Column(
-        modifier = modifier
-            .width(Raahi.RailWidth)
-            .fillMaxHeight()
-            .background(c.rail)
-            .padding(vertical = 10.dp, horizontal = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier =
+            modifier
+                .width(Raahi.RailWidth)
+                .fillMaxHeight()
+                .background(c.rail)
+                .padding(vertical = 10.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             items.forEach { RailButton(it, it.key == selected) { onSelect(it.key) } }
         }
         Spacer(Modifier.size(6.dp))
         Column(
             verticalArrangement = Arrangement.spacedBy(6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             bottomItems.forEach { RailButton(it, it.key == selected) { onSelect(it.key) } }
         }
@@ -73,33 +78,44 @@ fun <K> RaahiNavRail(
 }
 
 @Composable
-private fun <K> RailButton(item: RailItem<K>, isActive: Boolean, onClick: () -> Unit) {
+private fun <K> RailButton(
+    item: RailItem<K>,
+    isActive: Boolean,
+    onClick: () -> Unit,
+) {
     val c = CockpitTheme.colors
     val shape = RoundedCornerShape(16.dp)
     val tint = if (isActive) c.accent else c.textSecondary
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 60.dp)
-            .clip(shape)
-            .background(if (isActive) c.cardElevated else Color.Transparent)
-            .border(1.dp, if (isActive) c.border else Color.Transparent, shape)
-            .semantics { selected = isActive }
-            .clickable(role = Role.Tab, onClick = onClick)
-            .padding(vertical = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 60.dp)
+                .clip(shape)
+                .background(if (isActive) c.cardElevated else Color.Transparent)
+                .border(1.dp, if (isActive) c.border else Color.Transparent, shape)
+                .semantics { selected = isActive }
+                .clickable(role = Role.Tab, onClick = onClick)
+                .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
         }
+        // Rail labels follow the system font scale up to 1.15x (never below 12 sp), so every
+        // label still fits the fixed 76 dp rail at 1.3x instead of being cut off.
+        val fontScale = androidx.compose.ui.platform.LocalDensity.current.fontScale
+        val railScale = minOf(fontScale, 1.15f) / fontScale
+        val base = CockpitTheme.typography.labelSmall
         Text(
             text = item.label,
-            style = CockpitTheme.typography.labelSmall,
+            style = base.copy(fontSize = base.fontSize * railScale, lineHeight = base.lineHeight * railScale),
+            softWrap = false,
             color = if (isActive) c.accentText else c.textSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
     }
 }

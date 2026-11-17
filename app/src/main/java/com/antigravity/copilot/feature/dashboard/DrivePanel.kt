@@ -46,8 +46,7 @@ import java.util.Locale
 internal fun TripSummary.isActive(): Boolean =
     status == TripStatus.ACTIVE_TRIP || status == TripStatus.MOVEMENT_CANDIDATE || status == TripStatus.TEMPORARY_STOP
 
-internal fun TripSummary.isCompleted(): Boolean =
-    !isActive() && (status == TripStatus.COMPLETED || (endTime > 0L && endTime >= startTime))
+internal fun TripSummary.isCompleted(): Boolean = !isActive() && (status == TripStatus.COMPLETED || (endTime > 0L && endTime >= startTime))
 
 /** Elapsed trip wall-clock time (live while active, frozen once completed), ticking each second. */
 @Composable
@@ -61,11 +60,21 @@ internal fun rememberTripElapsedMs(trip: TripSummary): Long {
         }
     }
     return when {
-        trip.isCompleted() ->
-            if (trip.endTime > trip.startTime && trip.startTime > 0L) trip.endTime - trip.startTime
-            else (trip.drivingDurationMs + trip.stationaryDurationMs).coerceAtLeast(0L)
-        active && trip.startTime > 0L -> (now - trip.startTime).coerceAtLeast(0L)
-        else -> 0L
+        trip.isCompleted() -> {
+            if (trip.endTime > trip.startTime && trip.startTime > 0L) {
+                trip.endTime - trip.startTime
+            } else {
+                (trip.drivingDurationMs + trip.stationaryDurationMs).coerceAtLeast(0L)
+            }
+        }
+
+        active && trip.startTime > 0L -> {
+            (now - trip.startTime).coerceAtLeast(0L)
+        }
+
+        else -> {
+            0L
+        }
     }
 }
 
@@ -81,7 +90,7 @@ fun DriveTopRow(
     tripVisualState: TripVisualState,
     onOpenTripDetails: () -> Unit,
     onOpenMedia: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val c = CockpitTheme.colors
     val context = LocalContext.current
@@ -93,44 +102,46 @@ fun DriveTopRow(
     val justStarted = tripVisualState.event == TripVisualLifecycleEvent.STARTED && sinceEvent < 10_000L
     val justEnded = tripVisualState.event == TripVisualLifecycleEvent.COMPLETED && sinceEvent < 10_000L
 
-    val (stateText, dotColor) = when {
-        justStarted -> "Trip started" to c.positive
-        justEnded -> "Trip ended" to c.critical
-        currentTrip.status == TripStatus.TEMPORARY_STOP -> "Paused" to c.warning
-        active -> "Live" to c.accent
-        completed -> "Last trip" to c.textSecondary
-        else -> "Parked" to c.textSecondary
-    }
+    val (stateText, dotColor) =
+        when {
+            justStarted -> "Trip started" to c.positive
+            justEnded -> "Trip ended" to c.critical
+            currentTrip.status == TripStatus.TEMPORARY_STOP -> "Paused" to c.warning
+            active -> "Live" to c.accent
+            completed -> "Last trip" to c.textSecondary
+            else -> "Parked" to c.textSecondary
+        }
     val from = currentTrip.startLocationName.ifBlank { if (active || completed) "Start" else "" }
     val to = currentTrip.endLocationName.ifBlank { if (active) "now" else "" }
-    val route = when {
-        from.isNotEmpty() && to.isNotEmpty() -> "$from → $to"
-        from.isNotEmpty() -> from
-        else -> "Hold to start a trip"
-    }
+    val route =
+        when {
+            from.isNotEmpty() && to.isNotEmpty() -> "$from → $to"
+            from.isNotEmpty() -> from
+            else -> "Hold to start a trip"
+        }
 
     Row(
         modifier = modifier.fillMaxWidth().height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(Raahi.Gap)
+        horizontalArrangement = Arrangement.spacedBy(Raahi.Gap),
     ) {
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .heightIn(min = 52.dp)
-                .clip(Raahi.PillShape)
-                .background(c.card)
-                .border(Raahi.Border, if (active) c.accent.copy(alpha = 0.6f) else c.border, Raahi.PillShape)
-                .combinedClickable(
-                    role = Role.Button,
-                    onClickLabel = "Trip details",
-                    onLongClickLabel = if (active) "End trip" else "Start trip",
-                    onClick = onOpenTripDetails,
-                    onLongClick = { showManualTripDialog = true }
-                )
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .heightIn(min = 52.dp)
+                    .clip(Raahi.PillShape)
+                    .background(c.card)
+                    .border(Raahi.Border, if (active) c.accent.copy(alpha = 0.6f) else c.border, Raahi.PillShape)
+                    .combinedClickable(
+                        role = Role.Button,
+                        onClickLabel = "Trip details",
+                        onLongClickLabel = if (active) "End trip" else "Start trip",
+                        onClick = onOpenTripDetails,
+                        onLongClick = { showManualTripDialog = true },
+                    ).padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Box(Modifier.size(10.dp).clip(CircleShape).background(dotColor))
             Column(modifier = Modifier.weight(1f)) {
@@ -140,7 +151,7 @@ fun DriveTopRow(
                     style = CockpitTheme.typography.bodySmall,
                     color = c.textSecondary,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -153,26 +164,37 @@ fun DriveTopRow(
             title = { Text(if (active) "End trip now?" else "Start trip now?") },
             text = {
                 Text(
-                    if (active) "Manually ends the current trip here. Geofences normally do this automatically."
-                    else "Manually starts a trip now. Geofences normally do this automatically."
+                    if (active) {
+                        "Manually ends the current trip here. Geofences normally do this automatically."
+                    } else {
+                        "Manually starts a trip now. Geofences normally do this automatically."
+                    },
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     showManualTripDialog = false
-                    if (active) com.antigravity.copilot.core.location.DrivingTrackingService.manualEndTrip(context)
-                    else com.antigravity.copilot.core.location.DrivingTrackingService.manualStartTrip(context)
+                    if (active) {
+                        com.antigravity.copilot.core.location.DrivingTrackingService
+                            .manualEndTrip(context)
+                    } else {
+                        com.antigravity.copilot.core.location.DrivingTrackingService
+                            .manualStartTrip(context)
+                    }
                 }) { Text(if (active) "End trip" else "Start trip", color = CockpitTheme.colors.textPrimary) }
             },
             dismissButton = {
                 TextButton(onClick = { showManualTripDialog = false }) { Text("Cancel", color = CockpitTheme.colors.textPrimary) }
-            }
+            },
         )
     }
 }
 
 @Composable
-private fun ClockPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun ClockPill(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val c = CockpitTheme.colors
     val context = LocalContext.current
     val playback by MediaPlaybackManager.playbackState.collectAsStateWithLifecycle()
@@ -185,25 +207,27 @@ private fun ClockPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
     val is24h = remember(now / 60_000L) { DateFormat.is24HourFormat(context) }
-    val time = remember(now / 60_000L, is24h) {
-        SimpleDateFormat(if (is24h) "HH:mm" else "h:mm", Locale.getDefault()).format(Date(now))
-    }
+    val time =
+        remember(now / 60_000L, is24h) {
+            SimpleDateFormat(if (is24h) "HH:mm" else "h:mm", Locale.getDefault()).format(Date(now))
+        }
     Row(
-        modifier = modifier
-            .heightIn(min = 52.dp)
-            .clip(Raahi.PillShape)
-            .background(c.card)
-            .border(Raahi.Border, c.border, Raahi.PillShape)
-            .clickable(role = Role.Button, onClickLabel = "Music and clock", onClick = onClick)
-            .padding(horizontal = 14.dp),
+        modifier =
+            modifier
+                .heightIn(min = 52.dp)
+                .clip(Raahi.PillShape)
+                .background(c.card)
+                .border(Raahi.Border, c.border, Raahi.PillShape)
+                .clickable(role = Role.Button, onClickLabel = "Music and clock", onClick = onClick)
+                .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(
             if (playback.isMusicActive) Icons.Outlined.MusicNote else Icons.Outlined.Schedule,
             contentDescription = null,
             tint = if (playback.isMusicActive) c.accent else c.textSecondary,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp),
         )
         Text(time, style = CockpitTheme.typography.headlineMedium, color = c.textPrimary, maxLines = 1)
     }
@@ -218,7 +242,7 @@ fun DriveTripStrip(
     currentTrip: TripSummary,
     totalLifetimeKm: Double,
     onOpenTripDetails: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val c = CockpitTheme.colors
     val context = LocalContext.current
@@ -231,21 +255,23 @@ fun DriveTripStrip(
     val showTrip = currentTrip.isActive() || currentTrip.isCompleted()
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .raahiCard()
-            .padding(horizontal = 6.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .raahiCard()
+                .padding(horizontal = 6.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        val cell = Modifier
-            .clip(Raahi.InnerShape)
-            .heightIn(min = Raahi.MinTouch)
-            .padding(horizontal = 8.dp, vertical = 6.dp)
+        val cell =
+            Modifier
+                .clip(Raahi.InnerShape)
+                .heightIn(min = Raahi.MinTouch)
+                .padding(horizontal = 8.dp, vertical = 6.dp)
         StatCell(
             label = "Trip time",
             value = if (showTrip) TimeFormatUtils.formatLiveTripTimer(elapsed) else "--",
             valueStyle = CockpitTheme.typography.headlineSmall,
-            modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onOpenTripDetails).then(cell)
+            modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onOpenTripDetails).then(cell),
         )
         VDivider()
         StatCell(
@@ -253,7 +279,7 @@ fun DriveTripStrip(
             value = if (showTrip) NumberFormatUtils.formatDistance(currentTrip.distanceKm) else "--",
             unit = "km",
             valueStyle = CockpitTheme.typography.headlineSmall,
-            modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onOpenTripDetails).then(cell)
+            modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onOpenTripDetails).then(cell),
         )
         VDivider()
         StatCell(
@@ -261,9 +287,12 @@ fun DriveTripStrip(
             value = String.format(Locale.US, "%,.0f", odometerKm),
             unit = "km",
             valueStyle = CockpitTheme.typography.headlineSmall,
-            modifier = Modifier.weight(1.15f).clickable(role = Role.Button, onClickLabel = "Calibrate odometer") {
-                showOdometerDialog = true
-            }.then(cell)
+            modifier =
+                Modifier
+                    .weight(1.15f)
+                    .clickable(role = Role.Button, onClickLabel = "Calibrate odometer") {
+                        showOdometerDialog = true
+                    }.then(cell),
         )
     }
 
@@ -273,9 +302,11 @@ fun DriveTripStrip(
             onDismiss = { showOdometerDialog = false },
             onConfirmCalibration = { newKm ->
                 // Through FuelRepository so the first calibration re-bases the fuel model.
-                com.antigravity.copilot.core.fuel.FuelRepository.getInstance(context).calibrateOdometer(newKm, totalLifetimeKm)
+                com.antigravity.copilot.core.fuel.FuelRepository
+                    .getInstance(context)
+                    .calibrateOdometer(newKm, totalLifetimeKm)
                 showOdometerDialog = false
-            }
+            },
         )
     }
 }
@@ -286,14 +317,14 @@ fun TripDetailsDialog(
     currentTrip: TripSummary,
     tripVisualState: TripVisualState,
     baselineMileage: Double,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 560.dp) {
         CurrentTripCard(
             currentTrip = currentTrip,
             tripVisualState = tripVisualState,
             baselineMileage = baselineMileage,
-            modifier = Modifier.fillMaxWidth().height(400.dp)
+            modifier = Modifier.fillMaxWidth().height(400.dp),
         )
     }
 }
@@ -305,4 +336,3 @@ fun MediaDialog(onDismiss: () -> Unit) {
         SmartMusicClockCard(modifier = Modifier.fillMaxWidth().height(340.dp))
     }
 }
-
