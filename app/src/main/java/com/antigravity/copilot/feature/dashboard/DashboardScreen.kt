@@ -64,6 +64,7 @@ fun DashboardScreen(
     onLaunchSettings: () -> Unit,
     onToggleFullMap: () -> Unit,
     onCalibrateMidBar: (Double) -> Unit = {},
+    onDismissFuelNotice: () -> Unit = {},
     isMapFullScreen: Boolean = false,
     isCovered: Boolean = false,
     modifier: Modifier = Modifier
@@ -154,6 +155,7 @@ fun DashboardScreen(
                                 fuelState = fuelState,
                                 onClick = onOpenFuelDialog,
                                 onCalibrateGauge = onCalibrateMidBar,
+                                onDismissNotice = onDismissFuelNotice,
                                 modifier = Modifier.weight(1f).fillMaxHeight()
                             )
                         }
@@ -224,6 +226,7 @@ fun DashboardScreen(
                                 fuelState = fuelState,
                                 onClick = onOpenFuelDialog,
                                 onCalibrateGauge = onCalibrateMidBar,
+                                onDismissNotice = onDismissFuelNotice,
                                 modifier = Modifier.weight(1f).fillMaxHeight()
                             )
                         }
@@ -367,6 +370,7 @@ fun PremiumDashboardScreen(
     onLaunchSettings: () -> Unit,
     onToggleFullMap: () -> Unit,
     onCalibrateMidBar: (Double) -> Unit = {},
+    onDismissFuelNotice: () -> Unit = {},
     modifier: Modifier = Modifier
 ) = DashboardScreen(
     currentTrip = currentTrip,
@@ -386,5 +390,6 @@ fun PremiumDashboardScreen(
     onLaunchSettings = onLaunchSettings,
     onToggleFullMap = onToggleFullMap,
     onCalibrateMidBar = onCalibrateMidBar,
+    onDismissFuelNotice = onDismissFuelNotice,
     modifier = modifier
 )

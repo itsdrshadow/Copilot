@@ -463,7 +463,6 @@ class TripDetectionEngine(
         }
 
         // 1. High-precision speed resolution with Doppler & Geodesic delta fusion
-        val hasSensorSpeed = location.hasSpeed() && location.speed > 0.3f
         val prevLocation = lastAcceptedLocation
         val computedSpeedKmh = if (prevLocation != null && lastLocationTime > 0) {
             val timeDeltaSec = ((now - lastLocationTime) / 1000.0).coerceAtLeast(0.1)

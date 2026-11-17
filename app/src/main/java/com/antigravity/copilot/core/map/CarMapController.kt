@@ -195,9 +195,6 @@ class CarMapController(
      */
     fun reloadStyleIfMapChanged() = requestStyle(force = false)
 
-    /** Backward-compatible alias. */
-    fun loadLocalOfflineStyle() = reloadStyleIfMapChanged()
-
     private data class ResolvedMap(val mapId: String?, val fileName: String?, val regionTitle: String?)
 
     private fun requestStyle(force: Boolean) {
@@ -470,6 +467,16 @@ class CarMapController(
      * - Only the pure region lookup runs per fix; disk work happens only when the region changes.
      */
     fun updateVehiclePosition(lat: Double, lon: Double, bearing: Float, speedKmh: Float) {
+        // LatLng throws on NaN / out-of-range latitude, and (0,0) is the "no fix" sentinel some
+        // head-unit GNSS stacks emit: drop such fixes instead of crashing or jumping to null island.
+        if (!lat.isFinite() || !lon.isFinite() || lat !in -90.0..90.0 || lon !in -180.0..180.0) return
+        if (lat == 0.0 && lon == 0.0) return
+        // A NaN speed would poison the EMA (and the auto-zoom it drives) for the rest of the session.
+        @Suppress("NAME_SHADOWING")
+        val speedKmh = if (speedKmh.isFinite()) speedKmh else 0f
+        @Suppress("NAME_SHADOWING")
+        val bearing = if (bearing.isFinite()) bearing else lastBearing.toFloat()
+
         val now = SystemClock.elapsedRealtime()
         val dtMs = if (lastFixElapsedMs == 0L) 1_000L else (now - lastFixElapsedMs).coerceIn(100L, 5_000L)
         lastFixElapsedMs = now

@@ -90,14 +90,9 @@ object StorageMigrationManager {
 
     fun validateDatabaseIntegrity(db: AppDatabase): Boolean {
         return try {
-            val cursor = db.openHelper.readableDatabase.query("PRAGMA quick_check")
-            var ok = false
-            if (cursor.moveToFirst()) {
-                val result = cursor.getString(0)
-                ok = "ok".equals(result, ignoreCase = true)
+            db.openHelper.readableDatabase.query("PRAGMA quick_check").use { cursor ->
+                cursor.moveToFirst() && "ok".equals(cursor.getString(0), ignoreCase = true)
             }
-            cursor.close()
-            ok
         } catch (e: Exception) {
             Log.e(TAG, "Database integrity validation check failed", e)
             false
@@ -148,13 +143,4 @@ object StorageMigrationManager {
         }
     }
 
-    fun getStoredStorageVersion(context: Context): Int {
-        val prefs = context.getSharedPreferences(PREFS_STORAGE, Context.MODE_PRIVATE)
-        return prefs.getInt(KEY_STORAGE_VERSION, 0)
-    }
-
-    fun isMigrationCompleted(context: Context): Boolean {
-        val prefs = context.getSharedPreferences(PREFS_STORAGE, Context.MODE_PRIVATE)
-        return prefs.getBoolean(KEY_MIGRATION_COMPLETED, false)
-    }
 }

@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.room.withTransaction
 
 enum class TripVisualLifecycleEvent {
     NONE,
@@ -360,14 +361,6 @@ class TripRepository private constructor(context: Context) {
 
     suspend fun getTripById(tripId: Long): TripEntity? {
         return tripDao.getTripById(tripId)
-    }
-
-    suspend fun getAllHistoricalTripsList(): List<TripEntity> {
-        return tripDao.getAllTrips()
-    }
-
-    suspend fun getActiveTripFromDb(): TripEntity? {
-        return tripDao.getActiveTrip()
     }
 
     fun setLastCompletedTripId(tripId: Long) {
@@ -770,9 +763,12 @@ class TripRepository private constructor(context: Context) {
 
         scope.launch {
             try {
-                tripDao.deletePointsForTrip(tripId)
-                vehicleTransitionDao.deleteTransitionsForTrip(tripId)
-                tripDao.deleteTrip(tripId)
+                // One transaction: a crash mid-delete must not leave orphaned points / transitions.
+                database.withTransaction {
+                    tripDao.deletePointsForTrip(tripId)
+                    vehicleTransitionDao.deleteTransitionsForTrip(tripId)
+                    tripDao.deleteTrip(tripId)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed discarding trip in Room DB: ${e.message}", e)
             }
@@ -782,9 +778,12 @@ class TripRepository private constructor(context: Context) {
     fun deleteTrip(tripId: Long) {
         scope.launch {
             try {
-                tripDao.deletePointsForTrip(tripId)
-                vehicleTransitionDao.deleteTransitionsForTrip(tripId)
-                tripDao.deleteTrip(tripId)
+                // One transaction: a crash mid-delete must not leave orphaned points / transitions.
+                database.withTransaction {
+                    tripDao.deletePointsForTrip(tripId)
+                    vehicleTransitionDao.deleteTransitionsForTrip(tripId)
+                    tripDao.deleteTrip(tripId)
+                }
                 if (getLastCompletedTripId() == tripId) {
                     val nextLatest = tripDao.getLastCompletedTrip()
                     if (nextLatest != null) {

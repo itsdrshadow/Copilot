@@ -65,7 +65,6 @@ class FuelRepository private constructor(context: Context) {
         private set
     var baselineVehicleMileage: Double = prefs.getFloat("baseline_vehicle_mileage", 18.0f).toDouble()
         private set
-    val configuredBaselineMileage: Double get() = baselineVehicleMileage
     private var fuelPrice: Double = prefs.getFloat("fuel_price", 96.5f).toDouble()
     private var latestAppLifetimeKm: Double = 0.0
 
@@ -116,7 +115,10 @@ class FuelRepository private constructor(context: Context) {
     /** Quiet, non-blocking fuel notices (e.g. auto-resolved unlogged fuel). */
     private val _fuelNotice = MutableStateFlow<String?>(null)
     val fuelNotice: StateFlow<String?> = _fuelNotice.asStateFlow()
-    fun dismissFuelNotice() { _fuelNotice.value = null }
+    fun dismissFuelNotice() {
+        _fuelNotice.value = null
+        _fuelState.value = _fuelState.value.copy(fuelNotice = null)
+    }
 
     private suspend fun loadModel() {
         try {
@@ -708,8 +710,9 @@ class FuelRepository private constructor(context: Context) {
                         gaugeCalibration.learnCalibrationPoint(midBarObserved, estimator.nominalFuelLiters, 0.30)
                     }
 
-                    // Determine if this refill is a full-tank fill-up
-                    val isFullTank = midBarObserved >= 10 || estimator.nominalFuelLiters >= designCapacity
+                    // Full-tank fill-up: the user's explicit "Full tank" choice wins; otherwise infer it
+                    // from a full gauge or the estimator reaching design capacity.
+                    val isFullTank = fullTank || midBarObserved >= 10 || estimator.nominalFuelLiters >= designCapacity
                     val deltaDistance = effectiveOdo - pendingAnchorOdometerKm
 
                     var computedMileage = 0.0
@@ -741,7 +744,7 @@ class FuelRepository private constructor(context: Context) {
                         computedMileage = mileageEngine.measuredMileage ?: mileageEngine.overallEstimatedMileage
                     }
 
-                    fuelPrice = pricePerLiter
+                    if (pricePerLiter > 0.0 && pricePerLiter.isFinite()) fuelPrice = pricePerLiter
                     cumulativeTripConsumedLiters = 0.0
 
                     // Create immutable ledger event
@@ -886,10 +889,6 @@ class FuelRepository private constructor(context: Context) {
 
         persistValuesDebounced()
         _fuelState.value = buildFuelState()
-    }
-
-    fun consumeFuelForTripDistance(distanceMeters: Double) {
-        consumeLiveFuel(distanceMeters, 50.0, 1000L)
     }
 
     fun getFuelTelemetrySnapshot(): FuelTelemetrySnapshot {

@@ -147,15 +147,4 @@ class LauncherManager(private val context: Context) {
         }
     }
 
-    fun launchSettings() {
-        com.antigravity.copilot.core.recovery.BootForegroundGuardian.notifyUserInitiatedAppLaunch()
-        val intent = Intent(android.provider.Settings.ACTION_SETTINGS).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        try {
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 }

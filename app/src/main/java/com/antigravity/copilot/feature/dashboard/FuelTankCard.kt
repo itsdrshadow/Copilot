@@ -40,6 +40,7 @@ fun FuelTankCard(
     fuelState: FuelState,
     onClick: () -> Unit,
     onCalibrateGauge: (Double) -> Unit = {},
+    onDismissNotice: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val cardBg = CockpitTheme.colors.cardTopLightGradient
@@ -291,13 +292,15 @@ fun FuelTankCard(
                     )
                 }
                 // Quiet fuel-model notice (e.g. unlogged fuel auto-resolved) — never a blocking prompt.
+                // Tap to acknowledge; otherwise it would stay until the next refuel.
                 fuelState.fuelNotice?.let { notice ->
                     Text(
-                        text = notice,
+                        text = "$notice  ✕",
                         style = CockpitTheme.typography.labelSmall,
                         color = textSecondary,
                         maxLines = 2,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.clickable(onClick = onDismissNotice)
                     )
                 }
             }

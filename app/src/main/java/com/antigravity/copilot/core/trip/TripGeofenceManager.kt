@@ -148,20 +148,4 @@ class TripGeofenceManager private constructor(context: Context) : GeofenceProvid
         }
     }
 
-    fun getNearestGeofence(lat: Double, lon: Double): Pair<TripGeofenceEntity, Float>? {
-        val list = _geofences.value
-        if (list.isEmpty()) return null
-
-        var nearest: TripGeofenceEntity? = null
-        var minDistance = Float.MAX_VALUE
-
-        for (gf in list) {
-            val dist = calculateDistance(gf, lat, lon)
-            if (dist < minDistance) {
-                minDistance = dist
-                nearest = gf
-            }
-        }
-        return if (nearest != null) Pair(nearest, minDistance) else null
-    }
 }

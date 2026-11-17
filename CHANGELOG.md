@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.47.0] - 2026-11-17
+
+### Added
+- Settings › General › **Display & App Launcher**: *Keep Screen Awake* and *Close App Drawer After Launch* toggles (both settings existed but had no UI).
+- Settings › General › **Trip & Fuel-Stop Detection**: fuel-station refuel prompt on/off, prompt dwell time (15-180 s), stationary speed threshold (1-10 km/h) and default radius for new geofences (50-2000 m). The tracking service and geofence manager already read these values; they can now be changed.
+- Trips: a **Charts** button in the yearly summary shows distance-by-month and trips-by-weekday charts. The analytics were computed but never shown.
+- The unlogged-fuel notice on the fuel card can be tapped to dismiss it. Before, it stayed until the next refuel.
+
+### Changed
+- Trip history list: each month header and trip row is its own lazy item, so only visible rows are composed. Before, a month composed every trip card at once. Date formatters are cached per row.
+- The dashboard caches the lifetime-distance sum and only recomputes it when the trip list changes, not on every GPS tick.
+
+### Fixed
+- *Keep screen on* was advertised in Settings but never applied. `FLAG_KEEP_SCREEN_ON` now follows the setting.
+- Add Fuel: the **Full tank** checkbox was ignored when resetting the mileage anchor (only a 10-bar gauge counted). It now resets the anchor.
+- Add Fuel: an empty or zero fuel rate silently fell back to ₹96.50, or saved a 0 L refuel. It is now rejected with a message. Amounts that exceed the tank capacity (+5%) are also blocked, and the "Detecting fuel station..." placeholder is no longer saved as the station name.
+- A zero price no longer overwrites the stored fuel price.
+- Map: a NaN, out-of-range or (0,0) GPS fix crashed in `LatLng` or jumped to null island. Such fixes are now dropped, and a NaN speed or bearing no longer breaks auto-zoom.
+- Backup: a failure mid-write leaked the zip stream and left a corrupt partial archive. Inspecting a backup leaked its stream on errors, restore leaked the archive handle on errors, and the integrity-check cursor leaked on exceptions.
+- Restore: null strings from older archives broke `NOT NULL` constraints and rolled back the whole restore. Corrupt distance and speed values or reversed timestamps reached history. Restored trips are now sanitized (zip and JSON paths).
+- Deleting or discarding a trip now runs in one transaction, so a crash mid-delete can't leave orphaned GPS points or transitions.
+
+### Removed
+- `SmartTripAnalyticsEngine` (691 lines): it duplicated the trip report already built in `feature/trips`, and only a test used it. Its tests were removed too.
+- The unused half of `FuelAIEngine`: model recalibration, dynamic range, MID-bar mapping and mileage trend (superseded by `FuelModel`).
+- 19 unused Room DAO queries. Unused helpers and aliases in the map, trip, geofence, launcher, crash-guardian, storage-migration and fuel-math code.
+- 16 settings setters with no UI and no behavior (map satellite/dark/buildings, solar day-night, speed-limit alerts, driver scoring, media pill, theme appearance and others). Theme restore aliases.
+- `CockpitNavEvent`, the `CockpitNumberFormat` typealias, `MainViewModel` fuel-history and calibration leftovers, and unused parameters on the Add Fuel and Settings dialogs.
+- The unused `androidx.navigation:navigation-compose` dependency.
+
 ## [1.46.0] - 2026-11-17
 
 ### Added

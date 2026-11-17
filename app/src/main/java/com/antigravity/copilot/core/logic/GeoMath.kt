@@ -21,8 +21,4 @@ object GeoMath {
     const val M_PER_DEG_LAT = 111_320.0
 
     fun mPerDegLon(lat: Double): Double = M_PER_DEG_LAT * cos(Math.toRadians(lat)).coerceAtLeast(1e-6)
-
-    /** Local equirectangular projection to metres around a reference latitude. */
-    fun toLocalXY(lat: Double, lon: Double, refLat: Double): Pair<Double, Double> =
-        Pair(lon * mPerDegLon(refLat), lat * M_PER_DEG_LAT)
 }

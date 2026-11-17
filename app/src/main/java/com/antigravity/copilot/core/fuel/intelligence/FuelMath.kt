@@ -56,18 +56,6 @@ object FuelMath {
     }
 
     /**
-     * Total Amount = Liters * Price per Liter.
-     */
-    fun calculateAmountFromLiters(liters: Double, pricePerLiter: Double): Double {
-        if (liters <= 0.0 || pricePerLiter <= 0.0 || !liters.isFinite() || !pricePerLiter.isFinite()) {
-            return 0.0
-        }
-        val litersBd = BigDecimal.valueOf(liters)
-        val priceBd = BigDecimal.valueOf(pricePerLiter)
-        return litersBd.multiply(priceBd).setScale(CURRENCY_SCALE, RoundingMode.HALF_UP).toDouble()
-    }
-
-    /**
      * Fuel Consumed = Distance (km) / Mileage (km/L).
      */
     fun calculateConsumption(distanceKm: Double, mileageKmpl: Double): Double {

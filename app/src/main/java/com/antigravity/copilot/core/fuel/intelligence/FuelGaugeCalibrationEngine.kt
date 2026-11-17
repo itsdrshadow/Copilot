@@ -41,17 +41,6 @@ class FuelGaugeCalibrationEngine(
 
     fun getCalibratedFractions(): DoubleArray = calibratedFractions.clone()
 
-    fun getBarConfidence(bar: Int): Int = barConfidences[bar.coerceIn(0, 10)]
-
-    fun setCalibratedFractions(fractions: DoubleArray) {
-        if (fractions.size == 11) {
-            for (i in 0..10) {
-                calibratedFractions[i] = fractions[i]
-            }
-            enforceMonotonicity()
-        }
-    }
-
     /**
      * Estimates liters corresponding to a specific bar index (0..10) based on current calibration.
      */

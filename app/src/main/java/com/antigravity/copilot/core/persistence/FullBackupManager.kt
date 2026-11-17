@@ -123,6 +123,10 @@ object FullBackupManager {
         context: Context,
         isSafetyBackup: Boolean = false
     ): BackupResult = withContext(Dispatchers.IO) {
+        // Tracked outside the try so a failure mid-write still closes the stream and removes the
+        // half-written archive (otherwise the fd leaks and a corrupt .zip is left in the backup list).
+        var openZip: ZipOutputStream? = null
+        var partialZip: File? = null
         try {
             val backupDir = getBackupDirectory(context)
             if (!backupDir.exists()) backupDir.mkdirs()
@@ -209,8 +213,9 @@ object FullBackupManager {
             )
 
             // Write ZIP archive
-            val fos = FileOutputStream(zipFile)
-            val zos = ZipOutputStream(BufferedOutputStream(fos))
+            partialZip = zipFile
+            val zos = ZipOutputStream(BufferedOutputStream(FileOutputStream(zipFile)))
+            openZip = zos
 
             fun writeZipStringEntry(entryName: String, jsonString: String) {
                 val entry = ZipEntry(entryName)
@@ -247,23 +252,23 @@ object FullBackupManager {
             }
 
             zos.finish()
-            zos.close()
-            fos.close()
+            zos.close() // also closes the underlying FileOutputStream
+            openZip = null
 
             // Verify integrity of the created ZIP
-            val verifyZip = ZipFile(zipFile)
-            val manifestEntry = verifyZip.getEntry("backup_manifest.json")
-            if (manifestEntry == null) {
-                verifyZip.close()
+            val hasManifest = ZipFile(zipFile).use { it.getEntry("backup_manifest.json") != null }
+            if (!hasManifest) {
                 zipFile.delete()
                 return@withContext BackupResult(isSuccess = false, errorMessage = "Archive verification failed: manifest missing.")
             }
-            verifyZip.close()
+            partialZip = null
 
             Log.i(TAG, "Backup successfully created: ${zipFile.absolutePath} (${zipFile.length()} bytes)")
             BackupResult(isSuccess = true, backupFile = zipFile, manifest = manifest)
         } catch (e: Exception) {
             Log.e(TAG, "Failed creating backup ZIP: ${e.message}", e)
+            try { openZip?.close() } catch (_: Exception) {}
+            partialZip?.delete()
             BackupResult(isSuccess = false, errorMessage = e.message ?: "Unknown error creating backup archive.")
         }
     }
@@ -274,19 +279,16 @@ object FullBackupManager {
     suspend fun inspectBackup(context: Context, uri: Uri): BackupManifest? = withContext(Dispatchers.IO) {
         try {
             val inputStream = context.contentResolver.openInputStream(uri) ?: return@withContext null
-            val zis = ZipInputStream(BufferedInputStream(inputStream))
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (entry.name == "backup_manifest.json") {
-                    val reader = InputStreamReader(zis, Charsets.UTF_8)
-                    val manifest = gson.fromJson(reader, BackupManifest::class.java)
-                    zis.close()
-                    return@withContext manifest
+            ZipInputStream(BufferedInputStream(inputStream)).use { zis ->
+                var entry = zis.nextEntry
+                while (entry != null) {
+                    if (entry.name == "backup_manifest.json") {
+                        return@withContext gson.fromJson(InputStreamReader(zis, Charsets.UTF_8), BackupManifest::class.java)
+                    }
+                    zis.closeEntry()
+                    entry = zis.nextEntry
                 }
-                zis.closeEntry()
-                entry = zis.nextEntry
             }
-            zis.close()
             null
         } catch (e: Exception) {
             Log.w(TAG, "Failed inspecting backup manifest: ${e.message}")
@@ -299,6 +301,7 @@ object FullBackupManager {
      */
     suspend fun restoreFromBackupZip(context: Context, zipUri: Uri): RestoreResult = withContext(Dispatchers.IO) {
         var tempFile: File? = null
+        var openArchive: ZipFile? = null
         try {
             // 1. Copy incoming stream to a temporary working file
             tempFile = File(context.cacheDir, "restore_temp_${System.currentTimeMillis()}.zip")
@@ -314,6 +317,7 @@ object FullBackupManager {
 
             // 2. Validate archive integrity and read manifest
             val zipFile = ZipFile(tempFile)
+            openArchive = zipFile
             val manifestEntry = zipFile.getEntry("backup_manifest.json")
                 ?: run {
                     zipFile.close()
@@ -365,7 +369,9 @@ object FullBackupManager {
 
             // Deserialization validation: deserialize in-memory FIRST before any DB clear
             val tripType = object : TypeToken<List<TripEntity>>() {}.type
-            val tripsList: List<TripEntity>? = if (!tripsJson.isNullOrBlank()) gson.fromJson(tripsJson, tripType) else null
+            val tripsList: List<TripEntity>? = if (!tripsJson.isNullOrBlank()) {
+                gson.fromJson<List<TripEntity>>(tripsJson, tripType)?.map { it.sanitizedForRestore() }
+            } else null
 
             val pointType = object : TypeToken<List<TripPointEntity>>() {}.type
             val pointsList: List<TripPointEntity>? = if (!pointsJson.isNullOrBlank()) gson.fromJson(pointsJson, pointType) else null
@@ -563,7 +569,28 @@ object FullBackupManager {
             Log.e(TAG, "Error during restore from ZIP: ${e.message}", e)
             RestoreResult(isSuccess = false, errorMessage = e.message ?: "Unknown restore error.")
         } finally {
+            try { openArchive?.close() } catch (_: Exception) {}
             tempFile?.delete()
         }
+    }
+    /**
+     * Gson bypasses Kotlin null-safety and defaults: older or hand-edited archives can carry null
+     * strings (NOT NULL violation → whole restore rolls back) or corrupt numbers. Normalise them.
+     */
+    @Suppress("SENSELESS_COMPARISON", "USELESS_ELVIS")
+    private fun TripEntity.sanitizedForRestore(): TripEntity {
+        val safeDistance = distanceMeters.takeIf { it.isFinite() && it > 0.0 } ?: 0.0
+        return copy(
+            startLocationName = startLocationName ?: "",
+            endLocationName = endLocationName ?: "",
+            status = status ?: "COMPLETED",
+            endTime = if (endTime != 0L && endTime < startTime) startTime else endTime,
+            distanceMeters = safeDistance,
+            drivingDurationMs = drivingDurationMs.coerceAtLeast(0L),
+            stationaryDurationMs = stationaryDurationMs.coerceAtLeast(0L),
+            avgSpeedKmh = avgSpeedKmh.takeIf { it.isFinite() && it > 0.0 } ?: 0.0,
+            maxSpeedKmh = maxSpeedKmh.takeIf { it.isFinite() && it > 0.0 } ?: 0.0,
+            isQualifying = isQualifying && safeDistance > 0.0
+        )
     }
 }

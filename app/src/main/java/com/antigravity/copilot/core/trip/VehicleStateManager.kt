@@ -44,12 +44,6 @@ class VehicleStateManager private constructor(context: Context) {
     private var lastTickTimestamp: Long = System.currentTimeMillis()
     private var lastPersistTimestamp: Long = 0L
 
-    fun getLastPersistTimestamp(): Long = lastPersistTimestamp
-
-    fun resetPersistThrottleForTesting() {
-        lastPersistTimestamp = 0L
-    }
-
     private val _metrics = MutableStateFlow(
         VehicleStateMetrics(
             currentState = VehicleState.IDLE,

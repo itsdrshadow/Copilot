@@ -43,9 +43,5 @@ data class VehicleStateMetrics(
     val lastEngineOffReason: String? = null,
     val lastConfirmedEngineOffDurationMs: Long = 0L
 ) {
-    val movingMinutes: Long get() = movingDurationMs / 60000L
     val idleMinutes: Long get() = idleDurationMs / 60000L
-    val engineOffMinutes: Long get() = engineOffDurationMs / 60000L
-    val unknownMinutes: Long get() = unknownDurationMs / 60000L
-    val totalObservedMinutes: Long get() = (movingDurationMs + idleDurationMs + engineOffDurationMs) / 60000L
 }

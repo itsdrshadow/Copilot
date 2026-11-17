@@ -77,9 +77,6 @@ class MainViewModel @Inject constructor(
     private val _isFuelDialogOpen = MutableStateFlow(false)
     val isFuelDialogOpen: StateFlow<Boolean> = _isFuelDialogOpen.asStateFlow()
 
-    private val _isFuelHistoryOpen = MutableStateFlow(false)
-    val isFuelHistoryOpen: StateFlow<Boolean> = _isFuelHistoryOpen.asStateFlow()
-
     private val _isSettingsDialogOpen = MutableStateFlow(false)
     val isSettingsDialogOpen: StateFlow<Boolean> = _isSettingsDialogOpen.asStateFlow()
 
@@ -110,15 +107,6 @@ class MainViewModel @Inject constructor(
 
     fun setFuelDialogOpen(isOpen: Boolean) {
         _isFuelDialogOpen.value = isOpen
-    }
-
-    fun setFuelHistoryOpen(isOpen: Boolean) {
-        _isFuelHistoryOpen.value = isOpen
-        if (isOpen) {
-            selectTab(3)
-        } else if (_selectedTab.value == 3) {
-            selectTab(0)
-        }
     }
 
     fun setSettingsDialogOpen(isOpen: Boolean) {
@@ -169,21 +157,17 @@ class MainViewModel @Inject constructor(
         )
     }
 
-    fun calibrateMidBar(bar: Int) {
-        fuelRepository.calibrateMidBar(bar)
-    }
-
     /** Gauge calibration popup (half points allowed). */
     fun calibrateGaugePoint(point: Double) {
         fuelRepository.calibrateMidBar(point)
     }
 
-    fun calibrateOdometer(odometerKm: Double, recordedLifetimeKm: Double) {
-        fuelRepository.calibrateOdometer(odometerKm, recordedLifetimeKm)
-    }
-
     fun updateVehicleConfig(designCapacity: Double, defaultMileage: Double) {
         fuelRepository.updateVehicleConfig(designCapacity, defaultMileage)
+    }
+
+    fun dismissFuelNotice() {
+        fuelRepository.dismissFuelNotice()
     }
 
     fun dismissRefuelPrompt() {

@@ -161,28 +161,3 @@ fun TripPlaybackMapView(
     }
 }
 
-internal fun createTripFlagDrawable(context: android.content.Context, text: String, bgColor: Int): Drawable {
-    val density = context.resources.displayMetrics.density
-    val width = (46 * density).toInt()
-    val height = (24 * density).toInt()
-    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-    val canvas = android.graphics.Canvas(bitmap)
-
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = bgColor
-        style = Paint.Style.FILL
-    }
-    val rect = RectF(0f, 0f, width.toFloat(), height.toFloat())
-    canvas.drawRoundRect(rect, 8 * density, 8 * density, paint)
-
-    val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = android.graphics.Color.WHITE
-        textSize = 10 * density
-        typeface = Typeface.DEFAULT_BOLD
-        textAlign = Paint.Align.CENTER
-    }
-    val textY = (height / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2f)
-    canvas.drawText(text, width / 2f, textY, textPaint)
-
-    return BitmapDrawable(context.resources, bitmap)
-}

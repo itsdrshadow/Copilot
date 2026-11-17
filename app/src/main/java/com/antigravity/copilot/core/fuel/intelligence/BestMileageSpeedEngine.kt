@@ -1,7 +1,6 @@
 package com.antigravity.copilot.core.fuel.intelligence
 
 import com.antigravity.copilot.core.database.TripEntity
-import com.antigravity.copilot.core.util.NumberFormatUtils
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -69,25 +68,6 @@ data class BestMileageSpeedResult(
     val qualifyingTripCount: Int,
     val bandStats: List<SpeedBandStat>
 ) {
-    val displayRangeText: String
-        get() = when (status) {
-            EfficiencyLearningStatus.INSUFFICIENT_DATA -> "INSUFFICIENT DATA"
-            EfficiencyLearningStatus.LEARNING -> recommendedBand?.label ?: "LEARNING"
-            EfficiencyLearningStatus.CONFIRMED -> recommendedBand?.label ?: "LEARNING"
-        }
-
-    val displayShortRangeText: String
-        get() = when (status) {
-            EfficiencyLearningStatus.INSUFFICIENT_DATA -> "Learning"
-            EfficiencyLearningStatus.LEARNING -> recommendedBand?.compactLabel ?: "Learning"
-            EfficiencyLearningStatus.CONFIRMED -> recommendedBand?.compactLabel ?: "Learning"
-        }
-
-    val displayMileageText: String
-        get() = estimatedMileageKmpl?.let {
-            "${NumberFormatUtils.formatMileage(it, 1)} km/L"
-        } ?: "Collecting data"
-
     val confidenceLabel: String
         get() = when {
             confidencePercent >= 75 -> "High Confidence"

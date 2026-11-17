@@ -203,10 +203,6 @@ object CrashGuardian {
         return getPrefs(context).getString(KEY_LAST_CRASH_TRACE, null)
     }
 
-    fun getLastCrashTime(context: Context): Long {
-        return getPrefs(context).getLong(KEY_LAST_CRASH_TIME, 0L)
-    }
-
     /**
      * Resets all crash counters (used when driver confirms recovery or repairs launcher).
      */
@@ -286,7 +282,6 @@ object CrashGuardian {
     }
 
     @Deprecated("Renamed to setCopilotAsDefaultHome", ReplaceWith("setCopilotAsDefaultHome(context)"))
-    fun setDrivingReportAsDefaultHome(context: Context): Boolean = setCopilotAsDefaultHome(context)
 
     private fun getStackTraceString(throwable: Throwable): String {
         val sw = StringWriter()

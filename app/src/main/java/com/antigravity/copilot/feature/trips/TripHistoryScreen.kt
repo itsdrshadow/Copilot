@@ -7,11 +7,8 @@ import com.antigravity.copilot.core.designsystem.components.BadgeSize
 import com.antigravity.copilot.core.designsystem.tokens.Palette
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -88,6 +85,9 @@ fun TripHistoryScreen(
             onBackToCockpit()
         }
     }
+
+    // Yearly charts (monthly distance + weekday pattern), collapsed by default to keep the list tall.
+    var showYearInsights by remember { mutableStateOf(false) }
 
     // Track expanded monthly groups
     val expandedMonths = remember { mutableStateMapOf<String, Boolean>() }
@@ -270,7 +270,14 @@ fun TripHistoryScreen(
             }
 
             // ==================== 2. YEARLY SUMMARY BANNER ====================
-            YearlyTripSummaryBanner(analytics = yearlyAnalytics)
+            YearlyTripSummaryBanner(
+                analytics = yearlyAnalytics,
+                insightsExpanded = showYearInsights,
+                onToggleInsights = { showYearInsights = !showYearInsights }
+            )
+            if (showYearInsights) {
+                YearlyTripInsightsRow(analytics = yearlyAnalytics)
+            }
 
             // ==================== 3. CONTENT AREA ====================
             // Journeys Feed + Split Interactive Detail View
@@ -451,7 +458,11 @@ fun TripHistoryScreen(
 }
 
 @Composable
-internal fun YearlyTripSummaryBanner(analytics: YearlyTripAnalytics) {
+internal fun YearlyTripSummaryBanner(
+    analytics: YearlyTripAnalytics,
+    insightsExpanded: Boolean = false,
+    onToggleInsights: (() -> Unit)? = null
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -502,6 +513,79 @@ internal fun YearlyTripSummaryBanner(analytics: YearlyTripAnalytics) {
             unit = "",
             color = Palette.Slate400
         )
+        if (onToggleInsights != null) {
+            Box(
+                modifier = Modifier
+                    .size(62.dp)
+                    .cockpitSurface(
+                        if (insightsExpanded) Palette.Ink600 else Palette.Ink900,
+                        if (insightsExpanded) Palette.Sky400 else Palette.Ink800,
+                        CopilotShapes.R10
+                    )
+                    .clickable(onClick = onToggleInsights),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.BarChart,
+                        contentDescription = if (insightsExpanded) "Hide yearly charts" else "Show yearly charts",
+                        tint = if (insightsExpanded) Palette.Sky400 else Palette.Steel400,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "CHARTS",
+                        style = CockpitTheme.typography.labelSmall,
+                        color = if (insightsExpanded) Palette.Sky400 else Palette.Steel400
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Monthly distance and weekday driving-pattern charts for the selected year. */
+@Composable
+internal fun YearlyTripInsightsRow(analytics: YearlyTripAnalytics) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(170.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1.4f)
+                .fillMaxHeight()
+                .cockpitSurface(Color(0xFF0B1019), Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
+                .padding(10.dp)
+        ) {
+            Text(
+                text = "DISTANCE BY MONTH • ${analytics.year}",
+                style = CockpitTheme.typography.labelSmall,
+                color = Palette.Steel400
+            )
+            MonthlyDistanceCanvas(
+                monthlyGroups = analytics.monthlyGroups,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .cockpitSurface(Color(0xFF0B1019), Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
+                .padding(10.dp)
+        ) {
+            Text(
+                text = "TRIPS BY WEEKDAY",
+                style = CockpitTheme.typography.labelSmall,
+                color = Palette.Steel400
+            )
+            WeeklyDrivingPatternCanvas(
+                distribution = analytics.weeklyDistribution,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
@@ -613,85 +697,30 @@ internal fun TripListGroupedFeed(
             }
         }
     } else {
+        // Flattened: one lazy item per month header and per trip row, so only the rows on screen
+        // are composed (a busy month no longer composes hundreds of cards at once).
         LazyColumn(
             modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            items(activeMonthGroups, key = { "${it.year}-${it.monthIndex}" }) { group ->
+            activeMonthGroups.forEach { group ->
                 val monthKey = "${group.year}-${group.monthIndex}"
-                val isExpanded = expandedMonths.getOrPut(monthKey) { true }
-                val arrowRotation by animateFloatAsState(
-                    targetValue = if (isExpanded) 180f else 0f,
-                    animationSpec = tween(200),
-                    label = "arrow"
-                )
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .cockpitSurface(Color(0xFF0A0F1A), Color(0xFF1A2436), CopilotShapes.R14)
-                ) {
-                    // Month Header Bar
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expandedMonths[monthKey] = !isExpanded }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "${group.monthName} ${group.year}",
-                                style = CockpitTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Black
-                                ),
-                                color = Color.White
-                            )
-                            PillBadge(
-                                text = "${group.trips.size} trips",
-                                color = Palette.Slate400
-                            )
-                            PillBadge(
-                                text = NumberFormatUtils.formatDistanceWithUnit(group.totalDistanceKm, 2),
-                                color = Palette.Sky400
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isExpanded) "Collapse" else "Expand",
-                            tint = Palette.Steel400,
-                            modifier = Modifier
-                                .size(18.dp)
-                                .rotate(arrowRotation)
+                val isExpanded = expandedMonths[monthKey] ?: true
+                item(key = "month-$monthKey", contentType = "month") {
+                    TripMonthHeader(
+                        group = group,
+                        isExpanded = isExpanded,
+                        onToggle = { expandedMonths[monthKey] = !isExpanded }
+                    )
+                }
+                if (isExpanded) {
+                    items(group.trips, key = { "trip-${it.id}" }, contentType = { "trip" }) { trip ->
+                        TripCardItem(
+                            trip = trip,
+                            isSelected = selectedTrip?.id == trip.id,
+                            onClick = { onSelectTrip(trip) },
+                            modifier = Modifier.padding(horizontal = 6.dp)
                         )
-                    }
-
-                    // Expanded Trips
-                    AnimatedVisibility(
-                        visible = isExpanded,
-                        enter = fadeIn(tween(150)),
-                        exit = fadeOut(tween(150))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            group.trips.forEach { trip ->
-                                TripCardItem(
-                                    trip = trip,
-                                    isSelected = selectedTrip?.id == trip.id,
-                                    onClick = { onSelectTrip(trip) }
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
-                        }
                     }
                 }
             }
@@ -700,13 +729,68 @@ internal fun TripListGroupedFeed(
 }
 
 @Composable
+private fun TripMonthHeader(
+    group: MonthlyTripGroup,
+    isExpanded: Boolean,
+    onToggle: () -> Unit
+) {
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        animationSpec = tween(200),
+        label = "arrow"
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .cockpitSurface(Color(0xFF0A0F1A), Color(0xFF1A2436), CopilotShapes.R14)
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "${group.monthName} ${group.year}",
+                style = CockpitTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Black
+                ),
+                color = Color.White
+            )
+            PillBadge(
+                text = "${group.trips.size} trips",
+                color = Palette.Slate400
+            )
+            PillBadge(
+                text = NumberFormatUtils.formatDistanceWithUnit(group.totalDistanceKm, 2),
+                color = Palette.Sky400
+            )
+        }
+
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = if (isExpanded) "Collapse" else "Expand",
+            tint = Palette.Steel400,
+            modifier = Modifier
+                .size(18.dp)
+                .rotate(arrowRotation)
+        )
+    }
+}
+
+@Composable
 internal fun TripCardItem(
     trip: TripEntity,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
-    val dateFormat = SimpleDateFormat("dd MMM", Locale.getDefault())
+    // Formatters are costly to build; create them once per row, not on every recomposition.
+    val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+    val dateFormat = remember { SimpleDateFormat("dd MMM", Locale.getDefault()) }
+    val dayKeyFormat = remember { SimpleDateFormat("yyyyMMdd", Locale.US) }
     val startStr = timeFormat.format(Date(trip.startTime))
     val endStr = if (trip.endTime > trip.startTime) timeFormat.format(Date(trip.endTime)) else ""
     val dateStr = dateFormat.format(Date(trip.startTime))
@@ -716,8 +800,7 @@ internal fun TripCardItem(
     val activeDurationMs = trip.drivingDurationMs + trip.stationaryDurationMs
     val isMultiDay = (trip.endTime > trip.startTime) && (
         wallClockDurationMs >= 86_400_000L ||
-        SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(trip.startTime)) !=
-        SimpleDateFormat("yyyyMMdd", Locale.US).format(Date(trip.endTime))
+        dayKeyFormat.format(Date(trip.startTime)) != dayKeyFormat.format(Date(trip.endTime))
     )
     val durationText = if (isMultiDay) {
         val wallText = com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(wallClockDurationMs)
@@ -727,14 +810,13 @@ internal fun TripCardItem(
         com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(activeDurationMs)
     }
     val dateDisplayStr = if (isMultiDay) {
-        val df = SimpleDateFormat("dd MMM", Locale.getDefault())
-        "${df.format(Date(trip.startTime))} $startStr -> ${df.format(Date(trip.endTime))} $endStr"
+        "${dateFormat.format(Date(trip.startTime))} $startStr -> ${dateFormat.format(Date(trip.endTime))} $endStr"
     } else {
         "$dateStr • $startStr${if (endStr.isNotBlank()) " - $endStr" else ""}"
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(CopilotShapes.R12)
             .background(if (isSelected) Color(0xFF0F2038) else Palette.Ink925)

@@ -77,25 +77,4 @@ object TimeFormatUtils {
         return String.format(Locale.US, "%02dd : %02dh : %02dm", days, hours, minutes)
     }
 
-    /**
-     * Formats start and end dates into a readable span.
-     * If same day: "09 Nov 2026, 10:15 AM - 11:45 AM"
-     * If different days: "09 Nov 2026, 10:15 AM -> 12 Nov 2026, 04:30 PM"
-     */
-    fun formatDateRange(startTime: Long, endTime: Long): String {
-        if (startTime <= 0L) return ""
-        val actualEnd = if (endTime > 0L) endTime else System.currentTimeMillis()
-
-        val dayFormat = SimpleDateFormat("dd MMM yyyy", Locale.US)
-        val timeFormat = SimpleDateFormat("hh:mm a", Locale.US)
-
-        val startDay = dayFormat.format(Date(startTime))
-        val endDay = dayFormat.format(Date(actualEnd))
-
-        return if (startDay == endDay) {
-            "$startDay, ${timeFormat.format(Date(startTime))} - ${timeFormat.format(Date(actualEnd))}"
-        } else {
-            "$startDay, ${timeFormat.format(Date(startTime))} \u2192 $endDay, ${timeFormat.format(Date(actualEnd))}"
-        }
-    }
 }

@@ -10,4 +10,10 @@ interface SettingsRepository {
     fun updateVehicleSpecs(name: String, fuelType: String, tankCapacityLiters: Double, expectedMileageKmpl: Double)
     fun updateCockpitTheme(mode: CockpitThemeMode)
     fun setAutoForegroundOnBoot(enabled: Boolean)
+    fun setScreenAlwaysOn(enabled: Boolean)
+    fun setAutoMinimizeDrawer(enabled: Boolean)
+    fun setStationStopPrompt(enabled: Boolean)
+    fun setStationPromptDwellSeconds(seconds: Int)
+    fun setStationarySpeedThreshold(kmh: Float)
+    fun setDefaultGeofenceRadius(meters: Float)
 }

@@ -167,19 +167,6 @@ class GpsLocationFilter {
         return updatedState
     }
 
-    /**
-     * Fuses device orientation / compass sensor when vehicle is stationary.
-     */
-    fun fuseCompassHeading(compassHeading: Float): Float {
-        val shortestDelta = (compassHeading - lastValidBearing + 540f) % 360f - 180f
-        if (abs(shortestDelta) > 1.2f) {
-            val smoothed = (lastValidBearing + shortestDelta * 0.25f + 360f) % 360f
-            lastValidBearing = smoothed
-            lastState = lastState?.copy(bearing = smoothed)
-        }
-        return lastValidBearing
-    }
-
     fun reset() {
         lastState = null
         lastValidBearing = 0f

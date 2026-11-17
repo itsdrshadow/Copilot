@@ -66,7 +66,6 @@ class DrivingTrackingService : Service(), LocationListener {
     private var lastPromptStationLat = 0.0
     private var lastPromptStationLon = 0.0
     private var lastFusedFixTimeMs: Long = 0L
-    private var lastFatigueAlertTime: Long = 0L
 
     private val gpsFilter = com.antigravity.copilot.core.map.GpsLocationFilter()
     private var isLocationUpdatesActive: Boolean = false

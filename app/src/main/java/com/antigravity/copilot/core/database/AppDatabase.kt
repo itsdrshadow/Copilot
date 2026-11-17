@@ -18,9 +18,6 @@ interface TripDao {
     @Query("SELECT * FROM trips WHERE status IN ('ACTIVE_TRIP', 'TEMPORARY_STOP') ORDER BY startTime DESC LIMIT 1")
     suspend fun getActiveTrip(): TripEntity?
 
-    @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND isQualifying = 1 ORDER BY startTime DESC")
-    fun getAllQualifyingTrips(): Flow<List<TripEntity>>
-
     @Query("SELECT * FROM trips WHERE status = 'COMPLETED' ORDER BY endTime DESC, startTime DESC LIMIT 1")
     suspend fun getLastCompletedTrip(): TripEntity?
 
@@ -29,9 +26,6 @@ interface TripDao {
 
     @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND isQualifying = 1 ORDER BY startTime DESC LIMIT 3")
     fun getLastThreeTrips(): Flow<List<TripEntity>>
-
-    @Query("SELECT * FROM trips ORDER BY startTime DESC LIMIT 20")
-    fun getRecentTrips(): Flow<List<TripEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPoints(points: List<TripPointEntity>)
@@ -62,12 +56,6 @@ interface TripDao {
 
     @Query("SELECT * FROM trip_points ORDER BY tripId ASC, timestamp ASC")
     suspend fun getAllTripPoints(): List<TripPointEntity>
-
-    @Query("SELECT COUNT(*) FROM trip_points")
-    suspend fun getTripPointCount(): Int
-
-    @Query("SELECT COUNT(*) FROM trips")
-    suspend fun getTripCount(): Int
 }
 
 @Dao
@@ -80,9 +68,6 @@ interface FuelDao {
 
     @Query("SELECT * FROM fuel_events WHERE vehicleId = :vehicleId ORDER BY timestamp DESC")
     fun getFuelEvents(vehicleId: Int): Flow<List<FuelEventEntity>>
-
-    @Query("SELECT * FROM fuel_events WHERE vehicleId = :vehicleId ORDER BY timestamp DESC LIMIT 1")
-    suspend fun getLatestFuelEvent(vehicleId: Int): FuelEventEntity?
 
     @Query("DELETE FROM fuel_events")
     suspend fun clearAllFuelEvents()
@@ -98,9 +83,6 @@ interface FuelDao {
 
     @Query("SELECT * FROM fuel_events ORDER BY timestamp ASC")
     suspend fun getAllFuelEvents(): List<FuelEventEntity>
-
-    @Query("SELECT COUNT(*) FROM fuel_events")
-    suspend fun getFuelEventCount(): Int
 
     /** Unlogged-consumption rows carry a stable "[unlogged:tripId:time]" marker in notes. */
     @Query("SELECT * FROM fuel_events WHERE eventType = 'UNLOGGED_CONSUMPTION' AND notes LIKE :pattern LIMIT 1")
@@ -121,17 +103,8 @@ interface FuelLedgerDao {
     @Query("SELECT * FROM fuel_ledger_events ORDER BY timestamp ASC")
     suspend fun getAllEventsAsc(): List<FuelLedgerEntity>
 
-    @Query("SELECT * FROM fuel_ledger_events ORDER BY timestamp DESC LIMIT 1")
-    suspend fun getLatestEvent(): FuelLedgerEntity?
-
     @Query("SELECT * FROM fuel_ledger_events WHERE id = :id LIMIT 1")
     suspend fun getEventById(id: Long): FuelLedgerEntity?
-
-    @Query("SELECT * FROM fuel_ledger_events WHERE parentId = :parentId")
-    suspend fun getEventsByParentId(parentId: Long): List<FuelLedgerEntity>
-
-    @Query("SELECT * FROM fuel_ledger_events WHERE eventType IN ('REFUEL', 'INITIAL_FUEL_BASELINE') ORDER BY timestamp DESC")
-    fun getRefuelRecordsFlow(): Flow<List<FuelLedgerEntity>>
 
     @Query("SELECT * FROM fuel_ledger_events WHERE eventType = 'INFERRED_REFUEL' AND confidence = 'PROVISIONAL' ORDER BY timestamp DESC")
     fun getProvisionalInferredEventsFlow(): Flow<List<FuelLedgerEntity>>
@@ -144,21 +117,12 @@ interface FuelLedgerDao {
 
     @Query("DELETE FROM fuel_ledger_events")
     suspend fun clearAll()
-
-    @Query("SELECT COUNT(*) FROM fuel_ledger_events")
-    suspend fun getEventCount(): Int
 }
 
 @Dao
 interface VehicleStateDao {
     @Insert
     suspend fun insertTransition(transition: VehicleStateTransitionEntity): Long
-
-    @Query("SELECT * FROM vehicle_state_transitions ORDER BY timestamp DESC LIMIT :limit")
-    fun getRecentTransitions(limit: Int = 50): kotlinx.coroutines.flow.Flow<List<VehicleStateTransitionEntity>>
-
-    @Query("SELECT * FROM vehicle_state_transitions WHERE toState = 'ENGINE_OFF' ORDER BY timestamp DESC LIMIT 1")
-    suspend fun getLastEngineOffTransition(): VehicleStateTransitionEntity?
 
     @Query("SELECT * FROM vehicle_state_transitions WHERE tripId = :tripId ORDER BY timestamp ASC")
     suspend fun getTransitionsForTrip(tripId: Long): List<VehicleStateTransitionEntity>
@@ -177,21 +141,10 @@ interface VehicleStateDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransitions(transitions: List<VehicleStateTransitionEntity>)
-
-    @Query("SELECT COUNT(*) FROM vehicle_state_transitions")
-    suspend fun getTransitionCount(): Int
 }
 
 @Dao
 interface VehicleDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertOrUpdateVehicle(vehicle: VehicleEntity)
-
-    @Query("SELECT * FROM vehicles WHERE id = :id")
-    suspend fun getVehicle(id: Int = 1): VehicleEntity?
-
-    @Query("SELECT * FROM vehicles WHERE id = :id")
-    fun getVehicleFlow(id: Int = 1): Flow<VehicleEntity?>
 
     @Query("DELETE FROM vehicles")
     suspend fun clearAllVehicles()
@@ -223,15 +176,6 @@ interface TripGeofenceDao {
 
     @Query("SELECT * FROM trip_geofences ORDER BY createdAt ASC")
     suspend fun getAllGeofencesList(): List<TripGeofenceEntity>
-
-    @Query("SELECT * FROM trip_geofences WHERE isEnabled = 1 ORDER BY createdAt ASC")
-    fun getEnabledGeofences(): Flow<List<TripGeofenceEntity>>
-
-    @Query("SELECT * FROM trip_geofences WHERE isEnabled = 1 ORDER BY createdAt ASC")
-    suspend fun getEnabledGeofencesList(): List<TripGeofenceEntity>
-
-    @Query("SELECT COUNT(*) FROM trip_geofences")
-    suspend fun getGeofenceCount(): Int
 
     @Query("DELETE FROM trip_geofences")
     suspend fun clearAllGeofences()

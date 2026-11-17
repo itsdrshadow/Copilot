@@ -1,6 +1,5 @@
 package com.antigravity.copilot.core.model
 
-
 enum class TripStatus {
     IDLE,
     MOVEMENT_CANDIDATE,
@@ -58,14 +57,7 @@ data class TripSummary(
     val distanceKm: Double get() = distanceMeters / 1000.0
     val drivingMinutes: Long get() = drivingDurationMs / 60000
     val idleMinutes: Long get() = stationaryDurationMs / 60000
-    val totalMinutes: Long get() = (drivingDurationMs + stationaryDurationMs) / 60000
     val isQualifyingTrip: Boolean get() = distanceMeters >= 1000.0 // >= 1 km
-
-    val compassDirection: String get() {
-        val directions = arrayOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
-        val index = (((currentBearing % 360) + 22.5) / 45.0).toInt() % 8
-        return directions[index]
-    }
 
     companion object {
         fun empty(): TripSummary = TripSummary(

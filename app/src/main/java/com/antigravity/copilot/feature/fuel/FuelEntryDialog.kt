@@ -43,6 +43,11 @@ import com.antigravity.copilot.core.model.FuelState
 import com.antigravity.copilot.core.model.TripPoint
 import com.antigravity.copilot.core.util.NumberFormatUtils
 
+private const val STATION_LOOKUP_PLACEHOLDER = "Detecting fuel station..."
+
+/** Upper sanity bound for a fuel rate (₹/L); anything above is a keypad typo. */
+private const val MAX_PRICE_PER_LITER = 1000.0
+
 enum class ActiveFuelField {
     AMOUNT,
     RATE,
@@ -66,8 +71,6 @@ fun FuelEntryDialog(
     currentLocationPoint: TripPoint?,
     onDismiss: () -> Unit,
     onSaveRefuel: (liters: Double, midBar: Int, pricePerLiter: Double, totalCost: Double, odometerKm: Double, locationName: String, lat: Double, lon: Double, fullTank: Boolean) -> Unit,
-    @Suppress("UNUSED_PARAMETER") onCalibrateMidBar: (midBar: Int) -> Unit = {},
-    @Suppress("UNUSED_PARAMETER") onCalibrateOdometer: (odometerKm: Double) -> Unit = {},
     viewModel: FuelEntryViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -89,7 +92,7 @@ fun FuelEntryDialog(
             else "96.50"
         )
     }
-    var locationNameText by remember { mutableStateOf("Detecting fuel station...") }
+    var locationNameText by remember { mutableStateOf(STATION_LOOKUP_PLACEHOLDER) }
     var isRememberedStationPrice by remember { mutableStateOf(false) }
 
     // Resolve the fuel station once per dialog (and once more when a GPS fix first arrives).
@@ -111,7 +114,8 @@ fun FuelEntryDialog(
     var activeField by remember { mutableStateOf(ActiveFuelField.AMOUNT) }
 
     // Auto-calculated metrics
-    val pricePerLiter = pricePerLiterText.toDoubleOrNull() ?: 96.50
+    // An empty / zero rate is invalid; never silently substitute a default price.
+    val pricePerLiter = pricePerLiterText.toDoubleOrNull() ?: 0.0
     val totalAmount = totalAmountText.toDoubleOrNull() ?: 0.0
     val dispensedLiters = if (pricePerLiter > 0.0) totalAmount / pricePerLiter else 0.0
 
@@ -145,6 +149,19 @@ fun FuelEntryDialog(
     val enteredOdo = refuelOdometerText.toDoubleOrNull() ?: 0.0
     val isOdometerValid = if (refuelOdometerText.isNotEmpty()) enteredOdo > 0.0 else true
     val odoTripDelta = if (enteredOdo > currentBaselineOdometer && currentBaselineOdometer > 0) enteredOdo - currentBaselineOdometer else 0.0
+
+    // Input guards: a valid rate, and a dispensed volume the tank can physically hold
+    // (5% slack for the filler neck) — catches amount / rate typos before they skew mileage.
+    val isPriceValid = pricePerLiter > 0.0 && pricePerLiter <= MAX_PRICE_PER_LITER
+    val exceedsTankCapacity = dispensedLiters > designCap * 1.05
+    val validationError = when {
+        totalAmount > 0.0 && !isPriceValid -> "Enter a valid fuel rate (₹/L)"
+        exceedsTankCapacity ->
+            "${NumberFormatUtils.formatPrecision(dispensedLiters, 1)} L exceeds the ${designCap.toInt()} L tank — check amount and rate"
+        !isOdometerValid -> "Enter a valid odometer reading"
+        else -> null
+    }
+    val isFormValid = totalAmount > 0.0 && validationError == null
 
     fun onKeypadPress(key: String) {
         when (key) {
@@ -555,6 +572,15 @@ fun FuelEntryDialog(
                                     )
                                 }
 
+                                validationError?.let { err ->
+                                    Text(
+                                        text = "⚠️ $err",
+                                        style = CockpitTheme.typography.labelMedium,
+                                        color = Cockpit_RedAlert,
+                                        maxLines = 2
+                                    )
+                                }
+
                                 // 3. BOTTOM SECTION: ACTIONS (CANCEL & CONFIRM REFUEL)
                                 Row(
                                     modifier = Modifier
@@ -580,12 +606,10 @@ fun FuelEntryDialog(
                                         )
                                     }
 
-                                    val isFormValid = totalAmount > 0.0 && (refuelOdometerText.isEmpty() || enteredOdo > 0.0)
-
                                     Button(
                                         onClick = {
-                                            if (totalAmount <= 0.0) {
-                                                Toast.makeText(context, "Please enter a valid refuel amount", Toast.LENGTH_SHORT).show()
+                                            if (!isFormValid) {
+                                                Toast.makeText(context, validationError ?: "Please enter a valid refuel amount", Toast.LENGTH_SHORT).show()
                                                 return@Button
                                             }
 
@@ -597,7 +621,8 @@ fun FuelEntryDialog(
                                                 pricePerLiter,
                                                 totalAmount,
                                                 enteredOdo,
-                                                locationNameText,
+                                                // Never persist the lookup placeholder as a station name.
+                                                locationNameText.takeUnless { it == STATION_LOOKUP_PLACEHOLDER }.orEmpty(),
                                                 lat,
                                                 lon,
                                                 isFullTank

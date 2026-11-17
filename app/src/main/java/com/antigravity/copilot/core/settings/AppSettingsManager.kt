@@ -225,20 +225,6 @@ object AppSettingsManager {
         }
     }
 
-    fun updateVehicleNameAndFuel(context: Context, name: String, fuelType: String) {
-        getPrefs(context).edit()
-            .putString(KEY_CAR_NAME, name)
-            .putString(KEY_FUEL_TYPE, fuelType)
-            .apply()
-        _settingsState.value = _settingsState.value.copy(carName = name, fuelType = fuelType)
-        scope.launch {
-            context.appDataStore.edit {
-                it[SettingsDataStore.KEY_CAR_NAME] = name
-                it[SettingsDataStore.KEY_FUEL_TYPE] = fuelType
-            }
-        }
-    }
-
     fun updateVehiclePhysicalSpecs(
         context: Context,
         name: String,
@@ -321,83 +307,11 @@ object AppSettingsManager {
         }
     }
 
-    fun updateAutoTripDetection(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_AUTO_TRIP_DETECTION, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(autoTripDetection = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_AUTO_TRIP_DETECTION] = enabled }
-        }
-    }
-
-    fun updateEngineOffDetection(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_ENGINE_OFF_DETECTION, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(engineOffDetection = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_ENGINE_OFF_DETECTION] = enabled }
-        }
-    }
-
     fun updateStationStopWatchdog(context: Context, enabled: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_STATION_STOP_WATCHDOG, enabled).apply()
         _settingsState.value = _settingsState.value.copy(stationStopWatchdog = enabled)
         scope.launch {
             context.appDataStore.edit { it[SettingsDataStore.KEY_STATION_STOP_WATCHDOG] = enabled }
-        }
-    }
-
-    fun updateDynamicSpeedLimits(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_DYNAMIC_SPEED_LIMITS, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(dynamicSpeedLimits = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_DYNAMIC_SPEED_LIMITS] = enabled }
-        }
-    }
-
-    fun updateOverspeedAlerts(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_OVERSPEED_ALERTS, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(overspeedAlerts = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_OVERSPEED_ALERTS] = enabled }
-        }
-    }
-
-    fun updateNearLimitWarning(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_NEAR_LIMIT_WARNING, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(nearLimitWarning = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_NEAR_LIMIT_WARNING] = enabled }
-        }
-    }
-
-    fun updateDriverScoring(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_DRIVER_SCORING, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(driverScoring = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_DRIVER_SCORING] = enabled }
-        }
-    }
-
-    fun updateMapSatelliteMode(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_MAP_SATELLITE_MODE, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(mapSatelliteMode = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_MAP_SATELLITE_MODE] = enabled }
-        }
-    }
-
-    fun updateMapDarkMode(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_MAP_DARK_MODE, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(mapDarkMode = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_MAP_DARK_MODE] = enabled }
-        }
-    }
-
-    fun updateMapBuildingFootprints(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_MAP_BUILDING_FOOTPRINTS, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(mapBuildingFootprints = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_MAP_BUILDING_FOOTPRINTS] = enabled }
         }
     }
 
@@ -427,20 +341,6 @@ object AppSettingsManager {
         }
     }
 
-    fun updateThemeAppearanceMode(context: Context, mode: com.antigravity.copilot.core.designsystem.ThemeAppearanceMode) {
-        getPrefs(context).edit()
-            .putString(KEY_THEME_APPEARANCE_MODE, mode.id)
-            .apply()
-        _settingsState.value = _settingsState.value.copy(themeAppearanceMode = mode.id)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_THEME_APPEARANCE_MODE] = mode.id }
-        }
-    }
-
-    fun restoreApexCockpit(context: Context) {
-        updateCockpitTheme(context, CockpitThemeMode.APEX)
-    }
-
     /**
      * Permanent Studio Theme Enforcement:
      * Finalizes and ensures Premium Cockpit is always active.
@@ -456,30 +356,6 @@ object AppSettingsManager {
                 it[SettingsDataStore.KEY_COCKPIT_THEME] = CockpitThemeMode.PREMIUM.id
                 it[SettingsDataStore.KEY_LAST_STABLE_THEME] = CockpitThemeMode.PREMIUM.id
             }
-        }
-    }
-
-    fun restoreClassicCockpit(context: Context) {
-        restorePremiumCockpit(context)
-    }
-
-    fun recoverToSafeClassicCockpit(context: Context) {
-        restorePremiumCockpit(context)
-    }
-
-    fun updateAutoDayNightSolar(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_AUTO_DAY_NIGHT_SOLAR, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(autoDayNightSolar = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_AUTO_DAY_NIGHT_SOLAR] = enabled }
-        }
-    }
-
-    fun updateMediaPillEnabled(context: Context, enabled: Boolean) {
-        getPrefs(context).edit().putBoolean(KEY_MEDIA_PILL_ENABLED, enabled).apply()
-        _settingsState.value = _settingsState.value.copy(mediaPillEnabled = enabled)
-        scope.launch {
-            context.appDataStore.edit { it[SettingsDataStore.KEY_MEDIA_PILL_ENABLED] = enabled }
         }
     }
 

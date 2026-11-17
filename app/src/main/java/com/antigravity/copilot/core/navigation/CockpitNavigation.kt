@@ -2,7 +2,7 @@ package com.antigravity.copilot.core.navigation
 
 /**
  * Standardized Automotive Cockpit Navigation Contract.
- * Defines top-level navigation tabs, dialog destinations, and screen routing.
+ * Defines the top-level navigation tabs.
  */
 enum class CockpitTab(val index: Int, val title: String) {
     COCKPIT(0, "Cockpit"),
@@ -13,12 +13,4 @@ enum class CockpitTab(val index: Int, val title: String) {
     companion object {
         fun fromIndex(index: Int): CockpitTab = entries.find { it.index == index } ?: COCKPIT
     }
-}
-
-sealed interface CockpitNavEvent {
-    data class SelectTab(val tab: CockpitTab) : CockpitNavEvent
-    data class OpenAppDrawer(val open: Boolean) : CockpitNavEvent
-    data class OpenFuelEntryDialog(val open: Boolean) : CockpitNavEvent
-    data class OpenSettingsDialog(val open: Boolean) : CockpitNavEvent
-    object LaunchNavigationApp : CockpitNavEvent
 }

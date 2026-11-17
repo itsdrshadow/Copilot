@@ -185,21 +185,26 @@ object PersistentDataManager {
                     val tripsList = mutableListOf<TripEntity>()
                     for (i in 0 until tripsArr.length()) {
                         val t = tripsArr.getJSONObject(i)
+                        // Sanitize corrupted records: non-finite / negative distance or speeds and
+                        // reversed timestamps must never reach history lists or analytics maths.
+                        val startTime = t.getLong("startTime")
+                        val rawEnd = t.optLong("endTime", 0L)
+                        val distance = t.optDouble("distanceMeters", 0.0).takeIf { it.isFinite() && it > 0.0 } ?: 0.0
                         tripsList.add(
                             TripEntity(
                                 id = t.getLong("id"),
                                 vehicleId = t.optInt("vehicleId", 1),
-                                startTime = t.getLong("startTime"),
-                                endTime = t.optLong("endTime", 0L),
-                                distanceMeters = t.optDouble("distanceMeters", 0.0),
-                                drivingDurationMs = t.optLong("drivingDurationMs", 0L),
-                                stationaryDurationMs = t.optLong("stationaryDurationMs", 0L),
-                                avgSpeedKmh = t.optDouble("avgSpeedKmh", 0.0),
-                                maxSpeedKmh = t.optDouble("maxSpeedKmh", 0.0),
+                                startTime = startTime,
+                                endTime = if (rawEnd != 0L && rawEnd < startTime) startTime else rawEnd,
+                                distanceMeters = distance,
+                                drivingDurationMs = t.optLong("drivingDurationMs", 0L).coerceAtLeast(0L),
+                                stationaryDurationMs = t.optLong("stationaryDurationMs", 0L).coerceAtLeast(0L),
+                                avgSpeedKmh = t.optDouble("avgSpeedKmh", 0.0).takeIf { it.isFinite() && it > 0.0 } ?: 0.0,
+                                maxSpeedKmh = t.optDouble("maxSpeedKmh", 0.0).takeIf { it.isFinite() && it > 0.0 } ?: 0.0,
                                 startLocationName = t.optString("startLocationName", "Trip Origin"),
                                 endLocationName = t.optString("endLocationName", "Trip Destination"),
                                 status = t.optString("status", "COMPLETED"),
-                                isQualifying = t.optBoolean("isQualifying", true),
+                                isQualifying = t.optBoolean("isQualifying", true) && distance > 0.0,
                                 driverScore = t.optInt("driverScore", 100)
                             )
                         )

@@ -79,7 +79,4 @@ class AdaptiveMetricsEngine(private val panelName: String) {
         }
     }
 
-    fun isHighInterest(metricId: String): Boolean {
-        return getScore(metricId) >= 1.6f
-    }
 }

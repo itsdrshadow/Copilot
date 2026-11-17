@@ -27,4 +27,25 @@ class SettingsRepositoryImpl @Inject constructor(
     override fun updateCockpitTheme(mode: CockpitThemeMode) = AppSettingsManager.updateCockpitTheme(context, mode)
 
     override fun setAutoForegroundOnBoot(enabled: Boolean) = AppSettingsManager.updateAutoForegroundOnBoot(context, enabled)
+
+    override fun setScreenAlwaysOn(enabled: Boolean) = AppSettingsManager.updateScreenAlwaysOn(context, enabled)
+
+    override fun setAutoMinimizeDrawer(enabled: Boolean) = AppSettingsManager.updateAutoMinimizeDrawer(context, enabled)
+
+    override fun setStationStopPrompt(enabled: Boolean) = AppSettingsManager.updateStationStopWatchdog(context, enabled)
+
+    override fun setStationPromptDwellSeconds(seconds: Int) {
+        val s = settings.value
+        AppSettingsManager.updateStationWatchdogParameters(context, seconds, s.missedRefillThresholdLiters)
+    }
+
+    override fun setStationarySpeedThreshold(kmh: Float) {
+        val s = settings.value
+        AppSettingsManager.updateTrackingThresholds(context, s.defaultGeofenceRadiusMeters, kmh, s.idleDurationThresholdSeconds)
+    }
+
+    override fun setDefaultGeofenceRadius(meters: Float) {
+        val s = settings.value
+        AppSettingsManager.updateTrackingThresholds(context, meters, s.stationarySpeedThresholdKmh, s.idleDurationThresholdSeconds)
+    }
 }

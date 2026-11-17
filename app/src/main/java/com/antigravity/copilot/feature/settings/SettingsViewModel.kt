@@ -41,6 +41,21 @@ class SettingsViewModel @Inject constructor(
 
     fun setAutoForegroundOnBoot(enabled: Boolean) = settingsRepository.setAutoForegroundOnBoot(enabled)
 
+    fun setScreenAlwaysOn(enabled: Boolean) = settingsRepository.setScreenAlwaysOn(enabled)
+
+    fun setAutoMinimizeDrawer(enabled: Boolean) = settingsRepository.setAutoMinimizeDrawer(enabled)
+
+    fun setStationStopPrompt(enabled: Boolean) = settingsRepository.setStationStopPrompt(enabled)
+
+    /** Values are clamped by the settings store (15–180 s). */
+    fun setStationPromptDwellSeconds(seconds: Int) = settingsRepository.setStationPromptDwellSeconds(seconds)
+
+    /** Values are clamped by the settings store (1–10 km/h). */
+    fun setStationarySpeedThreshold(kmh: Float) = settingsRepository.setStationarySpeedThreshold(kmh)
+
+    /** Values are clamped by the settings store (50–2000 m). */
+    fun setDefaultGeofenceRadius(meters: Float) = settingsRepository.setDefaultGeofenceRadius(meters)
+
     /** Runs in [viewModelScope], so closing the settings dialog mid-backup no longer cancels the backup. */
     fun backupNow() {
         if (_isBackupInProgress.value) return

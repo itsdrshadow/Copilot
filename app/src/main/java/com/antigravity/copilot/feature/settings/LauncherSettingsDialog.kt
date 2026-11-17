@@ -57,21 +57,18 @@ enum class SettingsTab(val title: String, val icon: ImageVector, val subtitle: S
  * - Dedicated Vertical Tab Rail on the left with prominent typography.
  * - Scaled, large, glanceable typography matching homescreen design tokens ("bada bada dikhe").
  * - Cleaned-up tabs: Removed Appearance, Tracking, Maps, and Speed & Safety (always enabled).
- * - Cleaned-up General: Removed Display & Screen Behavior and Localization.
+ * - General: theme, ignition behaviour, display/launcher toggles and trip & fuel-stop detection
+ *   thresholds — only settings the app actually acts on are exposed.
  * - Cleaned-up Vehicle: Completely removed redundant Expected Mileage input.
  */
 @Composable
 fun LauncherSettingsDialog(
     currentFuelState: FuelState,
-    @Suppress("UNUSED_PARAMETER") recordedLifetimeKm: Double = 0.0,
     initialCarName: String = "My Car",
     initialFuelType: String = "Petrol",
     onSaveVehicleConfig: (name: String, fuelType: String, tankCapacity: Double, mileage: Double) -> Unit,
-    @Suppress("UNUSED_PARAMETER") onCalibrateMidBar: (midBar: Int) -> Unit = {},
-    @Suppress("UNUSED_PARAMETER") onCalibrateOdometer: (odometerKm: Double) -> Unit = {},
     onLaunchRestorePicker: () -> Unit = {},
     onResetAllDataConfirmed: () -> Unit,
-    @Suppress("UNUSED_PARAMETER") onPreviewTheme: (CockpitThemeMode) -> Unit = {},
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -268,7 +265,13 @@ fun LauncherSettingsDialog(
                                 SettingsTab.GENERAL -> GeneralSettingsContent(
                                     state = settingsState,
                                     onSelectTheme = viewModel::selectTheme,
-                                    onToggleAutoForeground = { viewModel.setAutoForegroundOnBoot(!settingsState.autoForegroundOnBoot) }
+                                    onToggleAutoForeground = { viewModel.setAutoForegroundOnBoot(!settingsState.autoForegroundOnBoot) },
+                                    onToggleScreenAlwaysOn = { viewModel.setScreenAlwaysOn(!settingsState.screenAlwaysOn) },
+                                    onToggleAutoMinimizeDrawer = { viewModel.setAutoMinimizeDrawer(!settingsState.autoMinimizeDrawer) },
+                                    onToggleStationPrompt = { viewModel.setStationStopPrompt(!settingsState.stationStopWatchdog) },
+                                    onDwellSecondsChange = viewModel::setStationPromptDwellSeconds,
+                                    onStationaryThresholdChange = viewModel::setStationarySpeedThreshold,
+                                    onGeofenceRadiusChange = viewModel::setDefaultGeofenceRadius
                                 )
                                 SettingsTab.VEHICLE -> VehicleSettingsContent(
                                     currentFuelState = currentFuelState,
@@ -448,7 +451,13 @@ fun LauncherSettingsDialog(
 private fun GeneralSettingsContent(
     state: AppSettingsManager.SettingsState,
     onSelectTheme: (CockpitThemeMode) -> Unit,
-    onToggleAutoForeground: () -> Unit
+    onToggleAutoForeground: () -> Unit,
+    onToggleScreenAlwaysOn: () -> Unit,
+    onToggleAutoMinimizeDrawer: () -> Unit,
+    onToggleStationPrompt: () -> Unit,
+    onDwellSecondsChange: (Int) -> Unit,
+    onStationaryThresholdChange: (Float) -> Unit,
+    onGeofenceRadiusChange: (Float) -> Unit
 ) {
 
     // DASHBOARD THEME & APPEARANCE
@@ -561,6 +570,65 @@ private fun GeneralSettingsContent(
         }
     }
 
+    // DISPLAY & APP LAUNCHER
+    SettingsCard(title = "Display & App Launcher", icon = Icons.Default.Tune) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SettingsToggleRow(
+                title = "Keep Screen Awake",
+                description = if (state.screenAlwaysOn) "Display never sleeps while Copilot is in front"
+                else "Display follows the head unit's screen timeout",
+                checked = state.screenAlwaysOn,
+                onToggle = onToggleScreenAlwaysOn
+            )
+            SettingsToggleRow(
+                title = "Close App Drawer After Launch",
+                description = if (state.autoMinimizeDrawer) "Drawer slides away once an app is opened"
+                else "Drawer stays open behind the launched app",
+                checked = state.autoMinimizeDrawer,
+                onToggle = onToggleAutoMinimizeDrawer
+            )
+        }
+    }
+
+    // TRIP & FUEL-STOP DETECTION
+    SettingsCard(title = "Trip & Fuel-Stop Detection", icon = Icons.Default.Place) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SettingsToggleRow(
+                title = "Fuel Station Refuel Prompt",
+                description = if (state.stationStopWatchdog) "Asks to log a refuel after stopping at a fuel station"
+                else "No automatic refuel prompt at fuel stations",
+                checked = state.stationStopWatchdog,
+                onToggle = onToggleStationPrompt
+            )
+            if (state.stationStopWatchdog) {
+                SettingsStepperRow(
+                    title = "Prompt After Stopping For",
+                    valueText = "${state.stationPromptDwellSeconds} s",
+                    canDecrease = state.stationPromptDwellSeconds > 15,
+                    canIncrease = state.stationPromptDwellSeconds < 180,
+                    onDecrease = { onDwellSecondsChange(state.stationPromptDwellSeconds - 15) },
+                    onIncrease = { onDwellSecondsChange(state.stationPromptDwellSeconds + 15) }
+                )
+            }
+            SettingsStepperRow(
+                title = "Stationary Below",
+                valueText = "${NumberFormatUtils.formatPrecision(state.stationarySpeedThresholdKmh.toDouble(), 1)} km/h",
+                canDecrease = state.stationarySpeedThresholdKmh > 1.0f,
+                canIncrease = state.stationarySpeedThresholdKmh < 10.0f,
+                onDecrease = { onStationaryThresholdChange(state.stationarySpeedThresholdKmh - 0.5f) },
+                onIncrease = { onStationaryThresholdChange(state.stationarySpeedThresholdKmh + 0.5f) }
+            )
+            SettingsStepperRow(
+                title = "New Geofence Radius",
+                valueText = "${state.defaultGeofenceRadiusMeters.toInt()} m",
+                canDecrease = state.defaultGeofenceRadiusMeters > 50f,
+                canIncrease = state.defaultGeofenceRadiusMeters < 2000f,
+                onDecrease = { onGeofenceRadiusChange(state.defaultGeofenceRadiusMeters - 25f) },
+                onIncrease = { onGeofenceRadiusChange(state.defaultGeofenceRadiusMeters + 25f) }
+            )
+        }
+    }
+
     // AUTOMOTIVE RUNTIME SPECIFICATION CARD
     SettingsCard(title = "Automotive Runtime Environment", icon = Icons.Default.Tune) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -574,9 +642,90 @@ private fun GeneralSettingsContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                StatusBadge(text = "SCREEN ALWAYS ON", modifier = Modifier.weight(1f))
+                StatusBadge(text = if (state.screenAlwaysOn) "SCREEN ALWAYS ON" else "SYSTEM TIMEOUT", modifier = Modifier.weight(1f))
                 StatusBadge(text = "METRIC (KM & KM/H)", modifier = Modifier.weight(1f))
                 StatusBadge(text = "APEX HIGH CONTRAST", modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsToggleRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CopilotShapes.R16)
+            .background(if (checked) CockpitTheme.colors.accentSoft else CockpitTheme.colors.cardElevated)
+            .border(
+                width = 1.5.dp,
+                color = if (checked) CockpitTheme.colors.accent else CockpitTheme.colors.border,
+                shape = CopilotShapes.R16
+            )
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                style = CockpitTheme.typography.titleMedium,
+                color = if (checked) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
+            )
+            Text(
+                text = description,
+                style = CockpitTheme.typography.bodySmall,
+                color = CockpitTheme.colors.textSecondary
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Switch(checked = checked, onCheckedChange = { onToggle() })
+    }
+}
+
+/** Large -/+ stepper: sliders are hard to hit precisely on a moving head-unit touchscreen. */
+@Composable
+private fun SettingsStepperRow(
+    title: String,
+    valueText: String,
+    canDecrease: Boolean,
+    canIncrease: Boolean,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R16)
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = CockpitTheme.typography.titleMedium,
+            color = CockpitTheme.colors.textPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            IconButton(onClick = onDecrease, enabled = canDecrease, modifier = Modifier.size(56.dp)) {
+                Icon(Icons.Default.Remove, contentDescription = "Decrease $title", tint = CockpitTheme.colors.accent)
+            }
+            Text(
+                text = valueText,
+                style = CockpitTheme.typography.titleLarge,
+                color = CockpitTheme.colors.textPrimary,
+                modifier = Modifier.widthIn(min = 96.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            IconButton(onClick = onIncrease, enabled = canIncrease, modifier = Modifier.size(56.dp)) {
+                Icon(Icons.Default.Add, contentDescription = "Increase $title", tint = CockpitTheme.colors.accent)
             }
         }
     }

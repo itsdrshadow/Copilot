@@ -158,13 +158,6 @@ object OfflineMapManager {
         updateGpsLocation(lat, lon)
     }
 
-    /**
-     * Backward-compatible alias for CopilotApp
-     */
-    fun initOfflineConfiguration(context: Context) {
-        init(context)
-    }
-
     fun getMapsDir(context: Context): File = File(context.getExternalFilesDir(null), "maps")
     fun getDownloadsDir(context: Context): File = File(context.getExternalFilesDir(null), "downloads")
 
@@ -228,8 +221,6 @@ object OfflineMapManager {
         val (lat, lon) = getLastKnownPosition(context)
         return getBestMapFileForLocation(context, lat, lon)
     }
-
-    fun hasOfflineMap(context: Context): Boolean = getMapFile(context) != null
 
     /**
      * Refreshes the installation status of packages in Scoped Storage.
@@ -579,10 +570,6 @@ object OfflineMapManager {
 
     fun setLightweightMode(enabled: Boolean) {
         Log.i(TAG, "OfflineMapManager lightweight mode set to: $enabled")
-    }
-
-    fun getOfflineCacheSizeBytes(context: Context): Long {
-        return calculateFolderSize(getMapsDir(context))
     }
 
     // Last Known Position (for DrivingTrackingService and TripRepository)

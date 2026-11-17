@@ -151,6 +151,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by AppSettingsManager.settingsState.collectAsStateWithLifecycle()
 
+            // Head-unit display stays awake while Copilot is in front (Settings › Display toggle).
+            val keepScreenOn = settings.screenAlwaysOn
+            LaunchedEffect(keepScreenOn) {
+                if (keepScreenOn) {
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+
             CopilotTheme(
                 themeMode = settings.cockpitThemeMode
             ) {
@@ -312,8 +322,9 @@ private fun MainAppScreen(
         }
     }
 
-    val recordedDistanceKm = remember(qualifyingTrips, currentTrip.distanceKm, currentTrip.status) {
-        val historicalKm = qualifyingTrips.sumOf { it.distanceMeters } / 1000.0
+    // Historical total only changes when the trip list does; don't re-sum it on every GPS tick.
+    val historicalKm = remember(qualifyingTrips) { qualifyingTrips.sumOf { it.distanceMeters } / 1000.0 }
+    val recordedDistanceKm = remember(historicalKm, currentTrip.distanceKm, currentTrip.status) {
         val isTripActive = currentTrip.status == com.antigravity.copilot.core.model.TripStatus.ACTIVE_TRIP ||
             currentTrip.status == com.antigravity.copilot.core.model.TripStatus.MOVEMENT_CANDIDATE ||
             currentTrip.status == com.antigravity.copilot.core.model.TripStatus.TEMPORARY_STOP
@@ -366,6 +377,7 @@ private fun MainAppScreen(
             onLaunchSettings = { viewModel.setSettingsDialogOpen(true) },
             onToggleFullMap = { viewModel.selectTab(if (selectedTab == 1) 0 else 1) },
             onCalibrateMidBar = { point -> viewModel.calibrateGaugePoint(point) },
+            onDismissFuelNotice = { viewModel.dismissFuelNotice() },
             isMapFullScreen = selectedTab == 1,
             isCovered = isDashboardCovered,
             // Hidden under an opaque overlay: alpha 0 lets the RenderThread skip drawing it entirely.
@@ -472,7 +484,6 @@ private fun MainAppScreen(
         ) {
             LauncherSettingsDialog(
                 currentFuelState = fuelState,
-                recordedLifetimeKm = recordedDistanceKm,
                 onSaveVehicleConfig = { _, _, cap, mileage ->
                     viewModel.updateVehicleConfig(cap, mileage)
                 },
