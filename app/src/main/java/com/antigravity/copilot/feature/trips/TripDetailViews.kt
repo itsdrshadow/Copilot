@@ -158,6 +158,16 @@ internal fun TripDetailContainer(
                             ),
                             color = Palette.Sky400
                         )
+                        // Trip-history extras: moving/idle split, brake/accel counts, best mileage.
+                        Text(
+                            text = "move ${trip.drivingDurationMs / 60000}m • idle ${trip.stationaryDurationMs / 60000}m • " +
+                                "${trip.brakeCount} brakes • ${trip.accelCount} accels" +
+                                (if (trip.bestMileageKmpl > 0.0) " • best ${NumberFormatUtils.formatPrecision(trip.bestMileageKmpl, 1)} km/L" else ""),
+                            style = CockpitTheme.typography.labelSmall.copy(
+                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
+                            ),
+                            color = Palette.Steel400
+                        )
 
                         if (onDeleteTrip != null) {
                             IconButton(

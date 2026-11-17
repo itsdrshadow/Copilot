@@ -42,7 +42,12 @@ data class TripEntity(
     val startLocationName: String = "",
     val endLocationName: String = "",
     val status: String = TripStatus.ACTIVE_TRIP.name,
-    val isQualifying: Boolean = false
+    val isQualifying: Boolean = false,
+    /** Entries into BRAKING (< -1.5 m/s²) / ACCELERATING (> +1.2 m/s²) during the trip. */
+    val brakeCount: Int = 0,
+    val accelCount: Int = 0,
+    /** Best rolling km/L (0.5 km windows) of the trip estimate. */
+    val bestMileageKmpl: Double = 0.0
 )
 
 @Entity(

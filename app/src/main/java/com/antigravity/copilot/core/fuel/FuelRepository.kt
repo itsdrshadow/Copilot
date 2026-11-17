@@ -893,11 +893,8 @@ class FuelRepository private constructor(context: Context) {
     }
 
     fun getFuelTelemetrySnapshot(): FuelTelemetrySnapshot {
-        val effMileage = if (mileageEngine.overallEstimatedMileage > 0.0) {
-            mileageEngine.overallEstimatedMileage
-        } else {
-            baselineVehicleMileage
-        }
+        // Learned mileage from the pure fuel model drives the trip estimate.
+        val effMileage = FuelModel.mileage(model, System.currentTimeMillis()).kmpl
         return FuelTelemetrySnapshot(
             mileageKmpl = effMileage,
             fuelPricePerLiter = fuelPrice,

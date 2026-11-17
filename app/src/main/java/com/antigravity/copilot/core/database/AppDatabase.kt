@@ -260,7 +260,7 @@ interface FuelModelDao {
         TripGeofenceEntity::class,
         FuelModelStateEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -443,7 +443,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        const val DATABASE_SCHEMA_VERSION = 9
+        /** Trip history: brake/accel counts and best mileage. */
+        val MIGRATION_9_10 = object : androidx.room.migration.Migration(9, 10) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE trips ADD COLUMN brakeCount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE trips ADD COLUMN accelCount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE trips ADD COLUMN bestMileageKmpl REAL NOT NULL DEFAULT 0.0")
+            }
+        }
+
+        const val DATABASE_SCHEMA_VERSION = 10
 
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
@@ -453,7 +462,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
-            MIGRATION_8_9
+            MIGRATION_8_9,
+            MIGRATION_9_10
         )
 
         fun getInstance(context: Context): AppDatabase {

@@ -259,7 +259,11 @@ class DrivingTrackingService : Service(), LocationListener {
                     stationaryMs = activeTrip.stationaryDurationMs,
                     lastLocation = anchorLoc,
                     originName = activeTrip.startLocationName,
-                    status = restoredStatus
+                    status = restoredStatus,
+                    brakeCount = activeTrip.brakeCount,
+                    accelCount = activeTrip.accelCount,
+                    estimatedFuelLiters = activeTrip.estimatedFuelLiters,
+                    bestMileageKmpl = activeTrip.bestMileageKmpl
                 )
                 lastRecordedDistanceMeters = activeTrip.distanceMeters
 

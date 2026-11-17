@@ -48,6 +48,17 @@ class TripDetectionEngine(
     private val longitudinalEstimator = com.antigravity.copilot.core.logic.LongitudinalAccelEstimator()
     /** Trip distance = filtered haversine segments (not speed x time). */
     private val odometer = com.antigravity.copilot.core.logic.OdometerAccumulator()
+    /** Current-trip fuel estimate (speed / accel / learned mileage; idle excluded; never feeds the tank). */
+    private val tripFuel = com.antigravity.copilot.core.logic.TripFuelEstimator()
+
+    /** Distance not stepped through the estimator (departure buffer, tunnel/reboot bridges) uses plain mileage. */
+    private fun tripFuelLitres(mileage: Double): Double {
+        val untrackedKm = (totalDistanceMeters / 1000.0 - tripFuel.km).coerceAtLeast(0.0)
+        return tripFuel.litres + untrackedKm / mileage
+    }
+
+    private fun tripMileage(fuelL: Double, fallback: Double): Double =
+        if (fuelL > 1e-6 && totalDistanceMeters > 0.0) (totalDistanceMeters / 1000.0) / fuelL else fallback
 
     val drivingState: com.antigravity.copilot.core.logic.DrivingState get() = drivingClassifier.state
 
@@ -151,6 +162,7 @@ class TripDetectionEngine(
         drivingDurationMs = 0
         stationaryDurationMs = 0
         motion.reset()
+        tripFuel.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -216,8 +228,7 @@ class TripDetectionEngine(
         val fuelSnapshot = fuelTelemetryProvider?.invoke()
         val effectiveMileage = fuelSnapshot?.mileageKmpl?.takeIf { it > 0.0 } ?: BASE_MILEAGE_KMPL
         val effectivePrice = fuelSnapshot?.fuelPricePerLiter?.takeIf { it > 0.0 } ?: FUEL_PRICE_PER_LITER
-        val tripFuelConsumed = fuelSnapshot?.tripConsumedLiters?.takeIf { it > 0.0 }
-            ?: ((totalDistanceMeters / 1000.0) / effectiveMileage)
+        val tripFuelConsumed = tripFuelLitres(effectiveMileage)
         val tripCost = tripFuelConsumed * effectivePrice
 
         return TripSummary(
@@ -236,7 +247,8 @@ class TripDetectionEngine(
             maxDecelMss = maxDecelMps2,
             estimatedFuelConsumedLiters = tripFuelConsumed,
             estimatedTripCost = tripCost,
-            calculatedMileageKmpl = effectiveMileage,
+            calculatedMileageKmpl = tripMileage(tripFuelConsumed, effectiveMileage),
+            bestMileageKmpl = tripFuel.bestKmpl,
             driverScore = calculateDriverScore(),
             harshBrakeCount = harshBrakes,
             rapidAccelCount = rapidAccels,
@@ -603,6 +615,7 @@ class TripDetectionEngine(
         drivingDurationMs = 0
         stationaryDurationMs = 0
         motion.reset()
+        tripFuel.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -640,8 +653,14 @@ class TripDetectionEngine(
         stationaryMs: Long,
         lastLocation: Location? = null,
         originName: String = "",
-        status: TripStatus = TripStatus.ACTIVE_TRIP
+        status: TripStatus = TripStatus.ACTIVE_TRIP,
+        brakeCount: Int = 0,
+        accelCount: Int = 0,
+        estimatedFuelLiters: Double = 0.0,
+        bestMileageKmpl: Double = 0.0
     ) {
+        drivingClassifier.restoreCounts(brakeCount, accelCount)
+        tripFuel.restore(distanceMeters / 1000.0, estimatedFuelLiters, bestMileageKmpl)
         currentStatus = status
         currentTripId = tripId
         tripStartTime = startTime
@@ -696,6 +715,7 @@ class TripDetectionEngine(
         drivingDurationMs = 0
         stationaryDurationMs = 0
         motion.reset()
+        tripFuel.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -740,6 +760,10 @@ class TripDetectionEngine(
                 )
             )
             totalDistanceMeters += stepDistanceMeters
+            if (stepDistanceMeters > 0.0) {
+                val learned = fuelTelemetryProvider?.invoke()?.mileageKmpl?.takeIf { it > 0.0 } ?: BASE_MILEAGE_KMPL
+                tripFuel.onStep(stepDistanceMeters / 1000.0, speedKmh.toDouble(), drivingClassifier.accelMps2, learned)
+            }
 
             // Real Longitudinal G-Force and Acceleration
             val prevSpeedMps = if (prevLoc.hasSpeed()) prevLoc.speed else 0f
@@ -808,8 +832,7 @@ class TripDetectionEngine(
         val fuelSnapshot = fuelTelemetryProvider?.invoke()
         val effectiveMileage = fuelSnapshot?.mileageKmpl?.takeIf { it > 0.0 } ?: BASE_MILEAGE_KMPL
         val effectivePrice = fuelSnapshot?.fuelPricePerLiter?.takeIf { it > 0.0 } ?: FUEL_PRICE_PER_LITER
-        val tripFuelConsumed = fuelSnapshot?.tripConsumedLiters?.takeIf { it > 0.0 }
-            ?: ((totalDistanceMeters / 1000.0) / effectiveMileage)
+        val tripFuelConsumed = tripFuelLitres(effectiveMileage)
         val tripCost = tripFuelConsumed * effectivePrice
 
         val summary = TripSummary(
@@ -828,7 +851,8 @@ class TripDetectionEngine(
             maxDecelMss = maxDecelMps2,
             estimatedFuelConsumedLiters = tripFuelConsumed,
             estimatedTripCost = tripCost,
-            calculatedMileageKmpl = effectiveMileage,
+            calculatedMileageKmpl = tripMileage(tripFuelConsumed, effectiveMileage),
+            bestMileageKmpl = tripFuel.bestKmpl,
             driverScore = driverScore,
             harshBrakeCount = harshBrakes,
             rapidAccelCount = rapidAccels,
@@ -875,8 +899,7 @@ class TripDetectionEngine(
         val fuelSnapshot = fuelTelemetryProvider?.invoke()
         val effectiveMileage = fuelSnapshot?.mileageKmpl?.takeIf { it > 0.0 } ?: BASE_MILEAGE_KMPL
         val effectivePrice = fuelSnapshot?.fuelPricePerLiter?.takeIf { it > 0.0 } ?: FUEL_PRICE_PER_LITER
-        val tripFuelConsumed = fuelSnapshot?.tripConsumedLiters?.takeIf { it > 0.0 }
-            ?: ((totalDistanceMeters / 1000.0) / effectiveMileage)
+        val tripFuelConsumed = tripFuelLitres(effectiveMileage)
         val tripCost = tripFuelConsumed * effectivePrice
 
         val summary = TripSummary(
@@ -895,7 +918,8 @@ class TripDetectionEngine(
             maxDecelMss = maxDecelMps2,
             estimatedFuelConsumedLiters = tripFuelConsumed,
             estimatedTripCost = tripCost,
-            calculatedMileageKmpl = effectiveMileage,
+            calculatedMileageKmpl = tripMileage(tripFuelConsumed, effectiveMileage),
+            bestMileageKmpl = tripFuel.bestKmpl,
             driverScore = calculateDriverScore(),
             harshBrakeCount = harshBrakes,
             rapidAccelCount = rapidAccels,
