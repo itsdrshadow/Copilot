@@ -1,0 +1,20 @@
+# Build & IDE outputs
+.gradle/
+build/
+**/build/
+.idea/
+.kotlin/
+
+# Binaries & packaged artifacts
+*.jar
+*.aar
+*.apk
+*.aab
+*.so
+*.dex
+
+# Local / generated files
+gradle/wrapper/gradle-wrapper.jar
+local.properties
+*.lock
+*.log
