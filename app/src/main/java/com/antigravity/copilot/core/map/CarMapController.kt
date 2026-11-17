@@ -13,6 +13,8 @@ import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
 import com.mapbox.mapboxsdk.geometry.LatLng
 import com.mapbox.mapboxsdk.maps.MapboxMap
 import com.mapbox.mapboxsdk.maps.Style
+import com.mapbox.mapboxsdk.style.expressions.Expression
+import com.mapbox.mapboxsdk.style.layers.CircleLayer
 import com.mapbox.mapboxsdk.style.layers.LineLayer
 import com.mapbox.mapboxsdk.style.layers.Property
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory.*
@@ -37,6 +39,11 @@ class CarMapController(
         private const val ROUTE_SOURCE_ID = "copilot_route_source"
         private const val ROUTE_LAYER_CASING_ID = "copilot_route_layer_casing"
         private const val ROUTE_LAYER_LINE_ID = "copilot_route_layer_line"
+        private const val TRAIL_SOURCE_ID = "copilot_trail_source"
+        private const val TRAIL_LAYER_ID = "copilot_trail_layer"
+        private const val VEHICLE_SOURCE_ID = "copilot_vehicle_source"
+        private const val VEHICLE_LAYER_ID = "copilot_vehicle_layer"
+        private const val TRAIL_MIN_INTERVAL_MS = 2_000L
 
         private const val DEFAULT_DRIVING_TILT = 45.0
         private const val DEFAULT_DRIVING_ZOOM = 16.5
@@ -118,7 +125,9 @@ class CarMapController(
             }
 
             map.setStyle(Style.Builder().fromJson(resolvedJson)) { style ->
+                setupTrailLayers(style)
                 setupRouteLayers(style)
+                setupVehicleLayer(style)
                 isStyleLoaded = true
                 currentLoadedMbtilesPath = targetPath
                 Log.i(TAG, "MapLibre style loaded. Active pack: ${mbtilesFile?.name ?: "None"}, Region: ${detectedRegion?.title}")
@@ -127,6 +136,91 @@ class CarMapController(
         } catch (e: Exception) {
             Log.e(TAG, "Error loading offline style: ${e.message}", e)
             onCompleted()
+        }
+    }
+
+    // ---------------- Live trail with overlap colouring (Phase 6) ----------------
+    @Volatile private var lastTrailCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())
+    private var lastTrailComputeMs = 0L
+    private var lastTrailSize = -1
+    private var trailJob: Job? = null
+
+    private fun setupTrailLayers(style: Style) {
+        try {
+            if (style.getSource(TRAIL_SOURCE_ID) == null) {
+                style.addSource(GeoJsonSource(TRAIL_SOURCE_ID, lastTrailCollection))
+            }
+            if (style.getLayer(TRAIL_LAYER_ID) == null) {
+                // 1 pass blue, 2 orange, 3+ red (PassColor)
+                val colour = Expression.step(
+                    Expression.get("passes"),
+                    Expression.color(Color.parseColor("#2F80ED")),
+                    Expression.stop(2, Expression.color(Color.parseColor("#F2994A"))),
+                    Expression.stop(3, Expression.color(Color.parseColor("#EB5757")))
+                )
+                style.addLayer(
+                    LineLayer(TRAIL_LAYER_ID, TRAIL_SOURCE_ID).apply {
+                        setProperties(
+                            lineColor(colour),
+                            lineWidth(5.0f),
+                            lineOpacity(0.9f),
+                            lineCap(Property.LINE_CAP_ROUND),
+                            lineJoin(Property.LINE_JOIN_ROUND)
+                        )
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error setting up trail layers: ${e.message}")
+        }
+    }
+
+    private fun setupVehicleLayer(style: Style) {
+        try {
+            if (style.getSource(VEHICLE_SOURCE_ID) == null) {
+                style.addSource(GeoJsonSource(VEHICLE_SOURCE_ID, Point.fromLngLat(lastLocation.longitude, lastLocation.latitude)))
+            }
+            if (style.getLayer(VEHICLE_LAYER_ID) == null) {
+                style.addLayer(
+                    CircleLayer(VEHICLE_LAYER_ID, VEHICLE_SOURCE_ID).apply {
+                        setProperties(
+                            circleRadius(8.0f),
+                            circleColor(Color.parseColor("#00E5FF")),
+                            circleStrokeColor(Color.WHITE),
+                            circleStrokeWidth(3.0f)
+                        )
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error setting up vehicle layer: ${e.message}")
+        }
+    }
+
+    /**
+     * Live trail polyline: grid pass counts (~15 m) colour each run, Douglas–Peucker simplified.
+     * Heavy work runs off the main thread and is throttled.
+     */
+    fun updateTrail(points: List<com.antigravity.copilot.core.model.TripPoint>) {
+        val now = System.currentTimeMillis()
+        if (points.size == lastTrailSize) return
+        if (points.size > 2 && lastTrailSize > 2 && now - lastTrailComputeMs < TRAIL_MIN_INTERVAL_MS) return
+        lastTrailComputeMs = now
+        lastTrailSize = points.size
+        val snapshot = points.map { com.antigravity.copilot.core.logic.LatLon(it.latitude, it.longitude) }
+        trailJob?.cancel()
+        trailJob = coroutineScope.launch(Dispatchers.Default) {
+            val runs = com.antigravity.copilot.core.logic.TrailOverlap.runs(snapshot)
+            val features = runs.map { run ->
+                Feature.fromGeometry(LineString.fromLngLats(run.points.map { Point.fromLngLat(it.lon, it.lat) })).apply {
+                    addNumberProperty("passes", run.passes)
+                }
+            }
+            val fc = FeatureCollection.fromFeatures(features)
+            withContext(Dispatchers.Main) {
+                lastTrailCollection = fc
+                mapboxMap?.style?.getSourceAs<GeoJsonSource>(TRAIL_SOURCE_ID)?.setGeoJson(fc)
+            }
         }
     }
 
@@ -184,6 +278,7 @@ class CarMapController(
         }
 
         val map = mapboxMap ?: return
+        map.style?.getSourceAs<GeoJsonSource>(VEHICLE_SOURCE_ID)?.setGeoJson(Point.fromLngLat(lon, lat))
         val currentTilt = if (_is3DTiltActive.value) DEFAULT_DRIVING_TILT else 0.0
         val targetBearing = if (_isHeadingUp.value) bearing.toDouble() else 0.0
 

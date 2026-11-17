@@ -97,6 +97,11 @@ fun LiveMapPanel(
         }
     }
 
+    // Live trail with overlap colouring (throttled inside the controller)
+    LaunchedEffect(trail) {
+        mapController.updateTrail(trail)
+    }
+
     // Lifecycle observer to forward Android lifecycle events to MapView
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->

@@ -69,6 +69,12 @@ fun TripPlaybackMapView(
         }
     }
 
+    val overlapRuns = remember(points) {
+        com.antigravity.copilot.core.logic.TrailOverlap.runs(
+            points.map { com.antigravity.copilot.core.logic.LatLon(it.latitude, it.longitude) }
+        )
+    }
+
     Box(
         modifier = modifier
             .background(Color(0xFF0A0E17))
@@ -84,20 +90,23 @@ fun TripPlaybackMapView(
                 return Offset(x, y)
             }
 
-            // Draw full trip path in muted cyan
+            // Full trip path coloured by overlap (~15 m grid): 1 pass blue, 2 orange, 3+ red
             if (points.size >= 2) {
-                val fullPath = Path()
                 val firstPt = project(points.first().latitude, points.first().longitude)
-                fullPath.moveTo(firstPt.x, firstPt.y)
-                for (i in 1 until points.size) {
-                    val p = project(points[i].latitude, points[i].longitude)
-                    fullPath.lineTo(p.x, p.y)
+                for (run in overlapRuns) {
+                    val runPath = Path()
+                    val s0 = project(run.points.first().lat, run.points.first().lon)
+                    runPath.moveTo(s0.x, s0.y)
+                    for (k in 1 until run.points.size) {
+                        val p = project(run.points[k].lat, run.points[k].lon)
+                        runPath.lineTo(p.x, p.y)
+                    }
+                    drawPath(
+                        path = runPath,
+                        color = Color(com.antigravity.copilot.core.logic.PassColor.forPasses(run.passes).argb.toInt()).copy(alpha = 0.75f),
+                        style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    )
                 }
-                drawPath(
-                    path = fullPath,
-                    color = Palette.Ink600,
-                    style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                )
 
                 // Draw playback active trail
                 val safeIdx = currentIndex.coerceIn(0, points.lastIndex)
