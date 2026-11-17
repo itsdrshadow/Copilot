@@ -21,11 +21,13 @@ import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -35,29 +37,74 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.antigravity.copilot.core.designsystem.CockpitTheme
+import com.antigravity.copilot.core.designsystem.colors.CockpitColors
+import com.antigravity.copilot.core.designsystem.colors.GlassStyle
+import com.antigravity.copilot.core.designsystem.colors.LocalCockpitColors
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 
-/** Clipped, filled and outlined surface — the most repeated modifier chain in the cockpit UI. */
+/**
+ * Clipped, filled and outlined surface — the most repeated modifier chain in the cockpit UI.
+ *
+ * Under Liquid Glass, neutral surfaces (theme `card` / `cardElevated` / `dockBackground`) gain a
+ * translucent sheen overlay and a cheap outline shadow, and the neutral theme border becomes a
+ * 1dp specular gradient. Accent/tinted surfaces are drawn exactly as requested. Every brush is
+ * pre-allocated in [com.antigravity.copilot.core.designsystem.colors.GlassStyle]: no blur, no
+ * offscreen layers, no per-frame allocations.
+ */
+@Composable
+@ReadOnlyComposable
 fun Modifier.cockpitSurface(
     background: Color,
     border: Color,
     shape: Shape,
     borderWidth: Dp = 1.dp
-): Modifier = this
-    .clip(shape)
-    .background(background)
-    .border(borderWidth, border, shape)
+): Modifier {
+    val colors = LocalCockpitColors.current
+    val glass = colors.glass
+        ?: return this.clip(shape).background(background).border(borderWidth, border, shape)
+    val neutralFill = background == colors.card || background == colors.cardElevated ||
+        background == colors.dockBackground
+    return this
+        .glassShadow(neutralFill, glass, shape)
+        .clip(shape)
+        .background(background)
+        .then(if (neutralFill) Modifier.background(glass.sheen) else Modifier)
+        .glassBorder(border, colors, glass, shape, borderWidth)
+}
 
-/** Gradient-filled variant of [cockpitSurface]. */
+/** Gradient-filled variant of [cockpitSurface]. Theme brushes are already glass under Liquid Glass. */
+@Composable
+@ReadOnlyComposable
 fun Modifier.cockpitSurface(
     background: Brush,
     border: Color,
     shape: Shape,
     borderWidth: Dp = 1.dp
-): Modifier = this
-    .clip(shape)
-    .background(background)
-    .border(borderWidth, border, shape)
+): Modifier {
+    val colors = LocalCockpitColors.current
+    val glass = colors.glass
+        ?: return this.clip(shape).background(background).border(borderWidth, border, shape)
+    return this
+        .glassShadow(border == colors.border, glass, shape)
+        .clip(shape)
+        .background(background)
+        .glassBorder(border, colors, glass, shape, borderWidth)
+}
+
+private fun Modifier.glassShadow(enabled: Boolean, glass: GlassStyle, shape: Shape): Modifier =
+    if (enabled) shadow(glass.shadowElevationDp.dp, shape, clip = false) else this
+
+private fun Modifier.glassBorder(
+    border: Color,
+    colors: CockpitColors,
+    glass: GlassStyle,
+    shape: Shape,
+    borderWidth: Dp
+): Modifier = if (border == colors.border || border == colors.dockBorder) {
+    border(1.dp, glass.specularBorder, shape)
+} else {
+    border(borderWidth, border, shape)
+}
 
 /** Visual presets for [TintedBadge]. */
 enum class BadgeSize(

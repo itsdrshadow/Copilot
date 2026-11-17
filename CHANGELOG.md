@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.50.0] - 2026-11-17
+
+### Added
+- **Liquid Glass theme** (Settings → General). A translucent midnight-slate palette (`#0B1220`) with cyan, indigo, emerald (eco) and amber (warning) accents. Neutral cards, the dock and map HUD buttons get a white sheen overlay, a 1dp specular top-left→bottom-right rim and a light outline shadow. There is no RenderEffect or backdrop blur: every brush is allocated once, so no bitmaps are allocated per frame and the PMTiles cache is untouched.
+- **Google Sans typography, bundled offline.** `res/font/google_sans_{regular,medium,semibold,bold}.ttf` are static instances (about 130 KB each) of the OFL-licensed Google Sans Flex. The license ships at `assets/licenses/google_sans_flex_OFL.txt`. Tabular digits (`tnum`) are kept for speed, odometer and badges. Liquid Glass adds its own lighter-weight type scale with the same metrics, so switching themes causes no layout shift.
+
+### Changed
+- Theme switching is now live. The choice persists to SharedPreferences and DataStore and recomposes `CopilotTheme` (colors, typography, transient system-bar tint) without recreating the activity or the MapView.
+- `cockpitSurface()` is now a `@Composable` modifier so it can apply the glass treatment. Apex rendering is unchanged.
+- The map HUD, Add Fuel dialog and fuel log form read theme tokens instead of hardcoded colors. In Apex, the fuel form's focused-field border now uses the Apex accent instead of the older cyan.
+- The app-wide font family changes from system sans-serif to Google Sans in all themes.
+
+### Fixed
+- Settings reload no longer rewrites any theme id containing "glass" to Apex. Ids are normalized through `CockpitThemeMode.fromId`, so legacy ids still fold into Apex.
+
 ## [1.49.0] - 2026-11-17
 
 ### Added

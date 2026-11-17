@@ -148,7 +148,8 @@ object AppSettingsManager {
             screenAlwaysOn = prefs.getBoolean(KEY_SCREEN_ALWAYS_ON, true),
             autoMinimizeDrawer = prefs.getBoolean(KEY_AUTO_MINIMIZE_DRAWER, false),
             language = prefs.getString(KEY_LANGUAGE, "English (Automotive Standard)") ?: "English",
-            cockpitTheme = prefs.getString(KEY_COCKPIT_THEME, "apex")?.let { if (it.contains("glass", ignoreCase = true)) "apex" else it } ?: "apex",
+            // Normalise through fromId: legacy ids (old "glass" variants etc.) fold to Apex, "liquid_glass" survives.
+            cockpitTheme = CockpitThemeMode.fromId(prefs.getString(KEY_COCKPIT_THEME, "apex") ?: "apex").id,
             themeAppearanceMode = prefs.getString(KEY_THEME_APPEARANCE_MODE, "auto") ?: "auto",
             carName = prefs.getString(KEY_CAR_NAME, "My Car") ?: "My Car",
             fuelType = prefs.getString(KEY_FUEL_TYPE, "Petrol") ?: "Petrol",

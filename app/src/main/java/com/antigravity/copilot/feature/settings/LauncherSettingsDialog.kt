@@ -1,5 +1,8 @@
 package com.antigravity.copilot.feature.settings
 
+import com.antigravity.copilot.core.designsystem.colors.Glass_Base
+import com.antigravity.copilot.core.designsystem.colors.Glass_Cyan
+import com.antigravity.copilot.core.designsystem.colors.Glass_Indigo
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
@@ -469,13 +472,15 @@ private fun GeneralSettingsContent(
                 color = CockpitTheme.colors.textSecondary
             )
 
-            listOf(
-                Triple(
-                    CockpitThemeMode.APEX,
-                    CockpitThemeMode.APEX.displayName,
-                    listOf(Apex_Background, Apex_CardSurface, Apex_PrimaryAccent)
-                )
-            ).forEach { (mode, name, swatches) ->
+            // Switching is instant: the selection flows through AppSettingsManager.settingsState
+            // into CopilotTheme — no activity recreation, the MapView stays alive.
+            CockpitThemeMode.entries.map { mode ->
+                val swatches = when (mode) {
+                    CockpitThemeMode.APEX -> listOf(Apex_Background, Apex_CardSurface, Apex_PrimaryAccent)
+                    CockpitThemeMode.LIQUID_GLASS -> listOf(Glass_Base, Glass_Indigo, Glass_Cyan)
+                }
+                Triple(mode, mode.displayName, swatches)
+            }.forEach { (mode, name, swatches) ->
                 val isSelected = state.cockpitThemeMode == mode
                 Row(
                     modifier = Modifier

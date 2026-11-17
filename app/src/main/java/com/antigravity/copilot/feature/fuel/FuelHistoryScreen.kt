@@ -312,7 +312,7 @@ fun FuelHistoryScreen(
                 Text(
                     text = "Are you sure you want to delete this record of ${NumberFormatUtils.formatFuelLiters(targetEvent.liters, 2)} L (${NumberFormatUtils.formatCurrencyWithSymbol(targetEvent.totalCost, 2)})? This will adjust historical distance and fuel analytics.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Cockpit_TextSecondary
+                    color = CockpitTheme.colors.textSecondary
                 )
             },
             confirmButton = {
@@ -939,13 +939,13 @@ private fun EditFuelEventDialog(
                 OutlinedTextField(
                     value = locationText,
                     onValueChange = { locationText = it },
-                    label = { Text("Fuel Station / Location", color = Cockpit_TextSecondary) },
+                    label = { Text("Fuel Station / Location", color = CockpitTheme.colors.textSecondary) },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = CockpitTheme.typography.titleMedium.copy(color = Color.White),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedBorderColor = Cockpit_Cyan,
+                        focusedBorderColor = CockpitTheme.colors.accent,
                         unfocusedBorderColor = Palette.Ink700
                     ),
                     shape = CopilotShapes.R12
@@ -961,14 +961,14 @@ private fun EditFuelEventDialog(
                             val p = priceText.toDoubleOrNull() ?: 0.0
                             costText = NumberFormatUtils.formatPrecision(l * p, 2)
                         },
-                        label = { Text("Quantity (L)", color = Cockpit_TextSecondary) },
+                        label = { Text("Quantity (L)", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
                         textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            focusedBorderColor = Cockpit_Cyan,
+                            focusedBorderColor = CockpitTheme.colors.accent,
                             unfocusedBorderColor = Palette.Ink700
                         ),
                         shape = CopilotShapes.R12
@@ -982,14 +982,14 @@ private fun EditFuelEventDialog(
                             val p = it.toDoubleOrNull() ?: 0.0
                             costText = NumberFormatUtils.formatPrecision(l * p, 2)
                         },
-                        label = { Text("Price (₹ / L)", color = Cockpit_TextSecondary) },
+                        label = { Text("Price (₹ / L)", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
                         textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            focusedBorderColor = Cockpit_Cyan,
+                            focusedBorderColor = CockpitTheme.colors.accent,
                             unfocusedBorderColor = Palette.Ink700
                         ),
                         shape = CopilotShapes.R12
@@ -1000,7 +1000,7 @@ private fun EditFuelEventDialog(
                     OutlinedTextField(
                         value = costText,
                         onValueChange = { costText = it },
-                        label = { Text("Total Bill (₹)", color = Cockpit_TextSecondary) },
+                        label = { Text("Total Bill (₹)", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
                         textStyle = CockpitTheme.typography.titleLarge.copy(color = Palette.Amber300, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -1016,14 +1016,14 @@ private fun EditFuelEventDialog(
                     OutlinedTextField(
                         value = odoText,
                         onValueChange = { odoText = it },
-                        label = { Text("Odometer (km)", color = Cockpit_TextSecondary) },
+                        label = { Text("Odometer (km)", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
                         textStyle = CockpitTheme.typography.titleLarge.copy(color = Color.White, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            focusedBorderColor = Cockpit_Cyan,
+                            focusedBorderColor = CockpitTheme.colors.accent,
                             unfocusedBorderColor = Palette.Ink700
                         ),
                         shape = CopilotShapes.R12

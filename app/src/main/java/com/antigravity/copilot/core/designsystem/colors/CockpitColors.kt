@@ -11,13 +11,22 @@ enum class CockpitThemeMode(val id: String, val displayName: String, val subtitl
         id = "apex",
         displayName = "Apex Studio",
         subtitle = "Contemporary dark navy studio cockpit with luminous cyan telemetry"
+    ),
+    LIQUID_GLASS(
+        id = "liquid_glass",
+        displayName = "Liquid Glass",
+        subtitle = "Translucent midnight glass with specular edges and Google Sans type"
     );
+
+    val isGlass: Boolean get() = this == LIQUID_GLASS
 
     companion object {
         val PREMIUM = APEX
 
         fun fromId(id: String): CockpitThemeMode {
             return when (id.lowercase().trim()) {
+                "liquid_glass", "liquidglass" -> LIQUID_GLASS
+                // Legacy ids from retired themes (incl. the old "glass" variants) fold into Apex.
                 "apex", "premium", "classic", "calm_teal", "gradient_glass", "glass", "splash_glass", "gradient" -> APEX
                 else -> APEX
             }
@@ -74,8 +83,86 @@ data class CockpitColors(
     val dockBorder: Color = border,
     val dockBrush: Brush = cardTopLightGradient,
     val dockActionBrush: Brush = cardTopLightGradient,
-    val isPremium: Boolean = true
+    val isPremium: Boolean = true,
+    /** Non-null only for Liquid Glass; drives the specular/sheen treatment in `cockpitSurface`. */
+    val glass: GlassStyle? = null
 )
+
+/**
+ * Lightweight "glass" recipe: no RenderEffect/backdrop blur. Depth comes from a translucent
+ * surface fill, a white sheen overlay and a 1dp specular border. All brushes are allocated
+ * once here, so drawing them costs no per-frame allocations.
+ */
+data class GlassStyle(
+    /** Overlay on a neutral surface: bright top-left fading to near-clear bottom-right. */
+    val sheen: Brush,
+    /** 1dp edge: specular highlight top-left → faint rim bottom-right. */
+    val specularBorder: Brush,
+    /** Cheap RenderNode outline shadow under neutral glass surfaces. */
+    val shadowElevationDp: Float
+)
+
+// ==================== LIQUID GLASS PALETTE ====================
+
+val Glass_Base = Color(0xFF0B1220)
+val Glass_BaseIndigoTint = Color(0xFF111735)
+val Glass_BaseTealTint = Color(0xFF0A1A22)
+val Glass_Surface = Color(0xD1111A2E) // #111A2E @ 82%
+val Glass_SurfaceElevated = Color(0xD91A2540) // lifted panel @ 85%
+val Glass_SurfaceLow = Color(0xC70E1628) // #0E1628 @ 78%
+val Glass_Border = Color(0x2EFFFFFF)
+val Glass_Cyan = Color(0xFF38BDF8)
+val Glass_Indigo = Color(0xFF818CF8)
+val Glass_Emerald = Color(0xFF34D399)
+val Glass_Amber = Color(0xFFFBBF24)
+val Glass_Rose = Color(0xFFFB7185)
+val Glass_TextPrimary = Color(0xFFF5F8FF)
+val Glass_TextSecondary = Color(0xFFA9B6CC)
+val Glass_TextTertiary = Color(0xFF6B7A93)
+
+val LiquidGlassStyle = GlassStyle(
+    sheen = Brush.linearGradient(listOf(Color(0x26FFFFFF), Color(0x12FFFFFF), Color(0x0DFFFFFF))),
+    specularBorder = Brush.linearGradient(listOf(Color(0x55FFFFFF), Color(0x24FFFFFF), Color(0x14FFFFFF))),
+    shadowElevationDp = 3f
+)
+
+// Pre-composited sheen-over-surface fill for screens that paint a single brush.
+private val Glass_CardFill = Brush.linearGradient(
+    listOf(Color(0xD9353C4D), Color(0xD1252D41), Color(0xC71D2538))
+)
+
+val LiquidGlassCockpitColors = CockpitColors(
+    bg = Glass_Base,
+    card = Glass_Surface,
+    cardElevated = Glass_SurfaceElevated,
+    border = Glass_Border,
+    textPrimary = Glass_TextPrimary,
+    textSecondary = Glass_TextSecondary,
+    textDisabled = Glass_TextTertiary,
+    accent = Glass_Cyan,
+    accentSoft = Color(0x2E38BDF8),
+    onAccent = Glass_Base,
+    warning = Glass_Amber,
+    critical = Glass_Rose,
+    cardTopLightGradient = Glass_CardFill,
+    // Ambient indigo → slate → teal wash so translucent cards have something to sit on.
+    backgroundBrush = Brush.linearGradient(listOf(Glass_BaseIndigoTint, Glass_Base, Glass_BaseTealTint)),
+    cardBorderGlow = Glass_Indigo,
+    blueGlow = Glass_Indigo,
+    greenEco = Glass_Emerald,
+    amberWarning = Glass_Amber,
+    redAlert = Glass_Rose,
+    dockBackground = Glass_SurfaceLow,
+    dockBorder = Glass_Border,
+    dockBrush = Glass_CardFill,
+    dockActionBrush = Glass_CardFill,
+    glass = LiquidGlassStyle
+)
+
+fun cockpitColorsFor(mode: CockpitThemeMode): CockpitColors = when (mode) {
+    CockpitThemeMode.APEX -> ApexCockpitColors
+    CockpitThemeMode.LIQUID_GLASS -> LiquidGlassCockpitColors
+}
 
 // ==================== APEX STUDIO COCKPIT PALETTE ====================
 

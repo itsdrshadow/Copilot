@@ -1,6 +1,8 @@
 package com.antigravity.copilot.feature.maps
 
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.CockpitTheme
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.ComponentCallbacks2
 import android.content.res.Configuration
@@ -403,6 +405,30 @@ fun LiveMapPanel(
     }
 }
 
+/**
+ * Map HUD chrome. Apex keeps its original dark capsule + vivid cyan; Liquid Glass routes through
+ * cockpitSurface for the translucent sheen + specular rim. Changing theme only recomposes these
+ * overlays — the AndroidView-hosted MapView is untouched.
+ */
+@Composable
+private fun Modifier.mapHudSurface(isActive: Boolean, idleAlpha: Float): Modifier {
+    val colors = CockpitTheme.colors
+    return if (CockpitTheme.isGlass) {
+        cockpitSurface(
+            background = if (isActive) colors.accent else colors.card,
+            border = if (isActive) colors.accent else colors.border,
+            shape = CircleShape
+        )
+    } else {
+        this.clip(CircleShape)
+            .background(if (isActive) Cockpit_Cyan else Color(0xFF141C28).copy(alpha = idleAlpha))
+            .border(1.dp, if (isActive) Cockpit_Cyan else Color(0xFF263346), CircleShape)
+    }
+}
+
+@Composable
+private fun mapHudOnActive(): Color = if (CockpitTheme.isGlass) CockpitTheme.colors.onAccent else Color.Black
+
 @Composable
 private fun MapFloatingButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -413,16 +439,14 @@ private fun MapFloatingButton(
     Box(
         modifier = Modifier
             .size(68.dp)
-            .clip(CircleShape)
-            .background(if (isActive) Cockpit_Cyan else Color(0xFF141C28).copy(alpha = 0.9f))
-            .border(1.dp, if (isActive) Cockpit_Cyan else Color(0xFF263346), CircleShape)
+            .mapHudSurface(isActive, idleAlpha = 0.9f)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (isActive) Color.Black else Color.White,
+            tint = if (isActive) mapHudOnActive() else CockpitTheme.colors.textPrimary,
             modifier = Modifier.size(32.dp)
         )
     }
@@ -438,14 +462,12 @@ private fun MapMenuItem(
     Row(
         modifier = Modifier
             .height(56.dp)
-            .clip(CircleShape)
-            .background(if (isActive) Cockpit_Cyan else Color(0xFF141C28).copy(alpha = 0.95f))
-            .border(1.dp, if (isActive) Cockpit_Cyan else Color(0xFF263346), CircleShape)
+            .mapHudSurface(isActive, idleAlpha = 0.95f)
             .clickable { onClick() }
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val tint = if (isActive) Color.Black else Color.White
+        val tint = if (isActive) mapHudOnActive() else CockpitTheme.colors.textPrimary
         Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(10.dp))
         Text(text = label, color = tint, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)

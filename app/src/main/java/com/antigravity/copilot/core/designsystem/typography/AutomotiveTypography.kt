@@ -6,10 +6,12 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+import com.antigravity.copilot.R
 
 /**
  * Standardized Automotive Infotainment Typography System.
@@ -19,8 +21,20 @@ import androidx.compose.ui.unit.sp
  * ensuring high contrast, immediate glanceability from driving distance,
  * zero layout thrashing, and uniform tabular numeral alignment ("tnum").
  */
+/**
+ * Bundled Google Sans (static instances of the OFL-licensed Google Sans Flex, opsz 18).
+ * Loaded from res/font — no downloadable-font provider or network access.
+ * Heavier requests (ExtraBold/Black) resolve to the closest bundled weight, Bold.
+ */
+val GoogleSansFamily = FontFamily(
+    Font(R.font.google_sans_regular, FontWeight.Normal),
+    Font(R.font.google_sans_medium, FontWeight.Medium),
+    Font(R.font.google_sans_semibold, FontWeight.SemiBold),
+    Font(R.font.google_sans_bold, FontWeight.Bold)
+)
+
 object AutomotiveTypographyTokens {
-    val FontFamilySans = FontFamily.SansSerif
+    val FontFamilySans = GoogleSansFamily
     const val FontFeatureTabular = "tnum"
 
     // Default zero-padding platform style for precision vertical automotive alignment
@@ -253,6 +267,28 @@ val CockpitTypography = Typography(
     labelLarge = AutomotiveTypographyTokens.LabelLarge,
     labelMedium = AutomotiveTypographyTokens.LabelMedium,
     labelSmall = AutomotiveTypographyTokens.LabelSmall
+)
+
+/**
+ * Liquid Glass type hierarchy: same metrics as [CockpitTypography] (no layout shifts when
+ * switching themes) with lighter, Apple-like weights and tighter display tracking.
+ */
+val LiquidGlassTypography = Typography(
+    displayLarge = AutomotiveTypographyTokens.DisplayLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = (-1.5).sp),
+    displayMedium = AutomotiveTypographyTokens.DisplayMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = (-1.0).sp),
+    displaySmall = AutomotiveTypographyTokens.DisplaySmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp),
+    headlineLarge = AutomotiveTypographyTokens.HeadlineLarge.copy(fontWeight = FontWeight.SemiBold, letterSpacing = (-0.2).sp),
+    headlineMedium = AutomotiveTypographyTokens.HeadlineMedium.copy(fontWeight = FontWeight.SemiBold),
+    headlineSmall = AutomotiveTypographyTokens.HeadlineSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.2.sp),
+    titleLarge = AutomotiveTypographyTokens.TitleLarge.copy(fontWeight = FontWeight.SemiBold),
+    titleMedium = AutomotiveTypographyTokens.TitleMedium.copy(fontWeight = FontWeight.Medium, letterSpacing = 0.1.sp),
+    titleSmall = AutomotiveTypographyTokens.TitleSmall.copy(fontWeight = FontWeight.Medium),
+    bodyLarge = AutomotiveTypographyTokens.BodyLarge,
+    bodyMedium = AutomotiveTypographyTokens.BodyMedium,
+    bodySmall = AutomotiveTypographyTokens.BodySmall,
+    labelLarge = AutomotiveTypographyTokens.LabelLarge.copy(fontWeight = FontWeight.SemiBold),
+    labelMedium = AutomotiveTypographyTokens.LabelMedium.copy(fontWeight = FontWeight.SemiBold),
+    labelSmall = AutomotiveTypographyTokens.LabelSmall.copy(fontWeight = FontWeight.SemiBold, letterSpacing = 0.6.sp, fontFeatureSettings = "tnum")
 )
 
 val LocalCockpitTypography = staticCompositionLocalOf { CockpitTypography }

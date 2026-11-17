@@ -76,7 +76,7 @@ object AutomotiveDesignTokens {
      * and high-contrast font weights across all telemetry displays.
      */
     object NumericTypography {
-        val fontFamily: FontFamily = FontFamily.SansSerif
+        val fontFamily: FontFamily = com.antigravity.copilot.core.designsystem.typography.GoogleSansFamily
         val fontWeightHero: FontWeight = FontWeight.Black
         val fontWeightMedium: FontWeight = FontWeight.Bold
         const val fontFeatureSettings: String = "tnum"

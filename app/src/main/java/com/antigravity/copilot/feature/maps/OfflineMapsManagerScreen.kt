@@ -121,7 +121,7 @@ fun OfflineMapsManagerContent(
                     Column {
                         Text(
                             text = "OFFLINE MAPS MANAGER",
-                            fontFamily = FontFamily.SansSerif,
+                            fontFamily = com.antigravity.copilot.core.designsystem.typography.GoogleSansFamily,
                             fontWeight = FontWeight.Bold,
                             fontSize = 19.sp,
                             color = Color.White

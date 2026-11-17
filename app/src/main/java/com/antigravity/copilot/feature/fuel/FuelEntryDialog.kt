@@ -38,7 +38,6 @@ import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.Cockpit_AmberWarning
 import com.antigravity.copilot.core.designsystem.Cockpit_RedAlert
-import com.antigravity.copilot.core.designsystem.Apex_PrimaryAccent
 import com.antigravity.copilot.core.model.FuelState
 import com.antigravity.copilot.core.model.TripPoint
 import com.antigravity.copilot.core.util.NumberFormatUtils
@@ -264,14 +263,14 @@ fun FuelEntryDialog(
                                     modifier = Modifier
                                         .size(38.dp)
                                         .clip(CircleShape)
-                                        .background(Apex_PrimaryAccent.copy(alpha = 0.15f))
-                                        .border(1.dp, Apex_PrimaryAccent.copy(alpha = 0.40f), CircleShape),
+                                        .background(CockpitTheme.colors.accent.copy(alpha = 0.15f))
+                                        .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.40f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.LocalGasStation,
                                         contentDescription = null,
-                                        tint = Apex_PrimaryAccent,
+                                        tint = CockpitTheme.colors.accent,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -289,7 +288,7 @@ fun FuelEntryDialog(
                                         Icon(
                                             imageVector = Icons.Default.PinDrop,
                                             contentDescription = null,
-                                            tint = Apex_PrimaryAccent,
+                                            tint = CockpitTheme.colors.accent,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         val cleanAddress = locationNameText
@@ -724,7 +723,7 @@ fun FuelEntryDialog(
                                         FuelKeypadKey(
                                             text = "NEXT",
                                             onClick = { nextField() },
-                                            accentColor = Apex_PrimaryAccent,
+                                            accentColor = CockpitTheme.colors.accent,
                                             backgroundColor = Color(0xFF0C2538),
                                             icon = Icons.AutoMirrored.Filled.ArrowForward,
                                             isSpecialAction = true,

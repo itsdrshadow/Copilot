@@ -3,13 +3,18 @@ package com.antigravity.copilot.core.designsystem
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.*
+import android.app.Activity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +63,7 @@ val Coolwalk_TealPlay = com.antigravity.copilot.core.designsystem.colors.Coolwal
 val ApexCockpitColors = com.antigravity.copilot.core.designsystem.colors.ApexCockpitColors
 val PremiumCockpitColors = ApexCockpitColors
 val ClassicCockpitColors = ApexCockpitColors
+val LiquidGlassCockpitColors = com.antigravity.copilot.core.designsystem.colors.LiquidGlassCockpitColors
 val LocalCockpitColors = com.antigravity.copilot.core.designsystem.colors.LocalCockpitColors
 val LocalCockpitThemeMode = com.antigravity.copilot.core.designsystem.colors.LocalCockpitThemeMode
 
@@ -90,6 +96,12 @@ object CockpitTheme {
         @Composable
         @ReadOnlyComposable
         get() = true
+
+    /** True while Liquid Glass is active — lets screens opt into glass-only touches. */
+    val isGlass: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalCockpitColors.current.glass != null
 }
 
 // ==================== DYNAMIC ANIMATED THEME PROVIDER ====================
@@ -101,7 +113,9 @@ fun CopilotTheme(
     @Suppress("UNUSED_PARAMETER") isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val targetBaseColors = ApexCockpitColors
+    val targetBaseColors = cockpitColorsFor(themeMode)
+    val isGlass = themeMode.isGlass
+    val activeTypography = if (isGlass) LiquidGlassTypography else CockpitTypography
 
     val animSpec = tween<Color>(durationMillis = 300)
 
@@ -118,10 +132,15 @@ fun CopilotTheme(
     val animatedWarning = animateColorAsState(targetValue = targetBaseColors.warning, animationSpec = animSpec, label = "warning").value
     val animatedCritical = animateColorAsState(targetValue = targetBaseColors.critical, animationSpec = animSpec, label = "critical").value
 
-    val animatedCardGradient = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-    val activeBackgroundBrush = Brush.verticalGradient(listOf(animatedBg, animatedBg))
-    val activeDockBrush = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-    val activeDockActionBrush = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    // Apex keeps its historical animated brushes; Liquid Glass uses its pre-built glass brushes.
+    val animatedCardGradient = if (isGlass) targetBaseColors.cardTopLightGradient
+        else Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    val activeBackgroundBrush = if (isGlass) targetBaseColors.backgroundBrush
+        else Brush.verticalGradient(listOf(animatedBg, animatedBg))
+    val activeDockBrush = if (isGlass) targetBaseColors.dockBrush
+        else Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
+    val activeDockActionBrush = if (isGlass) targetBaseColors.dockActionBrush
+        else Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
 
     val activeColors = CockpitColors(
         bg = animatedBg,
@@ -143,10 +162,10 @@ fun CopilotTheme(
         cardSurface = animatedCard,
         cardSurfaceElevated = animatedCardElevated,
         cardBorder = animatedBorder,
-        cardBorderGlow = animatedAccent,
+        cardBorderGlow = if (isGlass) targetBaseColors.cardBorderGlow else animatedAccent,
         primaryAccent = animatedAccent,
-        blueGlow = animatedAccent,
-        greenEco = animatedAccent,
+        blueGlow = if (isGlass) targetBaseColors.blueGlow else animatedAccent,
+        greenEco = if (isGlass) targetBaseColors.greenEco else animatedAccent,
         amberWarning = animatedWarning,
         redAlert = animatedCritical,
         textTertiary = animatedTextDisabled,
@@ -155,11 +174,12 @@ fun CopilotTheme(
         cardGradientTrip = animatedCardGradient,
         cardGradientSpeedo = animatedCardGradient,
         activeCardBrush = animatedCardGradient,
-        dockBackground = animatedCardElevated,
+        dockBackground = if (isGlass) targetBaseColors.dockBackground else animatedCardElevated,
         dockBorder = animatedBorder,
         dockBrush = activeDockBrush,
         dockActionBrush = activeDockActionBrush,
-        isPremium = true
+        isPremium = true,
+        glass = targetBaseColors.glass
     )
 
     val materialColors = darkColorScheme(
@@ -180,15 +200,33 @@ fun CopilotTheme(
         onError = animatedOnAccent
     )
 
+    // System bars are hidden (immersive), but tint them for the swipe-to-reveal transient state.
+    // Runs once per theme change; never touches the MapView or forces activity recreation.
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        LaunchedEffect(themeMode) {
+            val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
+            val barColor = targetBaseColors.bg.toArgb()
+            @Suppress("DEPRECATION")
+            window.statusBarColor = barColor
+            @Suppress("DEPRECATION")
+            window.navigationBarColor = barColor
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
+        }
+    }
+
     CompositionLocalProvider(
         LocalCockpitColors provides activeColors,
         LocalCockpitThemeMode provides themeMode,
         LocalAutomotiveTokens provides AutomotiveDesignTokens,
-        LocalCockpitTypography provides CockpitTypography
+        LocalCockpitTypography provides activeTypography
     ) {
         MaterialTheme(
             colorScheme = materialColors,
-            typography = CockpitTypography,
+            typography = activeTypography,
             content = content
         )
     }
