@@ -1,6 +1,6 @@
 package com.antigravity.copilot.feature.splash
 
-import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.BrandPalette
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,11 +72,11 @@ fun AutomotiveBrandLogo(
                 drawArc(
                     brush = Brush.sweepGradient(
                         colors = listOf(
-                            Palette.CyanNeon,
-                            Palette.Blue700,
-                            Palette.CyanBright,
-                            Palette.Sky400,
-                            Palette.CyanNeon
+                            BrandPalette.CyanNeon,
+                            BrandPalette.Blue700,
+                            BrandPalette.CyanBright,
+                            BrandPalette.Sky400,
+                            BrandPalette.CyanNeon
                         ),
                         center = Offset(cx, cy)
                     ),
@@ -91,7 +91,7 @@ fun AutomotiveBrandLogo(
 
                 // Secondary bottom accent arc
                 drawArc(
-                    color = Palette.Blue700.copy(alpha = (0.7f * glowIntensity).coerceIn(0f, 1f)),
+                    color = BrandPalette.Blue700.copy(alpha = (0.7f * glowIntensity).coerceIn(0f, 1f)),
                     startAngle = 55f,
                     sweepAngle = 70f,
                     useCenter = false,
@@ -120,9 +120,9 @@ fun AutomotiveBrandLogo(
                     path = leftWing,
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Palette.CyanNeon,
-                            Palette.Sky600,
-                            Palette.Sky700
+                            BrandPalette.CyanNeon,
+                            BrandPalette.Sky600,
+                            BrandPalette.Sky700
                         ),
                         start = Offset(cx - 22f * wingScale, cy - 20f * wingScale),
                         end = Offset(cx, cy + 11f * wingScale)
@@ -130,7 +130,7 @@ fun AutomotiveBrandLogo(
                 )
                 drawPath(
                     path = leftWing,
-                    color = Palette.Sky400.copy(alpha = (0.6f * glowIntensity).coerceIn(0f, 1f)),
+                    color = BrandPalette.Sky400.copy(alpha = (0.6f * glowIntensity).coerceIn(0f, 1f)),
                     style = Stroke(width = 1.2.dp.toPx(), join = StrokeJoin.Round)
                 )
 
@@ -150,9 +150,9 @@ fun AutomotiveBrandLogo(
                     path = rightWing,
                     brush = Brush.linearGradient(
                         colors = listOf(
-                            Palette.CyanBright,
-                            Palette.Sky600,
-                            Palette.Sky700
+                            BrandPalette.CyanBright,
+                            BrandPalette.Sky600,
+                            BrandPalette.Sky700
                         ),
                         start = Offset(cx + 22f * wingScale, cy - 20f * wingScale),
                         end = Offset(cx, cy + 11f * wingScale)
@@ -160,7 +160,7 @@ fun AutomotiveBrandLogo(
                 )
                 drawPath(
                     path = rightWing,
-                    color = Palette.Sky400.copy(alpha = (0.6f * glowIntensity).coerceIn(0f, 1f)),
+                    color = BrandPalette.Sky400.copy(alpha = (0.6f * glowIntensity).coerceIn(0f, 1f)),
                     style = Stroke(width = 1.2.dp.toPx(), join = StrokeJoin.Round)
                 )
 
@@ -177,8 +177,8 @@ fun AutomotiveBrandLogo(
                     brush = Brush.verticalGradient(
                         colors = listOf(
                             Color(0xFFFFFFFF),
-                            Palette.Sky300,
-                            Palette.Sky600
+                            BrandPalette.Sky300,
+                            BrandPalette.Sky600
                         ),
                         startY = cy - 30f * wingScale,
                         endY = cy + 20f * wingScale
@@ -197,14 +197,14 @@ fun AutomotiveBrandLogo(
                     center = Offset(cx, cy - 6f * wingScale)
                 )
                 drawCircle(
-                    color = Palette.CyanNeon.copy(alpha = (0.5f * glowIntensity).coerceIn(0f, 1f)),
+                    color = BrandPalette.CyanNeon.copy(alpha = (0.5f * glowIntensity).coerceIn(0f, 1f)),
                     radius = 7.dp.toPx(),
                     center = Offset(cx, cy - 6f * wingScale)
                 )
 
                 // 6. Apex Tip Flare
                 drawCircle(
-                    color = Palette.CyanNeon,
+                    color = BrandPalette.CyanNeon,
                     radius = 2.dp.toPx(),
                     center = Offset(cx, cy - 31f * wingScale)
                 )
@@ -220,7 +220,7 @@ fun AutomotiveBrandLogo(
                 letterSpacing = 14.sp,
                 color = Color(0xFFF1F5F9),
                 shadow = Shadow(
-                    color = Palette.CyanNeon.copy(alpha = (0.75f * glowIntensity).coerceIn(0f, 0.75f)),
+                    color = BrandPalette.CyanNeon.copy(alpha = (0.75f * glowIntensity).coerceIn(0f, 0.75f)),
                     blurRadius = 18f
                 ),
                 textAlign = TextAlign.Center
@@ -234,7 +234,7 @@ fun AutomotiveBrandLogo(
             text = "AUTOMOTIVE COCKPIT SYSTEM",
             style = CockpitTheme.typography.labelSmall.copy(
                 letterSpacing = 6.sp,
-                color = Palette.Sky300,
+                color = BrandPalette.Sky300,
                 textAlign = TextAlign.Center
             )
         )

@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.trips
 
+import com.antigravity.copilot.core.designsystem.CockpitTheme
+import com.antigravity.copilot.core.designsystem.tokens.StaticPalette
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,8 +52,8 @@ fun TripPlaybackMapView(
         points.withIndex().filter { StaticMapCamera.isValidCoordinate(it.value.latitude, it.value.longitude) }
     }
     if (valid.isEmpty()) {
-        Box(modifier = modifier.background(Color(0xFF0F151F)), contentAlignment = Alignment.Center) {
-            Text("No trip GPS trail recorded", color = Color.White.copy(alpha = 0.5f))
+        Box(modifier = modifier.background(CockpitTheme.colors.border), contentAlignment = Alignment.Center) {
+            Text("No trip GPS trail recorded", color = CockpitTheme.colors.textSecondary)
         }
         return
     }
@@ -103,8 +105,8 @@ fun TripPlaybackMapView(
 
     Box(
         modifier = modifier
-            .background(Color(0xFF0A0E17))
-            .border(1.dp, Color(0xFF1B2433))
+            .background(CockpitTheme.colors.cardElevated)
+            .border(1.dp, CockpitTheme.colors.border)
             .onSizeChanged { sizePx = it }
     ) {
         Canvas(modifier = Modifier.fillMaxSize().graphicsLayer { clip = true }) {
@@ -116,7 +118,7 @@ fun TripPlaybackMapView(
 
             // Full route coloured by overlap (~15 m grid): 1 pass blue, 2 orange, 3+ red
             for ((path, colour) in runPaths) {
-                drawPath(path, Color.Black.copy(alpha = 0.55f), style = Stroke(width = 11f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(path, StaticPalette.scrim, style = Stroke(width = 11f, cap = StrokeCap.Round, join = StrokeJoin.Round))
                 drawPath(path, colour, style = Stroke(width = 7f, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
 
@@ -130,23 +132,23 @@ fun TripPlaybackMapView(
                 if (!started) { active.moveTo(p.x, p.y); started = true } else active.lineTo(p.x, p.y)
             }
             if (started) {
-                drawPath(active, Palette.Cyan, style = Stroke(width = 10f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(active, StaticPalette.Cyan, style = Stroke(width = 10f, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
 
             // Start (green) / end (red) markers
-            drawCircle(Color.White, radius = 14f, center = pt(firstIdx))
-            drawCircle(Palette.GreenA400, radius = 11f, center = pt(firstIdx))
-            drawCircle(Color.White, radius = 14f, center = pt(lastIdx))
-            drawCircle(Color(0xFFFF5252), radius = 11f, center = pt(lastIdx))
+            drawCircle(StaticPalette.textPrimary, radius = 14f, center = pt(firstIdx))
+            drawCircle(StaticPalette.GreenA400, radius = 11f, center = pt(firstIdx))
+            drawCircle(StaticPalette.textPrimary, radius = 14f, center = pt(lastIdx))
+            drawCircle(StaticPalette.critical, radius = 11f, center = pt(lastIdx))
 
             // Vehicle puck at the nearest valid fix at or before the playback index
             var puckIdx = safeIdx
             while (puckIdx > firstIdx && projected[2 * puckIdx].isNaN()) puckIdx--
             if (!projected[2 * puckIdx].isNaN()) {
                 val c = pt(puckIdx)
-                drawCircle(Palette.Cyan.copy(alpha = 0.35f), radius = 24f, center = c)
-                drawCircle(Color.White, radius = 10f, center = c)
-                drawCircle(Palette.Cyan, radius = 7f, center = c)
+                drawCircle(StaticPalette.Cyan.copy(alpha = 0.35f), radius = 24f, center = c)
+                drawCircle(StaticPalette.textPrimary, radius = 10f, center = c)
+                drawCircle(StaticPalette.Cyan, radius = 7f, center = c)
             }
         }
     }

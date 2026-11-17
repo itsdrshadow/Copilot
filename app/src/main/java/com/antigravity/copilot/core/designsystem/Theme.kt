@@ -193,6 +193,10 @@ fun CopilotTheme(
         }
     }
 
+    androidx.compose.runtime.SideEffect {
+        com.antigravity.copilot.core.designsystem.tokens.ThemeColorsSnapshot.colors = base
+    }
+
     CompositionLocalProvider(
         ColorsLocal provides colors,
         ThemeModeLocal provides themeMode,

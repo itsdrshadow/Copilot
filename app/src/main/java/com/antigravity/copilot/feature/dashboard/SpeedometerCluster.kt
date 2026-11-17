@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
@@ -399,7 +400,7 @@ fun SpeedometerCluster(
                             onClick = { showStoppingDistanceDialog = false },
                             colors = ButtonDefaults.buttonColors(containerColor = cyanAccent)
                         ) {
-                            Text("Close", color = CockpitTheme.colors.onAccent, fontWeight = FontWeight.Bold)
+                            Text("Close", color = contentColorOn(cyanAccent), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -467,7 +468,7 @@ fun SpeedometerCluster(
                             onClick = { showBestEcoDialog = false },
                             colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
                         ) {
-                            Text("Done", color = CockpitTheme.colors.onAccent, fontWeight = FontWeight.Bold)
+                            Text("Done", color = contentColorOn(CockpitTheme.colors.accent), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -660,7 +661,7 @@ internal fun SpeedometerOdometerCalibrationDialog(
                             ) {
                                 Text(
                                     text = "Save reading",
-                                    color = CockpitTheme.colors.onAccent,
+                                    color = contentColorOn(CockpitTheme.colors.accent),
                                     style = CockpitTheme.typography.labelLarge
                                 )
                             }

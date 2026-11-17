@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.trips
 
+import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
@@ -60,7 +61,7 @@ internal fun TripDetailContainer(
 
     Box(
         modifier = modifier
-            .cockpitSurface(Color(0xFF090E17), Palette.Ink750, CopilotShapes.R16, borderWidth = 1.2.dp)
+            .cockpitSurface(CockpitTheme.colors.cardElevated, Palette.Ink750, CopilotShapes.R16, borderWidth = 1.2.dp)
     ) {
         if (trip == null) {
             Column(
@@ -80,7 +81,7 @@ internal fun TripDetailContainer(
                 Text(
                     text = "Trip GPS Playback View",
                     style = CockpitTheme.typography.titleLarge,
-                    color = Color.White
+                    color = CockpitTheme.colors.textPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -96,7 +97,7 @@ internal fun TripDetailContainer(
                     modifier = Modifier
                         .fillMaxWidth()
                         .zIndex(10f)
-                        .background(Color(0xFF0B101D))
+                        .background(CockpitTheme.colors.border)
                         .padding(horizontal = 12.dp, vertical = 7.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -112,7 +113,7 @@ internal fun TripDetailContainer(
                                 modifier = Modifier
                                     .height(46.dp)
                                     .clip(CopilotShapes.R10)
-                                    .background(if (isSelected) Palette.Ink600 else Color(0xFF0F1726))
+                                    .background(if (isSelected) Palette.Ink600 else CockpitTheme.colors.border)
                                     .border(
                                         width = 1.25.dp,
                                         color = if (isSelected) Palette.Sky400 else Palette.Ink750,
@@ -140,7 +141,7 @@ internal fun TripDetailContainer(
                                         fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                                     ),
-                                    color = if (isSelected) Color.White else Palette.Steel400
+                                    color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
                                 )
                             }
                         }
@@ -174,7 +175,7 @@ internal fun TripDetailContainer(
                                 onClick = { showDeleteConfirm = true },
                                 modifier = Modifier
                                     .size(44.dp)
-                                    .cockpitSurface(Color(0xFF261010), Palette.Red500.copy(alpha = 0.5f), CircleShape, borderWidth = 1.2.dp)
+                                    .cockpitSurface(CockpitTheme.colors.critical.copy(alpha = 0.14f), Palette.Red500.copy(alpha = 0.5f), CircleShape, borderWidth = 1.2.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.DeleteOutline,
@@ -194,7 +195,7 @@ internal fun TripDetailContainer(
                             Text(
                                 text = "Delete Trip Record?",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                                color = Color.White
+                                color = CockpitTheme.colors.textPrimary
                             )
                         },
                         text = {
@@ -212,14 +213,14 @@ internal fun TripDetailContainer(
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Palette.Red500)
                             ) {
-                                Text("Delete", fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Delete", fontWeight = FontWeight.Bold, color = contentColorOn(Palette.Red500))
                             }
                         },
                         dismissButton = {
                             OutlinedButton(
                                 onClick = { showDeleteConfirm = false }
                             ) {
-                                Text("Cancel", color = Palette.Slate400)
+                                Text("Cancel", color = CockpitTheme.colors.textPrimary)
                             }
                         },
                         containerColor = Palette.Slate900
@@ -334,7 +335,7 @@ internal fun TripMapReplayView(
                         .align(Alignment.TopStart)
                         .padding(8.dp)
                         .clip(CopilotShapes.R8)
-                        .background(Color(0xFF070E1A).copy(alpha = 0.92f))
+                        .background(CockpitTheme.colors.cardElevated.copy(alpha = 0.92f))
                         .border(1.dp, Palette.Ink750, CopilotShapes.R8)
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -372,7 +373,7 @@ internal fun TripMapReplayView(
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = Color.White
+                        color = CockpitTheme.colors.textPrimary
                     )
 
                     Text(
@@ -389,7 +390,7 @@ internal fun TripMapReplayView(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .cockpitSurface(Color(0xFF070E1A), Palette.Ink750, CopilotShapes.R12)
+                    .cockpitSurface(CockpitTheme.colors.cardElevated, Palette.Ink750, CopilotShapes.R12)
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -419,7 +420,7 @@ internal fun TripMapReplayView(
                             onClick = if (playbackStatus == PlaybackStatus.COMPLETED) onRestart else onPlayPause,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (playbackStatus == PlaybackStatus.PLAYING) Palette.Amber500 else Palette.Sky600,
-                                contentColor = Color.White
+                                contentColor = CockpitTheme.colors.textPrimary
                             ),
                             shape = CopilotShapes.R8,
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
@@ -442,7 +443,7 @@ internal fun TripMapReplayView(
                                     PlaybackStatus.COMPLETED -> "Replay"
                                     PlaybackStatus.STOPPED -> "Play"
                                 },
-                                style = CockpitTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                style = CockpitTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = contentColorOn(if (playbackStatus == PlaybackStatus.PLAYING) Palette.Amber500 else Palette.Sky600)
                             )
                         }
 
@@ -461,7 +462,7 @@ internal fun TripMapReplayView(
 
                             Box(
                                 modifier = Modifier
-                                    .cockpitSurface(Color(0xFF142033), Palette.Sky400.copy(alpha = 0.4f), CopilotShapes.R8)
+                                    .cockpitSurface(CockpitTheme.colors.border, Palette.Sky400.copy(alpha = 0.4f), CopilotShapes.R8)
                                     .clickable { onCycleSpeed() }
                                     .padding(horizontal = 8.dp, vertical = 4.dp),
                                 contentAlignment = Alignment.Center
@@ -564,7 +565,7 @@ internal fun TripTimelineView(
                                     style = CockpitTheme.typography.titleSmall.copy(
                                         fontWeight = FontWeight.Black
                                     ),
-                                    color = Color.White
+                                    color = CockpitTheme.colors.textPrimary
                                 )
                                 Text(
                                     text = event.description,

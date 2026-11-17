@@ -1,6 +1,6 @@
 package com.antigravity.copilot.feature.trips
 
-import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.StaticPalette
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
@@ -34,38 +34,38 @@ internal sealed class TimelineEvent(
 ) {
     class TripStart(time: Long, loc: String) : TimelineEvent(
         time, "Trip Started", loc.ifBlank { "Vehicle powered on" },
-        Icons.Default.PlayArrow, Palette.Emerald500
+        Icons.Default.PlayArrow, StaticPalette.Emerald500
     )
     class MotionStarted(time: Long, speed: Float) : TimelineEvent(
         time, "Vehicle in Motion", "Accelerated to ${NumberFormatUtils.formatSpeedWithUnit(speed, 2)}",
-        Icons.Default.DirectionsCar, Palette.Sky400, speed
+        Icons.Default.DirectionsCar, StaticPalette.Sky400, speed
     )
     class VehicleIdle(time: Long, durationMs: Long) : TimelineEvent(
         time, "Vehicle Stationary / Idle", "Standstill for ${formatDurationShort(durationMs)}",
-        Icons.Default.PauseCircle, Palette.Amber500
+        Icons.Default.PauseCircle, StaticPalette.Amber500
     )
     class MotionResumed(time: Long, speed: Float) : TimelineEvent(
         time, "Movement Resumed", "Cruising at ${NumberFormatUtils.formatSpeedWithUnit(speed, 2)}",
-        Icons.Default.FastForward, Palette.Sky400, speed
+        Icons.Default.FastForward, StaticPalette.Sky400, speed
     )
     class PeakSpeed(time: Long, speed: Float) : TimelineEvent(
         time, "Peak Speed Recorded", "Maximum speed of ${NumberFormatUtils.formatSpeedWithUnit(speed, 2)}",
-        Icons.Default.Speed, Palette.Purple500, speed
+        Icons.Default.Speed, StaticPalette.Purple500, speed
     )
     class RefuelRecorded(time: Long, liters: Double, cost: Double, station: String) : TimelineEvent(
         time, "Fuel Added",
         "${NumberFormatUtils.formatFuelLitersWithUnit(liters, 2)} refueled" +
             (if (cost > 0) " for ${NumberFormatUtils.formatCurrencyWithSymbol(cost, 2)}" else "") +
             (if (station.isNotBlank()) " at $station" else ""),
-        Icons.Default.LocalGasStation, Color(0xFF06B6D4)
+        Icons.Default.LocalGasStation, StaticPalette.accent
     )
     class EnginePowerEvent(time: Long, title: String, detail: String) : TimelineEvent(
         time, title, detail,
-        Icons.Default.PowerSettingsNew, Palette.Slate400
+        Icons.Default.PowerSettingsNew, StaticPalette.Slate400
     )
     class TripEnd(time: Long, loc: String, totalKm: Double) : TimelineEvent(
         time, "Trip Completed", "${loc.ifBlank { "Destination reached" }} • ${NumberFormatUtils.formatDistanceWithUnit(totalKm, 2)}",
-        Icons.Default.Flag, Palette.Red500
+        Icons.Default.Flag, StaticPalette.Red500
     )
 }
 

@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.trips
 
+import com.antigravity.copilot.core.designsystem.tokens.StaticPalette
 import com.antigravity.copilot.domain.trip.*
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
@@ -94,7 +95,7 @@ internal fun TripChartsView(
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
-                            color = Color.White
+                            color = CockpitTheme.colors.textPrimary
                         )
                     }
 
@@ -136,7 +137,7 @@ internal fun TripChartsView(
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
-                            color = Color.White
+                            color = CockpitTheme.colors.textPrimary
                         )
                     }
 
@@ -230,7 +231,7 @@ internal fun TripChartsView(
                                 modifier = Modifier
                                     .weight(1f)
                                     .clip(CopilotShapes.R8)
-                                    .background(Color(0xFF141C2B))
+                                    .background(CockpitTheme.colors.border)
                                     .padding(8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -284,7 +285,7 @@ internal fun TripChartsView(
                             style = CockpitTheme.typography.titleSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
-                            color = Color.White
+                            color = CockpitTheme.colors.textPrimary
                         )
                     }
 
@@ -319,7 +320,7 @@ internal fun SpeedTimeCanvas(
     modifier: Modifier = Modifier
 ) {
     val accentColor = Palette.Sky400
-    val gridColor = Color(0xFF1A2336)
+    val gridColor = CockpitTheme.colors.border
 
     Canvas(modifier = modifier) {
         val w = size.width
@@ -385,7 +386,7 @@ internal fun WeeklyDrivingPatternCanvas(
 ) {
     val weekdayAccent = Palette.Sky400
     val weekendAccent = Palette.Purple500
-    val gridColor = Color(0xFF152033)
+    val gridColor = CockpitTheme.colors.border
 
     val dayLabelPaint = remember {
         Paint().apply {
@@ -451,7 +452,7 @@ internal fun WeeklyDrivingPatternCanvas(
 
         // Weekday zone background (Mon-Fri)
         drawRoundRect(
-            color = Palette.Slate900.copy(alpha = 0.35f),
+            color = StaticPalette.Slate900.copy(alpha = 0.35f),
             topLeft = Offset(leftPadding, topPadding),
             size = Size(weekdayWidth, graphHeight),
             cornerRadius = CornerRadius(6f, 6f)
@@ -465,7 +466,7 @@ internal fun WeeklyDrivingPatternCanvas(
 
         // Weekend zone background (Sat-Sun)
         drawRoundRect(
-            color = Color(0xFF2E1065).copy(alpha = 0.22f),
+            color = StaticPalette.overlapBlue.copy(alpha = 0.22f),
             topLeft = Offset(leftPadding + weekdayWidth, topPadding),
             size = Size(weekendWidth, graphHeight),
             cornerRadius = CornerRadius(6f, 6f)
@@ -479,7 +480,7 @@ internal fun WeeklyDrivingPatternCanvas(
 
         // Zone separator line
         drawLine(
-            color = Palette.Ink725,
+            color = StaticPalette.Ink725,
             start = Offset(leftPadding + weekdayWidth, topPadding - 20f),
             end = Offset(leftPadding + weekdayWidth, topPadding + graphHeight),
             strokeWidth = 1.2f
@@ -499,13 +500,13 @@ internal fun WeeklyDrivingPatternCanvas(
             val barLeft = centerX - barWidth / 2f
 
             drawRoundRect(
-                color = Color(0xFF101827),
+                color = StaticPalette.border,
                 topLeft = Offset(barLeft, topPadding),
                 size = Size(barWidth, graphHeight),
                 cornerRadius = CornerRadius(6f, 6f)
             )
             drawRoundRect(
-                color = Color(0xFF1A263B),
+                color = StaticPalette.accentSoft,
                 topLeft = Offset(barLeft, topPadding),
                 size = Size(barWidth, graphHeight),
                 cornerRadius = CornerRadius(6f, 6f),
@@ -545,7 +546,7 @@ internal fun WeeklyDrivingPatternCanvas(
 
                 // Top highlight rim
                 drawRoundRect(
-                    color = if (isPeak) Color.White else barAccent,
+                    color = if (isPeak) StaticPalette.textPrimary else barAccent,
                     topLeft = Offset(barLeft, barTop),
                     size = Size(barWidth, 4f),
                     cornerRadius = CornerRadius(2f, 2f)
@@ -554,7 +555,7 @@ internal fun WeeklyDrivingPatternCanvas(
                 // Peak beacon & tag
                 if (isPeak) {
                     drawCircle(color = barAccent.copy(alpha = 0.35f), radius = 10f, center = Offset(centerX, barTop))
-                    drawCircle(color = Color.White, radius = 4f, center = Offset(centerX, barTop))
+                    drawCircle(color = StaticPalette.textPrimary, radius = 4f, center = Offset(centerX, barTop))
                     peakBadgePaint.color = barAccent.toArgb()
                     drawContext.canvas.nativeCanvas.drawText("★ PEAK DAY", centerX, barTop - 24f, peakBadgePaint)
                 }
@@ -568,7 +569,7 @@ internal fun WeeklyDrivingPatternCanvas(
                 )
             } else {
                 drawRoundRect(
-                    color = Color(0xFF1C2738),
+                    color = StaticPalette.border,
                     topLeft = Offset(barLeft, topPadding + graphHeight - 4f),
                     size = Size(barWidth, 4f),
                     cornerRadius = CornerRadius(2f, 2f)
@@ -599,7 +600,7 @@ internal fun MonthlyDistanceCanvas(
     modifier: Modifier = Modifier
 ) {
     val accentColor = Palette.Amber500
-    val gridColor = Color(0xFF152033)
+    val gridColor = CockpitTheme.colors.border
 
     val axisTextPaint = remember {
         Paint().apply {
@@ -699,13 +700,13 @@ internal fun MonthlyDistanceCanvas(
             val centerX = leftPadding + colWidth * m + colWidth / 2f
             val barLeft = centerX - barWidth / 2f
             drawRoundRect(
-                color = Color(0xFF101827),
+                color = StaticPalette.border,
                 topLeft = Offset(barLeft, topPadding),
                 size = Size(barWidth, graphHeight),
                 cornerRadius = CornerRadius(5f, 5f)
             )
             drawRoundRect(
-                color = Color(0xFF19253B),
+                color = StaticPalette.accentSoft,
                 topLeft = Offset(barLeft, topPadding),
                 size = Size(barWidth, graphHeight),
                 cornerRadius = CornerRadius(5f, 5f),
@@ -737,7 +738,7 @@ internal fun MonthlyDistanceCanvas(
             val avgBadgeX = totalWidth - rightPadding - avgBadgeW
             val avgBadgeY = (avgY - avgBadgeH / 2f).coerceIn(topPadding, topPadding + graphHeight - avgBadgeH)
             drawRoundRect(
-                color = Color(0xFF0C1527),
+                color = StaticPalette.border,
                 topLeft = Offset(avgBadgeX, avgBadgeY),
                 size = Size(avgBadgeW, avgBadgeH),
                 cornerRadius = CornerRadius(4f, 4f)
@@ -788,7 +789,7 @@ internal fun MonthlyDistanceCanvas(
 
                 // Top highlight rim
                 drawRoundRect(
-                    color = if (isPeak) Color.White else accentColor,
+                    color = if (isPeak) StaticPalette.textPrimary else accentColor,
                     topLeft = Offset(barLeft, barTop),
                     size = Size(barWidth, 3.5f),
                     cornerRadius = CornerRadius(2f, 2f)
@@ -797,7 +798,7 @@ internal fun MonthlyDistanceCanvas(
                 // Peak beacon & tag
                 if (isPeak) {
                     drawCircle(color = accentColor.copy(alpha = 0.35f), radius = 9f, center = Offset(centerX, barTop))
-                    drawCircle(color = Color.White, radius = 3.5f, center = Offset(centerX, barTop))
+                    drawCircle(color = StaticPalette.textPrimary, radius = 3.5f, center = Offset(centerX, barTop))
                     drawContext.canvas.nativeCanvas.drawText("★ TOP", centerX, barTop - 24f, peakBadgePaint)
                 }
 
@@ -811,7 +812,7 @@ internal fun MonthlyDistanceCanvas(
                 )
             } else {
                 drawRoundRect(
-                    color = Color(0xFF1E2A3E),
+                    color = StaticPalette.border,
                     topLeft = Offset(barLeft, topPadding + graphHeight - 4f),
                     size = Size(barWidth, 4f),
                     cornerRadius = CornerRadius(2f, 2f)

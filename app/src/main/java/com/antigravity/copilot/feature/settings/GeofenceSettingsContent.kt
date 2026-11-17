@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.settings
 
+import com.antigravity.copilot.core.designsystem.components.contentColorOn
+import com.antigravity.copilot.core.designsystem.tokens.StaticPalette
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
@@ -96,7 +98,7 @@ fun GeofenceSettingsContent(
                         Text(
                             text = "AUTOMATIC TRIP GEOFENCES",
                             style = CockpitTheme.typography.titleMedium,
-                            color = Color.White
+                            color = CockpitTheme.colors.textPrimary
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
@@ -124,7 +126,7 @@ fun GeofenceSettingsContent(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Geofence", style = CockpitTheme.typography.labelLarge)
+                    Text("Add Geofence", style = CockpitTheme.typography.labelLarge, color = contentColorOn(Palette.Sky600))
                 }
             }
         }
@@ -154,7 +156,7 @@ fun GeofenceSettingsContent(
                     Text(
                         text = "No Geofences Configured",
                         style = CockpitTheme.typography.titleSmall,
-                        color = Color.White
+                        color = CockpitTheme.colors.textPrimary
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -173,7 +175,7 @@ fun GeofenceSettingsContent(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (gf.isEnabled) Palette.Ink925 else Color(0xFF080C14)
+                        containerColor = if (gf.isEnabled) Palette.Ink925 else CockpitTheme.colors.cardElevated
                     ),
                     shape = CopilotShapes.R14,
                     border = androidx.compose.foundation.BorderStroke(
@@ -220,7 +222,7 @@ fun GeofenceSettingsContent(
                                     Text(
                                         text = gf.name,
                                         style = CockpitTheme.typography.titleMedium,
-                                        color = if (gf.isEnabled) Color.White else Palette.Slate500
+                                        color = if (gf.isEnabled) CockpitTheme.colors.textPrimary else Palette.Slate500
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     // Radius pill
@@ -255,7 +257,7 @@ fun GeofenceSettingsContent(
                                                 style = CockpitTheme.typography.labelSmall.copy(
                                                     fontWeight = FontWeight.Black
                                                 ),
-                                                color = Color(0xFF34D399)
+                                                color = CockpitTheme.colors.positive
                                             )
                                         }
                                     } else {
@@ -317,7 +319,7 @@ fun GeofenceSettingsContent(
                                 },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .cockpitSurface(Color(0xFF0F2642), Palette.Sky400.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
+                                    .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
@@ -333,7 +335,7 @@ fun GeofenceSettingsContent(
                                 onClick = { geofenceToDelete = gf },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .cockpitSurface(Color(0xFF3B151E), Palette.Rose500.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
+                                    .cockpitSurface(CockpitTheme.colors.critical.copy(alpha = 0.14f), Palette.Rose500.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.DeleteOutline,
@@ -357,7 +359,7 @@ fun GeofenceSettingsContent(
                 Text(
                     text = "Delete Geofence?",
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = CockpitTheme.colors.textPrimary
                 )
             },
             text = {
@@ -372,14 +374,14 @@ fun GeofenceSettingsContent(
                         viewModel.delete(gf.id)
                         geofenceToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                    colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.critical)
                 ) {
-                    Text("Delete", fontWeight = FontWeight.Bold)
+                    Text("Delete", fontWeight = FontWeight.Bold, color = contentColorOn(CockpitTheme.colors.critical))
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { geofenceToDelete = null }) {
-                    Text("Cancel", color = Palette.Slate400)
+                    Text("Cancel", color = CockpitTheme.colors.textPrimary)
                 }
             },
             containerColor = Palette.Slate900,
@@ -453,7 +455,7 @@ fun AddEditGeofenceDialog(
                         Text(
                             text = if (existingGeofence != null) "EDIT TRIP GEOFENCE" else "ADD TRIP GEOFENCE",
                             style = CockpitTheme.typography.titleMedium,
-                            color = Color.White
+                            color = CockpitTheme.colors.textPrimary
                         )
                     }
 
@@ -493,8 +495,8 @@ fun AddEditGeofenceDialog(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Palette.Sky400,
                                 unfocusedBorderColor = Palette.Slate700,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
+                                focusedTextColor = CockpitTheme.colors.textPrimary,
+                                unfocusedTextColor = CockpitTheme.colors.textPrimary
                             )
                         )
 
@@ -511,15 +513,14 @@ fun AddEditGeofenceDialog(
                             Icon(
                                 imageVector = Icons.Default.MyLocation,
                                 contentDescription = null,
-                                tint = Palette.Sky400,
+                                tint = contentColorOn(Palette.Slate800),
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 "Use Current GPS Location",
                                 style = CockpitTheme.typography.labelSmall,
-                                color = Color.White
-                            )
+                                color = contentColorOn(Palette.Slate800))
                         }
 
                         // Coordinates Row
@@ -537,8 +538,8 @@ fun AddEditGeofenceDialog(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Palette.Sky400,
                                     unfocusedBorderColor = Palette.Slate700,
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
+                                    focusedTextColor = CockpitTheme.colors.textPrimary,
+                                    unfocusedTextColor = CockpitTheme.colors.textPrimary
                                 )
                             )
                             OutlinedTextField(
@@ -551,8 +552,8 @@ fun AddEditGeofenceDialog(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Palette.Sky400,
                                     unfocusedBorderColor = Palette.Slate700,
-                                    focusedTextColor = Color.White,
-                                    unfocusedTextColor = Color.White
+                                    focusedTextColor = CockpitTheme.colors.textPrimary,
+                                    unfocusedTextColor = CockpitTheme.colors.textPrimary
                                 )
                             )
                         }
@@ -614,7 +615,7 @@ fun AddEditGeofenceDialog(
                                             style = CockpitTheme.typography.labelSmall.copy(
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                             ),
-                                            color = if (isSelected) Color.White else Palette.Slate400
+                                            color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Slate400
                                         )
                                     }
                                 }
@@ -668,7 +669,7 @@ fun AddEditGeofenceDialog(
                         shape = CopilotShapes.R10,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.Slate400)
                     ) {
-                        Text("Cancel")
+                        Text("Cancel", color = CockpitTheme.colors.textPrimary)
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -697,7 +698,7 @@ fun AddEditGeofenceDialog(
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Save Geofence", fontWeight = FontWeight.Bold)
+                        Text("Save Geofence", fontWeight = FontWeight.Bold, color = contentColorOn(Palette.Sky600))
                     }
                 }
             }
@@ -728,7 +729,7 @@ fun GeofenceMiniMapView(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0B1017))
+            .background(CockpitTheme.colors.cardElevated)
             .onSizeChanged { sizePx = it }
             .pointerInput(camera) {
                 val cam = camera ?: return@pointerInput
@@ -742,7 +743,7 @@ fun GeofenceMiniMapView(
             Text(
                 text = "Enter valid coordinates to preview the geofence",
                 fontSize = 12.sp,
-                color = Color.White.copy(alpha = 0.6f),
+                color = CockpitTheme.colors.textSecondary,
                 modifier = Modifier.align(Alignment.Center)
             )
         } else {
@@ -752,34 +753,34 @@ fun GeofenceMiniMapView(
                 val center = Offset(xy[0], xy[1])
                 val radiusPx = (radiusMeters / camera.metersPerPixel(centerLat)).toFloat()
 
-                drawCircle(color = Palette.Cyan.copy(alpha = 0.18f), radius = radiusPx, center = center)
-                drawCircle(color = Palette.Cyan, radius = radiusPx, center = center, style = Stroke(width = 2.5f))
+                drawCircle(color = StaticPalette.Cyan.copy(alpha = 0.18f), radius = radiusPx, center = center)
+                drawCircle(color = StaticPalette.Cyan, radius = radiusPx, center = center, style = Stroke(width = 2.5f))
 
                 drawLine(
-                    color = Palette.Cyan.copy(alpha = 0.6f),
+                    color = StaticPalette.Cyan.copy(alpha = 0.6f),
                     start = Offset(center.x - 20f, center.y),
                     end = Offset(center.x + 20f, center.y),
                     strokeWidth = 2f
                 )
                 drawLine(
-                    color = Palette.Cyan.copy(alpha = 0.6f),
+                    color = StaticPalette.Cyan.copy(alpha = 0.6f),
                     start = Offset(center.x, center.y - 20f),
                     end = Offset(center.x, center.y + 20f),
                     strokeWidth = 2f
                 )
-                drawCircle(color = Color.White, radius = 6f, center = center)
-                drawCircle(color = Palette.Cyan, radius = 4f, center = center)
+                drawCircle(color = StaticPalette.textPrimary, radius = 6f, center = center)
+                drawCircle(color = StaticPalette.Cyan, radius = 4f, center = center)
             }
         }
 
         Text(
             text = "Tap to move center • Radius: ${radiusMeters.toInt()}m",
             fontSize = 11.sp,
-            color = Color.White.copy(alpha = 0.8f),
+            color = CockpitTheme.colors.textPrimary,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 8.dp)
-                .background(Color.Black.copy(alpha = 0.55f), CopilotShapes.R6)
+                .background(CockpitTheme.colors.scrim, CopilotShapes.R6)
                 .padding(horizontal = 8.dp, vertical = 2.dp)
         )
     }

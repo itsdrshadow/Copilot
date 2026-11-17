@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.launcher
 
+import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
@@ -123,7 +124,7 @@ fun AppDrawerScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accentSoft),
                                 shape = CopilotShapes.R10
                             ) {
-                                Text("Clear Search", color = CockpitTheme.colors.accent, fontWeight = FontWeight.Bold)
+                                Text("Clear Search", color = CockpitTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

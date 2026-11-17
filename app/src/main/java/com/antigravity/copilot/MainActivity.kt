@@ -1,5 +1,6 @@
 package com.antigravity.copilot
 
+import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import dagger.hilt.android.AndroidEntryPoint
 import com.antigravity.copilot.feature.trips.TripHistoryRoute
@@ -470,7 +471,11 @@ private fun MainAppScreen(
             ) {
                 when (overlayTab ?: lastOverlayTab) {
                     2 -> TripHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })
-                    3 -> FuelHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })
+                    3 -> FuelHistoryRoute(
+                        onBackToCockpit = { viewModel.selectTab(0) },
+                        fuelState = fuelState,
+                        onAddFuel = { viewModel.setFuelDialogOpen(true) }
+                    )
                 }
             }
         }
@@ -630,7 +635,7 @@ private fun MainAppScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent, contentColor = CockpitTheme.colors.onAccent),
                         shape = CopilotShapes.R12
                     ) {
-                        Text(if (isRestoring) "Restoring..." else "Confirm Restore", fontWeight = FontWeight.Bold)
+                        Text(if (isRestoring) "Restoring..." else "Confirm Restore", fontWeight = FontWeight.Bold, color = contentColorOn(CockpitTheme.colors.accent))
                     }
                 },
                 dismissButton = {

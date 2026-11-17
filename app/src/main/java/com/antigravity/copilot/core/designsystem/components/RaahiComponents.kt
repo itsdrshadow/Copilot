@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -412,4 +413,18 @@ fun RaahiDialogHost(
             )
         }
     }
+}
+
+private val OnLightInk = Color(0xFF04131A)
+private val OnDarkInk = Color(0xFFFFFFFF)
+
+/**
+ * Button label colour on a filled [background]: near-black or white, whichever has more contrast
+ * (Raahi rule: button text is always black or white, never a hue).
+ */
+fun contentColorOn(background: Color): Color {
+    val l = background.luminance()
+    val contrastBlack = (l + 0.05) / (OnLightInk.luminance() + 0.05)
+    val contrastWhite = 1.05 / (l + 0.05)
+    return if (contrastBlack >= contrastWhite) OnLightInk else OnDarkInk
 }

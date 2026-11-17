@@ -189,7 +189,7 @@ fun TripHistoryScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White,
+                            tint = CockpitTheme.colors.textPrimary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -202,13 +202,13 @@ fun TripHistoryScreen(
                             Text(
                                 text = "Trip History",
                                 style = CockpitTheme.typography.headlineLarge,
-                                color = Color.White
+                                color = CockpitTheme.colors.textPrimary
                             )
 
                             // Year Pill
                             Box(
                                 modifier = Modifier
-                                    .cockpitSurface(Color(0xFF0F263E), Palette.Sky400.copy(alpha = 0.4f), CopilotShapes.R6)
+                                    .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.4f), CopilotShapes.R6)
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
@@ -262,7 +262,7 @@ fun TripHistoryScreen(
                                         fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
-                                    color = if (isSelected) Color.White else Palette.Steel400
+                                    color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
                                 )
                             }
                         }
@@ -367,7 +367,7 @@ fun TripHistoryScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xFF070B12))
+                        .background(CockpitTheme.colors.cardElevated)
                         .padding(12.dp)
                 ) {
                     Column(
@@ -383,7 +383,7 @@ fun TripHistoryScreen(
                                 text = "Trip Details",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Black,
-                                    color = Color.White
+                                    color = CockpitTheme.colors.textPrimary
                                 )
                             )
                             IconButton(
@@ -396,7 +396,7 @@ fun TripHistoryScreen(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close",
-                                    tint = Color.White,
+                                    tint = CockpitTheme.colors.textPrimary,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -467,7 +467,7 @@ internal fun YearlyTripSummaryBanner(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .cockpitSurface(Color(0xFF0B1019), Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
+            .cockpitSurface(CockpitTheme.colors.cardElevated, Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -477,7 +477,7 @@ internal fun YearlyTripSummaryBanner(
             label = "TOTAL TRIPS",
             value = "${analytics.totalTrips}",
             unit = "Trips",
-            color = Color.White
+            color = CockpitTheme.colors.textPrimary
         )
         TripStatTile(
             modifier = Modifier.weight(1.2f),
@@ -557,7 +557,7 @@ internal fun YearlyTripInsightsRow(analytics: YearlyTripAnalytics) {
             modifier = Modifier
                 .weight(1.4f)
                 .fillMaxHeight()
-                .cockpitSurface(Color(0xFF0B1019), Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
+                .cockpitSurface(CockpitTheme.colors.cardElevated, Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
                 .padding(10.dp)
         ) {
             Text(
@@ -574,7 +574,7 @@ internal fun YearlyTripInsightsRow(analytics: YearlyTripAnalytics) {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .cockpitSurface(Color(0xFF0B1019), Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
+                .cockpitSurface(CockpitTheme.colors.cardElevated, Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
                 .padding(10.dp)
         ) {
             Text(
@@ -664,7 +664,7 @@ internal fun TripListGroupedFeed(
     if (activeMonthGroups.isEmpty()) {
         Box(
             modifier = modifier
-                .cockpitSurface(Color(0xFF090E17), Palette.Ink750, CopilotShapes.R16, borderWidth = 1.2.dp),
+                .cockpitSurface(CockpitTheme.colors.cardElevated, Palette.Ink750, CopilotShapes.R16, borderWidth = 1.2.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -675,7 +675,7 @@ internal fun TripListGroupedFeed(
                 Box(
                     modifier = Modifier
                         .size(54.dp)
-                        .cockpitSurface(Color(0xFF101726), Palette.Ink750, CircleShape),
+                        .cockpitSurface(CockpitTheme.colors.border, Palette.Ink750, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -688,7 +688,7 @@ internal fun TripListGroupedFeed(
                 Text(
                     text = "No Trips in ${analytics.year}",
                     style = CockpitTheme.typography.titleMedium,
-                    color = Color.White
+                    color = CockpitTheme.colors.textPrimary
                 )
                 Text(
                     text = "Drive to record telemetry trips with high-precision GPS playback.",
@@ -743,7 +743,7 @@ private fun TripMonthHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .cockpitSurface(Color(0xFF0A0F1A), Color(0xFF1A2436), CopilotShapes.R14)
+            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R14)
             .clickable(onClick = onToggle)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -758,7 +758,7 @@ private fun TripMonthHeader(
                 style = CockpitTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.Black
                 ),
-                color = Color.White
+                color = CockpitTheme.colors.textPrimary
             )
             PillBadge(
                 text = "${group.trips.size} trips",
@@ -820,7 +820,7 @@ internal fun TripCardItem(
         modifier = modifier
             .fillMaxWidth()
             .clip(CopilotShapes.R12)
-            .background(if (isSelected) Color(0xFF0F2038) else Palette.Ink925)
+            .background(if (isSelected) CockpitTheme.colors.accentSoft else Palette.Ink925)
             .border(
                 width = if (isSelected) 1.5.dp else 1.dp,
                 color = if (isSelected) Palette.Sky400 else Palette.Ink750,
@@ -840,7 +840,7 @@ internal fun TripCardItem(
                     Text(
                         text = "${trip.startLocationName.ifBlank { "Trip Origin" }} ➔ ${trip.endLocationName.ifBlank { "Destination" }}",
                         style = CockpitTheme.typography.titleSmall,
-                        color = Color.White,
+                        color = CockpitTheme.colors.textPrimary,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
@@ -860,7 +860,7 @@ internal fun TripCardItem(
                     style = CockpitTheme.typography.titleLarge.copy(
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
-                    color = if (isSelected) Palette.Sky400 else Color.White
+                    color = if (isSelected) Palette.Sky400 else CockpitTheme.colors.textPrimary
                 )
             }
 

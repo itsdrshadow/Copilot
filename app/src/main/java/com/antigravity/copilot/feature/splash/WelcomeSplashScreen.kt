@@ -1,6 +1,6 @@
 package com.antigravity.copilot.feature.splash
 
-import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.BrandPalette
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -182,7 +182,7 @@ fun WelcomeSplashScreen(
                         text = "WELCOME",
                         style = CockpitTheme.typography.displayMedium.copy(
                             letterSpacing = 16.sp,
-                            color = Palette.Cyan.copy(alpha = (welcomeAlpha * 0.40f * glowIntensity).coerceIn(0f, 0.40f)),
+                            color = BrandPalette.Cyan.copy(alpha = (welcomeAlpha * 0.40f * glowIntensity).coerceIn(0f, 0.40f)),
                             textAlign = TextAlign.Center
                         ),
                         modifier = Modifier
@@ -196,7 +196,7 @@ fun WelcomeSplashScreen(
                             letterSpacing = 16.sp,
                             color = Color(0xFFF4FAFF),
                             shadow = Shadow(
-                                color = Palette.CyanNeon.copy(alpha = (welcomeAlpha * 0.85f * glowIntensity).coerceIn(0f, 0.85f)),
+                                color = BrandPalette.CyanNeon.copy(alpha = (welcomeAlpha * 0.85f * glowIntensity).coerceIn(0f, 0.85f)),
                                 blurRadius = 14f
                             ),
                             textAlign = TextAlign.Center

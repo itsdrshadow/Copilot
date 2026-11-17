@@ -291,9 +291,9 @@ fun CurrentTripCard(
                     } else {
                         com.antigravity.copilot.core.location.DrivingTrackingService.manualStartTrip(context)
                     }
-                }) { Text(if (isTripActive) "END TRIP" else "START TRIP") }
+                }) { Text(if (isTripActive) "END TRIP" else "START TRIP", color = CockpitTheme.colors.textPrimary) }
             },
-            dismissButton = { TextButton(onClick = { showManualTripDialog = false }) { Text("CANCEL") } }
+            dismissButton = { TextButton(onClick = { showManualTripDialog = false }) { Text("CANCEL", color = CockpitTheme.colors.textPrimary) } }
         )
     }
 
@@ -481,7 +481,7 @@ fun CurrentTripCard(
                                 .height(4.dp)
                                 .width(dotWidth)
                                 .clip(CircleShape)
-                                .background(if (isSelected) cyanAccent else Color.White.copy(alpha = 0.18f))
+                                .background(if (isSelected) cyanAccent else CockpitTheme.colors.textSecondary)
                         )
                     }
                 }
@@ -563,7 +563,7 @@ fun CurrentTripCard(
                     modifier = Modifier
                         .height(20.dp)
                         .width(1.dp)
-                        .background(Color.White.copy(alpha = 0.12f))
+                        .background(CockpitTheme.colors.textSecondary)
                 )
 
                 // Cell 2: Active / Moving Time

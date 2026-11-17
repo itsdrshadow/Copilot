@@ -110,7 +110,7 @@ private fun RecoveryScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF060B14))
+            .background(CockpitTheme.colors.cardElevated)
             .padding(18.dp)
     ) {
         Column(
@@ -122,7 +122,7 @@ private fun RecoveryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(CopilotShapes.R12)
-                    .background(Color(0xFF140D12))
+                    .background(CockpitTheme.colors.cardElevated)
                     .border(1.2.dp, CockpitTheme.colors.critical.copy(alpha = 0.6f), CopilotShapes.R12)
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -156,7 +156,7 @@ private fun RecoveryScreen(
                                     fontWeight = FontWeight.Black,
                                     letterSpacing = 0.5.sp
                                 ),
-                                color = Color.White
+                                color = CockpitTheme.colors.textPrimary
                             )
                             Box(
                                 modifier = Modifier
@@ -206,8 +206,7 @@ private fun RecoveryScreen(
                         Text(
                             text = if (isCountdownPaused) "RESUME" else "PAUSE",
                             style = CockpitTheme.typography.labelSmall,
-                            color = Color.White
-                        )
+                            color = CockpitTheme.colors.textPrimary)
                     }
                 }
             }
@@ -231,7 +230,7 @@ private fun RecoveryScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(CopilotShapes.R12)
-                            .background(Color(0xFF091424))
+                            .background(CockpitTheme.colors.border)
                             .border(1.dp, CockpitTheme.colors.positive.copy(alpha = 0.5f), CopilotShapes.R12)
                             .padding(12.dp)
                     ) {
@@ -249,7 +248,7 @@ private fun RecoveryScreen(
                                 Text(
                                     text = "Telemetry & Fuel Database Intact",
                                     style = CockpitTheme.typography.titleSmall,
-                                    color = Color.White
+                                    color = CockpitTheme.colors.textPrimary
                                 )
                                 Text(
                                     text = "All fuel records, odometer baseline and completed trips are securely preserved in permanent SQLite storage.",
@@ -266,7 +265,7 @@ private fun RecoveryScreen(
                             .fillMaxWidth()
                             .weight(1f)
                             .clip(CopilotShapes.R12)
-                            .background(Color(0xFF0A101C))
+                            .background(CockpitTheme.colors.cardElevated)
                             .border(1.dp, CockpitTheme.colors.border, CopilotShapes.R12)
                             .padding(12.dp)
                     ) {
@@ -295,8 +294,7 @@ private fun RecoveryScreen(
                                     Text(
                                         text = if (showFullTrace) "SHOW SUMMARY" else "VIEW FULL TRACE",
                                         style = CockpitTheme.typography.labelSmall,
-                                        color = CockpitTheme.colors.accent
-                                    )
+                                        color = CockpitTheme.colors.textPrimary)
                                 }
                             }
 
@@ -305,7 +303,7 @@ private fun RecoveryScreen(
                                     .fillMaxWidth()
                                     .weight(1f)
                                     .clip(CopilotShapes.R8)
-                                    .background(Color(0xFF060B12))
+                                    .background(CockpitTheme.colors.cardElevated)
                                     .border(0.8.dp, CockpitTheme.colors.border.copy(alpha = 0.5f), CopilotShapes.R8)
                                     .padding(8.dp)
                                     .verticalScroll(rememberScrollState())
@@ -345,7 +343,7 @@ private fun RecoveryScreen(
                             Icon(
                                 imageVector = Icons.Default.Home,
                                 contentDescription = null,
-                                tint = Color.Black,
+                                tint = CockpitTheme.colors.onAccent,
                                 modifier = Modifier.size(20.dp)
                             )
                             Column {
@@ -355,12 +353,12 @@ private fun RecoveryScreen(
                                         fontWeight = FontWeight.Black,
                                         letterSpacing = 0.5.sp
                                     ),
-                                    color = Color.Black
+                                    color = CockpitTheme.colors.onAccent
                                 )
                                 Text(
                                     text = "Instant 1-tap fallback to factory OEM interface",
                                     style = CockpitTheme.typography.labelSmall,
-                                    color = Color(0xFF003847)
+                                    color = CockpitTheme.colors.onAccent
                                 )
                             }
                         }
@@ -390,7 +388,7 @@ private fun RecoveryScreen(
                             Text(
                                 text = "RESTORE BLAUPUNKT AS DEFAULT HOME",
                                 style = CockpitTheme.typography.labelMedium.copy(
-                                    color = Color.White
+                                    color = CockpitTheme.colors.textPrimary
                                 )
                             )
                         }
@@ -403,7 +401,7 @@ private fun RecoveryScreen(
                             .fillMaxWidth()
                             .height(48.dp),
                         shape = CopilotShapes.R10,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF143026))
+                        colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.positive.copy(alpha = 0.16f))
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,

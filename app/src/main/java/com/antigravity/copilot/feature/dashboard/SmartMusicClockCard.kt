@@ -530,7 +530,7 @@ private fun ClockWithMusicState(
                 Icon(
                     imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                    tint = Color.Black,
+                    tint = CockpitTheme.colors.onAccent,
                     modifier = Modifier.size(28.dp)
                 )
             }

@@ -162,10 +162,10 @@ fun DriveTopRow(
                     showManualTripDialog = false
                     if (active) com.antigravity.copilot.core.location.DrivingTrackingService.manualEndTrip(context)
                     else com.antigravity.copilot.core.location.DrivingTrackingService.manualStartTrip(context)
-                }) { Text(if (active) "End trip" else "Start trip", color = c.textPrimary) }
+                }) { Text(if (active) "End trip" else "Start trip", color = CockpitTheme.colors.textPrimary) }
             },
             dismissButton = {
-                TextButton(onClick = { showManualTripDialog = false }) { Text("Cancel", color = c.textPrimary) }
+                TextButton(onClick = { showManualTripDialog = false }) { Text("Cancel", color = CockpitTheme.colors.textPrimary) }
             }
         )
     }

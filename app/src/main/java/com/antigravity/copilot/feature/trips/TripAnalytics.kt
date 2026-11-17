@@ -1,6 +1,6 @@
 package com.antigravity.copilot.feature.trips
 
-import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.StaticPalette
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -82,10 +82,10 @@ internal fun generateTripTimeline(
 internal fun computeSpeedBands(points: List<TripPointEntity>): List<SpeedBand> {
     if (points.isEmpty()) {
         return listOf(
-            SpeedBand("0-20", 0, Palette.Amber500),
-            SpeedBand("20-40", 0, Palette.Sky400),
-            SpeedBand("40-60", 0, Palette.Emerald500),
-            SpeedBand("60+", 0, Palette.Purple500)
+            SpeedBand("0-20", 0, StaticPalette.Amber500),
+            SpeedBand("20-40", 0, StaticPalette.Sky400),
+            SpeedBand("40-60", 0, StaticPalette.Emerald500),
+            SpeedBand("60+", 0, StaticPalette.Purple500)
         )
     }
     var b1 = 0
@@ -103,10 +103,10 @@ internal fun computeSpeedBands(points: List<TripPointEntity>): List<SpeedBand> {
     }
     val n = points.size.toFloat()
     return listOf(
-        SpeedBand("0-20", ((b1 / n) * 100).roundToInt(), Palette.Amber500),
-        SpeedBand("20-40", ((b2 / n) * 100).roundToInt(), Palette.Sky400),
-        SpeedBand("40-60", ((b3 / n) * 100).roundToInt(), Palette.Emerald500),
-        SpeedBand("60+", ((b4 / n) * 100).roundToInt(), Palette.Purple500)
+        SpeedBand("0-20", ((b1 / n) * 100).roundToInt(), StaticPalette.Amber500),
+        SpeedBand("20-40", ((b2 / n) * 100).roundToInt(), StaticPalette.Sky400),
+        SpeedBand("40-60", ((b3 / n) * 100).roundToInt(), StaticPalette.Emerald500),
+        SpeedBand("60+", ((b4 / n) * 100).roundToInt(), StaticPalette.Purple500)
     )
 }
 

@@ -396,7 +396,7 @@ fun LiveMapPanel(
                         "Avg speed: ${"%.0f".format(cell.avgSpeedKmh)} km/h"
                 )
             },
-            confirmButton = { TextButton(onClick = { mapController.clearSelectedRoadCell() }) { Text("OK") } }
+            confirmButton = { TextButton(onClick = { mapController.clearSelectedRoadCell() }) { Text("OK", color = CockpitTheme.colors.textPrimary) } }
         )
     }
 

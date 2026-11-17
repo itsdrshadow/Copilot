@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.fuel
 
+import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.compose.foundation.background
@@ -46,7 +47,7 @@ fun RefuelStationPromptDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.85f)),
+                .background(CockpitTheme.colors.scrim),
             contentAlignment = Alignment.Center
         ) {
             Box(
@@ -195,8 +196,7 @@ fun RefuelStationPromptDialog(
                             Text(
                                 "Dismiss",
                                 style = CockpitTheme.typography.labelSmall,
-                                color = CockpitTheme.colors.textSecondary
-                            )
+                                color = CockpitTheme.colors.textPrimary)
                         }
 
                         Button(
@@ -212,7 +212,7 @@ fun RefuelStationPromptDialog(
                         ) {
                             Text(
                                 "Not Now",
-                                style = CockpitTheme.typography.labelSmall
+                                style = CockpitTheme.typography.labelSmall, color = contentColorOn(CockpitTheme.colors.cardElevated)
                             )
                         }
 
@@ -235,7 +235,7 @@ fun RefuelStationPromptDialog(
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(
                                 "Yes, Add Fuel",
-                                style = CockpitTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black)
+                                style = CockpitTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black), color = contentColorOn(CockpitTheme.colors.accent)
                             )
                         }
                     }
