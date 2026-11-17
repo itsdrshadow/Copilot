@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.44.0] - 2026-11-17
+
+### Removed
+- Offline routing: GraphHopper dependency (`graphhopper-core`), `OfflineRoutingEngine`, the "All-India Routing Graph" package, routing archive download/extraction/USB import, route polyline layers and the turn-by-turn instruction banner on the map.
+- `DownloadState.EXTRACTING`, `PackageType.ROUTING_GRAPH`, `MapDownloadWorker.KEY_PACKAGE_TYPE`.
+
+### Changed
+- Offline Maps manager is now PMTiles-only; any leftover `routing/` data from older installs is deleted in the background on start.
+
 ## [1.43.0] - 2026-11-17
 
 ### Added

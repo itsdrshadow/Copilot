@@ -74,8 +74,6 @@ fun LiveMapPanel(
     val activeRegionTitle by mapController.activeRegionTitle.collectAsStateWithLifecycle()
     val is3DActive by mapController.is3DTiltActive.collectAsStateWithLifecycle()
     val isHeadingUp by mapController.isHeadingUp.collectAsStateWithLifecycle()
-    val activeInstruction by mapController.activeInstruction.collectAsStateWithLifecycle()
-    val remainingDistance by mapController.routeDistanceMeters.collectAsStateWithLifecycle()
     val roadMileageVisible by mapController.roadMileageVisible.collectAsStateWithLifecycle()
     val selectedRoadCell by mapController.selectedRoadCell.collectAsStateWithLifecycle()
 
@@ -219,54 +217,6 @@ fun LiveMapPanel(
                                 color = Color.Black
                             )
                         }
-                    }
-                }
-            }
-        }
-
-        // Top Navigation Instruction Banner (when route is active)
-        AnimatedVisibility(
-            visible = activeInstruction != null,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(16.dp),
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Surface(
-                color = Color(0xFF101926).copy(alpha = 0.95f),
-                shape = CopilotShapes.R14,
-                border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan),
-                modifier = Modifier.fillMaxWidth(0.85f)
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Navigation,
-                        contentDescription = null,
-                        tint = Cockpit_Cyan,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = activeInstruction ?: "",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        if (remainingDistance != null) {
-                            Text(
-                                text = "Remaining: ${String.format("%.1f km", (remainingDistance ?: 0.0) / 1000.0)}",
-                                fontSize = 12.sp,
-                                color = Cockpit_Cyan
-                            )
-                        }
-                    }
-                    IconButton(onClick = { mapController.clearRoute() }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel Route", tint = Color.White)
                     }
                 }
             }

@@ -13,8 +13,8 @@ android {
         applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 75
-        versionName = "1.43.0"
+        versionCode = 76
+        versionName = "1.44.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -126,9 +126,6 @@ dependencies {
 
     // Map Engine: MapLibre Android SDK (Pinned to 10.3.2 for armeabi-v7a & head unit GPUs)
     implementation("org.maplibre.gl:android-sdk:10.3.2")
-
-    // Pure-JVM Offline Routing Engine (32-bit armeabi-v7a compatible)
-    implementation("com.graphhopper:graphhopper-core:8.0")
 
     // WorkManager & OkHttp (Resumable downloads with Range header)
     implementation("androidx.work:work-runtime-ktx:2.9.0")

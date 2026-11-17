@@ -2,7 +2,6 @@ package com.antigravity.copilot
 
 import com.antigravity.copilot.core.map.MapDownloadWorker
 import com.antigravity.copilot.core.map.OfflineMapManager
-import com.antigravity.copilot.core.map.OfflineRoutingEngine
 import com.antigravity.copilot.feature.maps.MAP_MAX_ZOOM_LEVEL
 import com.antigravity.copilot.feature.maps.MAP_MIN_ZOOM_LEVEL
 import org.junit.Assert.*
@@ -11,12 +10,11 @@ import java.io.File
 
 /**
  * Milestone3MapTileAndLifecycleTest:
- * Validates the Refactored Offline Map, Routing, and Download Management System:
+ * Validates the Refactored Offline Map and Download Management System:
  * - 5 Regional Macro-Zones with GPS Bounding Box auto-detection.
  * - 15 GB Storage Budget enforcement.
- * - Scoped Storage folder structure (maps, routing, downloads).
+ * - Scoped Storage folder structure (maps, downloads).
  * - WorkManager resumable downloads with HTTP Range byte-offset logic.
- * - Pure-JVM GraphHopper offline routing engine contracts.
  * - MapLibre zoom constraints (14.0 - 19.5).
  */
 class Milestone3MapTileAndLifecycleTest {
@@ -26,11 +24,9 @@ class Milestone3MapTileAndLifecycleTest {
         assertEquals(15L * 1024L * 1024L * 1024L, OfflineMapManager.MAX_OFFLINE_STORAGE_BUDGET_BYTES)
         assertEquals(2L * 1024L * 1024L * 1024L, OfflineMapManager.LOW_STORAGE_WARNING_THRESHOLD_BYTES)
 
-        // India PMTiles map + routing graph must fit the 15 GB budget
+        // India PMTiles map must fit the 15 GB budget
         val india = OfflineMapManager.AVAILABLE_PACKAGES.first { it.id == "india_pmtiles" }
-        val routingGraph = OfflineMapManager.AVAILABLE_PACKAGES.first { it.id == "india_routing_graph" }
-        val combinedBytes = india.estimatedSizeBytes + routingGraph.estimatedSizeBytes
-        assertTrue("India map + routing graph must be < 15 GB", combinedBytes < OfflineMapManager.MAX_OFFLINE_STORAGE_BUDGET_BYTES)
+        assertTrue("India map must be < 15 GB", india.estimatedSizeBytes < OfflineMapManager.MAX_OFFLINE_STORAGE_BUDGET_BYTES)
     }
 
     @Test
@@ -42,7 +38,7 @@ class Milestone3MapTileAndLifecycleTest {
         // No hard-coded bulk tile / non-existent MBTiles URLs: the user supplies the URL or imports a file.
         assertTrue(india.downloadUrl.isBlank())
         assertTrue(packages.none { it.downloadUrl.contains("geofabrik") || it.downloadUrl.endsWith(".mbtiles") })
-        assertNotNull(packages.find { it.id == "india_routing_graph" })
+        assertNull(packages.find { it.id == "india_routing_graph" })
     }
 
     @Test
@@ -61,7 +57,6 @@ class Milestone3MapTileAndLifecycleTest {
         assertTrue(states.contains(OfflineMapManager.DownloadState.DOWNLOADING))
         assertTrue(states.contains(OfflineMapManager.DownloadState.PAUSED_USER))
         assertTrue(states.contains(OfflineMapManager.DownloadState.PAUSED_NETWORK_LOST))
-        assertTrue(states.contains(OfflineMapManager.DownloadState.EXTRACTING))
         assertTrue(states.contains(OfflineMapManager.DownloadState.COMPLETED))
         assertTrue(states.contains(OfflineMapManager.DownloadState.ERROR))
     }
@@ -83,30 +78,6 @@ class Milestone3MapTileAndLifecycleTest {
         assertEquals("download_url", MapDownloadWorker.KEY_URL)
         assertEquals("dest_path", MapDownloadWorker.KEY_DEST_PATH)
         assertEquals("package_id", MapDownloadWorker.KEY_PACKAGE_ID)
-        assertEquals("package_type", MapDownloadWorker.KEY_PACKAGE_TYPE)
-    }
-
-    @Test
-    fun testOfflineRoutingEngineResultStructure() {
-        val successResult = OfflineRoutingEngine.RouteResult(
-            isSuccess = true,
-            points = listOf(Pair(28.6139, 77.2090), Pair(28.6200, 77.2150)),
-            distanceMeters = 1500.0,
-            timeMillis = 180000,
-            instructions = listOf("Turn right onto Connaught Place")
-        )
-
-        assertTrue(successResult.isSuccess)
-        assertEquals(2, successResult.points.size)
-        assertEquals(1500.0, successResult.distanceMeters, 0.001)
-        assertNull(successResult.errorMessage)
-
-        val failResult = OfflineRoutingEngine.RouteResult(
-            isSuccess = false,
-            errorMessage = "Routing graph not loaded"
-        )
-        assertFalse(failResult.isSuccess)
-        assertNotNull(failResult.errorMessage)
     }
 
     @Test

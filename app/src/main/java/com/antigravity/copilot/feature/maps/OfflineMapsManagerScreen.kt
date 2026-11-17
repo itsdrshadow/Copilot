@@ -120,14 +120,14 @@ fun OfflineMapsManagerContent(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "OFFLINE MAPS & ROUTING MANAGER",
+                            text = "OFFLINE MAPS MANAGER",
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold,
                             fontSize = 19.sp,
                             color = Color.White
                         )
                         Text(
-                            text = "India PMTiles map + routing graph, 100% offline (Max 15 GB Budget)",
+                            text = "India PMTiles vector map, 100% offline (Max 15 GB Budget)",
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -167,8 +167,7 @@ fun OfflineMapsManagerContent(
             // Active Download Progress Card
             AnimatedVisibility(
                 visible = downloadState == OfflineMapManager.DownloadState.DOWNLOADING ||
-                        downloadState == OfflineMapManager.DownloadState.PAUSED_USER ||
-                        downloadState == OfflineMapManager.DownloadState.EXTRACTING
+                        downloadState == OfflineMapManager.DownloadState.PAUSED_USER
             ) {
                 ActiveDownloadCard(
                     packageTitle = installedPackages.find { it.id == activePkgId }?.title ?: "Offline Package",
@@ -494,7 +493,6 @@ private fun ActiveDownloadCard(
                 )
                 Text(
                     text = when (downloadState) {
-                        OfflineMapManager.DownloadState.EXTRACTING -> "Extracting..."
                         OfflineMapManager.DownloadState.PAUSED_USER -> "Paused"
                         else -> String.format("%.1f%% (%.1f MB/s)", progress * 100f, speedMbs)
                     },

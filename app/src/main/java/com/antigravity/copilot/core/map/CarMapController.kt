@@ -36,9 +36,6 @@ class CarMapController(
 ) {
     companion object {
         private const val TAG = "CarMapController"
-        private const val ROUTE_SOURCE_ID = "copilot_route_source"
-        private const val ROUTE_LAYER_CASING_ID = "copilot_route_layer_casing"
-        private const val ROUTE_LAYER_LINE_ID = "copilot_route_layer_line"
         private const val TRAIL_SOURCE_ID = "copilot_trail_source"
         private const val TRAIL_LAYER_ID = "copilot_trail_layer"
         private const val VEHICLE_SOURCE_ID = "copilot_vehicle_source"
@@ -66,12 +63,6 @@ class CarMapController(
 
     private val _isHeadingUp = MutableStateFlow(true)
     val isHeadingUp: StateFlow<Boolean> = _isHeadingUp.asStateFlow()
-
-    private val _activeInstruction = MutableStateFlow<String?>(null)
-    val activeInstruction: StateFlow<String?> = _activeInstruction.asStateFlow()
-
-    private val _routeDistanceMeters = MutableStateFlow<Double?>(null)
-    val routeDistanceMeters: StateFlow<Double?> = _routeDistanceMeters.asStateFlow()
 
     private var lastLocation = LatLng(28.6139, 77.2090)
     private var lastBearing = 0.0
@@ -135,7 +126,6 @@ class CarMapController(
             map.setStyle(Style.Builder().fromJson(resolvedJson)) { style ->
                 setupRoadMileageLayer(style)
                 setupTrailLayers(style)
-                setupRouteLayers(style)
                 setupVehicleLayer(style)
                 isStyleLoaded = true
                 currentLoadedMbtilesPath = targetPath
@@ -344,41 +334,6 @@ class CarMapController(
         """{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#0B0E14"}}]}"""
     }
 
-    private fun setupRouteLayers(style: Style) {
-        try {
-            if (style.getSource(ROUTE_SOURCE_ID) == null) {
-                val routeSource = GeoJsonSource(ROUTE_SOURCE_ID, FeatureCollection.fromFeatures(arrayOf()))
-                style.addSource(routeSource)
-            }
-
-            if (style.getLayer(ROUTE_LAYER_CASING_ID) == null) {
-                val casingLayer = LineLayer(ROUTE_LAYER_CASING_ID, ROUTE_SOURCE_ID).apply {
-                    setProperties(
-                        lineColor(Color.parseColor("#00334D")),
-                        lineWidth(9.0f),
-                        lineCap(Property.LINE_CAP_ROUND),
-                        lineJoin(Property.LINE_JOIN_ROUND)
-                    )
-                }
-                style.addLayer(casingLayer)
-            }
-
-            if (style.getLayer(ROUTE_LAYER_LINE_ID) == null) {
-                val lineLayer = LineLayer(ROUTE_LAYER_LINE_ID, ROUTE_SOURCE_ID).apply {
-                    setProperties(
-                        lineColor(Color.parseColor("#00E5FF")), // Cockpit Cyan
-                        lineWidth(6.0f),
-                        lineCap(Property.LINE_CAP_ROUND),
-                        lineJoin(Property.LINE_JOIN_ROUND)
-                    )
-                }
-                style.addLayer(lineLayer)
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Error setting up route layers: ${e.message}")
-        }
-    }
-
     /**
      * Smooth 60fps GPS location puck tracking with bearing rotation, 45° driving tilt,
      * and automatic regional map file switching when crossing zones.
@@ -410,58 +365,6 @@ class CarMapController(
             .build()
 
         map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos), 300)
-    }
-
-    /**
-     * Calculates an offline route using the pure-JVM GraphHopper routing engine
-     * and renders the route polyline on the MapLibre map.
-     */
-    fun routeToDestination(destLat: Double, destLon: Double) {
-        coroutineScope.launch {
-            _activeInstruction.value = "Calculating offline route..."
-            val result = OfflineRoutingEngine.calculateRoute(
-                startLat = lastLocation.latitude,
-                startLon = lastLocation.longitude,
-                destLat = destLat,
-                destLon = destLon
-            )
-
-            if (result.isSuccess && result.points.isNotEmpty()) {
-                _routeDistanceMeters.value = result.distanceMeters
-                _activeInstruction.value = result.instructions.firstOrNull() ?: "Follow route"
-                renderRoutePolyline(result.points)
-            } else {
-                _activeInstruction.value = result.errorMessage ?: "Route not available"
-            }
-        }
-    }
-
-    private fun renderRoutePolyline(points: List<Pair<Double, Double>>) {
-        val map = mapboxMap ?: return
-        val style = map.style ?: return
-
-        try {
-            val coordinates = points.map { Point.fromLngLat(it.second, it.first) }
-            val lineString = LineString.fromLngLats(coordinates)
-            val feature = Feature.fromGeometry(lineString)
-
-            val source = style.getSourceAs<GeoJsonSource>(ROUTE_SOURCE_ID)
-            source?.setGeoJson(FeatureCollection.fromFeature(feature))
-            Log.i(TAG, "Rendered offline route polyline with ${points.size} points")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error rendering route polyline: ${e.message}", e)
-        }
-    }
-
-    fun clearRoute() {
-        _activeInstruction.value = null
-        _routeDistanceMeters.value = null
-        val map = mapboxMap ?: return
-        val style = map.style ?: return
-        try {
-            val source = style.getSourceAs<GeoJsonSource>(ROUTE_SOURCE_ID)
-            source?.setGeoJson(FeatureCollection.fromFeatures(arrayOf()))
-        } catch (_: Exception) {}
     }
 
     fun toggle3DTilt() {

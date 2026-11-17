@@ -14,11 +14,10 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
-import java.util.zip.ZipInputStream
 
 /**
  * Unified OfflineMapManager:
- * Manages Scoped Storage (maps, routing, downloads) on Android 11+ head units.
+ * Manages Scoped Storage (maps, downloads) on Android 11+ head units.
  * Supports 5 Macro-Regions + All-India Master with real-time GPS location auto-detection.
  */
 object OfflineMapManager {
@@ -48,14 +47,12 @@ object OfflineMapManager {
         DOWNLOADING,
         PAUSED_USER,
         PAUSED_NETWORK_LOST,
-        EXTRACTING,
         COMPLETED,
         ERROR
     }
 
     enum class PackageType {
-        VECTOR_MAP,
-        ROUTING_GRAPH
+        VECTOR_MAP
     }
 
     data class GeoBoundingBox(
@@ -108,16 +105,6 @@ object OfflineMapManager {
             downloadUrl = "",
             fileName = INDIA_MAP_FILE,
             boundingBox = GeoBoundingBox(minLat = 6.0, maxLat = 37.5, minLon = 68.0, maxLon = 97.5)
-        ),
-        OfflinePackage(
-            id = "india_routing_graph",
-            title = "All-India Routing Graph",
-            description = "Offline turn-by-turn navigation data for GraphHopper Core (.zip)",
-            coveredStates = "Nationwide Interconnected Road Graph",
-            type = PackageType.ROUTING_GRAPH,
-            estimatedSizeBytes = 4500L * 1024L * 1024L, // ~4.5 GB
-            downloadUrl = "https://graphhopper.com/public/maps/india-gh.zip",
-            fileName = "india-gh.zip"
         )
     )
 
@@ -160,7 +147,8 @@ object OfflineMapManager {
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         getMapsDir(context).mkdirs()
-        getRoutingDir(context).mkdirs()
+        // One-time cleanup: free space held by the removed offline-routing feature
+        managerScope.launch { File(context.getExternalFilesDir(null), "routing").let { if (it.exists()) it.deleteRecursively() } }
         getDownloadsDir(context).mkdirs()
         refreshPackageStatus(context)
         refreshStorageInfo(context)
@@ -178,7 +166,6 @@ object OfflineMapManager {
     }
 
     fun getMapsDir(context: Context): File = File(context.getExternalFilesDir(null), "maps")
-    fun getRoutingDir(context: Context): File = File(context.getExternalFilesDir(null), "routing")
     fun getDownloadsDir(context: Context): File = File(context.getExternalFilesDir(null), "downloads")
 
     /**
@@ -244,24 +231,15 @@ object OfflineMapManager {
 
     fun hasOfflineMap(context: Context): Boolean = getMapFile(context) != null
 
-    fun hasOfflineRouting(context: Context): Boolean = OfflineRoutingEngine.hasRoutingGraph(context)
-
     /**
      * Refreshes the installation status of packages in Scoped Storage.
      */
     fun refreshPackageStatus(context: Context) {
         val updated = AVAILABLE_PACKAGES.map { pkg ->
-            if (pkg.type == PackageType.VECTOR_MAP) {
-                val target = File(getMapsDir(context), pkg.fileName)
-                val installed = target.exists() && target.length() > 0
-                val size = if (installed) target.length() else 0L
-                pkg.copy(isInstalled = installed, installedSizeBytes = size)
-            } else {
-                val routingDir = File(getRoutingDir(context), "india")
-                val installed = OfflineRoutingEngine.hasRoutingGraph(context)
-                val size = if (installed) calculateFolderSize(routingDir) else 0L
-                pkg.copy(isInstalled = installed, installedSizeBytes = size)
-            }
+            val target = File(getMapsDir(context), pkg.fileName)
+            val installed = target.exists() && target.length() > 0
+            val size = if (installed) target.length() else 0L
+            pkg.copy(isInstalled = installed, installedSizeBytes = size)
         }
         _installedPackages.value = updated
     }
@@ -275,9 +253,8 @@ object OfflineMapManager {
         val totalBytes = stat.totalBytes
         val freeBytes = stat.availableBytes
         val mapsSize = calculateFolderSize(getMapsDir(context))
-        val routingSize = calculateFolderSize(getRoutingDir(context))
         val downloadsSize = calculateFolderSize(getDownloadsDir(context))
-        val totalOfflineUsed = mapsSize + routingSize + downloadsSize
+        val totalOfflineUsed = mapsSize + downloadsSize
 
         _storageInfo.value = StorageBudgetInfo(
             totalDeviceBytes = totalBytes,
@@ -305,11 +282,7 @@ object OfflineMapManager {
         _downloadState.value = DownloadState.DOWNLOADING
         _statusMessage.value = "Downloading ${pkg.title}..."
 
-        val targetDest = if (pkg.type == PackageType.VECTOR_MAP) {
-            File(getMapsDir(context), pkg.fileName).absolutePath
-        } else {
-            File(getDownloadsDir(context), pkg.fileName).absolutePath
-        }
+        val targetDest = File(getMapsDir(context), pkg.fileName).absolutePath
 
         val effectiveUrl = getEffectiveDownloadUrl(context, pkg)
         if (effectiveUrl.isBlank()) {
@@ -322,7 +295,6 @@ object OfflineMapManager {
             MapDownloadWorker.KEY_URL to effectiveUrl,
             MapDownloadWorker.KEY_DEST_PATH to targetDest,
             MapDownloadWorker.KEY_PACKAGE_ID to pkg.id,
-            MapDownloadWorker.KEY_PACKAGE_TYPE to if (pkg.type == PackageType.VECTOR_MAP) "MAP" else "ROUTING",
             MapDownloadWorker.KEY_ESTIMATED_BYTES to pkg.estimatedSizeBytes
         )
 
@@ -364,11 +336,7 @@ object OfflineMapManager {
         // Clean up partial downloads
         managerScope.launch {
             val pkg = AVAILABLE_PACKAGES.find { it.id == packageId } ?: return@launch
-            val destFile = if (pkg.type == PackageType.VECTOR_MAP) {
-                File(getMapsDir(context), "${pkg.fileName}.download")
-            } else {
-                File(getDownloadsDir(context), "${pkg.fileName}.download")
-            }
+            val destFile = File(getMapsDir(context), "${pkg.fileName}.download")
             if (destFile.exists()) destFile.delete()
             refreshStorageInfo(context)
         }
@@ -377,14 +345,9 @@ object OfflineMapManager {
     fun deletePackage(context: Context, packageId: String) {
         managerScope.launch {
             val pkg = AVAILABLE_PACKAGES.find { it.id == packageId } ?: return@launch
-            if (pkg.type == PackageType.VECTOR_MAP) {
-                val file = File(getMapsDir(context), pkg.fileName)
-                MapNetworkGuard.setMapFile(null) // close the reader before deleting
-                if (file.exists()) file.delete()
-            } else {
-                val routingDir = File(getRoutingDir(context), "india")
-                if (routingDir.exists()) routingDir.deleteRecursively()
-            }
+            val file = File(getMapsDir(context), pkg.fileName)
+            MapNetworkGuard.setMapFile(null) // close the reader before deleting
+            if (file.exists()) file.delete()
             refreshPackageStatus(context)
             refreshStorageInfo(context)
             _statusMessage.value = "Deleted ${pkg.title}"
@@ -392,7 +355,7 @@ object OfflineMapManager {
     }
 
     /**
-     * Import map and routing packages from external USB drive, SD card, or Download folder.
+     * Import PMTiles map packages from external USB drive, SD card, or Download folder.
      */
     fun importFromExternalStorage(
         context: Context,
@@ -418,7 +381,7 @@ object OfflineMapManager {
                     for (entry in entries) {
                         if (entry.isFile) {
                             val lower = entry.name.lowercase()
-                            if (lower.endsWith(".pmtiles") || (lower.contains("routing") && lower.endsWith(".zip"))) {
+                            if (lower.endsWith(".pmtiles")) {
                                 candidateFiles.add(entry)
                             }
                         } else if (entry.isDirectory && depth < 2) {
@@ -438,12 +401,6 @@ object OfflineMapManager {
                         val dest = File(getMapsDir(context), sf.name)
                         copyFileWithProgress(sf, dest)
                         importedCount++
-                    } else if (sf.name.contains("routing", ignoreCase = true) && sf.name.endsWith(".zip", ignoreCase = true)) {
-                        withContext(Dispatchers.Main) { onProgress("Extracting ${sf.name}...", 0.7f) }
-                        val destDir = File(getRoutingDir(context), "india")
-                        destDir.mkdirs()
-                        extractZipDirect(sf, destDir)
-                        importedCount++
                     }
                 }
 
@@ -453,7 +410,7 @@ object OfflineMapManager {
                     if (importedCount > 0) {
                         onComplete(true, "Successfully imported $importedCount offline package(s)")
                     } else {
-                        onComplete(false, "No .pmtiles maps or routing archives found on USB/SD card.")
+                        onComplete(false, "No .pmtiles maps found on USB/SD card.")
                     }
                 }
             } catch (e: Exception) {
@@ -560,32 +517,6 @@ object OfflineMapManager {
         }
     }
 
-    private fun extractZipDirect(zipFile: File, outputDir: File) {
-        ZipInputStream(FileInputStream(zipFile)).use { zis ->
-            var entry = zis.nextEntry
-            val buffer = ByteArray(64 * 1024)
-            while (entry != null) {
-                val newFile = File(outputDir, entry.name)
-                if (!newFile.canonicalPath.startsWith(outputDir.canonicalPath)) {
-                    throw SecurityException("Zip entry is outside target: ${entry.name}")
-                }
-                if (entry.isDirectory) {
-                    newFile.mkdirs()
-                } else {
-                    newFile.parentFile?.mkdirs()
-                    FileOutputStream(newFile).use { fos ->
-                        var len: Int
-                        while (zis.read(buffer).also { len = it } > 0) {
-                            fos.write(buffer, 0, len)
-                        }
-                    }
-                }
-                zis.closeEntry()
-                entry = zis.nextEntry
-            }
-        }
-    }
-
     // Callbacks from MapDownloadWorker
     fun updateDownloadProgress(packageId: String, progress: Float, speedMbs: Double, downloaded: Long, total: Long) {
         _activePackageId.value = packageId
@@ -594,11 +525,6 @@ object OfflineMapManager {
         _downloadSpeedMbs.value = speedMbs
         _downloadedBytes.value = downloaded
         _totalBytes.value = total
-    }
-
-    fun notifyExtracting(packageId: String) {
-        _downloadState.value = DownloadState.EXTRACTING
-        _statusMessage.value = "Extracting routing graph..."
     }
 
     fun notifyDownloadComplete(packageId: String) {
@@ -656,7 +582,7 @@ object OfflineMapManager {
     }
 
     fun getOfflineCacheSizeBytes(context: Context): Long {
-        return calculateFolderSize(getMapsDir(context)) + calculateFolderSize(getRoutingDir(context))
+        return calculateFolderSize(getMapsDir(context))
     }
 
     // Last Known Position (for DrivingTrackingService and TripRepository)

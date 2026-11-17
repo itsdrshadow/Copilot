@@ -18,11 +18,8 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.util.concurrent.TimeUnit
-import java.util.zip.ZipInputStream
 
 class MapDownloadWorker(
     private val appContext: Context,
@@ -34,7 +31,6 @@ class MapDownloadWorker(
         const val KEY_URL = "download_url"
         const val KEY_DEST_PATH = "dest_path"
         const val KEY_PACKAGE_ID = "package_id"
-        const val KEY_PACKAGE_TYPE = "package_type" // "MAP" or "ROUTING"
         const val KEY_ESTIMATED_BYTES = "estimated_bytes"
 
         const val PROGRESS_KEY = "progress"
@@ -55,7 +51,6 @@ class MapDownloadWorker(
         val downloadUrl = inputData.getString(KEY_URL) ?: return@withContext Result.failure()
         val destPath = inputData.getString(KEY_DEST_PATH) ?: return@withContext Result.failure()
         val packageId = inputData.getString(KEY_PACKAGE_ID) ?: "package"
-        val packageType = inputData.getString(KEY_PACKAGE_TYPE) ?: "MAP"
         val estimatedTotalBytes = inputData.getLong(KEY_ESTIMATED_BYTES, 0L)
 
         val targetFile = File(destPath)
@@ -172,27 +167,12 @@ class MapDownloadWorker(
             outputRaf.close()
             outputRaf = null
 
-            // File download complete: Handle Auto-Extraction for Routing or Move for Map
-            if (packageType == "ROUTING") {
-                Log.i(TAG, "Auto-extracting routing archive for $packageId...")
-                OfflineMapManager.notifyExtracting(packageId)
-                val routingDestDir = File(appContext.getExternalFilesDir("routing"), "india")
-                routingDestDir.mkdirs()
-
-                extractZipArchive(tempDownloadFile, routingDestDir)
-                // Delete temporary zip file to strictly respect the 15 GB storage budget
-                if (tempDownloadFile.exists()) {
-                    tempDownloadFile.delete()
-                    Log.i(TAG, "Deleted temp routing archive to conserve storage budget")
-                }
-            } else {
-                // Vector Map (.pmtiles)
-                if (targetFile.exists()) {
-                    targetFile.delete()
-                }
-                tempDownloadFile.renameTo(targetFile)
-                Log.i(TAG, "Vector map file moved to ${targetFile.absolutePath}")
+            // File download complete: move the .pmtiles into place
+            if (targetFile.exists()) {
+                targetFile.delete()
             }
+            tempDownloadFile.renameTo(targetFile)
+            Log.i(TAG, "Vector map file moved to ${targetFile.absolutePath}")
 
             OfflineMapManager.notifyDownloadComplete(packageId)
             Result.success()
@@ -206,33 +186,6 @@ class MapDownloadWorker(
             }
             OfflineMapManager.notifyDownloadError(packageId, friendlyError)
             if (isStopped) Result.success() else if (runAttemptCount < 2) Result.retry() else Result.failure()
-        }
-    }
-
-    private fun extractZipArchive(zipFile: File, outputDir: File) {
-        ZipInputStream(FileInputStream(zipFile)).use { zis ->
-            var entry = zis.nextEntry
-            val buffer = ByteArray(64 * 1024)
-            while (entry != null) {
-                val newFile = File(outputDir, entry.name)
-                // Protect against Zip Slip vulnerability
-                if (!newFile.canonicalPath.startsWith(outputDir.canonicalPath)) {
-                    throw SecurityException("Zip entry is outside of target dir: ${entry.name}")
-                }
-                if (entry.isDirectory) {
-                    newFile.mkdirs()
-                } else {
-                    newFile.parentFile?.mkdirs()
-                    FileOutputStream(newFile).use { fos ->
-                        var len: Int
-                        while (zis.read(buffer).also { len = it } > 0) {
-                            fos.write(buffer, 0, len)
-                        }
-                    }
-                }
-                zis.closeEntry()
-                entry = zis.nextEntry
-            }
         }
     }
 
@@ -263,7 +216,7 @@ class MapDownloadWorker(
                 "Offline Map Downloads",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Background offline map pack and routing data downloads"
+                description = "Background offline map pack downloads"
             }
             manager.createNotificationChannel(channel)
         }
