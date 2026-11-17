@@ -21,8 +21,8 @@ import com.antigravity.copilot.core.trip.TripVisualState
 import com.antigravity.copilot.feature.maps.LiveMapPanel
 
 /**
- * Raahi Drive screen: map in the centre, ~372 dp panel on the right with the trip pill + clock,
- * Speed card, Fuel card and Trip strip. Trip stats rotate on the map (top-right); the music
+ * Raahi Drive screen: map in the centre, ~416 dp panel on the right with the trip pill (trip
+ * time) + clock, Speed card (dial, distance, odometer) and Fuel card. Trip stats rotate on the map (top-right); the music
  * player is one tap away (clock pill). Navigation lives in the left rail.
  */
 @Composable
@@ -76,7 +76,8 @@ fun DashboardScreen(
             .cockpitBackground()
     ) {
         val gap = if (isMapFullScreen) 0.dp else Raahi.Gap
-        val panelWidth = minOf(Raahi.RightPanelWidth, maxWidth * 0.5f)
+        // Wider right panel (map a little smaller); never more than ~42% of the screen.
+        val panelWidth = minOf(Raahi.RightPanelWidth, maxWidth * 0.42f).coerceAtLeast(minOf(340.dp, maxWidth * 0.5f))
         // Short screens (small phones in landscape, or a large font scale): the panel scrolls
         // instead of squeezing cards until text clips.
         val roomy = maxHeight >= 560.dp
@@ -120,20 +121,18 @@ fun DashboardScreen(
                     LiveSpeedometer(
                         latestPoint = latestPoint,
                         speedLimitInfo = speedLimitInfo,
-                        modifier = if (roomy) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(250.dp),
+                        // Speed and Fuel share the height ~55 / 45.
+                        modifier = if (roomy) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth().height(300.dp),
                         allTrips = allTrips,
-                        totalLifetimeKm = totalLifetimeKm
+                        totalLifetimeKm = totalLifetimeKm,
+                        tripDistanceKm = if (currentTrip.isActive() || currentTrip.isCompleted()) currentTrip.distanceKm else null
                     )
                     FuelTankCard(
                         fuelState = fuelState,
                         onClick = onOpenFuelDialog,
                         onCalibrateGauge = onCalibrateMidBar,
                         onDismissNotice = onDismissFuelNotice,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    DriveTripStrip(
-                        currentTrip = currentTrip,
-                        totalLifetimeKm = totalLifetimeKm
+                        modifier = if (roomy) Modifier.fillMaxWidth().weight(0.82f) else Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -155,7 +154,8 @@ private fun LiveSpeedometer(
     speedLimitInfo: SpeedLimitInfo,
     modifier: Modifier,
     allTrips: List<TripEntity>,
-    totalLifetimeKm: Double
+    totalLifetimeKm: Double,
+    tripDistanceKm: Double?
 ) {
     val point = latestPoint()
     var isSpeedTimedOut by remember { mutableStateOf(false) }
@@ -172,7 +172,8 @@ private fun LiveSpeedometer(
         latestPoint = point,
         modifier = modifier,
         allTrips = allTrips,
-        totalLifetimeKm = totalLifetimeKm
+        totalLifetimeKm = totalLifetimeKm,
+        tripDistanceKm = tripDistanceKm
     )
 }
 

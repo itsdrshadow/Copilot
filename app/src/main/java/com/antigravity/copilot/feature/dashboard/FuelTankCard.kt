@@ -77,7 +77,8 @@ fun FuelTankCard(
         modifier = modifier
             .raahiCard()
             .padding(Raahi.CardPadding),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Spreads out when the Drive panel gives it extra height.
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             RaahiLabel("Fuel", modifier = Modifier.weight(1f))
@@ -87,7 +88,7 @@ fun FuelTankCard(
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(
                 text = NumberFormatUtils.formatFuelLiters(fuelState.remainingLiters, 1),
-                style = CockpitTheme.typography.displaySmall,
+                style = CockpitTheme.typography.displayMedium,
                 color = c.textPrimary,
                 maxLines = 1,
                 softWrap = false
@@ -95,14 +96,14 @@ fun FuelTankCard(
             Spacer(Modifier.width(4.dp))
             Text(
                 "L",
-                style = CockpitTheme.typography.titleMedium,
+                style = CockpitTheme.typography.titleLarge,
                 color = c.textSecondary,
-                modifier = Modifier.padding(bottom = 4.dp)
+                modifier = Modifier.padding(bottom = 6.dp)
             )
             Spacer(Modifier.weight(1f))
             Text(
                 text = "${tankPct.toInt()}%",
-                style = CockpitTheme.typography.headlineLarge,
+                style = CockpitTheme.typography.displaySmall,
                 color = fuelLevelTextColor(tankPct),
                 maxLines = 1
             )
@@ -121,7 +122,7 @@ fun FuelTankCard(
             SegmentBar(
                 fillPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0),
                 color = fuelLevelColor(tankPct),
-                height = 16.dp
+                height = 22.dp
             )
         }
 
@@ -131,6 +132,7 @@ fun FuelTankCard(
                 label = "Est. range",
                 value = if (rangeKm > 0) "${rangeKm.toInt()}" else "--",
                 unit = "km",
+                valueStyle = CockpitTheme.typography.headlineLarge,
                 modifier = Modifier.weight(1f)
             )
             val (kmpl, label) = displayMileage(fuelState)
@@ -138,6 +140,7 @@ fun FuelTankCard(
                 label = label,
                 value = String.format(Locale.US, "%.1f", kmpl),
                 unit = "km/L",
+                valueStyle = CockpitTheme.typography.headlineLarge,
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.End
             )

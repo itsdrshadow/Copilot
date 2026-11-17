@@ -64,7 +64,7 @@ object Raahi {
     val CardPaddingTight: Dp = 14.dp
     val Gap: Dp = 10.dp
     val RailWidth: Dp = 76.dp
-    val RightPanelWidth: Dp = 372.dp
+    val RightPanelWidth: Dp = 416.dp
     val MinTouch: Dp = 48.dp
     val RecenterSize: Dp = 52.dp
     val CardShape = RoundedCornerShape(CardRadius)

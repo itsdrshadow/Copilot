@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] - 2026-11-18
+
+### Changed
+- **The Drive screen's right panel was rebuilt.** It is wider (416dp instead of 372dp), so the map is a little smaller, and it now holds three blocks:
+  - **Top row (taller).** The trip pill shows the state and from → to as before, and now also the trip time on its right. The clock is larger and always shows AM/PM.
+  - **Speedometer (smaller).** The dial no longer has the speed-limit badge, which stays on the map. Distance and Odometer now sit in a row under the dial, and tapping Odometer still opens the calibration popup.
+  - **Fuel (bigger).** It takes about 45% of the panel height, with larger litres, percent, gauge bar, range and km/L.
+
+### Removed
+- **The trip strip** under the Fuel card. Its trip time moved into the trip pill, and Distance and Odometer moved into the speedometer.
+
 ## [2.2.1] - 2026-11-17
 
 ### Changed

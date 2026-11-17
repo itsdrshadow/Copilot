@@ -1,6 +1,5 @@
 package com.antigravity.copilot.feature.dashboard
 
-import android.text.format.DateFormat
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -80,7 +79,8 @@ internal fun rememberTripElapsedMs(trip: TripSummary): Long {
 
 /**
  * Top row of the Drive panel: trip pill (state + from → to) and a clock pill.
- * Long-press the trip pill to start / end a trip by hand (trip stats rotate on the map).
+ * The pill also shows the trip time. Long-press it to start / end a trip by hand (trip stats
+ * rotate on the map).
  * Tap the clock for the music player.
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -101,6 +101,8 @@ fun DriveTopRow(
     val justStarted = tripVisualState.event == TripVisualLifecycleEvent.STARTED && sinceEvent < 10_000L
     val justEnded = tripVisualState.event == TripVisualLifecycleEvent.COMPLETED && sinceEvent < 10_000L
 
+    val elapsed = rememberTripElapsedMs(currentTrip)
+    val showTrip = active || completed
     val (stateText, dotColor) =
         when {
             justStarted -> "Trip started" to c.positive
@@ -128,7 +130,7 @@ fun DriveTopRow(
                 Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .heightIn(min = 52.dp)
+                    .heightIn(min = 68.dp)
                     .clip(Raahi.PillShape)
                     .background(c.card)
                     .border(Raahi.Border, if (active) c.accent.copy(alpha = 0.6f) else c.border, Raahi.PillShape)
@@ -138,20 +140,31 @@ fun DriveTopRow(
                         // Tap does nothing (no trip popup); long-press is the manual trip control.
                         onClick = {},
                         onLongClick = { showManualTripDialog = true },
-                    ).padding(horizontal = 14.dp, vertical = 8.dp),
+                    ).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(dotColor))
+            Box(Modifier.size(12.dp).clip(CircleShape).background(dotColor))
             Column(modifier = Modifier.weight(1f)) {
-                Text(stateText, style = CockpitTheme.typography.labelLarge, color = c.textPrimary, maxLines = 1)
+                Text(stateText, style = CockpitTheme.typography.titleMedium, color = c.textPrimary, maxLines = 1)
                 Text(
                     route,
-                    style = CockpitTheme.typography.bodySmall,
+                    style = CockpitTheme.typography.bodyMedium,
                     color = c.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            // Trip time (moved here from the old trip strip).
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    if (showTrip) TimeFormatUtils.formatLiveTripTimer(elapsed) else "--",
+                    style = CockpitTheme.typography.headlineSmall,
+                    color = if (active) c.accent else c.textPrimary,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+                Text("Trip time", style = CockpitTheme.typography.labelMedium, color = c.textSecondary, maxLines = 1)
             }
         }
         ClockPill(onClick = onOpenMedia, modifier = Modifier.fillMaxHeight())
@@ -195,7 +208,6 @@ private fun ClockPill(
     modifier: Modifier = Modifier,
 ) {
     val c = CockpitTheme.colors
-    val context = LocalContext.current
     val playback by MediaPlaybackManager.playbackState.collectAsStateWithLifecycle()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -205,20 +217,17 @@ private fun ClockPill(
             delay(60_000L - now % 60_000L)
         }
     }
-    val is24h = remember(now / 60_000L) { DateFormat.is24HourFormat(context) }
-    val time =
-        remember(now / 60_000L, is24h) {
-            SimpleDateFormat(if (is24h) "HH:mm" else "h:mm", Locale.getDefault()).format(Date(now))
-        }
+    val time = remember(now / 60_000L) { SimpleDateFormat("h:mm", Locale.getDefault()).format(Date(now)) }
+    val amPm = remember(now / 60_000L) { SimpleDateFormat("a", Locale.US).format(Date(now)) }
     Row(
         modifier =
             modifier
-                .heightIn(min = 52.dp)
+                .heightIn(min = 68.dp)
                 .clip(Raahi.PillShape)
                 .background(c.card)
                 .border(Raahi.Border, c.border, Raahi.PillShape)
                 .clickable(role = Role.Button, onClickLabel = "Music and clock", onClick = onClick)
-                .padding(horizontal = 14.dp),
+                .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -226,85 +235,19 @@ private fun ClockPill(
             if (playback.isMusicActive) Icons.Outlined.MusicNote else Icons.Outlined.Schedule,
             contentDescription = null,
             tint = if (playback.isMusicActive) c.accent else c.textSecondary,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(22.dp),
         )
-        Text(time, style = CockpitTheme.typography.headlineMedium, color = c.textPrimary, maxLines = 1)
-    }
-}
-
-/**
- * Trip strip: trip time, distance, odometer. The odometer opens the calibration popup.
- */
-@Composable
-fun DriveTripStrip(
-    currentTrip: TripSummary,
-    totalLifetimeKm: Double,
-    modifier: Modifier = Modifier,
-) {
-    val c = CockpitTheme.colors
-    val context = LocalContext.current
-    LaunchedEffect(Unit) { OdometerManager.init(context) }
-    val odoConfig by OdometerManager.odometerConfig.collectAsStateWithLifecycle()
-    val odometerKm = remember(odoConfig, totalLifetimeKm) { OdometerManager.calculateLiveOdometer(totalLifetimeKm) }
-    var showOdometerDialog by remember { mutableStateOf(false) }
-
-    val elapsed = rememberTripElapsedMs(currentTrip)
-    val showTrip = currentTrip.isActive() || currentTrip.isCompleted()
-
-    Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .raahiCard()
-                .padding(horizontal = 6.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val cell =
-            Modifier
-                .clip(Raahi.InnerShape)
-                .heightIn(min = Raahi.MinTouch)
-                .padding(horizontal = 8.dp, vertical = 6.dp)
-        StatCell(
-            label = "Trip time",
-            value = if (showTrip) TimeFormatUtils.formatLiveTripTimer(elapsed) else "--",
-            valueStyle = CockpitTheme.typography.headlineSmall,
-            modifier = Modifier.weight(1f).then(cell),
-        )
-        VDivider()
-        StatCell(
-            label = "Distance",
-            value = if (showTrip) NumberFormatUtils.formatDistance(currentTrip.distanceKm) else "--",
-            unit = "km",
-            valueStyle = CockpitTheme.typography.headlineSmall,
-            modifier = Modifier.weight(1f).then(cell),
-        )
-        VDivider()
-        StatCell(
-            label = "Odometer",
-            value = String.format(Locale.US, "%,.0f", odometerKm),
-            unit = "km",
-            valueStyle = CockpitTheme.typography.headlineSmall,
-            modifier =
-                Modifier
-                    .weight(1.15f)
-                    .clickable(role = Role.Button, onClickLabel = "Calibrate odometer") {
-                        showOdometerDialog = true
-                    }.then(cell),
-        )
-    }
-
-    if (showOdometerDialog) {
-        SpeedometerOdometerCalibrationDialog(
-            currentOdometerKm = odometerKm,
-            onDismiss = { showOdometerDialog = false },
-            onConfirmCalibration = { newKm ->
-                // Through FuelRepository so the first calibration re-bases the fuel model.
-                com.antigravity.copilot.core.fuel.FuelRepository
-                    .getInstance(context)
-                    .calibrateOdometer(newKm, totalLifetimeKm)
-                showOdometerDialog = false
-            },
-        )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(time, style = CockpitTheme.typography.headlineLarge, color = c.textPrimary, maxLines = 1, softWrap = false)
+            Spacer(Modifier.width(4.dp))
+            Text(
+                amPm,
+                style = CockpitTheme.typography.labelLarge,
+                color = c.textSecondary,
+                maxLines = 1,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+        }
     }
 }
 

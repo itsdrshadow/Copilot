@@ -5,6 +5,10 @@ import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import com.antigravity.copilot.core.designsystem.components.Raahi
+import androidx.compose.ui.semantics.Role
+import com.antigravity.copilot.core.util.NumberFormatUtils
+import com.antigravity.copilot.core.designsystem.components.VDivider
+import com.antigravity.copilot.core.designsystem.components.StatCell
 import com.antigravity.copilot.core.designsystem.components.raahiCard
 import com.antigravity.copilot.core.designsystem.components.RaahiDialogHost
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -100,7 +104,9 @@ fun SpeedometerCluster(
     latestPoint: TripPoint?,
     modifier: Modifier = Modifier,
     allTrips: List<TripEntity> = emptyList(),
-    totalLifetimeKm: Double = 0.0
+    totalLifetimeKm: Double = 0.0,
+    /** Current / last trip distance; null shows "--" (no trip yet). */
+    tripDistanceKm: Double? = null
 ) {
     val context = LocalContext.current
     LaunchedEffect(Unit) {
@@ -234,7 +240,7 @@ fun SpeedometerCluster(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ==================== 1. SPEED LIMIT SIGN & CLUSTER HEADER ====================
+            // ==================== 1. CLUSTER HEADER (limit sign lives on the map) ====================
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -269,25 +275,6 @@ fun SpeedometerCluster(
                         color = textSecondary,
                         maxLines = 1
                     )
-                }
-
-                if (speedLimit > 0) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .cockpitSurface(Color.White, CockpitTheme.colors.critical, CircleShape, borderWidth = 2.5.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "$speedLimit",
-                            style = CockpitTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Black
-                            ),
-                            color = Color.Black
-                        )
-                    }
-                } else {
-                    Spacer(modifier = Modifier.size(32.dp))
                 }
             }
 
@@ -455,7 +442,56 @@ fun SpeedometerCluster(
                     }
                 }
             }
+
+            // ==================== 3. TRIP DISTANCE + ODOMETER (tap odometer to calibrate) ====================
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min)
+                    .cockpitSurface(CockpitTheme.colors.dockActionBrush, CockpitTheme.colors.border, CopilotShapes.R10)
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatCell(
+                    label = "Distance",
+                    value = tripDistanceKm?.let { NumberFormatUtils.formatDistance(it) } ?: "--",
+                    unit = "km",
+                    valueStyle = CockpitTheme.typography.headlineMedium,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Raahi.MinTouch)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+                VDivider()
+                StatCell(
+                    label = "Odometer",
+                    value = String.format(Locale.US, "%,.0f", currentOdometerKm),
+                    unit = "km",
+                    valueStyle = CockpitTheme.typography.headlineMedium,
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(CopilotShapes.R6)
+                        .clickable(role = Role.Button, onClickLabel = "Calibrate odometer") { showOdometerDialog = true }
+                        .heightIn(min = Raahi.MinTouch)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
         }
+    }
+
+    if (showOdometerDialog) {
+        SpeedometerOdometerCalibrationDialog(
+            currentOdometerKm = currentOdometerKm,
+            onDismiss = { showOdometerDialog = false },
+            onConfirmCalibration = { newKm ->
+                // Through FuelRepository so the first calibration re-bases the fuel model.
+                com.antigravity.copilot.core.fuel.FuelRepository
+                    .getInstance(context)
+                    .calibrateOdometer(newKm, totalLifetimeKm)
+                showOdometerDialog = false
+            }
+        )
     }
 
     // Modal Dialog 1: Stopping Distance Details
