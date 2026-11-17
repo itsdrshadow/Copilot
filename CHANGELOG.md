@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.6.0] - 2026-11-18
+
+### Changed
+- **The Speedometer shows "Since cal." in place of Distance.** It is the km driven since the odometer was last calibrated. Tap Odometer to recalibrate.
+- **The fuel gauge is colour-coded and rounded.** Bars 1-2 are red, 3-4 yellow and 5-10 green. Empty bars keep a faint tint of their zone colour, and every segment has rounded corners.
+- **The UI is a step smaller.** Text is about 1-2sp smaller and still SemiBold/Bold, with a 13sp minimum. The rail is 80dp, touch targets 52dp and map buttons 54dp. Card headers and the Add Fuel button are more compact.
+
 ## [2.5.0] - 2026-11-18
 
 ### Changed

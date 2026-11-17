@@ -233,7 +233,7 @@ fun SpeedometerCluster(
                 color = cardBorder,
                 shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
             )
-            .padding(16.dp)
+            .padding(14.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -244,7 +244,7 @@ fun SpeedometerCluster(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(40.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -254,7 +254,7 @@ fun SpeedometerCluster(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(30.dp)
                             .clip(CopilotShapes.R6)
                             .background(cyanAccent.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
@@ -263,7 +263,7 @@ fun SpeedometerCluster(
                             imageVector = Icons.Default.Speed,
                             contentDescription = null,
                             tint = cyanAccent,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     Text(
@@ -289,7 +289,7 @@ fun SpeedometerCluster(
             ) {
                 // The dial shrinks when the Fuel card grows (e.g. a fuel notice): step the readout
                 // down so the number never collides with the arc.
-                val compactDial = maxHeight < 220.dp
+                val compactDial = maxHeight < 200.dp
                 Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {}) { // own layer: dial redraws stay isolated
                     val w = size.width
                     val h = size.height
@@ -456,9 +456,10 @@ fun SpeedometerCluster(
                     .padding(horizontal = 4.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Km driven since the odometer was last calibrated (tap Odometer to recalibrate).
                 StatCell(
-                    label = "Distance",
-                    value = tripDistanceKm?.let { NumberFormatUtils.formatDistance(it) } ?: "--",
+                    label = "Since cal.",
+                    value = if (deltaKmSinceCalibration > 0.05) String.format(Locale.US, "+%.1f", deltaKmSinceCalibration) else "0.0",
                     unit = "km",
                     valueStyle = CockpitTheme.typography.headlineMedium,
                     modifier = Modifier

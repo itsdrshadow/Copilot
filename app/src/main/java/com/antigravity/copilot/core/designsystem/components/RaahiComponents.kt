@@ -63,11 +63,11 @@ object Raahi {
     val CardPadding: Dp = 16.dp
     val CardPaddingTight: Dp = 14.dp
     val Gap: Dp = 10.dp
-    // Sized for a 10.1" 1280x800 dp head unit read from ~2.5 ft: 56 dp minimum touch targets.
-    val RailWidth: Dp = 88.dp
+    // Sized for a 10.1" 1280x800 dp head unit read from ~2.5 ft: 52 dp minimum touch targets.
+    val RailWidth: Dp = 80.dp
     val RightPanelWidth: Dp = 448.dp
-    val MinTouch: Dp = 56.dp
-    val RecenterSize: Dp = 60.dp
+    val MinTouch: Dp = 52.dp
+    val RecenterSize: Dp = 54.dp
     val CardShape = RoundedCornerShape(CardRadius)
     val InnerShape = RoundedCornerShape(InnerRadius)
     val PillShape = RoundedCornerShape(PillRadius)
@@ -166,7 +166,9 @@ fun RaahiPill(
 }
 
 /**
- * 10-segment level bar. [fillPoints] is 0..[segments]; a partial top segment is drawn partially.
+ * 10-segment level bar of rounded segments. [fillPoints] is 0..[segments]; a partial top segment is
+ * drawn partially. [segmentColor], when given, colours each segment by its position (e.g. fuel
+ * zones red / yellow / green); empty segments then show a faint tint of their zone colour.
  */
 @Composable
 fun SegmentBar(
@@ -175,6 +177,7 @@ fun SegmentBar(
     modifier: Modifier = Modifier,
     segments: Int = 10,
     height: Dp = 12.dp,
+    segmentColor: ((Int) -> Color)? = null,
 ) {
     val track = CockpitTheme.colors.cardElevated
     val trackBorder = CockpitTheme.colors.border
@@ -183,19 +186,21 @@ fun SegmentBar(
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         val fill = fillPoints.coerceIn(0.0, segments.toDouble())
+        val shape = RoundedCornerShape(6.dp)
         for (i in 1..segments) {
             val seg = (fill - (i - 1)).coerceIn(0.0, 1.0).toFloat()
+            val segColor = segmentColor?.invoke(i) ?: color
             Box(
                 modifier =
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(track)
-                        .border(Raahi.Border, trackBorder, RoundedCornerShape(3.dp)),
+                        .clip(shape)
+                        .background(if (segmentColor != null) segColor.copy(alpha = 0.16f) else track)
+                        .border(Raahi.Border, if (segmentColor != null) segColor.copy(alpha = 0.35f) else trackBorder, shape),
             ) {
                 if (seg > 0f) {
-                    Box(Modifier.fillMaxHeight().fillMaxWidth(seg).background(color))
+                    Box(Modifier.fillMaxHeight().fillMaxWidth(seg).clip(shape).background(segColor))
                 }
             }
         }
@@ -253,7 +258,7 @@ fun StatCard(
 
 enum class RaahiButtonKind { Primary, Secondary, Danger }
 
-/** 56 dp+ button. Primary = cyan fill; Secondary = raised card with border. */
+/** 52 dp+ button. Primary = cyan fill; Secondary = raised card with border. */
 @Composable
 fun RaahiButton(
     text: String,

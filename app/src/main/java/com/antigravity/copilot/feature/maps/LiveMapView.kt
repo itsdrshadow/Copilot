@@ -336,7 +336,7 @@ fun LiveMapPanel(
             }
         }
 
-        // Map controls, bottom-right: secondary menu, heading, recenter (60 dp).
+        // Map controls, bottom-right: secondary menu, heading, recenter (54 dp).
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -451,7 +451,7 @@ private fun MapFloatingButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = if (isActive) c.onAccent else c.textPrimary,
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier.size(26.dp)
         )
     }
 }
@@ -481,7 +481,7 @@ private fun MapMenuItem(
 
 /** Regulatory speed-limit sign (white disc, red ring); the sign colours are fixed by law, not theme. */
 @Composable
-fun SpeedLimitSign(limitKmh: Int, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 64.dp) {
+fun SpeedLimitSign(limitKmh: Int, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 58.dp) {
     Box(
         modifier = modifier
             .size(size)

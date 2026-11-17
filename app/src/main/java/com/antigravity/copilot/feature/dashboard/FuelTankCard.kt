@@ -85,23 +85,23 @@ fun FuelTankCard(
             .clip(cardShape)
             .background(c.cardTopLightGradient)
             .border(1.25.dp, c.border, cardShape)
-            .padding(16.dp),
+            .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Header pinned to the top; the readouts sit at the bottom with free space between.
         Row(
-            modifier = Modifier.fillMaxWidth().height(Raahi.MinTouch),
+            modifier = Modifier.fillMaxWidth().height(48.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(30.dp)
                     .clip(CopilotShapes.R6)
                     .background(c.accent.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.accent, modifier = Modifier.size(22.dp))
+                Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.accent, modifier = Modifier.size(18.dp))
             }
             Text(
                 text = "FUEL",
@@ -148,10 +148,18 @@ fun FuelTankCard(
                 .clickable(role = Role.Button) { showGaugeDialog = true },
             contentAlignment = Alignment.Center
         ) {
+            // Zone colours like a car gauge: bars 1-2 red, 3-4 yellow, 5-10 green.
             SegmentBar(
                 fillPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0),
                 color = fuelLevelColor(tankPct),
-                height = 26.dp
+                height = 22.dp,
+                segmentColor = { bar ->
+                    when {
+                        bar <= 2 -> c.critical
+                        bar <= 4 -> c.warning
+                        else -> c.positive
+                    }
+                }
             )
         }
 
@@ -351,8 +359,7 @@ fun PremiumFuelTankCard(
 )
 
 /**
- * "+ Add Fuel" action for the card header: a full 56 dp touch target that matches the header
- * height. Solid accent so it is the one obvious action on the card.
+ * "+ Add Fuel" action for the card header: 44 dp tall, matching the header height. Solid accent so it is the one obvious action on the card.
  */
 @Composable
 private fun AddFuelButton(onClick: () -> Unit) {
@@ -360,15 +367,15 @@ private fun AddFuelButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
-            .height(Raahi.MinTouch)
+            .height(44.dp)
             .clip(shape)
             .background(c.accent)
             .clickable(role = Role.Button, onClickLabel = "Add fuel", onClick = onClick)
-            .padding(start = 14.dp, end = 18.dp),
+            .padding(start = 12.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(Icons.Outlined.Add, contentDescription = null, tint = c.onAccent, modifier = Modifier.size(24.dp))
+        Icon(Icons.Outlined.Add, contentDescription = null, tint = c.onAccent, modifier = Modifier.size(20.dp))
         Text(
             "Add Fuel",
             style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
