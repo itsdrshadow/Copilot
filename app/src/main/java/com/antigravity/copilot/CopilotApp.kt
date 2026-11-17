@@ -8,6 +8,9 @@ import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.recovery.CrashGuardian
 import com.antigravity.copilot.core.storage.StorageMigrationManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 @HiltAndroidApp
@@ -15,6 +18,8 @@ class CopilotApp : Application() {
     companion object {
         private const val TAG = "CopilotApp"
     }
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
@@ -43,6 +48,9 @@ class CopilotApp : Application() {
 
         // 4. Auto-start continuous tracking service on app launch
         DrivingTrackingService.start(this)
+
+        // 5. Diagnostic database integrity scan, kept off the blocking startup path
+        appScope.launch { StorageMigrationManager.verifyDatabaseIntegrity(this@CopilotApp) }
     }
 }
 

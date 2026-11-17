@@ -39,12 +39,8 @@ object StorageMigrationManager {
             // Step 1: Pre-initialize AppSettingsManager to load existing user preferences immediately
             AppSettingsManager.init(appContext)
 
-            // Step 2: Validate database integrity safely before executing migrations
-            val db = AppDatabase.getInstance(appContext)
-            val isDbValid = validateDatabaseIntegrity(db)
-            if (!isDbValid) {
-                Log.w(TAG, "Database integrity check warning. Attempting safe recovery without wiping user data.")
-            }
+            // Step 2: the full-database PRAGMA quick_check is diagnostic-only (it never changed behaviour)
+            // and scales with GPS history, so it now runs after startup via verifyDatabaseIntegrity().
 
             // Step 3: Execute migrations if required (Version jump / First run with existing prefs)
             if (currentVersion < CURRENT_STORAGE_VERSION) {
@@ -83,6 +79,13 @@ object StorageMigrationManager {
             // CRITICAL: NEVER wipe or delete user data on migration failure!
             MigrationResult(isSuccess = false, schemaVersion = CURRENT_STORAGE_VERSION, errorMessage = e.message)
         }
+    }
+
+    /** Off-critical-path integrity check; call after startup on a background dispatcher. */
+    suspend fun verifyDatabaseIntegrity(context: Context): Boolean = withContext(Dispatchers.IO) {
+        val ok = validateDatabaseIntegrity(AppDatabase.getInstance(context.applicationContext))
+        if (!ok) Log.w(TAG, "Database integrity check (PRAGMA quick_check) reported problems; user data left untouched.")
+        ok
     }
 
     fun validateDatabaseIntegrity(db: AppDatabase): Boolean {

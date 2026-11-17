@@ -1,5 +1,8 @@
 package com.antigravity.copilot.core.location
 
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import kotlinx.coroutines.SupervisorJob
 import android.annotation.SuppressLint
 import android.app.*
 import android.content.BroadcastReceiver
@@ -32,15 +35,18 @@ import com.antigravity.copilot.core.model.TripStatus
 import com.google.android.gms.location.*
 import kotlinx.coroutines.*
 
+@AndroidEntryPoint
 class DrivingTrackingService : Service(), LocationListener {
 
     private lateinit var locationManager: LocationManager
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var tripRepository: TripRepository
-    private lateinit var fuelRepository: FuelRepository
+    @Inject lateinit var tripRepository: TripRepository
+    @Inject lateinit var fuelRepository: FuelRepository
+    @Inject lateinit var speedLimitEngine: SpeedLimitEngine
+    @Inject lateinit var database: com.antigravity.copilot.core.database.AppDatabase
     private lateinit var engine: TripDetectionEngine
-    private lateinit var vehicleStateManager: VehicleStateManager
-    private lateinit var geofenceManager: TripGeofenceManager
+    @Inject lateinit var vehicleStateManager: VehicleStateManager
+    @Inject lateinit var geofenceManager: TripGeofenceManager
     private lateinit var geofenceEngine: GeofenceTripLifecycleEngine
 
     private var wakeLock: PowerManager.WakeLock? = null
@@ -48,7 +54,8 @@ class DrivingTrackingService : Service(), LocationListener {
     private var isPowerCut: Boolean = false
 
     private var powerReceiver: BroadcastReceiver? = null
-    private val serviceScope = CoroutineScope(Dispatchers.Main + Job())
+    // SupervisorJob: one failing loop (e.g. station lookup) must not cancel the speed watchdog and the rest.
+    private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var lastPointTimestamp: Long = 0L
     private var latestEmittedPoint: TripPoint? = null
     private var stationaryStartTime: Long = 0L
@@ -148,12 +155,8 @@ class DrivingTrackingService : Service(), LocationListener {
         super.onCreate()
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        tripRepository = TripRepository.getInstance(applicationContext)
-        fuelRepository = FuelRepository.getInstance(applicationContext)
-        vehicleStateManager = VehicleStateManager.getInstance(applicationContext)
-        SpeedLimitEngine.getInstance(applicationContext)
+        // Repositories, engines and the database are injected by Hilt in super.onCreate().
 
-        geofenceManager = TripGeofenceManager.getInstance(applicationContext)
         geofenceEngine = GeofenceTripLifecycleEngine(
             geofenceManager = geofenceManager,
             onTripStartConfirmed = { startTime, originName, departurePoints, departureDistMeters ->
@@ -189,7 +192,7 @@ class DrivingTrackingService : Service(), LocationListener {
         )
 
         serviceScope.launch {
-            val db = com.antigravity.copilot.core.database.AppDatabase.getInstance(applicationContext)
+            val db = database
             val activeTrip = db.tripDao().getActiveTrip()
             if (activeTrip != null && activeTrip.endTime <= 0L) {
                 geofenceEngine.restoreActiveTrip(activeTrip.id, activeTrip.startTime)

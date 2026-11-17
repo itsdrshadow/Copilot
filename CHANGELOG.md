@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.42.3] - 2026-11-17
+
+### Fixed
+- **Tracking service loops dying together**: `DrivingTrackingService.serviceScope` used a plain `Job`, so one failing coroutine cancelled all eight service loops (including the speedometer decay watchdog). It now uses `SupervisorJob`.
+- **Blocking startup integrity scan**: the full-database `PRAGMA quick_check` ran inside the blocking `runBlocking` startup migration although its result was only logged. It now runs after startup on an IO scope (`StorageMigrationManager.verifyDatabaseIntegrity`); migration/restore ordering is unchanged.
+
+### Changed
+- `DrivingTrackingService` is a Hilt `@AndroidEntryPoint`; `TripRepository`, `FuelRepository`, `VehicleStateManager`, `TripGeofenceManager`, `SpeedLimitEngine` and `AppDatabase` are field-injected (same singleton instances as before).
+
+---
+
 ## [1.42.2] - 2026-11-17
 
 ### Fixed
