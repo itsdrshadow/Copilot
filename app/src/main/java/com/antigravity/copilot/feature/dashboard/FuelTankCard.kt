@@ -22,6 +22,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.antigravity.copilot.core.designsystem.CockpitTheme
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
+import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material.icons.outlined.LocalGasStation
 import com.antigravity.copilot.core.designsystem.components.InfoLine
 import com.antigravity.copilot.core.designsystem.components.Raahi
 import com.antigravity.copilot.core.designsystem.components.RaahiButton
@@ -73,18 +79,40 @@ fun FuelTankCard(
     val tankPct = fuelState.fuelPercentage.toDouble().coerceIn(0.0, 100.0)
     var showGaugeDialog by remember { mutableStateOf(false) }
 
+    // Same card surface and header style as the Speedometer card, so the two read as a pair.
+    val cardShape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
     Column(
         modifier = modifier
-            .raahiCard()
-            .padding(Raahi.CardPadding),
+            .clip(cardShape)
+            .background(c.cardTopLightGradient)
+            .border(1.25.dp, c.border, cardShape)
+            .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Header pinned to the top; the readouts sit at the bottom with free space between.
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            RaahiLabel("Fuel", modifier = Modifier.weight(1f))
-            RaahiButton(text = "Fuel", onClick = onClick, icon = Icons.Outlined.Add)
+        Row(
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CopilotShapes.R6)
+                    .background(c.accent.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.accent, modifier = Modifier.size(18.dp))
+            }
+            Text(
+                text = "FUEL",
+                style = CockpitTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black, letterSpacing = 1.1.sp),
+                color = c.textSecondary,
+                maxLines = 1,
+                modifier = Modifier.weight(1f)
+            )
+            AddFuelButton(onClick = onClick)
         }
-        Spacer(Modifier.height(4.dp))
         Spacer(Modifier.weight(1f))
 
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
@@ -322,3 +350,34 @@ fun PremiumFuelTankCard(
     onCalibrateGauge = onCalibrateGauge,
     modifier = modifier
 )
+
+/**
+ * Compact "+ Add Fuel" action for the card header: 40 dp tall visually (fits the header, no
+ * card-height jump) while the touch target stays 48 dp. Solid accent so it is the one obvious
+ * action on the card.
+ */
+@Composable
+private fun AddFuelButton(onClick: () -> Unit) {
+    val c = CockpitTheme.colors
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .height(40.dp)
+            .clip(shape)
+            .background(c.accent)
+            .clickable(role = Role.Button, onClickLabel = "Add fuel", onClick = onClick)
+            .padding(start = 10.dp, end = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(Icons.Outlined.Add, contentDescription = null, tint = c.onAccent, modifier = Modifier.size(20.dp))
+        Text(
+            "Add Fuel",
+            style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = c.onAccent,
+            maxLines = 1,
+            softWrap = false
+        )
+    }
+}

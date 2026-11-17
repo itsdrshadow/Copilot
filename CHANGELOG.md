@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.2] - 2026-11-18
+
+### Changed
+- **The Fuel card matches the Speedometer card.** It uses the same card surface and border. Its header has a fuel-pump icon tile and a bold "FUEL" title, like "SPEEDOMETER".
+- **The fuel button reads "+ Add Fuel" again and is more compact.** It is a solid accent button 40dp tall that fits the header, and its touch area is still 48dp.
+
 ## [2.3.1] - 2026-11-18
 
 ### Changed
