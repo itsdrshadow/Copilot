@@ -48,8 +48,12 @@ import com.antigravity.copilot.feature.maps.LiveMapPanel
 @Composable
 fun DashboardScreen(
     currentTrip: TripSummary,
-    latestPoint: TripPoint?,
-    tripTrail: List<TripPoint>,
+    /**
+     * Location is passed as providers, not values: the 5 Hz GPS stream is then read only by the
+     * leaves that show it (map controller, speedometer), never recomposing this whole screen.
+     */
+    latestPoint: () -> TripPoint?,
+    tripTrail: () -> List<TripPoint>,
     fuelState: FuelState,
     allTrips: List<TripEntity>,
     @Suppress("UNUSED_PARAMETER") lastThreeTrips: List<TripEntity> = emptyList(),
@@ -69,16 +73,6 @@ fun DashboardScreen(
     isCovered: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    var isSpeedTimedOut by remember { mutableStateOf(false) }
-    LaunchedEffect(latestPoint) {
-        isSpeedTimedOut = false
-        if (latestPoint != null && latestPoint.speedKmh > 0f) {
-            kotlinx.coroutines.delay(10000L)
-            isSpeedTimedOut = true
-        }
-    }
-    val currentSpeed = if (isSpeedTimedOut || latestPoint == null) 0f else latestPoint.speedKmh
-
     // Memoized Lifetime Calculations (Single Source of Truth)
     val isTripActive = currentTrip.status == com.antigravity.copilot.core.model.TripStatus.ACTIVE_TRIP ||
         currentTrip.status == com.antigravity.copilot.core.model.TripStatus.MOVEMENT_CANDIDATE ||
@@ -143,10 +137,9 @@ fun DashboardScreen(
                                 .weight(1f),
                             horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                         ) {
-                            SpeedometerCluster(
-                                speedKmh = currentSpeed,
-                                speedLimitInfo = speedLimitInfo,
+                            LiveSpeedometer(
                                 latestPoint = latestPoint,
+                                speedLimitInfo = speedLimitInfo,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 allTrips = allTrips,
                                 totalLifetimeKm = totalLifetimeKm
@@ -214,10 +207,9 @@ fun DashboardScreen(
                                 .weight(1f),
                             horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                         ) {
-                            SpeedometerCluster(
-                                speedKmh = currentSpeed,
-                                speedLimitInfo = speedLimitInfo,
+                            LiveSpeedometer(
                                 latestPoint = latestPoint,
+                                speedLimitInfo = speedLimitInfo,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 allTrips = allTrips,
                                 totalLifetimeKm = totalLifetimeKm
@@ -349,6 +341,37 @@ private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, mo
 }
 
 /**
+ * Speedometer leaf that owns the location read, so a GPS tick recomposes only this subtree.
+ * The 10 s timeout zeroes the speed when fixes stop arriving while moving.
+ */
+@Composable
+private fun LiveSpeedometer(
+    latestPoint: () -> TripPoint?,
+    speedLimitInfo: SpeedLimitInfo,
+    modifier: Modifier,
+    allTrips: List<TripEntity>,
+    totalLifetimeKm: Double
+) {
+    val point = latestPoint()
+    var isSpeedTimedOut by remember { mutableStateOf(false) }
+    LaunchedEffect(point) {
+        isSpeedTimedOut = false
+        if (point != null && point.speedKmh > 0f) {
+            kotlinx.coroutines.delay(10000L)
+            isSpeedTimedOut = true
+        }
+    }
+    SpeedometerCluster(
+        speedKmh = if (isSpeedTimedOut || point == null) 0f else point.speedKmh,
+        speedLimitInfo = speedLimitInfo,
+        latestPoint = point,
+        modifier = modifier,
+        allTrips = allTrips,
+        totalLifetimeKm = totalLifetimeKm
+    )
+}
+
+/**
  * Backward-compatibility alias for PremiumDashboardScreen.
  */
 @Composable
@@ -374,8 +397,8 @@ fun PremiumDashboardScreen(
     modifier: Modifier = Modifier
 ) = DashboardScreen(
     currentTrip = currentTrip,
-    latestPoint = latestPoint,
-    tripTrail = tripTrail,
+    latestPoint = { latestPoint },
+    tripTrail = { tripTrail },
     fuelState = fuelState,
     allTrips = allTrips,
     lastThreeTrips = lastThreeTrips,

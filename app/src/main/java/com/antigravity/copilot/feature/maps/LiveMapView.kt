@@ -94,8 +94,8 @@ private class MapViewLifecycleHolder {
  */
 @Composable
 fun LiveMapPanel(
-    latestPoint: TripPoint?,
-    trail: List<TripPoint>,
+    latestPoint: () -> TripPoint?,
+    trail: () -> List<TripPoint>,
     modifier: Modifier = Modifier,
     speedLimitInfo: SpeedLimitInfo = SpeedLimitInfo(),
     isFullScreen: Boolean = false,
@@ -133,21 +133,26 @@ fun LiveMapPanel(
         OfflineMapManager.init(context.applicationContext)
     }
 
-    // Pass vehicle position updates to controller
-    LaunchedEffect(latestPoint) {
-        latestPoint?.let { pt ->
-            mapController.updateVehiclePosition(
-                lat = pt.latitude,
-                lon = pt.longitude,
-                bearing = pt.bearing,
-                speedKmh = pt.speedKmh
-            )
+    // GPS ticks go straight to the controller (native camera ease + puck animation) through
+    // snapshotFlow: a new fix never recomposes this panel or its overlay buttons.
+    val currentLatestPoint by rememberUpdatedState(latestPoint)
+    val currentTrail by rememberUpdatedState(trail)
+    LaunchedEffect(mapController) {
+        snapshotFlow { currentLatestPoint() }.collect { pt ->
+            if (pt != null) {
+                mapController.updateVehiclePosition(
+                    lat = pt.latitude,
+                    lon = pt.longitude,
+                    bearing = pt.bearing,
+                    speedKmh = pt.speedKmh
+                )
+            }
         }
     }
 
     // Live trail with overlap colouring (throttled + computed off the main thread)
-    LaunchedEffect(trail) {
-        mapController.updateTrail(trail)
+    LaunchedEffect(mapController) {
+        snapshotFlow { currentTrail() }.collect { mapController.updateTrail(it) }
     }
 
     // Pause rendering while an opaque overlay covers the map; never destroy on tab switches.
@@ -155,6 +160,7 @@ fun LiveMapPanel(
         if (lifecycleHolder.visible == isCovered) {
             lifecycleHolder.visible = !isCovered
             lifecycleHolder.sync()
+            mapController.setRenderingActive(!isCovered)
         }
     }
 

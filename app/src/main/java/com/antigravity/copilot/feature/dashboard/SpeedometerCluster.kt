@@ -148,7 +148,9 @@ fun SpeedometerCluster(
 
     val speedLimit = speedLimitInfo.speedLimitKmh
 
-    val animatedSpeed by animateFloatAsState(
+    // Kept as State: the dial reads it in the draw phase (redraw only, no recomposition) and the
+    // text reads a derived integer, so the card recomposes once per km/h, not on every frame.
+    val animatedSpeedState = animateFloatAsState(
         targetValue = rawSpeed,
         animationSpec = tween(durationMillis = 200, easing = LinearEasing),
         label = "PremiumSpeedInterpolation"
@@ -158,7 +160,7 @@ fun SpeedometerCluster(
     var showStoppingDistanceDialog by remember { mutableStateOf(false) }
     var showBestEcoDialog by remember { mutableStateOf(false) }
 
-    val roundedSpeedInt = animatedSpeed.roundToInt()
+    val roundedSpeedInt by remember { derivedStateOf { animatedSpeedState.value.roundToInt() } }
     val stoppingEstimate: StoppingDistanceEstimate = remember(roundedSpeedInt) {
         StoppingDistanceEngine.calculate(roundedSpeedInt.toFloat(), RoadSurfaceCondition.DRY)
     }
@@ -170,8 +172,8 @@ fun SpeedometerCluster(
     // Dynamic Multi-Stage Speed Status Colors
     val statusColor by animateColorAsState(
         targetValue = when {
-            speedLimit > 0 && animatedSpeed > speedLimit * 1.05f -> CockpitTheme.colors.critical
-            speedLimit > 0 && animatedSpeed > speedLimit * 0.92f -> CockpitTheme.colors.warning
+            speedLimit > 0 && rawSpeed > speedLimit * 1.05f -> CockpitTheme.colors.critical
+            speedLimit > 0 && rawSpeed > speedLimit * 0.92f -> CockpitTheme.colors.warning
             else -> CockpitTheme.colors.accent
         },
         animationSpec = tween(350),
@@ -291,7 +293,7 @@ fun SpeedometerCluster(
                     .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
+                Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {}) { // own layer: dial redraws stay isolated
                     val w = size.width
                     val h = size.height
                     val dialRadius = (minOf(w, h) / 2f) * 0.88f
@@ -300,7 +302,7 @@ fun SpeedometerCluster(
                     val startAngle = 150f
                     val sweepRange = 240f
                     val maxDisplaySpeed = 160f
-                    val speedProgress = (animatedSpeed / maxDisplaySpeed).coerceIn(0f, 1f)
+                    val speedProgress = (animatedSpeedState.value / maxDisplaySpeed).coerceIn(0f, 1f)
 
                     // 1. Background Arc Track
                     drawArc(
@@ -372,7 +374,7 @@ fun SpeedometerCluster(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = if (!isGpsValid && animatedSpeed < 1.0f) "0" else "${animatedSpeed.roundToInt()}",
+                        text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
                         style = CockpitTheme.typography.displayLarge,
                         color = textPrimary
                     )
@@ -570,7 +572,7 @@ fun SpeedometerCluster(
 
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                         Text("Current Velocity:", style = MaterialTheme.typography.bodySmall, color = textSecondary)
-                        Text("${animatedSpeed.roundToInt()} km/h", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = textPrimary)
+                        Text("$roundedSpeedInt km/h", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = textPrimary)
                     }
                     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
                         Text("Reaction Distance:", style = MaterialTheme.typography.bodySmall, color = textSecondary)

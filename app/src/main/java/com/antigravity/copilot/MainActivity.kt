@@ -283,8 +283,12 @@ private fun MainAppScreen(
     viewModel: MainViewModel
 ) {
     val currentTrip by viewModel.currentTrip.collectAsStateWithLifecycle()
-    val latestPoint by viewModel.latestPoint.collectAsStateWithLifecycle()
-    val tripTrail by viewModel.tripTrail.collectAsStateWithLifecycle()
+    // Held as State (not `by`): reading .value here would recompose this whole root on every
+    // GPS tick. Only the leaves that display location read it, via the providers below.
+    val latestPointState = viewModel.latestPoint.collectAsStateWithLifecycle()
+    val tripTrailState = viewModel.tripTrail.collectAsStateWithLifecycle()
+    val latestPointProvider = remember(latestPointState) { { latestPointState.value } }
+    val tripTrailProvider = remember(tripTrailState) { { tripTrailState.value } }
     val qualifyingTrips by viewModel.qualifyingTrips.collectAsStateWithLifecycle(initialValue = emptyList())
     val lastThreeTrips by viewModel.lastThreeTrips.collectAsStateWithLifecycle(initialValue = emptyList())
     val fuelState by viewModel.fuelState.collectAsStateWithLifecycle()
@@ -361,8 +365,8 @@ private fun MainAppScreen(
 
         DashboardScreen(
             currentTrip = currentTrip,
-            latestPoint = latestPoint,
-            tripTrail = tripTrail,
+            latestPoint = latestPointProvider,
+            tripTrail = tripTrailProvider,
             fuelState = fuelState,
             allTrips = qualifyingTrips,
             lastThreeTrips = lastThreeTrips,
@@ -452,7 +456,7 @@ private fun MainAppScreen(
             FuelEntryDialog(
                 fuelState = fuelState,
                 recordedLifetimeKm = recordedDistanceKm,
-                currentLocationPoint = latestPoint,
+                currentLocationPoint = latestPointState.value,
                 onDismiss = { viewModel.setFuelDialogOpen(false) },
                 onSaveRefuel = { liters, midBar, price, cost, odo, locationName, lat, lon, fullTank ->
                     viewModel.recordRefuel(

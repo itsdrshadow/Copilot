@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.49.0] - 2026-11-17
+
+### Added
+- **Trips and Geofence maps now show the offline basemap.** Before, both were plain canvases with no map under them. The route or fence is drawn over a one-time MapLibre snapshot instead of a second live MapView, so nothing competes with the dashboard map's GL surface.
+
+### Changed
+- 3D buildings start at zoom 15.5 (was 14), so the tilted driving view no longer extrudes every building out to the horizon.
+
+### Fixed
+- **Map stutter while driving:** each camera ease lasted at least 800 ms, but fused GPS delivers a fix every 0.5–1 s. Each ease was cut off partway and restarted, so the camera kept speeding up and slowing down. The ease length now follows the measured fix interval (300–1200 ms).
+- **Dashboard recomposed on every GPS tick (5 Hz):** location was read at the root screen. It is now passed as a provider and read only by the map controller (through `snapshotFlow`) and the speedometer.
+- **Speedometer recomposed every animation frame:** the whole card now recomposes only when the displayed km/h changes. The dial redraws in its own layer.
+- The hidden dashboard map no longer runs 60 Hz puck and camera animations while the Trips, Fuel or Settings screen covers it. It jumps to the latest position when it is uncovered.
+- **Trips route was distorted:** latitude and longitude were stretched independently to fill the box, and (0,0) or NaN fixes could zoom the view out to the whole planet. The route now uses a true Web-Mercator fit with padding, and invalid fixes are skipped.
+- **Geofence circle was not to scale:** it was always drawn at 70% of the box, and a tap moved the centre to the wrong place. The circle is now drawn at true ground scale, and a tap moves the centre to exactly the tapped coordinate.
+
 ## [1.48.0] - 2026-11-17
 
 ### Added

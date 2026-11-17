@@ -73,16 +73,18 @@ class CarMapController(
         private const val TILT_SPEED_TAU_MS = 1_000.0
         const val JITTER_DISTANCE_M = 3.0
 
-        // Camera transition length tracks the GPS interval (≈1 Hz) so motion never pauses.
-        private const val MIN_EASE_MS = 800L
+        // Camera transition length tracks the *measured* fix interval (fused GPS delivers 0.5–1 s),
+        // stretched slightly so each ease ends just as the next fix arrives: the camera keeps a
+        // constant velocity instead of being cut off mid-ease and restarting (visible stutter).
+        private const val MIN_EASE_MS = 300L
         private const val MAX_EASE_MS = 1_200L
+        private const val EASE_STRETCH = 1.1
+        private const val FIX_INTERVAL_ALPHA = 0.3
         private const val RECENTER_EASE_MS = 800L
 
         // Speed EMA time constant and minimum zoom delta worth animating.
         private const val SPEED_EMA_TAU_MS = 2_500.0
         private const val ZOOM_EPSILON = 0.04
-
-        @Volatile private var styleTemplateCache: String? = null
 
         /**
          * Speed → follow zoom. Piecewise-linear so the camera never steps:
@@ -142,6 +144,8 @@ class CarMapController(
     // Speed-adaptive zoom state
     private var smoothedSpeedKmh = 0.0
     private var lastFixElapsedMs = 0L
+    /** EMA of the GPS fix interval; drives the camera / puck ease length. */
+    private var fixIntervalMs = 1_000.0
     private var lastEasedZoom = autoZoomForSpeed(0.0)
     /** Set by pinch / double-tap: follow keeps tracking position but at the user's zoom. */
     private var manualZoom: Double? = null
@@ -262,24 +266,7 @@ class CarMapController(
         }
     }
 
-    private fun buildStyleJson(mapId: String?): String? = try {
-        val template = styleTemplateCache ?: context.assets.open("offline_style/style.json")
-            .bufferedReader().use { it.readText() }
-            .also { styleTemplateCache = it }
-        // Local PMTiles only; with no (valid) map installed render the background-only style
-        // so nothing ever points at a missing or remote source.
-        val resolvedJson = if (mapId != null) {
-            com.antigravity.copilot.core.logic.MapOfflinePolicy.bindStyle(template, mapId)
-        } else {
-            backgroundOnlyStyle(template)
-        }
-        val remote = com.antigravity.copilot.core.logic.MapOfflinePolicy.remoteUrls(resolvedJson)
-        if (remote.isNotEmpty()) Log.e(TAG, "Style contains remote URLs (will be blocked): $remote")
-        resolvedJson
-    } catch (e: Exception) {
-        Log.e(TAG, "Error building offline style: ${e.message}", e)
-        null
-    }
+    private fun buildStyleJson(mapId: String?): String? = OfflineStyle.build(context, mapId)
 
     // ---------------- Live trail with overlap colouring (Phase 6) ----------------
     @Volatile private var lastTrailCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())
@@ -471,21 +458,6 @@ class CarMapController(
         return f != null
     }
 
-    private fun backgroundOnlyStyle(template: String): String = try {
-        val json = org.json.JSONObject(template)
-        json.put("sources", org.json.JSONObject())
-        val layers = json.getJSONArray("layers")
-        val kept = org.json.JSONArray()
-        for (i in 0 until layers.length()) {
-            val l = layers.getJSONObject(i)
-            if (l.optString("type") == "background") kept.put(l)
-        }
-        json.put("layers", kept)
-        json.toString()
-    } catch (e: Exception) {
-        """{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#0B0E14"}}]}"""
-    }
-
     // ---------------- Vehicle tracking / follow camera ----------------
 
     /**
@@ -493,7 +465,8 @@ class CarMapController(
      * - Deadband: below [JITTER_SPEED_KMH], moves under [JITTER_DISTANCE_M] are ignored and the
      *   (meaningless) GPS bearing is not applied, so a parked car's map stays perfectly still.
      * - Speed is EMA-smoothed before mapping to zoom, so zoom glides instead of stepping.
-     * - Camera and puck animate linearly over the GPS interval (800–1200 ms): continuous motion.
+     * - Camera and puck animate linearly over the smoothed GPS interval (300–1200 ms), so each ease
+ *   ends as the next fix lands: continuous motion with no mid-ease restarts.
      * - Only the pure region lookup runs per fix; disk work happens only when the region changes.
      */
     fun updateVehiclePosition(lat: Double, lon: Double, bearing: Float, speedKmh: Float) {
@@ -510,6 +483,7 @@ class CarMapController(
         val now = SystemClock.elapsedRealtime()
         val dtMs = if (lastFixElapsedMs == 0L) 1_000L else (now - lastFixElapsedMs).coerceIn(100L, 5_000L)
         lastFixElapsedMs = now
+        fixIntervalMs += FIX_INTERVAL_ALPHA * (dtMs.coerceAtMost(MAX_EASE_MS) - fixIntervalMs)
 
         val newLocation = LatLng(lat, lon)
         // First fix, or a jump of kilometres (GNSS re-anchor after a bad cached / network fix):
@@ -543,6 +517,13 @@ class CarMapController(
         }
 
         val map = mapboxMap ?: return
+        if (!renderingActive) {
+            // Hidden under an overlay (GL thread paused): don't run 60 Hz puck/camera animations
+            // against a paused map, they only steal main-thread time from the visible screen.
+            puckAnimator?.cancel()
+            needsResync = true
+            return
+        }
         if (snap) {
             puckAnimator?.cancel()
             setPuck(lastLocation)
@@ -554,7 +535,7 @@ class CarMapController(
             return
         }
 
-        val easeMs = dtMs.coerceIn(MIN_EASE_MS, MAX_EASE_MS)
+        val easeMs = (fixIntervalMs * EASE_STRETCH).toLong().coerceIn(MIN_EASE_MS, MAX_EASE_MS)
         if (!jitter) animatePuckTo(lastLocation, easeMs)
         if (!_isFollowing.value) return
 
@@ -647,6 +628,27 @@ class CarMapController(
         puckPosition = pos
         mapboxMap?.style?.getSourceAs<GeoJsonSource>(VEHICLE_SOURCE_ID)
             ?.setGeoJson(Point.fromLngLat(pos.longitude, pos.latitude))
+    }
+
+    private var renderingActive = true
+    private var needsResync = false
+
+    /**
+     * Called when the map panel is covered/uncovered. While inactive, fixes only update state;
+     * on reactivation the puck and camera jump straight to the latest position (no long pan).
+     */
+    fun setRenderingActive(active: Boolean) {
+        if (renderingActive == active) return
+        renderingActive = active
+        if (!active || !needsResync) return
+        needsResync = false
+        val map = mapboxMap ?: return
+        setPuck(lastLocation)
+        if (_isFollowing.value) {
+            val zoom = currentFollowZoom()
+            lastEasedZoom = zoom
+            map.moveCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(zoom)))
+        }
     }
 
     private fun suspendFollow() {

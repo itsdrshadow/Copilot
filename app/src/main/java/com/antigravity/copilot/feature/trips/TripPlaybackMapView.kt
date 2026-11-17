@@ -1,163 +1,153 @@
 package com.antigravity.copilot.feature.trips
 
-import com.antigravity.copilot.core.designsystem.tokens.Palette
-import android.graphics.Bitmap
-import android.graphics.Paint
-import android.graphics.RectF
-import android.graphics.Typeface
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.antigravity.copilot.core.database.TripPointEntity
-import com.antigravity.copilot.core.designsystem.*
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.graphics.StrokeJoin
-import java.util.*
+import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.logic.LatLon
+import com.antigravity.copilot.core.logic.PassColor
+import com.antigravity.copilot.core.logic.TrailOverlap
+import com.antigravity.copilot.core.map.StaticMapCamera
+import com.antigravity.copilot.feature.maps.drawSnapshot
+import com.antigravity.copilot.feature.maps.rememberStaticMapSnapshot
 
+/**
+ * Trip route over the offline basemap. The basemap is a one-shot MapLibre snapshot fitted to the
+ * route bounds; the route, markers and playback puck are a Compose overlay projected with the
+ * same Web-Mercator camera, so they line up exactly and playback redraws only the overlay.
+ */
 @Composable
 fun TripPlaybackMapView(
     points: List<TripPointEntity>,
     currentIndex: Int,
     modifier: Modifier = Modifier
 ) {
-    if (points.isEmpty()) {
-        Box(
-            modifier = modifier.background(Color(0xFF0F151F)),
-            contentAlignment = Alignment.Center
-        ) {
+    // Drop GPS sentinels (0,0), NaN and out-of-range fixes: one of them in the bounds would zoom the
+    // fitted camera out to the whole planet and the route would collapse to a dot.
+    val valid = remember(points) {
+        points.withIndex().filter { StaticMapCamera.isValidCoordinate(it.value.latitude, it.value.longitude) }
+    }
+    if (valid.isEmpty()) {
+        Box(modifier = modifier.background(Color(0xFF0F151F)), contentAlignment = Alignment.Center) {
             Text("No trip GPS trail recorded", color = Color.White.copy(alpha = 0.5f))
         }
         return
     }
 
-    // Calculate normalized bounding box for Canvas projection
-    val bounds = remember(points) {
-        var minLat = Double.MAX_VALUE
-        var maxLat = -Double.MAX_VALUE
-        var minLon = Double.MAX_VALUE
-        var maxLon = -Double.MAX_VALUE
-        points.forEach { pt ->
-            if (pt.latitude < minLat) minLat = pt.latitude
-            if (pt.latitude > maxLat) maxLat = pt.latitude
-            if (pt.longitude < minLon) minLon = pt.longitude
-            if (pt.longitude > maxLon) maxLon = pt.longitude
-        }
-        val latSpan = (maxLat - minLat).coerceAtLeast(0.001)
-        val lonSpan = (maxLon - minLon).coerceAtLeast(0.001)
-        object {
-            val minLa = minLat - latSpan * 0.1
-            val maxLa = maxLat + latSpan * 0.1
-            val minLo = minLon - lonSpan * 0.1
-            val maxLo = maxLon + lonSpan * 0.1
-            val spanLat = (maxLa - minLa)
-            val spanLon = (maxLo - minLo)
-        }
-    }
+    var sizePx by remember { mutableStateOf(IntSize.Zero) }
+    val paddingPx = with(LocalDensity.current) { 36.dp.roundToPx() }
 
-    val overlapRuns = remember(points) {
-        com.antigravity.copilot.core.logic.TrailOverlap.runs(
-            points.map { com.antigravity.copilot.core.logic.LatLon(it.latitude, it.longitude) }
-        )
+    val camera = remember(valid, sizePx, paddingPx) {
+        var minLat = Double.MAX_VALUE; var maxLat = -Double.MAX_VALUE
+        var minLon = Double.MAX_VALUE; var maxLon = -Double.MAX_VALUE
+        for ((_, p) in valid) {
+            if (p.latitude < minLat) minLat = p.latitude
+            if (p.latitude > maxLat) maxLat = p.latitude
+            if (p.longitude < minLon) minLon = p.longitude
+            if (p.longitude > maxLon) maxLon = p.longitude
+        }
+        StaticMapCamera.fit(minLat, maxLat, minLon, maxLon, sizePx.width, sizePx.height, paddingPx)
     }
+    val snapshot = rememberStaticMapSnapshot(camera)
+
+    val overlapRuns = remember(valid) {
+        TrailOverlap.runs(valid.map { LatLon(it.value.latitude, it.value.longitude) })
+    }
+    // Projection is done once per camera, not per playback frame.
+    val runPaths = remember(overlapRuns, camera) {
+        val cam = camera ?: return@remember emptyList()
+        overlapRuns.mapNotNull { run ->
+            if (run.points.size < 2) return@mapNotNull null
+            val path = Path()
+            run.points.forEachIndexed { k, p ->
+                val xy = cam.project(p.lat, p.lon)
+                if (k == 0) path.moveTo(xy[0], xy[1]) else path.lineTo(xy[0], xy[1])
+            }
+            path to Color(PassColor.forPasses(run.passes).argb.toInt()).copy(alpha = 0.85f)
+        }
+    }
+    // Screen xy for every original index (NaN for dropped fixes) so the playback index maps 1:1.
+    val projected = remember(points, valid, camera) {
+        val cam = camera ?: return@remember FloatArray(0)
+        FloatArray(points.size * 2) { Float.NaN }.also { arr ->
+            for ((i, p) in valid) {
+                val xy = cam.project(p.latitude, p.longitude)
+                arr[2 * i] = xy[0]; arr[2 * i + 1] = xy[1]
+            }
+        }
+    }
+    val firstIdx = valid.first().index
+    val lastIdx = valid.last().index
 
     Box(
         modifier = modifier
             .background(Color(0xFF0A0E17))
             .border(1.dp, Color(0xFF1B2433))
+            .onSizeChanged { sizePx = it }
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-            val w = size.width
-            val h = size.height
+        Canvas(modifier = Modifier.fillMaxSize().graphicsLayer { clip = true }) {
+            val cam = camera ?: return@Canvas
+            if (projected.isEmpty()) return@Canvas
+            snapshot?.let { drawSnapshot(it, cam) }
 
-            fun project(lat: Double, lon: Double): Offset {
-                val x = ((lon - bounds.minLo) / bounds.spanLon * w).toFloat()
-                val y = (h - ((lat - bounds.minLa) / bounds.spanLat * h)).toFloat()
-                return Offset(x, y)
+            fun pt(i: Int) = Offset(projected[2 * i], projected[2 * i + 1])
+
+            // Full route coloured by overlap (~15 m grid): 1 pass blue, 2 orange, 3+ red
+            for ((path, colour) in runPaths) {
+                drawPath(path, Color.Black.copy(alpha = 0.55f), style = Stroke(width = 11f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+                drawPath(path, colour, style = Stroke(width = 7f, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
 
-            // Full trip path coloured by overlap (~15 m grid): 1 pass blue, 2 orange, 3+ red
-            if (points.size >= 2) {
-                val firstPt = project(points.first().latitude, points.first().longitude)
-                for (run in overlapRuns) {
-                    val runPath = Path()
-                    val s0 = project(run.points.first().lat, run.points.first().lon)
-                    runPath.moveTo(s0.x, s0.y)
-                    for (k in 1 until run.points.size) {
-                        val p = project(run.points[k].lat, run.points[k].lon)
-                        runPath.lineTo(p.x, p.y)
-                    }
-                    drawPath(
-                        path = runPath,
-                        color = Color(com.antigravity.copilot.core.logic.PassColor.forPasses(run.passes).argb.toInt()).copy(alpha = 0.75f),
-                        style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                    )
-                }
+            // Played-back portion
+            val safeIdx = currentIndex.coerceIn(0, points.lastIndex)
+            val active = Path()
+            var started = false
+            for (i in 0..safeIdx) {
+                if (projected[2 * i].isNaN()) continue
+                val p = pt(i)
+                if (!started) { active.moveTo(p.x, p.y); started = true } else active.lineTo(p.x, p.y)
+            }
+            if (started) {
+                drawPath(active, Palette.Cyan, style = Stroke(width = 10f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
 
-                // Draw playback active trail
-                val safeIdx = currentIndex.coerceIn(0, points.lastIndex)
-                if (safeIdx >= 1) {
-                    val activePath = Path()
-                    activePath.moveTo(firstPt.x, firstPt.y)
-                    for (i in 1..safeIdx) {
-                        val p = project(points[i].latitude, points[i].longitude)
-                        activePath.lineTo(p.x, p.y)
-                    }
-                    drawPath(
-                        path = activePath,
-                        color = Palette.Cyan,
-                        style = Stroke(width = 12f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                    )
-                }
+            // Start (green) / end (red) markers
+            drawCircle(Color.White, radius = 14f, center = pt(firstIdx))
+            drawCircle(Palette.GreenA400, radius = 11f, center = pt(firstIdx))
+            drawCircle(Color.White, radius = 14f, center = pt(lastIdx))
+            drawCircle(Color(0xFFFF5252), radius = 11f, center = pt(lastIdx))
 
-                // Draw Start Marker (Green)
-                drawCircle(
-                    color = Palette.GreenA400,
-                    radius = 12f,
-                    center = firstPt
-                )
-
-                // Draw End Marker (Red)
-                val lastPt = project(points.last().latitude, points.last().longitude)
-                drawCircle(
-                    color = Color(0xFFFF5252),
-                    radius = 12f,
-                    center = lastPt
-                )
-
-                // Draw Current Vehicle Position Puck
-                val currentPt = project(points[safeIdx].latitude, points[safeIdx].longitude)
-                drawCircle(
-                    color = Palette.Cyan.copy(alpha = 0.35f),
-                    radius = 24f,
-                    center = currentPt
-                )
-                drawCircle(
-                    color = Color.White,
-                    radius = 10f,
-                    center = currentPt
-                )
-                drawCircle(
-                    color = Palette.Cyan,
-                    radius = 7f,
-                    center = currentPt
-                )
+            // Vehicle puck at the nearest valid fix at or before the playback index
+            var puckIdx = safeIdx
+            while (puckIdx > firstIdx && projected[2 * puckIdx].isNaN()) puckIdx--
+            if (!projected[2 * puckIdx].isNaN()) {
+                val c = pt(puckIdx)
+                drawCircle(Palette.Cyan.copy(alpha = 0.35f), radius = 24f, center = c)
+                drawCircle(Color.White, radius = 10f, center = c)
+                drawCircle(Palette.Cyan, radius = 7f, center = c)
             }
         }
     }
 }
-

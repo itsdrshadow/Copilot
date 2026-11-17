@@ -42,6 +42,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import java.util.Locale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import com.antigravity.copilot.core.map.StaticMapCamera
+import com.antigravity.copilot.feature.maps.drawSnapshot
+import com.antigravity.copilot.feature.maps.rememberStaticMapSnapshot
 
 @Composable
 fun GeofenceSettingsContent(
@@ -700,6 +705,12 @@ fun AddEditGeofenceDialog(
     }
 }
 
+/**
+ * Geofence editor map: the offline basemap (one-shot MapLibre snapshot, no second live MapView)
+ * with the fence circle drawn at true ground scale on top. Tapping moves the centre to the tapped
+ * coordinate (exact inverse projection). The circle follows edits immediately; the basemap
+ * re-renders after a short debounce and is re-projected meanwhile, so it never jumps.
+ */
 @Composable
 fun GeofenceMiniMapView(
     centerLat: Double,
@@ -707,90 +718,69 @@ fun GeofenceMiniMapView(
     radiusMeters: Float,
     onLocationPicked: (Double, Double) -> Unit
 ) {
+    var sizePx by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    val camera = remember(centerLat, centerLon, radiusMeters, sizePx) {
+        StaticMapCamera.forCircle(centerLat, centerLon, radiusMeters.toDouble(), sizePx.width, sizePx.height)
+    }
+    val snapshot = rememberStaticMapSnapshot(camera)
+    val currentOnPicked by rememberUpdatedState(onLocationPicked)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0B1017))
-            .pointerInput(centerLat, centerLon, radiusMeters) {
+            .onSizeChanged { sizePx = it }
+            .pointerInput(camera) {
+                val cam = camera ?: return@pointerInput
                 detectTapGestures { offset ->
-                    val w = size.width.toFloat()
-                    val h = size.height.toFloat()
-                    val dx = (offset.x - w / 2f) / (w / 2f)
-                    val dy = (h / 2f - offset.y) / (h / 2f)
-                    // Convert screen offset to lat/lon delta based on radius scale
-                    val maxMeterScale = (radiusMeters * 2.2f).coerceAtLeast(100f)
-                    val latDelta = (dy * maxMeterScale) / 111320.0
-                    val lonDelta = (dx * maxMeterScale) / (111320.0 * Math.cos(Math.toRadians(centerLat)))
-                    onLocationPicked(centerLat + latDelta, centerLon + lonDelta)
+                    val (lat, lon) = cam.unproject(offset.x, offset.y)
+                    if (StaticMapCamera.isValidCoordinate(lat, lon)) currentOnPicked(lat, lon)
                 }
             }
     ) {
-        Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            val center = Offset(size.width / 2f, size.height / 2f)
-            val maxRadiusPx = minOf(size.width, size.height) / 2f - 16f
-            val geofenceRadiusPx = maxRadiusPx * 0.70f
+        if (camera == null) {
+            Text(
+                text = "Enter valid coordinates to preview the geofence",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else {
+            Canvas(modifier = Modifier.fillMaxSize().graphicsLayer { clip = true }) {
+                snapshot?.let { drawSnapshot(it, camera) }
+                val xy = camera.project(centerLat, centerLon)
+                val center = Offset(xy[0], xy[1])
+                val radiusPx = (radiusMeters / camera.metersPerPixel(centerLat)).toFloat()
 
-            // Radar background rings
-            drawCircle(
-                color = Color(0xFF16202E),
-                radius = maxRadiusPx,
-                center = center,
-                style = Stroke(width = 1.5f)
-            )
-            drawCircle(
-                color = Color(0xFF1C2B3E),
-                radius = maxRadiusPx * 0.45f,
-                center = center,
-                style = Stroke(width = 1.5f)
-            )
+                drawCircle(color = Palette.Cyan.copy(alpha = 0.18f), radius = radiusPx, center = center)
+                drawCircle(color = Palette.Cyan, radius = radiusPx, center = center, style = Stroke(width = 2.5f))
 
-            // Geofence Circle Boundary Fill & Outline
-            drawCircle(
-                color = Palette.Cyan.copy(alpha = 0.15f),
-                radius = geofenceRadiusPx,
-                center = center
-            )
-            drawCircle(
-                color = Palette.Cyan,
-                radius = geofenceRadiusPx,
-                center = center,
-                style = Stroke(width = 2.5f)
-            )
-
-            // Center Target Crosshairs
-            drawLine(
-                color = Palette.Cyan.copy(alpha = 0.4f),
-                start = Offset(center.x - 20f, center.y),
-                end = Offset(center.x + 20f, center.y),
-                strokeWidth = 2f
-            )
-            drawLine(
-                color = Palette.Cyan.copy(alpha = 0.4f),
-                start = Offset(center.x, center.y - 20f),
-                end = Offset(center.x, center.y + 20f),
-                strokeWidth = 2f
-            )
-
-            // Center Pin Point
-            drawCircle(
-                color = Color.White,
-                radius = 6f,
-                center = center
-            )
-            drawCircle(
-                color = Palette.Cyan,
-                radius = 4f,
-                center = center
-            )
+                drawLine(
+                    color = Palette.Cyan.copy(alpha = 0.6f),
+                    start = Offset(center.x - 20f, center.y),
+                    end = Offset(center.x + 20f, center.y),
+                    strokeWidth = 2f
+                )
+                drawLine(
+                    color = Palette.Cyan.copy(alpha = 0.6f),
+                    start = Offset(center.x, center.y - 20f),
+                    end = Offset(center.x, center.y + 20f),
+                    strokeWidth = 2f
+                )
+                drawCircle(color = Color.White, radius = 6f, center = center)
+                drawCircle(color = Palette.Cyan, radius = 4f, center = center)
+            }
         }
 
         Text(
             text = "Tap to move center • Radius: ${radiusMeters.toInt()}m",
             fontSize = 11.sp,
-            color = Color.White.copy(alpha = 0.6f),
+            color = Color.White.copy(alpha = 0.8f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 8.dp)
+                .background(Color.Black.copy(alpha = 0.55f), CopilotShapes.R6)
+                .padding(horizontal = 8.dp, vertical = 2.dp)
         )
     }
 }

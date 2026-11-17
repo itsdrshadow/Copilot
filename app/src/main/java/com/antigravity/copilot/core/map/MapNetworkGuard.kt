@@ -49,6 +49,9 @@ object MapNetworkGuard {
     var blockedRequestCount: Int = 0
         private set
 
+    /** Id of the map file currently served, or null if none is open. */
+    fun activeMapId(): String? = currentMapId
+
     /** Open (or switch to) [file]; returns the map id to bind into the style, or null if unusable. */
     @Synchronized
     fun setMapFile(file: File?): String? {
