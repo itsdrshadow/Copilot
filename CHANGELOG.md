@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Calibrated Offline Map Download Size Estimation**:
+  - Calibrated the roadmap tile storage estimation model from 22 KB down to empirical ~8.3 KB average per tile in `IndiaOfflineMapManager`.
+  - Resolved inflated GB estimates: Central India (CG & MP, Zooms 0-13, 55,252 tiles) estimate accurately updated from ~1,187 MB (~1.2 GB) down to ~448 MB, perfectly matching real-world ~450 MB downloaded size.
+  - Recalibrated all regional pack estimates: All-India National (~1,414 MB), North India (~845 MB), West India (~328 MB), South India (~419 MB), and East India (~740 MB).
+
 ## [1.40.2] - 2026-11-16
 
 ### Changed

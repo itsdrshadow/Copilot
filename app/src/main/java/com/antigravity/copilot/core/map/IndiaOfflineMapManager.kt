@@ -79,7 +79,9 @@ object IndiaOfflineMapManager {
 
         fun getEstimatedSizeMb(targetMaxZoom: Int = maxZoom): Int {
             val count = calculateTileCount(boundingBox, minZoom, targetMaxZoom)
-            val mb = (count * 22L) / 1024L
+            // Calibrated average tile size (~8.3 KB per Google/OSM compressed roadmap tile)
+            // Empirically verified: Central India (CG & MP) Zooms 0-13 = 55,252 tiles -> ~448 MB (matches actual ~450 MB)
+            val mb = (count * 83L) / (1024L * 10L)
             return mb.coerceAtLeast(1L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         }
     }
@@ -100,7 +102,7 @@ object IndiaOfflineMapManager {
             east = 97.5,
             south = 6.5,
             west = 68.0,
-            estimatedSizeMb = 3747
+            estimatedSizeMb = 1414
         ),
         RegionPack(
             id = "india_central",
@@ -112,7 +114,7 @@ object IndiaOfflineMapManager {
             east = 84.5,
             south = 17.5,
             west = 74.0,
-            estimatedSizeMb = 1187
+            estimatedSizeMb = 448
         ),
         RegionPack(
             id = "india_north",
@@ -124,7 +126,7 @@ object IndiaOfflineMapManager {
             east = 84.5,
             south = 26.5,
             west = 73.0,
-            estimatedSizeMb = 2239
+            estimatedSizeMb = 845
         ),
         RegionPack(
             id = "india_west",
@@ -136,7 +138,7 @@ object IndiaOfflineMapManager {
             east = 74.5,
             south = 15.5,
             west = 68.5,
-            estimatedSizeMb = 869
+            estimatedSizeMb = 328
         ),
         RegionPack(
             id = "india_south",
@@ -148,7 +150,7 @@ object IndiaOfflineMapManager {
             east = 80.5,
             south = 8.0,
             west = 74.0,
-            estimatedSizeMb = 1112
+            estimatedSizeMb = 419
         ),
         RegionPack(
             id = "india_east",
@@ -160,7 +162,7 @@ object IndiaOfflineMapManager {
             east = 97.5,
             south = 20.0,
             west = 83.5,
-            estimatedSizeMb = 1960
+            estimatedSizeMb = 740
         )
     )
 

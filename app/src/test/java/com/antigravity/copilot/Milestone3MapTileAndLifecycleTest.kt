@@ -176,9 +176,9 @@ class Milestone3MapTileAndLifecycleTest {
         val countZoomZeroToEleven = IndiaOfflineMapManager.calculateTileCount(nationalPack.boundingBox, 0, 11)
         assertTrue("Cumulative tiles for Z0-Z11 should be ~43,980", countZoomZeroToEleven in 40000L..50000L)
 
-        // Estimated size dynamically updates with ~22KB roadmap tile average
+        // Estimated size dynamically updates with calibrated ~8.3KB roadmap tile average
         val estMbZoom11 = nationalPack.getEstimatedSizeMb(11)
-        assertTrue("Estimated size for Z0-Z11 must be approx 800-1200 MB", estMbZoom11 in 800..1200)
+        assertTrue("Estimated size for Z0-Z11 must be approx 300-450 MB", estMbZoom11 in 300..450)
     }
 
     @Test
