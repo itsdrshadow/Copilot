@@ -293,6 +293,7 @@ class CarMapController(
     private var lastTrailComputeMs = 0L
     private var lastTrailSize = -1
     private var trailJob: Job? = null
+    private var trailRetryJob: Job? = null
 
     private fun setupTrailLayers(style: Style) {
         try {
@@ -377,7 +378,18 @@ class CarMapController(
         val now = SystemClock.elapsedRealtime()
         val size = points.size
         if (size == lastTrailSize) return
-        if (size > 2 && lastTrailSize > 2 && now - lastTrailComputeMs < TRAIL_MIN_INTERVAL_MS) return
+        if (size > 2 && lastTrailSize > 2 && now - lastTrailComputeMs < TRAIL_MIN_INTERVAL_MS) {
+            // Throttled: run one trailing update when the interval ends, so the last points are
+            // drawn even if no further fix arrives (previously the trail stopped short of the car).
+            trailRetryJob?.cancel()
+            val wait = TRAIL_MIN_INTERVAL_MS - (now - lastTrailComputeMs)
+            trailRetryJob = coroutineScope.launch {
+                delay(wait)
+                updateTrail(points)
+            }
+            return
+        }
+        trailRetryJob?.cancel()
         lastTrailComputeMs = now
         lastTrailSize = size
         trailJob?.cancel()

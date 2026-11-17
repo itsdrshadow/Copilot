@@ -117,6 +117,29 @@ object FuelModel {
      * is first set to the real dashboard reading: that jump is not distance driven, so it must not
      * be divided by km/L into "burned" litres (which drove the tank negative / into unlogged debt).
      */
+    /**
+     * Should an odometer jump from [beforeOdoKm] to [afterOdoKm] (a real dashboard reading) be
+     * treated as a calibration of the scale rather than distance driven?
+     *
+     * Yes for the very first real reading, and yes whenever counting the jump as driving would
+     * leave the tank below 0 L: that much driving since the last fuel anchor is impossible, so the
+     * jump is an odometer correction, not consumption (no negative litres, no unlogged-fuel debt).
+     * A small, plausible correction still counts as distance as before.
+     */
+    fun isCalibrationJump(
+        s: FuelModelState,
+        beforeOdoKm: Double,
+        afterOdoKm: Double,
+        firstCalibration: Boolean,
+        nowMs: Long
+    ): Boolean {
+        if (afterOdoKm == beforeOdoKm || !afterOdoKm.isFinite() || !beforeOdoKm.isFinite()) return false
+        if (firstCalibration) return true
+        return afterOdoKm > beforeOdoKm &&
+            rawLitres(s, afterOdoKm, nowMs) < 0.0 &&
+            rawLitres(s, beforeOdoKm, nowMs) >= 0.0
+    }
+
     fun rebaseOdometer(s: FuelModelState, deltaKm: Double): FuelModelState {
         if (deltaKm == 0.0 || !deltaKm.isFinite()) return s
         return s.copy(

@@ -519,16 +519,18 @@ class FuelRepository private constructor(context: Context) {
         latestAppLifetimeKm = lifetimeKm
         val before = getEffectiveOdometer()
         OdometerManager.setBaselineOdometer(appContext, readingKm, lifetimeKm)
-        if (!firstCalibration) return
-        val delta = getEffectiveOdometer() - before
-        if (delta == 0.0) return
+        val after = getEffectiveOdometer()
+        // The verified flag alone is not reliable (backup restore / legacy migration set it), so
+        // an impossible jump (tank would go below 0 L) is also treated as a calibration.
+        if (!FuelModel.isCalibrationJump(model, before, after, firstCalibration, System.currentTimeMillis())) return
+        val delta = after - before
         model = FuelModel.rebaseOdometer(model, delta)
         if (pendingAnchorOdometerKm > 0.0) {
             pendingAnchorOdometerKm += delta
             prefs.edit().putFloat("pending_anchor_odo", pendingAnchorOdometerKm.toFloat()).apply()
         }
         persistModelNow()
-        Log.i(TAG, "First odometer calibration: fuel model re-based by ${"%.1f".format(delta)} km")
+        Log.i(TAG, "Odometer calibration jump: fuel model re-based by ${"%.1f".format(delta)} km (first=$firstCalibration)")
     }
 
     fun syncOdometerDistance(currentRecordedKm: Double) {

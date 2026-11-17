@@ -134,4 +134,17 @@ class FuelModelTest {
         // Without the re-base the jump would read as ~3,000 L burned (deep negative).
         assertTrue(FuelModel.rawLitres(s, 45_012.0, 0L) < 0.0)
     }
+
+    @Test
+    fun calibrationJumpDetection() {
+        val s = FuelModelState(anchorLitres = 30.0, anchorOdoKm = 12.0, defaultKmpl = 15.0)
+        // First real reading: always a calibration.
+        assertTrue(FuelModel.isCalibrationJump(s, 12.0, 45_012.0, firstCalibration = true, nowMs = 0L))
+        // Already "verified" (e.g. restored backup) but the jump would empty the tank: calibration.
+        assertTrue(FuelModel.isCalibrationJump(s, 12.0, 45_012.0, firstCalibration = false, nowMs = 0L))
+        // A plausible 60 km correction (4 L at 15 km/L) is still distance driven.
+        assertEquals(false, FuelModel.isCalibrationJump(s, 12.0, 72.0, firstCalibration = false, nowMs = 0L))
+        // No change: nothing to do.
+        assertEquals(false, FuelModel.isCalibrationJump(s, 12.0, 12.0, firstCalibration = true, nowMs = 0L))
+    }
 }
