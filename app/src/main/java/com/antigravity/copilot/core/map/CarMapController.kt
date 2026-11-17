@@ -46,7 +46,6 @@ class CarMapController(
 
         private const val DEFAULT_DRIVING_TILT = 45.0
         private const val DEFAULT_DRIVING_ZOOM = 16.5
-        private const val ZOOM_STEP = 1.0
     }
 
     private var mapboxMap: MapboxMap? = null
@@ -68,7 +67,7 @@ class CarMapController(
     private var lastLocation = LatLng(28.6139, 77.2090)
     private var lastBearing = 0.0
 
-    /** Zoom the follow camera uses; changed by the +/- buttons and by pinch gestures. */
+    /** Zoom the follow camera uses; changed by pinch / double-tap gestures. */
     private var followZoom = DEFAULT_DRIVING_ZOOM
     private var userGestureInProgress = false
 
@@ -404,14 +403,5 @@ class CarMapController(
             .build()
 
         map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos), 400)
-    }
-    fun zoomIn() = zoomBy(ZOOM_STEP)
-
-    fun zoomOut() = zoomBy(-ZOOM_STEP)
-
-    private fun zoomBy(delta: Double) {
-        val map = mapboxMap ?: return
-        followZoom = (map.cameraPosition.zoom + delta).coerceIn(map.minZoomLevel, map.maxZoomLevel)
-        map.animateCamera(CameraUpdateFactory.zoomTo(followZoom), 250)
     }
 }

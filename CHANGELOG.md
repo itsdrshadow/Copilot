@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.45.0] - 2026-11-17
+
+### Changed
+- Brighter map style for head units: charcoal background, green parks, blue water (no cyan river lines), roads coloured by hierarchy with dark casings (motorway/trunk amber, primary/secondary/tertiary off-white, minor slate), 3D building extrusions from z14.
+- Map controls: three large buttons (Compass, Recenter, Menu); 3D view, fuel overlay, offline maps and full screen moved into an expandable menu. Zoom +/- buttons removed (pinch / double-tap).
+
+### Added
+- Offline labels: road names, motorway/trunk shields, city/town/area names, water names, fuel/hospital/toll POIs. Noto Sans glyph PBFs (Latin) bundled in `assets/fonts/`; sprite with shield and POI icons.
+
 ## [1.44.1] - 2026-11-17
 
 ### Fixed

@@ -1,1 +1,48 @@
-{}
+{
+  "shield": {
+    "x": 0,
+    "y": 0,
+    "width": 40,
+    "height": 40,
+    "pixelRatio": 2,
+    "stretchX": [
+      [
+        12,
+        28
+      ]
+    ],
+    "stretchY": [
+      [
+        12,
+        28
+      ]
+    ],
+    "content": [
+      10,
+      8,
+      30,
+      32
+    ]
+  },
+  "poi_fuel": {
+    "x": 40,
+    "y": 0,
+    "width": 40,
+    "height": 40,
+    "pixelRatio": 2
+  },
+  "poi_hospital": {
+    "x": 80,
+    "y": 0,
+    "width": 40,
+    "height": 40,
+    "pixelRatio": 2
+  },
+  "poi_toll": {
+    "x": 120,
+    "y": 0,
+    "width": 40,
+    "height": 40,
+    "pixelRatio": 2
+  }
+}

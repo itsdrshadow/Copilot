@@ -26,7 +26,7 @@ class OfflineMapAirplaneModeTest {
         val bound = MapOfflinePolicy.bindStyle(template, MapOfflinePolicy.mapId(5_000_000_000L, 1_700_000_000_000L))
         assertTrue(MapOfflinePolicy.remoteUrls(bound).isEmpty())
         assertFalse(bound.contains(MapOfflinePolicy.MAP_ID_PLACEHOLDER))
-        assertTrue(bound.contains("\"glyphs\": \"asset://offline_style/glyphs/{fontstack}/{range}.pbf\""))
+        assertTrue(bound.contains("\"glyphs\": \"asset://fonts/{fontstack}/{range}.pbf\""))
         assertTrue(bound.contains("\"sprite\": \"asset://offline_style/sprites/sprite\""))
         for (f in listOf("sprite.json", "sprite.png", "sprite@2x.json", "sprite@2x.png")) {
             assertTrue("missing bundled sprite file $f", File(assets, "sprites/$f").isFile)
@@ -43,10 +43,17 @@ class OfflineMapAirplaneModeTest {
     }
 
     @Test
-    fun `style needs no glyphs until a text layer exists`() {
-        if (template.contains("\"text-field\"")) {
-            val glyphDir = File(assets, "glyphs")
-            assertTrue("text layers require bundled glyph PBFs", glyphDir.walkTopDown().any { it.name.endsWith(".pbf") })
+    fun `every text-font and icon-image used by the style is bundled`() {
+        val fontsDir = File(assets.parentFile, "fonts")
+        Regex("\"text-font\":\\s*\\[([^\\]]*)]").findAll(template).flatMap { m ->
+            Regex("\"([^\"]+)\"").findAll(m.groupValues[1]).map { it.groupValues[1] }
+        }.toSet().forEach { font ->
+            assertTrue("missing Latin glyphs for $font", File(fontsDir, "$font/0-255.pbf").isFile)
+        }
+        val sprite = File(assets, "sprites/sprite.json").readText()
+        for (icon in listOf("shield", "poi_fuel", "poi_hospital", "poi_toll")) {
+            assertTrue("style uses $icon", template.contains("\"$icon\""))
+            assertTrue("sprite is missing $icon", sprite.contains("\"$icon\""))
         }
     }
 

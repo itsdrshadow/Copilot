@@ -67,6 +67,7 @@ fun LiveMapPanel(
     val coroutineScope = rememberCoroutineScope()
 
     var showOfflineManagerDialog by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
     var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
     val mapController = remember { CarMapController(context.applicationContext, coroutineScope) }
 
@@ -158,6 +159,7 @@ fun LiveMapPanel(
                         map.uiSettings.isRotateGesturesEnabled = true
                         map.uiSettings.isTiltGesturesEnabled = true
                         map.uiSettings.isZoomGesturesEnabled = true
+                        map.uiSettings.isDoubleTapGesturesEnabled = true
                         mapController.attachMap(map)
                     }
                 }
@@ -242,77 +244,66 @@ fun LiveMapPanel(
             }
         }
 
-        // Right Quick Action Controls (Min 56dp Touch Targets for Driving)
-        Column(
+        // Right-side driving controls: three large targets (Compass, Recenter, Menu); secondary
+        // actions live in an expandable menu. Zoom is pinch / double-tap only.
+        Row(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .zIndex(20f)
                 .padding(end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Zoom In [+]
-            MapFloatingButton(
-                icon = Icons.Default.Add,
-                contentDescription = "Zoom In",
-                isActive = false,
-                onClick = { mapController.zoomIn() }
-            )
+            AnimatedVisibility(visible = menuExpanded, enter = fadeIn(), exit = fadeOut()) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MapMenuItem(
+                        icon = if (is3DActive) Icons.Default.ViewInAr else Icons.Default.Layers,
+                        label = if (is3DActive) "3D view" else "2D view",
+                        isActive = is3DActive,
+                        onClick = { mapController.toggle3DTilt(); menuExpanded = false }
+                    )
+                    MapMenuItem(
+                        icon = Icons.Default.LocalGasStation,
+                        label = "Fuel overlay",
+                        isActive = roadMileageVisible,
+                        onClick = { mapController.toggleRoadMileage(); menuExpanded = false }
+                    )
+                    MapMenuItem(
+                        icon = Icons.Default.CloudDownload,
+                        label = "Offline maps",
+                        isActive = false,
+                        onClick = { showOfflineManagerDialog = true; menuExpanded = false }
+                    )
+                    MapMenuItem(
+                        icon = if (isFullScreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                        label = if (isFullScreen) "Exit full screen" else "Full screen",
+                        isActive = isFullScreen,
+                        onClick = { onToggleFullScreen(); menuExpanded = false }
+                    )
+                }
+            }
 
-            // Zoom Out [-]
-            MapFloatingButton(
-                icon = Icons.Default.Remove,
-                contentDescription = "Zoom Out",
-                isActive = false,
-                onClick = { mapController.zoomOut() }
-            )
-
-            // Heading-Up / North-Up Toggle
-            MapFloatingButton(
-                icon = if (isHeadingUp) Icons.Default.Explore else Icons.Default.Navigation,
-                contentDescription = "Toggle Heading Up",
-                isActive = isHeadingUp,
-                onClick = { mapController.toggleHeadingMode() }
-            )
-
-            // 2D / 3D Driving Tilt Toggle (45° Tilt)
-            MapFloatingButton(
-                icon = if (is3DActive) Icons.Default.ViewInAr else Icons.Default.Layers,
-                contentDescription = "Toggle 3D Tilt",
-                isActive = is3DActive,
-                onClick = { mapController.toggle3DTilt() }
-            )
-
-            // Recenter Vehicle
-            MapFloatingButton(
-                icon = Icons.Default.MyLocation,
-                contentDescription = "Recenter",
-                isActive = false,
-                onClick = { mapController.recenter() }
-            )
-
-            // Per-road mileage layer toggle (red = low km/L, green = high)
-            MapFloatingButton(
-                icon = Icons.Default.LocalGasStation,
-                contentDescription = "Toggle per-road mileage",
-                isActive = roadMileageVisible,
-                onClick = { mapController.toggleRoadMileage() }
-            )
-
-            // Open Offline Maps Manager Screen
-            MapFloatingButton(
-                icon = Icons.Default.CloudDownload,
-                contentDescription = "Offline Maps",
-                isActive = false,
-                onClick = { showOfflineManagerDialog = true }
-            )
-
-            // Fullscreen Toggle
-            MapFloatingButton(
-                icon = if (isFullScreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                contentDescription = "Toggle Fullscreen",
-                isActive = isFullScreen,
-                onClick = onToggleFullScreen
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // Heading-Up / North-Up
+                MapFloatingButton(
+                    icon = if (isHeadingUp) Icons.Default.Explore else Icons.Default.Navigation,
+                    contentDescription = if (isHeadingUp) "Heading up (tap for north up)" else "North up (tap for heading up)",
+                    isActive = isHeadingUp,
+                    onClick = { mapController.toggleHeadingMode() }
+                )
+                MapFloatingButton(
+                    icon = Icons.Default.MyLocation,
+                    contentDescription = "Recenter",
+                    isActive = false,
+                    onClick = { mapController.recenter() }
+                )
+                MapFloatingButton(
+                    icon = if (menuExpanded) Icons.Default.Close else Icons.Default.Menu,
+                    contentDescription = if (menuExpanded) "Close map menu" else "Open map menu",
+                    isActive = menuExpanded,
+                    onClick = { menuExpanded = !menuExpanded }
+                )
+            }
         }
     }
 
@@ -350,7 +341,7 @@ private fun MapFloatingButton(
 ) {
     Box(
         modifier = Modifier
-            .size(56.dp)
+            .size(68.dp)
             .clip(CircleShape)
             .background(if (isActive) Cockpit_Cyan else Color(0xFF141C28).copy(alpha = 0.9f))
             .border(1.dp, if (isActive) Cockpit_Cyan else Color(0xFF263346), CircleShape)
@@ -361,7 +352,31 @@ private fun MapFloatingButton(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = if (isActive) Color.Black else Color.White,
-            modifier = Modifier.size(26.dp)
+            modifier = Modifier.size(32.dp)
         )
+    }
+}
+
+@Composable
+private fun MapMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    isActive: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .height(56.dp)
+            .clip(CircleShape)
+            .background(if (isActive) Cockpit_Cyan else Color(0xFF141C28).copy(alpha = 0.95f))
+            .border(1.dp, if (isActive) Cockpit_Cyan else Color(0xFF263346), CircleShape)
+            .clickable { onClick() }
+            .padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val tint = if (isActive) Color.Black else Color.White
+        Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(text = label, color = tint, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
     }
 }
