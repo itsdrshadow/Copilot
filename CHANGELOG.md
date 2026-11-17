@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.42.2] - 2026-11-17
+
+### Fixed
+- **Fuel entry price overwritten while typing**: the station lookup in `FuelEntryDialog` was keyed on the live GPS point and launched into an outer scope, so every GPS tick started another uncancelled geocode and reset the station name and price the user had typed. It now runs once per dialog (plus once when the first GPS fix arrives) inside the effect's own scope.
+
+### Added
+- `FuelEntryViewModel` (Hilt): station lookup + remembered price, and gauge-bar prediction via the injected `FuelRepository`.
+
+### Changed
+- `FuelEntryDialog` no longer calls `FuelRepository.getInstance()` / `StationPriceManager` directly.
+- Split `UnifiedFuelTelemetryAndGaugeCard` into `FuelGaugeCard.kt` (dialog file: 1,631 → 682 lines).
+
+### Removed
+- Dead `AutoCalculatedTelemetryCard` (~290 lines, no callers).
+
+---
+
 ## [1.42.1] - 2026-11-17
 
 ### Fixed

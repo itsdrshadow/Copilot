@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.fuel
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
 import com.antigravity.copilot.core.designsystem.tokens.Palette
@@ -7,16 +8,12 @@ import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Backspace
@@ -28,11 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,15 +37,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.Cockpit_AmberWarning
-import com.antigravity.copilot.core.designsystem.Cockpit_GreenEco
 import com.antigravity.copilot.core.designsystem.Cockpit_RedAlert
 import com.antigravity.copilot.core.designsystem.Apex_PrimaryAccent
-import com.antigravity.copilot.core.fuel.StationPriceManager
-import com.antigravity.copilot.core.location.LocationNameResolver
 import com.antigravity.copilot.core.model.FuelState
 import com.antigravity.copilot.core.model.TripPoint
 import com.antigravity.copilot.core.util.NumberFormatUtils
-import kotlinx.coroutines.launch
 
 enum class ActiveFuelField {
     AMOUNT,
@@ -76,10 +67,10 @@ fun FuelEntryDialog(
     onDismiss: () -> Unit,
     onSaveRefuel: (liters: Double, midBar: Int, pricePerLiter: Double, totalCost: Double, odometerKm: Double, locationName: String, lat: Double, lon: Double) -> Unit,
     @Suppress("UNUSED_PARAMETER") onCalibrateMidBar: (midBar: Int) -> Unit = {},
-    @Suppress("UNUSED_PARAMETER") onCalibrateOdometer: (odometerKm: Double) -> Unit = {}
+    @Suppress("UNUSED_PARAMETER") onCalibrateOdometer: (odometerKm: Double) -> Unit = {},
+    viewModel: FuelEntryViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     // Current baseline odometer
     val currentBaselineOdometer = fuelState.odometerKm.coerceAtLeast(recordedLifetimeKm)
@@ -101,19 +92,19 @@ fun FuelEntryDialog(
     var locationNameText by remember { mutableStateOf("Detecting fuel station...") }
     var isRememberedStationPrice by remember { mutableStateOf(false) }
 
-    // Auto-resolve fuel station name and pre-fill remembered price from GPS location
-    LaunchedEffect(currentLocationPoint) {
-        val lat = currentLocationPoint?.latitude ?: 0.0
-        val lon = currentLocationPoint?.longitude ?: 0.0
-        coroutineScope.launch {
-            val resolved = LocationNameResolver.resolveStationOrAddress(context, lat, lon)
-            locationNameText = resolved
-
-            val rememberedRate = StationPriceManager.getRememberedPrice(context, lat, lon, resolved)
-            if (rememberedRate != null && rememberedRate > 0.0) {
-                pricePerLiterText = NumberFormatUtils.formatPrecision(rememberedRate, 2)
-                isRememberedStationPrice = true
-            }
+    // Resolve the fuel station once per dialog (and once more when a GPS fix first arrives).
+    // Keying on the live point re-ran this every GPS tick, piling up lookups and overwriting
+    // the price the user was typing.
+    val hasLocationFix = currentLocationPoint != null
+    LaunchedEffect(hasLocationFix) {
+        val lookup = viewModel.lookupStation(
+            lat = currentLocationPoint?.latitude ?: 0.0,
+            lon = currentLocationPoint?.longitude ?: 0.0
+        )
+        locationNameText = lookup.name
+        lookup.rememberedPricePerLiter?.let { rate ->
+            pricePerLiterText = NumberFormatUtils.formatPrecision(rate, 2)
+            isRememberedStationPrice = true
         }
     }
 
@@ -131,19 +122,17 @@ fun FuelEntryDialog(
     val clampedFinalTank = predictedFinalTank.coerceAtMost(designCap)
     val effectiveMileage = if (fuelState.currentMileageKmpl > 0.0) fuelState.currentMileageKmpl else 18.0
 
-    val fuelRepo = remember { com.antigravity.copilot.core.fuel.FuelRepository.getInstance(context) }
-    val gaugeCalibration = fuelRepo.gaugeCalibration
     val currentBar = if (fuelState.currentMidBar in 0..10) {
         fuelState.currentMidBar
     } else {
-        gaugeCalibration.getBarForLiters(currentFuelLiters).coerceIn(0, 10)
+        viewModel.barForLiters(currentFuelLiters)
     }
 
     val autoPostRefillBar = remember(currentFuelLiters, dispensedLiters, designCap) {
         if (dispensedLiters <= 0.001) {
             currentBar
         } else {
-            gaugeCalibration.getBarForLiters(clampedFinalTank).coerceIn(currentBar, 10)
+            viewModel.barForLiters(clampedFinalTank).coerceIn(currentBar, 10)
         }
     }
 
@@ -703,795 +692,6 @@ fun FuelEntryDialog(
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-/**
- * UnifiedFuelTelemetryAndGaugeCard:
- * Complete merged automotive fuel telemetry & calibration pod:
- * 1. Header with dynamic OEM spec & delta bar badge (+X BARS / X/10 BARS).
- * 2. Hero volume & tank fill readouts in commanding, large typography (34sp).
- * 3. Vibrant Colorful 10-Segment LED Fuel Gauge with red (reserve) -> orange (low/mid) -> green (full) progression.
- *    - Scale calibration markers: E (Reserve) <---> 1/4 <---> 1/2 (50%) <---> 3/4 <---> F (Full).
- *    - Interactive MID Bar touch calibration [1..10].
- * 4. 4 Large Telemetry Boxes with big readable text (22sp values):
- *    - FUEL ADDED (Liters + Tank % boost)
- *    - RANGE GAIN (+km added @ mileage)
- *    - RUNNING COST (₹/km rate)
- *    - TOTAL RANGE (km projected post-fill)
- * 5. Continuous dual progress bar: Current base level (Green) vs Refill boost (Cyan).
- */
-@Composable
-fun UnifiedFuelTelemetryAndGaugeCard(
-    currentBar: Int,
-    postRefillBar: Int,
-    additionalBars: Int,
-    currentFuelLiters: Double,
-    dispensedLiters: Double,
-    postRefillLiters: Double,
-    designCap: Double,
-    effectiveMileage: Double,
-    pricePerLiter: Double,
-    isOverfill: Boolean,
-    onBarSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val tankPct = ((postRefillLiters / designCap) * 100).toInt().coerceIn(0, 100)
-    val currentPct = ((currentFuelLiters / designCap) * 100).toInt().coerceIn(0, 100)
-    val addedPct = ((dispensedLiters / designCap) * 100).toInt()
-    val addedRangeKm = dispensedLiters * effectiveMileage
-    val runningCostPerKm = if (effectiveMileage > 0.0) pricePerLiter / effectiveMileage else 5.36
-    val totalRangeKm = postRefillLiters * effectiveMileage
-
-    Box(
-        modifier = modifier
-            .cockpitSurface(Color(0xFF090F1C), Color(0xFF1E2D44), CopilotShapes.R14, borderWidth = 1.2.dp)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // ==================== 1. HEADER ROW ====================
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocalGasStation,
-                        contentDescription = null,
-                        tint = Palette.CyanElectric,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = "FUEL LEVEL & TELEMETRIC PROJECTION",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            letterSpacing = 0.8.sp
-                        ),
-                        color = Palette.CyanElectric
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Tank: ${designCap.toInt()} L",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Slate400
-                    )
-
-                    // Delta / Bar Badge
-                    Box(
-                        modifier = Modifier
-                            .clip(CopilotShapes.R6)
-                            .background(if (additionalBars > 0) Palette.Sky600.copy(alpha = 0.25f) else Palette.Slate800)
-                            .border(
-                                1.dp,
-                                if (additionalBars > 0) Palette.LightBlueA400.copy(alpha = 0.70f) else Palette.Slate700,
-                                CopilotShapes.R6
-                            )
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = if (additionalBars > 0) "+$additionalBars BARS" else "$postRefillBar/10 BARS",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                            ),
-                            color = if (additionalBars > 0) Palette.LightBlueA400 else Palette.Slate400
-                        )
-                    }
-                }
-            }
-
-            // ==================== 2. HERO VOLUME & TANK FILL % ROW (BADA TEXT) ====================
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left: Target Volume
-                Column {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = NumberFormatUtils.formatFuelLiters(postRefillLiters, 1),
-                            style = CockpitTheme.typography.displaySmall.copy(
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
-                                letterSpacing = (-1).sp,
-                                platformStyle = PlatformTextStyle(includeFontPadding = false)
-                            ),
-                            color = Color.White
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "L",
-                            style = CockpitTheme.typography.titleLarge,
-                            color = Palette.CyanElectric,
-                            modifier = Modifier.padding(bottom = 3.dp)
-                        )
-                    }
-                    Text(
-                        text = if (dispensedLiters > 0.05) "Target Volume (+${NumberFormatUtils.formatFuelLiters(dispensedLiters, 1)}L refueled)" else "Current Tank Volume (${postRefillLiters.toInt()}L)",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = Palette.Slate400
-                    )
-                }
-
-                // Right: Tank Fill %
-                Column(horizontalAlignment = Alignment.End) {
-                    val pctColor = when {
-                        tankPct <= 20 -> Cockpit_RedAlert
-                        tankPct <= 45 -> Cockpit_AmberWarning
-                        else -> Cockpit_GreenEco
-                    }
-                    Text(
-                        text = "$tankPct%",
-                        style = CockpitTheme.typography.displaySmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
-                            platformStyle = PlatformTextStyle(includeFontPadding = false)
-                        ),
-                        color = pctColor
-                    )
-                    Text(
-                        text = if (isOverfill) "OVERFILL LIMIT WARNING" else "MID Bar $postRefillBar of 10",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = if (isOverfill) Cockpit_AmberWarning else Palette.Slate500
-                    )
-                }
-            }
-
-            // ==================== 3. COLORFUL 10-SEGMENT LED FUEL GAUGE ====================
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(28.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    (1..10).forEach { bar ->
-                        val isAdded = bar in (currentBar + 1)..postRefillBar
-                        val isFilled = bar <= postRefillBar
-                        val isSelected = bar == postRefillBar
-
-                        // Colorful spectrum: Red (1-2) -> Orange/Amber (3-5) -> Vivid Green (6-10)
-                        val baseBarColor = when (bar) {
-                            1, 2 -> Palette.Red500 // Red (Reserve/Empty)
-                            3, 4, 5 -> Palette.OrangeA400 // Orange/Amber (Low/Mid)
-                            else -> Palette.Emerald500 // Green (Upper/Full)
-                        }
-
-                        val segmentColor = when {
-                            isFilled -> baseBarColor
-                            else -> baseBarColor.copy(alpha = 0.12f) // Backlit lens tint
-                        }
-
-                        val borderColor = when {
-                            isSelected -> Color.White
-                            isAdded -> Palette.CyanElectric
-                            isFilled -> baseBarColor.copy(alpha = 0.85f)
-                            else -> Color(0xFF1E2B40)
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .cockpitSurface(segmentColor, borderColor, CopilotShapes.R4, borderWidth = if (isSelected) 1.8.dp else 1.dp)
-                                .clickable { onBarSelected(bar) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isSelected) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Scale Calibration Labels: E (Reserve) <---> 1/4 <---> 1/2 <---> 3/4 <---> F
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "E (Reserve)",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Red500
-                    )
-                    Text(
-                        text = "1/4 (25%)",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.OrangeA400
-                    )
-                    Text(
-                        text = "1/2 (50%)",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Color(0xFFEAB308)
-                    )
-                    Text(
-                        text = "3/4 (75%)",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Color(0xFF22C55E)
-                    )
-                    Text(
-                        text = "F (${designCap.toInt()}L)",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Emerald500
-                    )
-                }
-            }
-
-            // ==================== 4. 4 LARGE TELEMETRY BOXES (BADA TEXT) ====================
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Box 1: FUEL ADDED
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
-                        .padding(horizontal = 10.dp, vertical = 7.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "FUEL ADDED",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.5.sp
-                            ),
-                            color = Palette.Slate400
-                        )
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = NumberFormatUtils.formatFuelLiters(dispensedLiters, 2),
-                                style = CockpitTheme.typography.headlineMedium.copy(
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                ),
-                                color = Color.White
-                            )
-                            Spacer(Modifier.width(2.dp))
-                            Text(
-                                text = "L",
-                                style = CockpitTheme.typography.labelSmall,
-                                color = Palette.CyanElectric,
-                                modifier = Modifier.padding(bottom = 1.dp)
-                            )
-                        }
-                        Text(
-                            text = if (addedPct > 0) "+$addedPct% tank boost" else "0% added",
-                            style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (addedPct > 0) Palette.CyanElectric else Palette.Slate500,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                // Box 2: RANGE GAIN
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
-                        .padding(horizontal = 10.dp, vertical = 7.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "RANGE GAIN",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.5.sp
-                            ),
-                            color = Palette.Slate400
-                        )
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = if (addedRangeKm > 0.1) "+${addedRangeKm.toInt()} km" else "+0 km",
-                                style = CockpitTheme.typography.headlineMedium.copy(
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                ),
-                                color = Palette.Emerald500
-                            )
-                        }
-                        Text(
-                            text = "@ ${NumberFormatUtils.formatMileage(effectiveMileage, 1)} km/L",
-                            style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = Palette.Emerald500.copy(alpha = 0.85f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                // Box 3: RUNNING COST
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
-                        .padding(horizontal = 10.dp, vertical = 7.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "RUNNING COST",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.5.sp
-                            ),
-                            color = Palette.Slate400
-                        )
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = "₹${NumberFormatUtils.formatPrecision(runningCostPerKm, 2)}",
-                                style = CockpitTheme.typography.headlineMedium.copy(
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                ),
-                                color = Palette.Amber500
-                            )
-                            Spacer(Modifier.width(2.dp))
-                            Text(
-                                text = "/km",
-                                style = CockpitTheme.typography.labelSmall,
-                                color = Palette.Amber500.copy(alpha = 0.85f),
-                                modifier = Modifier.padding(bottom = 1.dp)
-                            )
-                        }
-                        Text(
-                            text = "Real-time cost rate",
-                            style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = Palette.Amber500.copy(alpha = 0.85f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                // Box 4: TOTAL RANGE
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
-                        .padding(horizontal = 10.dp, vertical = 7.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "TOTAL RANGE",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.5.sp
-                            ),
-                            color = Palette.Slate400
-                        )
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(
-                                text = "${totalRangeKm.toInt()} km",
-                                style = CockpitTheme.typography.headlineMedium.copy(
-                                    fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                ),
-                                color = Palette.Sky400
-                            )
-                        }
-                        Text(
-                            text = "${postRefillLiters.toInt()}L post-refill",
-                            style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = Palette.Sky400.copy(alpha = 0.85f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-
-            // ==================== 5. DUAL PROGRESS BAR ====================
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(9.dp)
-                        .clip(RoundedCornerShape(4.5.dp))
-                        .background(Palette.Ink825)
-                ) {
-                    Row(modifier = Modifier.fillMaxSize()) {
-                        val currentFraction = (currentFuelLiters / designCap).toFloat().coerceIn(0f, 1f)
-                        val addedFraction = (dispensedLiters / designCap).toFloat().coerceIn(0f, 1f - currentFraction)
-                        if (currentFraction > 0.005f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(currentFraction)
-                                    .fillMaxHeight()
-                                    .background(Palette.Emerald500)
-                            )
-                        }
-                        if (addedFraction > 0.005f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(addedFraction)
-                                    .fillMaxHeight()
-                                    .background(Palette.CyanElectric)
-                            )
-                        }
-                        val remainingFraction = (1f - currentFraction - addedFraction).coerceAtLeast(0f)
-                        if (remainingFraction > 0.005f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(remainingFraction)
-                                    .fillMaxHeight()
-                                    .background(Palette.Ink825)
-                            )
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Current: ${currentPct}% (${currentFuelLiters.toInt()}L)",
-                        style = CockpitTheme.typography.labelMedium.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Slate400
-                    )
-                    Text(
-                        text = "Post-Refill: ${tankPct}% (${postRefillLiters.toInt()}L)",
-                        style = CockpitTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = if (isOverfill) Cockpit_AmberWarning else Palette.CyanElectric
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * AutoCalculatedTelemetryCard:
- * Prominent Automotive Refuel Telemetry Pod:
- * - 4 Key Calculated Metrics (2x2 Grid):
- *   1. FUEL ADDED (Liters + Tank % boost)
- *   2. RANGE GAIN (+km added based on vehicle efficiency)
- *   3. RUNNING COST (₹/km travel cost)
- *   4. TOTAL RANGE (km projected post-fill)
- * - Dual Progress Bar: Current level (Green) vs Refuel boost (Cyan)
- */
-@Composable
-fun AutoCalculatedTelemetryCard(
-    dispensedLiters: Double,
-    clampedFinalTank: Double,
-    currentFuelLiters: Double,
-    designCap: Double,
-    effectiveMileage: Double,
-    pricePerLiter: Double,
-    isOverfill: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val addedRangeKm = dispensedLiters * effectiveMileage
-    val currentPct = ((currentFuelLiters / designCap) * 100).toInt().coerceIn(0, 100)
-    val finalPct = ((clampedFinalTank / designCap) * 100).toInt().coerceIn(0, 100)
-    val addedPct = ((dispensedLiters / designCap) * 100).toInt()
-    val runningCostPerKm = if (effectiveMileage > 0.0) pricePerLiter / effectiveMileage else 5.36
-    val totalRangeKm = clampedFinalTank * effectiveMileage
-
-    Box(
-        modifier = modifier
-            .cockpitSurface(Color(0xFF09101F), Color(0xFF1B273A), CopilotShapes.R14)
-            .padding(10.dp)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Header: Spark Icon + Title + Tank Capacity
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = null,
-                        tint = Palette.Sky400,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Text(
-                        text = "AUTO-CALCULATED TELEMETRY",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = Palette.Sky400
-                    )
-                }
-
-                Text(
-                    text = "Tank: ${designCap.toInt()} L",
-                    style = CockpitTheme.typography.labelSmall.copy(
-                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                    ),
-                    color = Palette.Slate400
-                )
-            }
-
-            // 4 Computed Metrics Grid (2x2): Fuel Added, Range Gain, Running Cost, Total Range
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                // Row 1: Fuel Added & Range Gain
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    // Tile 1: Fuel Added
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "FUEL ADDED",
-                                style = CockpitTheme.typography.labelSmall.copy(
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = Palette.Slate400
-                            )
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = NumberFormatUtils.formatFuelLiters(dispensedLiters, 2),
-                                    style = CockpitTheme.typography.titleMedium.copy(
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                    ),
-                                    color = Color.White
-                                )
-                                Spacer(Modifier.width(2.dp))
-                                Text(
-                                    text = "L",
-                                    style = CockpitTheme.typography.labelSmall,
-                                    color = Palette.Sky400,
-                                    modifier = Modifier.padding(bottom = 1.dp)
-                                )
-                            }
-                            Text(
-                                text = if (addedPct > 0) "+$addedPct% tank boost" else "0% added",
-                                style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = if (addedPct > 0) Palette.Sky400 else Palette.Slate500,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-
-                    // Tile 2: Range Gain
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "RANGE GAIN",
-                                style = CockpitTheme.typography.labelSmall.copy(
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = Palette.Slate400
-                            )
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = if (addedRangeKm > 0.1) "+${addedRangeKm.toInt()} km" else "+0 km",
-                                    style = CockpitTheme.typography.titleMedium.copy(
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                    ),
-                                    color = Cockpit_GreenEco
-                                )
-                            }
-                            Text(
-                                text = "@ ${NumberFormatUtils.formatMileage(effectiveMileage, 1)} km/L",
-                                style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Cockpit_GreenEco.copy(alpha = 0.85f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-
-                // Row 2: Running Cost & Total Range
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    // Tile 3: Running Cost
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "RUNNING COST",
-                                style = CockpitTheme.typography.labelSmall.copy(
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = Palette.Slate400
-                            )
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = "₹${NumberFormatUtils.formatPrecision(runningCostPerKm, 2)}",
-                                    style = CockpitTheme.typography.titleMedium.copy(
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                    ),
-                                    color = Palette.Amber500
-                                )
-                                Spacer(Modifier.width(2.dp))
-                                Text(
-                                    text = "/km",
-                                    style = CockpitTheme.typography.labelSmall,
-                                    color = Palette.Amber500.copy(alpha = 0.85f),
-                                    modifier = Modifier.padding(bottom = 1.dp)
-                                )
-                            }
-                            Text(
-                                text = "Real-time travel cost",
-                                style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Palette.Amber500.copy(alpha = 0.85f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-
-                    // Tile 4: Total Range
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = "TOTAL RANGE",
-                                style = CockpitTheme.typography.labelSmall.copy(
-                                    letterSpacing = 0.5.sp
-                                ),
-                                color = Palette.Slate400
-                            )
-                            Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = "${totalRangeKm.toInt()} km",
-                                    style = CockpitTheme.typography.titleMedium.copy(
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                    ),
-                                    color = Palette.Cyan
-                                )
-                            }
-                            Text(
-                                text = "${clampedFinalTank.toInt()}L post-fill",
-                                style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Palette.Cyan.copy(alpha = 0.85f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Dual Progress Bar (Current + Added Fuel)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CopilotShapes.R4)
-                        .background(Palette.Ink825)
-                ) {
-                    Row(modifier = Modifier.fillMaxSize()) {
-                        val currentFraction = (currentFuelLiters / designCap).toFloat().coerceIn(0f, 1f)
-                        val addedFraction = (dispensedLiters / designCap).toFloat().coerceIn(0f, 1f - currentFraction)
-                        if (currentFraction > 0.005f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(currentFraction)
-                                    .fillMaxHeight()
-                                    .background(Color(0xFF059669))
-                            )
-                        }
-                        if (addedFraction > 0.005f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(addedFraction)
-                                    .fillMaxHeight()
-                                    .background(Palette.LightBlueA400)
-                            )
-                        }
-                        val remainingFraction = (1f - currentFraction - addedFraction).coerceAtLeast(0f)
-                        if (remainingFraction > 0.005f) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(remainingFraction)
-                                    .fillMaxHeight()
-                                    .background(Palette.Ink825)
-                            )
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Current: ${currentPct}%",
-                        style = CockpitTheme.typography.labelMedium.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Slate400
-                    )
-                    Text(
-                        text = "Post-Refill: ${finalPct}%",
-                        style = CockpitTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = if (isOverfill) Cockpit_AmberWarning else Palette.Sky400
-                    )
                 }
             }
         }

@@ -13,16 +13,16 @@ android {
         applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 72
-        versionName = "1.42.1"
+        versionCode = 73
+        versionName = "1.42.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "VERSION_NAME", "\"1.42.1\"")
-        buildConfigField("int", "VERSION_CODE", "72")
+        buildConfigField("String", "VERSION_NAME", "\"1.42.2\"")
+        buildConfigField("int", "VERSION_CODE", "73")
 
         ndk {
             abiFilters.add("armeabi-v7a")
