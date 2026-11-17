@@ -51,7 +51,7 @@ class Milestone1Challenger2Test {
         assertEquals(555L, engine.currentTripId)
 
         // 2. Stationary watchdog detects 16s motionless dwell -> transitions to TEMPORARY_STOP
-        engine.processStationaryWatchdog(t0 + 16000L)
+        engine.processStationaryWatchdog(t0 + 31000L)
         assertEquals(TripStatus.TEMPORARY_STOP, engine.currentStatus)
         assertFalse(tripCompletedCalled)
 
@@ -105,7 +105,7 @@ class Milestone1Challenger2Test {
         )
 
         // 16s stationary -> TEMPORARY_STOP
-        engine.processStationaryWatchdog(t0 + 16000L)
+        engine.processStationaryWatchdog(t0 + 31000L)
         assertEquals(TripStatus.TEMPORARY_STOP, engine.currentStatus)
 
         // Standstill for 299 seconds (1 second before timeout)

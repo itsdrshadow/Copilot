@@ -34,8 +34,8 @@ class TripWatchdogAndTimeDeltaTest {
         assertEquals(TripStatus.ACTIVE_TRIP, engine.currentStatus)
 
         // 1. Stationary watchdog detects 16s motionless dwell -> transitions to TEMPORARY_STOP
-        engine.processStationaryWatchdog(t0 + 16000L)
-        assertEquals("Standstill for >= 15s must transition to TEMPORARY_STOP", TripStatus.TEMPORARY_STOP, engine.currentStatus)
+        engine.processStationaryWatchdog(t0 + 31000L)
+        assertEquals("Standstill for > 30s must transition to TEMPORARY_STOP", TripStatus.TEMPORARY_STOP, engine.currentStatus)
         assertNull("onTripCompleted must NOT be invoked", completedSummary)
 
         // 2. Dwell exceeds 300s, 600s, 3600s (1 hour), 86400s (24 hours) outside geofence
@@ -72,7 +72,7 @@ class TripWatchdogAndTimeDeltaTest {
         )
 
         // 16s motionless -> TEMPORARY_STOP
-        engine.processStationaryWatchdog(t0 + 16000L)
+        engine.processStationaryWatchdog(t0 + 31000L)
         assertEquals(TripStatus.TEMPORARY_STOP, engine.currentStatus)
 
         // 299s motionless (1s before 300s timeout) -> must still be TEMPORARY_STOP
@@ -111,7 +111,7 @@ class TripWatchdogAndTimeDeltaTest {
             lastLocation = null
         )
 
-        engine.processStationaryWatchdog(t0 + 16000L)
+        engine.processStationaryWatchdog(t0 + 31000L)
         assertEquals(TripStatus.TEMPORARY_STOP, engine.currentStatus)
 
         // Dwell reaches 300s

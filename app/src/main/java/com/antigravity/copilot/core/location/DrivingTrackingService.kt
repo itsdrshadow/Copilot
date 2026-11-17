@@ -127,6 +127,24 @@ class DrivingTrackingService : Service(), LocationListener {
             }
         }
 
+        const val ACTION_MANUAL_START_TRIP = "ACTION_MANUAL_START_TRIP"
+        const val ACTION_MANUAL_END_TRIP = "ACTION_MANUAL_END_TRIP"
+
+        /** Manual override: start a trip now, regardless of geofences. */
+        fun manualStartTrip(context: Context) = sendAction(context, ACTION_MANUAL_START_TRIP)
+
+        /** Manual override: end the active trip now. */
+        fun manualEndTrip(context: Context) = sendAction(context, ACTION_MANUAL_END_TRIP)
+
+        private fun sendAction(context: Context, action: String) {
+            val intent = Intent(context, DrivingTrackingService::class.java).apply { this.action = action }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+
         fun reset(context: Context) {
             val intent = Intent(context, DrivingTrackingService::class.java).apply {
                 action = "ACTION_RESET_TELEMETRY"
@@ -146,6 +164,15 @@ class DrivingTrackingService : Service(), LocationListener {
             gpsFilter.reset()
             lastRecordedDistanceMeters = 0.0
             return START_STICKY
+        }
+        if (intent?.action == ACTION_MANUAL_START_TRIP && ::geofenceEngine.isInitialized) {
+            geofenceEngine.manualStartTrip(System.currentTimeMillis(), latestEmittedPoint)
+        } else if (intent?.action == ACTION_MANUAL_END_TRIP && ::geofenceEngine.isInitialized) {
+            if (geofenceEngine.isTripActive) {
+                geofenceEngine.manualEndTrip(System.currentTimeMillis(), latestEmittedPoint)
+            } else if (::engine.isInitialized && engine.currentTripId > 0L) {
+                engine.completeActiveTrip(System.currentTimeMillis())
+            }
         }
         startLocationUpdates()
         return START_STICKY

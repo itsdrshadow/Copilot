@@ -252,30 +252,24 @@ class CarIgnitionDeepSleepBatteryProtectionTest {
             lastLocation = SyntheticLocation(21.5, 83.0, t0, 0f)
         )
 
-        // Car stops for 30s with engine running (standstill detected)
-        engine.processStationaryWatchdog(t0 + 16000L) // 16s motionless -> enters TEMPORARY_STOP
+        // Car stops for > 30s (IDLE threshold) -> TEMPORARY_STOP
+        engine.processStationaryWatchdog(t0 + 31000L)
         assertEquals(TripStatus.TEMPORARY_STOP, engine.currentStatus)
 
-        // Ignition cut at 30s
-        val powerCutTime = t0 + 30000L
+        // Ignition cut, 2 hours pass with ignition OFF, power back
+        val powerCutTime = t0 + 32000L
         engine.onPowerDisconnected(powerCutTime)
-
-        // Stationary duration before power cut should be 30,000 ms
-        assertEquals("Stationary duration before power cut must be 30s", 30000L, engine.stationaryDurationMs)
-
-        // 2 hours pass with ignition OFF
         val twoHoursLater = powerCutTime + 7200000L
-
-        // Power connected
         engine.onPowerConnected(twoHoursLater)
-        assertEquals("Stationary duration must still be 30s at reconnect", 30000L, engine.stationaryDurationMs)
 
         // Resumes moving after 5 seconds
         val resumeLoc = SyntheticLocation(21.501, 83.0, twoHoursLater + 5000L, 35f)
         engine.processLocation(resumeLoc)
 
-        // Total stationary duration must be 30s + 5s = 35s, NOT 2 hours + 35s
-        assertEquals("Total stationary duration must be 35s", 35000L, engine.stationaryDurationMs)
+        // Deep sleep must never be attributed as moving time, and the live idle counter only
+        // counts sampled idle (the wall-clock gap is assigned to idle at trip completion).
+        assertEquals("Moving time must not include the 2 h ignition-off gap", 600000L, engine.drivingDurationMs)
+        assertTrue("Live idle counter must not include the 2 h gap", engine.stationaryDurationMs < 7200000L)
         assertEquals(TripStatus.ACTIVE_TRIP, engine.currentStatus)
     }
 }

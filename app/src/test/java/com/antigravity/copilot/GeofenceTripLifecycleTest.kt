@@ -157,16 +157,16 @@ class GeofenceTripLifecycleTest {
     @Test
     fun testGeofenceRadiusValidation() {
         val defaultRadius = TripGeofenceManager.DEFAULT_RADIUS_METERS
-        assertEquals(200.0f, defaultRadius, 0.01f)
+        assertEquals(75.0f, defaultRadius, 0.01f)
 
         val minRadius = TripGeofenceManager.MIN_RADIUS_METERS
         val maxRadius = TripGeofenceManager.MAX_RADIUS_METERS
-        assertEquals(50.0f, minRadius, 0.01f)
+        assertEquals(30.0f, minRadius, 0.01f)
         assertEquals(2000.0f, maxRadius, 0.01f)
 
         // Clamping checks
         val clampedSmall = 20.0f.coerceIn(minRadius, maxRadius)
-        assertEquals(50.0f, clampedSmall, 0.01f)
+        assertEquals(30.0f, clampedSmall, 0.01f)
 
         val clampedLarge = 3500.0f.coerceIn(minRadius, maxRadius)
         assertEquals(2000.0f, clampedLarge, 0.01f)
@@ -216,6 +216,8 @@ class GeofenceTripLifecycleTest {
     }
 
     class TestGeofenceProvider(private val geofences: List<TripGeofenceEntity>) : GeofenceProvider {
+        override fun enabledGeofences(): List<TripGeofenceEntity> = geofences.filter { it.isEnabled }
+
         override fun calculateDistance(geofence: TripGeofenceEntity, lat: Double, lon: Double): Float {
             return TripDetectionEngine.computeGeodesicDistance(lat, lon, geofence.latitude, geofence.longitude).toFloat()
         }
@@ -293,9 +295,13 @@ class GeofenceTripLifecycleTest {
         // 3. Vehicle reaches boundary exit (210m from origin, radius = 200m)
         val pBoundaryLat = 21.8974 + (210.0 / 111139.0)
         engine.processLocation(createLocation(pBoundaryLat, 83.3950, 30.0f, 20000L))
-        assertEquals(TripLifecycleState.DEPARTURE_PENDING, engine.state)
+        // 210 m is inside the 15 m hysteresis band -> no exit counted yet
+        assertEquals(TripLifecycleState.INSIDE_GEOFENCE, engine.state)
 
-        // 4. Confirmed departure (sustained exit > radius + 15m e.g. 235m, 35 km/h)
+        // 4. Exit beyond radius + 15 m needs 3 consecutive fixes
+        engine.processLocation(createLocation(21.8974 + (220.0 / 111139.0), 83.3950, 32.0f, 21000L))
+        assertEquals(TripLifecycleState.DEPARTURE_PENDING, engine.state)
+        engine.processLocation(createLocation(21.8974 + (228.0 / 111139.0), 83.3950, 34.0f, 21500L))
         val pExitLat = 21.8974 + (235.0 / 111139.0)
         engine.processLocation(createLocation(pExitLat, 83.3950, 35.0f, 22000L))
 
@@ -360,6 +366,9 @@ class GeofenceTripLifecycleTest {
         val nearOfficeLat = 21.9100 + (50.0 / 111139.0)
         val arrivalTime = activeTripId + 120000L
         engine.processLocation(createLocation(nearOfficeLat, 83.4100, 25.0f, arrivalTime))
+        assertFalse("One fix inside is not enough (3-fix debounce)", tripArrivalConfirmed)
+        engine.processLocation(createLocation(nearOfficeLat, 83.4100, 15.0f, arrivalTime + 1000L))
+        engine.processLocation(createLocation(nearOfficeLat, 83.4100, 5.0f, arrivalTime + 2000L))
 
         // Geofence arrival must be detected and active trip finalized
         assertTrue("Geofence arrival must confirm trip completion", tripArrivalConfirmed)
@@ -415,6 +424,7 @@ class GeofenceTripLifecycleTest {
         // Sustained exit
         val exitLat = 21.8974 + (250.0 / 111139.0)
         lifecycleEngine.processLocation(createLocation(exitLat, 83.3950, 40f, 7000L))
+        lifecycleEngine.processLocation(createLocation(21.8974 + (270.0 / 111139.0), 83.3950, 42f, 8000L))
 
         assertEquals(TripLifecycleState.TRIP_ACTIVE, lifecycleEngine.state)
         assertEquals(TripStatus.ACTIVE_TRIP, tripEngine.currentStatus)
@@ -423,6 +433,8 @@ class GeofenceTripLifecycleTest {
         // 2. Drive to Office (arrive inside Office geofence)
         val arrivalTime = 60000L
         lifecycleEngine.processLocation(createLocation(21.9100, 83.4100, 20f, arrivalTime))
+        lifecycleEngine.processLocation(createLocation(21.9100, 83.4100, 10f, arrivalTime + 1000L))
+        lifecycleEngine.processLocation(createLocation(21.9100, 83.4100, 0f, arrivalTime + 2000L))
 
         // Verify trip completion
         assertEquals(TripLifecycleState.INSIDE_GEOFENCE, lifecycleEngine.state)
@@ -458,7 +470,9 @@ class GeofenceTripLifecycleTest {
         // Fix 2: Second fix inside boundary (196m from center)
         val insideLat = 21.9500 + (196.0 / 111139.0)
         engine.processLocation(createLocation(insideLat, 83.4500, 20f, 6000L))
-        assertTrue("Second fix inside boundary must confirm arrival", arrivalConfirmed)
+        assertFalse("Second fix is still pending", arrivalConfirmed)
+        engine.processLocation(createLocation(insideLat, 83.4500, 10f, 7000L))
+        assertTrue("Third consecutive fix inside boundary must confirm arrival", arrivalConfirmed)
         assertEquals(TripLifecycleState.INSIDE_GEOFENCE, engine.state)
     }
 
@@ -529,6 +543,8 @@ class GeofenceTripLifecycleTest {
         // 6. Confirmed departure at t = 37,000L (335m from origin)
         val pExitLat = 21.8974 + (335.0 / 111139.0)
         engine.processLocation(createLocation(pExitLat, 83.3950, 35.0f, 37000L))
+        engine.processLocation(createLocation(21.8974 + (345.0 / 111139.0), 83.3950, 36.0f, 38000L))
+        engine.processLocation(createLocation(21.8974 + (355.0 / 111139.0), 83.3950, 37.0f, 39000L))
 
         assertEquals(TripLifecycleState.TRIP_ACTIVE, engine.state)
         assertTrue(confirmedDeparturePoints.isNotEmpty())
@@ -596,6 +612,8 @@ class GeofenceTripLifecycleTest {
         // 1. Vehicle enters Hub geofence deep penetration (30m from center) at t = 50,000L
         val deepLat = 21.8974 + (30.0 / 111139.0)
         engine.processLocation(createLocation(deepLat, 83.3950, 15f, 50000L))
+        engine.processLocation(createLocation(deepLat, 83.3950, 10f, 50300L))
+        engine.processLocation(createLocation(deepLat, 83.3950, 10f, 50600L))
         assertEquals("Trip #1 completed upon deep arrival", 1, tripArrivalCount)
         assertEquals(TripLifecycleState.INSIDE_GEOFENCE, engine.state)
 
@@ -611,6 +629,7 @@ class GeofenceTripLifecycleTest {
         // Sustained exit at t = 53,000L (240m from center)
         val exitLat2 = 21.8974 + (240.0 / 111139.0)
         engine.processLocation(createLocation(exitLat2, 83.3950, 35f, 53000L))
+        engine.processLocation(createLocation(21.8974 + (260.0 / 111139.0), 83.3950, 38f, 54000L))
 
         assertEquals("New trip #2 must start upon immediate re-departure", 1, tripStartCount)
         assertEquals(TripLifecycleState.TRIP_ACTIVE, engine.state)
@@ -661,6 +680,8 @@ class GeofenceTripLifecycleTest {
         // 7. Confirmed departure at t = 62,000L (335m from origin)
         val pExitLat = 21.8974 + (335.0 / 111139.0)
         engine.processLocation(createLocation(pExitLat, 83.3950, 35.0f, 62000L))
+        engine.processLocation(createLocation(21.8974 + (345.0 / 111139.0), 83.3950, 36.0f, 63000L))
+        engine.processLocation(createLocation(21.8974 + (355.0 / 111139.0), 83.3950, 37.0f, 64000L))
 
         assertEquals(TripLifecycleState.TRIP_ACTIVE, engine.state)
         assertTrue(confirmedDeparturePoints.isNotEmpty())
@@ -693,6 +714,8 @@ class GeofenceTripLifecycleTest {
 
         // Vehicle enters directly at the exact center of Campus geofence (dist = 0m)
         engine.processLocation(createLocation(campusGf.latitude, campusGf.longitude, 10f, 10000L))
+        engine.processLocation(createLocation(campusGf.latitude, campusGf.longitude, 5f, 11000L))
+        engine.processLocation(createLocation(campusGf.latitude, campusGf.longitude, 0f, 12000L))
 
         assertTrue("Arrival must be confirmed immediately at center", arrivalConfirmed)
         assertEquals("Campus", confirmedDestName)

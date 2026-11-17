@@ -38,6 +38,8 @@ class TripDetectionEngine(
         private set
     var stationaryDurationMs: Long = 0
         private set
+    /** Pure moving/idle split (idle = < 2 km/h for > 30 s, see Config). */
+    private val motion = com.antigravity.copilot.core.logic.MotionTimeTracker()
     private var maxSpeedKmh: Double = 0.0
     private var speedSumKmh: Double = 0.0
     private var speedCount: Long = 0
@@ -80,7 +82,7 @@ class TripDetectionEngine(
     companion object {
         const val MIN_QUALIFYING_DISTANCE_METERS = 1000.0 // 1.0 km
         const val MOVEMENT_SPEED_THRESHOLD_KMH = 6.0f
-        const val STOP_SPEED_THRESHOLD_KMH = 2.5f
+        val STOP_SPEED_THRESHOLD_KMH = com.antigravity.copilot.core.logic.Config.IDLE_SPEED_KMH.toFloat()
         const val CANDIDATE_CONFIRM_SECONDS = 15
         const val CANDIDATE_MIN_DISTANCE_METERS = 50.0
         const val IDLE_TRIP_END_TIMEOUT_SECONDS = 300 // 5 minutes of continuous stationary idle ends trip
@@ -121,6 +123,7 @@ class TripDetectionEngine(
         totalDistanceMeters = 0.0
         drivingDurationMs = 0
         stationaryDurationMs = 0
+        motion.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -149,16 +152,11 @@ class TripDetectionEngine(
         isPowerDisconnected = true
         if (currentStatus == TripStatus.ACTIVE_TRIP) {
             currentStatus = TripStatus.TEMPORARY_STOP
-            if (temporaryStopStartTime > 0L) {
-                stationaryDurationMs += (now - temporaryStopStartTime).coerceAtLeast(0L)
-            }
             temporaryStopStartTime = 0L
         } else if (currentStatus == TripStatus.TEMPORARY_STOP) {
-            if (temporaryStopStartTime > 0L) {
-                stationaryDurationMs += (now - temporaryStopStartTime).coerceAtLeast(0L)
-                temporaryStopStartTime = 0L
-            }
+            temporaryStopStartTime = 0L
         }
+        motion.markGap()
         tunnelEntryLocation = null
         tunnelEntryTimeMs = 0L
         isOutageBridgingPending = false
@@ -170,6 +168,7 @@ class TripDetectionEngine(
      */
     fun onPowerConnected(now: Long = System.currentTimeMillis()) {
         isPowerDisconnected = false
+        motion.markGap()
         if (currentStatus == TripStatus.TEMPORARY_STOP) {
             temporaryStopStartTime = now
             lastMovementTime = now
@@ -237,10 +236,8 @@ class TripDetectionEngine(
 
         if (currentStatus == TripStatus.ACTIVE_TRIP) {
             val stationaryDuration = now - lastMovementTime
-            if (stationaryDuration >= 15000L) {
+            if (stationaryDuration > com.antigravity.copilot.core.logic.Config.IDLE_MIN_DURATION_MS) {
                 currentStatus = TripStatus.TEMPORARY_STOP
-                val dwell = (now - lastMovementTime)
-                stationaryDurationMs = (stationaryDurationMs - dwell).coerceAtLeast(0L)
                 temporaryStopStartTime = lastMovementTime
                 if (stationaryAnchorLocation == null) {
                     stationaryAnchorLocation = lastAcceptedLocation
@@ -389,7 +386,8 @@ class TripDetectionEngine(
                         if (accuracy <= 25.0f && bridgeDistMeters >= 10.0 && impliedSpeedKmh in 2.5..220.0) {
                             totalDistanceMeters += bridgeDistMeters
                             val bridgeDurationMs = (outageDurationSec * 1000.0).toLong().coerceIn(1000L, 600000L)
-                            drivingDurationMs += bridgeDurationMs
+                            motion.addMoving(bridgeDurationMs)
+                            drivingDurationMs = motion.movingMs
                             onLiveMovement?.invoke(bridgeDistMeters, impliedSpeedKmh, bridgeDurationMs)
                         }
 
@@ -528,10 +526,11 @@ class TripDetectionEngine(
                 val distFromAnchor = computeGeodesicDistance(anchor.latitude, anchor.longitude, location.latitude, location.longitude)
                 val isResumed = effectiveSpeedKmh >= MOVEMENT_SPEED_THRESHOLD_KMH && (distFromAnchor >= stationaryDriftRadiusMeters || effectiveSpeedKmh >= MOVEMENT_SPEED_THRESHOLD_KMH * 1.5f)
 
+                motion.onSample(now, effectiveSpeedKmh.toDouble())
+                drivingDurationMs = motion.movingMs
+                stationaryDurationMs = motion.idleMs
                 if (isResumed) {
-                    if (temporaryStopStartTime > 0L) {
-                        stationaryDurationMs += (now - temporaryStopStartTime).coerceAtLeast(0L)
-                    }
+                    lastMovementTime = now
                     currentStatus = TripStatus.ACTIVE_TRIP
                     lastAcceptedLocation = location
                     lastLocationTime = now
@@ -577,6 +576,7 @@ class TripDetectionEngine(
         totalDistanceMeters = departureDistanceMeters
         drivingDurationMs = 0
         stationaryDurationMs = 0
+        motion.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -626,6 +626,7 @@ class TripDetectionEngine(
         totalDistanceMeters = distanceMeters
         drivingDurationMs = drivingMs
         stationaryDurationMs = stationaryMs
+        motion.restore(drivingMs, stationaryMs)
         if (status == TripStatus.TEMPORARY_STOP) {
             temporaryStopStartTime = 0L
             isPowerDisconnected = true
@@ -665,6 +666,7 @@ class TripDetectionEngine(
         totalDistanceMeters = candidateDistMeters
         drivingDurationMs = 0
         stationaryDurationMs = 0
+        motion.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -738,19 +740,19 @@ class TripDetectionEngine(
         } else {
             0L
         }
-        if (speedKmh > STOP_SPEED_THRESHOLD_KMH) {
-            drivingDurationMs += dt
+        motion.onSample(now, speedKmh.toDouble())
+        drivingDurationMs = motion.movingMs
+        stationaryDurationMs = motion.idleMs
+        if (speedKmh >= STOP_SPEED_THRESHOLD_KMH) {
             lastMovementTime = now
             stationaryAnchorLocation = null
         } else {
-            stationaryDurationMs += dt
             if (stationaryAnchorLocation == null) {
                 stationaryAnchorLocation = location
             }
-            if ((now - lastMovementTime) > 15000) {
+            if ((now - lastMovementTime) > com.antigravity.copilot.core.logic.Config.IDLE_MIN_DURATION_MS) {
+                // IDLE: never ends a trip; moving again continues the same trail.
                 currentStatus = TripStatus.TEMPORARY_STOP
-                val dwell = (now - lastMovementTime)
-                stationaryDurationMs = (stationaryDurationMs - dwell).coerceAtLeast(0L)
                 temporaryStopStartTime = lastMovementTime
             }
         }
@@ -823,6 +825,11 @@ class TripDetectionEngine(
         val completedTripId = currentTripId
         val completedStartTime = tripStartTime
         val effectiveDestName = destinationName ?: currentDestinationName
+        if (completedStartTime > 0L && now > completedStartTime) {
+            // Total duration is wall clock; anything not moving (including GPS-less gaps) is idle.
+            drivingDurationMs = motion.movingMs
+            stationaryDurationMs = motion.finalIdleMs(now - completedStartTime)
+        }
 
         val drivingHours = drivingDurationMs / 3600000.0
         val avgSpeed = if (drivingHours > 0.002) {

@@ -345,23 +345,15 @@ class FuelAIEngine(context: Context) {
             )
         }
 
-        // ==================== 1. STATIONARY / ENGINE IDLE CASE ====================
-        // When car is at a red light, drive-thru, or parking with ignition on
+        // ==================== 1. STATIONARY CASE ====================
+        // No idle fuel-burn model: ignition/infotainment is often on with the engine off, so a
+        // stationary vehicle consumes nothing in this model (spec: Phase 1, "NO idle fuel-burn").
         if (safeSpeed < 1.5 || deltaKm < 0.001) {
-            // Internal Combustion Engine (ICE) standard idle burn rate: ~0.75 Liters per hour
-            val idleBurnRateLitersPerHour = 0.75
-            val idleLiters = (idleBurnRateLitersPerHour / 3600.0) * deltaSeconds
-            // Clamp to prevent excessive single-tick burns
-            val clampedBurn = idleLiters.coerceIn(0.0, 0.05)
-
-            // Don't decay smoothedLiveMileage toward 0 during idle — keep the last moving value
-            // (Previous bug: `smoothedLiveMileage * 0.90 + 0.0` was dragging mileage to 0)
-
             return LiveFuelConsumptionResult(
-                litersConsumed = clampedBurn,
-                liveInstantMileageKmpl = 0.0, // 0 km/L is correct during standstill
-                drivingStyleTag = "ENGINE IDLE",
-                isIdleBurn = true
+                litersConsumed = 0.0,
+                liveInstantMileageKmpl = 0.0,
+                drivingStyleTag = "STATIONARY",
+                isIdleBurn = false
             )
         }
 

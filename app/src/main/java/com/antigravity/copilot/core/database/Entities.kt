@@ -121,7 +121,7 @@ data class TripGeofenceEntity(
     val name: String,
     val latitude: Double,
     val longitude: Double,
-    val radiusMeters: Float = 200f,
+    val radiusMeters: Float = 75f,
     val isEnabled: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()

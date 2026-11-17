@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] - improve-logic
+
+### Added
+- `core/logic/Config.kt`: single home for all trip / fuel / map thresholds.
+- Pure `GeofenceTripDetector` (hysteresis exit at radius+15 m, entry at radius, accuracy < 30 m, 3-fix debounce) and `MotionTimeTracker` (idle = < 2 km/h for > 30 s) with unit tests.
+- Manual trip start / end override (long-press the CURRENT TRIP header).
+- Battery-optimisation exemption prompt for the tracking service.
+
+### Changed
+- Default geofence radius 200 m → 75 m (min 30 m).
+- `GeofenceTripLifecycleEngine` delegates start/end decisions to the pure detector.
+- Trip moving/idle time: short stops (< 30 s) are moving time; trip idle at completion = wall clock − moving.
+
+### Removed
+- Idle fuel-burn model (0.75 L/h) from `FuelAIEngine`.
+
 ## [1.42.3] - 2026-11-17
 
 ### Fixed

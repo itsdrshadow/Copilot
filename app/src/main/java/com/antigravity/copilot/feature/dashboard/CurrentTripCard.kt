@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -268,6 +270,33 @@ fun CurrentTripCard(
         else -> Triple("PARKED", textSecondary, Icons.Default.LocalParking)
     }
 
+    // Manual override (spec Phase 1): long-press the card header to start / end a trip by hand.
+    val context = LocalContext.current
+    var showManualTripDialog by remember { mutableStateOf(false) }
+    if (showManualTripDialog) {
+        AlertDialog(
+            onDismissRequest = { showManualTripDialog = false },
+            title = { Text(if (isTripActive) "End trip now?" else "Start trip now?") },
+            text = {
+                Text(
+                    if (isTripActive) "Manually ends the current trip here. Geofences normally do this automatically."
+                    else "Manually starts a trip now. Geofences normally do this automatically."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showManualTripDialog = false
+                    if (isTripActive) {
+                        com.antigravity.copilot.core.location.DrivingTrackingService.manualEndTrip(context)
+                    } else {
+                        com.antigravity.copilot.core.location.DrivingTrackingService.manualStartTrip(context)
+                    }
+                }) { Text(if (isTripActive) "END TRIP" else "START TRIP") }
+            },
+            dismissButton = { TextButton(onClick = { showManualTripDialog = false }) { Text("CANCEL") } }
+        )
+    }
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
@@ -287,7 +316,10 @@ fun CurrentTripCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp),
+                    .height(44.dp)
+                    .pointerInput(isTripActive) {
+                        detectTapGestures(onLongPress = { showManualTripDialog = true })
+                    },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

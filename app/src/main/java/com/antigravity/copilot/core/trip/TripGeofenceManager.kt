@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 interface GeofenceProvider {
     fun calculateDistance(geofence: TripGeofenceEntity, lat: Double, lon: Double): Float
     fun findGeofenceContaining(lat: Double, lon: Double, onlyEnabled: Boolean = true): TripGeofenceEntity?
+    fun enabledGeofences(): List<TripGeofenceEntity>
 }
 
 /**
@@ -41,9 +42,9 @@ class TripGeofenceManager private constructor(context: Context) : GeofenceProvid
     }
 
     companion object {
-        const val MIN_RADIUS_METERS = 50.0f
-        const val MAX_RADIUS_METERS = 2000.0f
-        const val DEFAULT_RADIUS_METERS = 200.0f
+        val MIN_RADIUS_METERS = com.antigravity.copilot.core.logic.Config.GEOFENCE_MIN_RADIUS_M.toFloat()
+        val MAX_RADIUS_METERS = com.antigravity.copilot.core.logic.Config.GEOFENCE_MAX_RADIUS_M.toFloat()
+        val DEFAULT_RADIUS_METERS = com.antigravity.copilot.core.logic.Config.GEOFENCE_DEFAULT_RADIUS_M.toFloat()
 
         @Volatile
         private var INSTANCE: TripGeofenceManager? = null
@@ -116,6 +117,8 @@ class TripGeofenceManager private constructor(context: Context) : GeofenceProvid
     override fun calculateDistance(geofence: TripGeofenceEntity, lat: Double, lon: Double): Float {
         return TripDetectionEngine.computeGeodesicDistance(lat, lon, geofence.latitude, geofence.longitude).toFloat()
     }
+
+    override fun enabledGeofences(): List<TripGeofenceEntity> = _geofences.value.filter { it.isEnabled }
 
     override fun findGeofenceContaining(lat: Double, lon: Double, onlyEnabled: Boolean): TripGeofenceEntity? {
         val candidateList = if (onlyEnabled) {

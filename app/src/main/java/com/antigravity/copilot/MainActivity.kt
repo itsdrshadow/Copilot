@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
         if (fineGranted || coarseGranted) {
             DrivingTrackingService.start(this)
             requestBackgroundLocationIfNeeded()
+            requestBatteryOptimizationExemptionIfNeeded()
         }
     }
 
@@ -229,6 +230,27 @@ class MainActivity : ComponentActivity() {
                     Manifest.permission.ACCESS_COARSE_LOCATION
                 )
             )
+        }
+    }
+
+    /**
+     * Tracking must survive screen-off / Doze: ask once per launch for the battery-optimisation
+     * exemption if the app is not already whitelisted. Fails silently on OEMs without the screen.
+     */
+    private fun requestBatteryOptimizationExemptionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        try {
+            val pm = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                @android.annotation.SuppressLint("BatteryLife")
+                val intent = android.content.Intent(
+                    android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    android.net.Uri.parse("package:$packageName")
+                )
+                startActivity(intent)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("MainActivity", "Battery optimisation exemption prompt unavailable: ${e.message}")
         }
     }
 

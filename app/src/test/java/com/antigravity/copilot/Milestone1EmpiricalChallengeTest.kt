@@ -321,8 +321,8 @@ class Milestone1EmpiricalChallengeTest {
         assertNull(completedSummary)
 
         // 2. Tick at syntheticT0 + 15s: standstill >= 15s -> must transition to TEMPORARY_STOP
-        engine.processStationaryWatchdog(syntheticT0 + 15000L)
-        assertEquals("Standstill >= 15s must transition to TEMPORARY_STOP", TripStatus.TEMPORARY_STOP, engine.currentStatus)
+        engine.processStationaryWatchdog(syntheticT0 + 31000L)
+        assertEquals("Standstill > 30s must transition to TEMPORARY_STOP", TripStatus.TEMPORARY_STOP, engine.currentStatus)
         assertNull(completedSummary)
 
         // 3. Tick at syntheticT0 + 299s: stoppedSec = 299s < 300s -> must remain TEMPORARY_STOP
