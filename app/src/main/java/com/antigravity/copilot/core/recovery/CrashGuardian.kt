@@ -7,7 +7,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Process
 import android.util.Log
-import com.antigravity.copilot.core.map.IndiaOfflineMapManager
+import com.antigravity.copilot.core.map.OfflineMapManager
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -179,9 +179,9 @@ object CrashGuardian {
             .putInt("safe_mode_gps_interval_ms", if (enabled) 5000 else 1000)
             .apply()
 
-        // Also notify IndiaOfflineMapManager to switch to lightweight mode
+        // Also notify OfflineMapManager to switch to lightweight mode
         if (enabled) {
-            IndiaOfflineMapManager.setLightweightMode(true)
+            OfflineMapManager.setLightweightMode(true)
         }
 
         Log.i(TAG, "Safe mode ${if (enabled) "enabled" else "disabled"} - resource usage ${if (enabled) "reduced" else "restored"}")

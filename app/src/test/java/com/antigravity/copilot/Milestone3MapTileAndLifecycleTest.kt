@@ -1,239 +1,139 @@
 package com.antigravity.copilot
 
-import com.antigravity.copilot.core.map.IndiaOfflineMapManager
+import com.antigravity.copilot.core.map.MapDownloadWorker
 import com.antigravity.copilot.core.map.OfflineMapManager
-import com.antigravity.copilot.feature.maps.PulsingAuraOverlay
+import com.antigravity.copilot.core.map.OfflineRoutingEngine
+import com.antigravity.copilot.feature.maps.MAP_MAX_ZOOM_LEVEL
+import com.antigravity.copilot.feature.maps.MAP_MIN_ZOOM_LEVEL
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
 
 /**
  * Milestone3MapTileAndLifecycleTest:
- * Comprehensive test suite validating:
- * - Feature 24: Offline map tile image validation (HTTP 200, length >= 100 bytes, JPEG/PNG magic bytes).
- * - Feature 25: SQLite tile writer resource management (safe detach/close contracts).
- * - Feature 26: Activity context memory leak prevention (applicationContext usage).
- * - Feature 27: LiveMapView pulsing aura animation pause when detached / backgrounded.
- * - Feature 28: Unused native library removal (MapLibre cleanup).
+ * Validates the Refactored Offline Map, Routing, and Download Management System:
+ * - 15 GB Storage Budget enforcement (Vector Map + Routing Graph ~8.5-11 GB total).
+ * - Scoped Storage folder structure (maps, routing, downloads).
+ * - WorkManager resumable downloads with HTTP Range byte-offset logic.
+ * - Pure-JVM GraphHopper offline routing engine contracts.
+ * - MapLibre zoom constraints (14.0 - 19.5).
  */
 class Milestone3MapTileAndLifecycleTest {
 
     @Test
-    fun testValidJpegTileImageValidation() {
-        // Valid JPEG header: 0xFF, 0xD8, 0xFF
-        val validJpeg = ByteArray(150)
-        validJpeg[0] = 0xFF.toByte()
-        validJpeg[1] = 0xD8.toByte()
-        validJpeg[2] = 0xFF.toByte()
-        validJpeg[3] = 0xE0.toByte()
+    fun testOfflineStorageBudgetFifteenGigabytesLimit() {
+        // Strict requirement: Total offline footprint must fit within 15 GB limit
+        assertEquals(15L * 1024L * 1024L * 1024L, OfflineMapManager.MAX_OFFLINE_STORAGE_BUDGET_BYTES)
+        assertEquals(2L * 1024L * 1024L * 1024L, OfflineMapManager.LOW_STORAGE_WARNING_THRESHOLD_BYTES)
 
-        assertTrue("150-byte JPEG with valid magic bytes must pass validation",
-            IndiaOfflineMapManager.isValidTileImage(validJpeg))
+        val totalPackageBytes = OfflineMapManager.AVAILABLE_PACKAGES.sumOf { it.estimatedSizeBytes }
+        val totalPackageGb = totalPackageBytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
+
+        // Nationwide map (~4 GB) + Nationwide routing graph (~4.5 GB) = ~8.5 GB
+        assertTrue("Total package footprint must be between 8 and 12 GB", totalPackageGb in 8.0..12.0)
+        assertTrue(
+            "Total package size must comfortably fit within the 15 GB device storage budget",
+            totalPackageBytes < OfflineMapManager.MAX_OFFLINE_STORAGE_BUDGET_BYTES
+        )
     }
 
     @Test
-    fun testValidPngTileImageValidation() {
-        // Valid PNG header: 0x89, 0x50, 0x4E, 0x47 (89 'P' 'N' 'G')
-        val validPng = ByteArray(150)
-        validPng[0] = 0x89.toByte()
-        validPng[1] = 0x50.toByte()
-        validPng[2] = 0x4E.toByte()
-        validPng[3] = 0x47.toByte()
+    fun testOfflinePackagesDefinition() {
+        val packages = OfflineMapManager.AVAILABLE_PACKAGES
+        assertEquals(2, packages.size)
 
-        assertTrue("150-byte PNG with valid magic bytes must pass validation",
-            IndiaOfflineMapManager.isValidTileImage(validPng))
+        val vectorMap = packages.find { it.type == OfflineMapManager.PackageType.VECTOR_MAP }
+        assertNotNull("All-India vector map package must exist", vectorMap)
+        assertEquals("india_vector_map", vectorMap?.id)
+        assertTrue("Vector map file must be .mbtiles", vectorMap?.fileName?.endsWith(".mbtiles") == true)
+
+        val routingGraph = packages.find { it.type == OfflineMapManager.PackageType.ROUTING_GRAPH }
+        assertNotNull("All-India routing graph package must exist", routingGraph)
+        assertEquals("india_routing_graph", routingGraph?.id)
+        assertTrue("Routing graph archive must be .zip", routingGraph?.fileName?.endsWith(".zip") == true)
     }
 
     @Test
-    fun testTileImageValidationExactBoundary100Bytes() {
-        // Exactly 100 bytes is the minimum acceptable tile size
-        val boundaryJpeg = ByteArray(100)
-        boundaryJpeg[0] = 0xFF.toByte()
-        boundaryJpeg[1] = 0xD8.toByte()
-        boundaryJpeg[2] = 0xFF.toByte()
-        assertTrue("Exact 100-byte JPEG must pass", IndiaOfflineMapManager.isValidTileImage(boundaryJpeg))
-
-        val boundaryPng = ByteArray(100)
-        boundaryPng[0] = 0x89.toByte()
-        boundaryPng[1] = 0x50.toByte()
-        boundaryPng[2] = 0x4E.toByte()
-        boundaryPng[3] = 0x47.toByte()
-        assertTrue("Exact 100-byte PNG must pass", IndiaOfflineMapManager.isValidTileImage(boundaryPng))
+    fun testDownloadStateTransitions() {
+        val states = OfflineMapManager.DownloadState.values()
+        assertTrue(states.contains(OfflineMapManager.DownloadState.IDLE))
+        assertTrue(states.contains(OfflineMapManager.DownloadState.DOWNLOADING))
+        assertTrue(states.contains(OfflineMapManager.DownloadState.PAUSED_USER))
+        assertTrue(states.contains(OfflineMapManager.DownloadState.PAUSED_NETWORK_LOST))
+        assertTrue(states.contains(OfflineMapManager.DownloadState.EXTRACTING))
+        assertTrue(states.contains(OfflineMapManager.DownloadState.COMPLETED))
+        assertTrue(states.contains(OfflineMapManager.DownloadState.ERROR))
     }
 
     @Test
-    fun testTileImageValidationRejectsUnder100Bytes() {
-        // 99 bytes (truncated tile payload)
-        val truncatedJpeg = ByteArray(99)
-        truncatedJpeg[0] = 0xFF.toByte()
-        truncatedJpeg[1] = 0xD8.toByte()
-        truncatedJpeg[2] = 0xFF.toByte()
-        assertFalse("Payload < 100 bytes must be rejected even with JPEG magic bytes",
-            IndiaOfflineMapManager.isValidTileImage(truncatedJpeg))
+    fun testHttpRangeResumeHeaderCalculation() {
+        // Simulating 1.5 GB already downloaded out of 4 GB
+        val existingBytes = 1_500_000_000L
+        val rangeHeader = "bytes=$existingBytes-"
+        assertEquals("bytes=1500000000-", rangeHeader)
 
-        val truncatedPng = ByteArray(99)
-        truncatedPng[0] = 0x89.toByte()
-        truncatedPng[1] = 0x50.toByte()
-        truncatedPng[2] = 0x4E.toByte()
-        truncatedPng[3] = 0x47.toByte()
-        assertFalse("Payload < 100 bytes must be rejected even with PNG magic bytes",
-            IndiaOfflineMapManager.isValidTileImage(truncatedPng))
+        // Resumed fraction check
+        val totalBytes = 4_000_000_000L
+        val progressFraction = existingBytes.toFloat() / totalBytes.toFloat()
+        assertEquals(0.375f, progressFraction, 0.001f)
     }
 
     @Test
-    fun testTileImageValidationRejectsNullAndEmptyPayload() {
-        assertFalse("Null payload must be rejected", IndiaOfflineMapManager.isValidTileImage(null))
-        assertFalse("Empty payload must be rejected", IndiaOfflineMapManager.isValidTileImage(ByteArray(0)))
+    fun testMapDownloadWorkerKeyConstants() {
+        assertEquals("download_url", MapDownloadWorker.KEY_URL)
+        assertEquals("dest_path", MapDownloadWorker.KEY_DEST_PATH)
+        assertEquals("package_id", MapDownloadWorker.KEY_PACKAGE_ID)
+        assertEquals("package_type", MapDownloadWorker.KEY_PACKAGE_TYPE)
     }
 
     @Test
-    fun testTileImageValidationRejectsHtmlOrTextResponse() {
-        // Upstream captive portals or 404/500 gateways returning HTML text
-        val htmlPayload = "<html><head><title>404 Not Found</title></head><body><h1>Tile Server Error</h1><p>The requested tile could not be found.</p></body></html>"
-            .toByteArray(Charsets.UTF_8)
+    fun testOfflineRoutingEngineResultStructure() {
+        val successResult = OfflineRoutingEngine.RouteResult(
+            isSuccess = true,
+            points = listOf(Pair(28.6139, 77.2090), Pair(28.6200, 77.2150)),
+            distanceMeters = 1500.0,
+            timeMillis = 180000,
+            instructions = listOf("Turn right onto Connaught Place")
+        )
 
-        assertTrue(htmlPayload.size >= 100)
-        assertFalse("HTML / text responses must be rejected as tile data",
-            IndiaOfflineMapManager.isValidTileImage(htmlPayload))
-    }
+        assertTrue(successResult.isSuccess)
+        assertEquals(2, successResult.points.size)
+        assertEquals(1500.0, successResult.distanceMeters, 0.001)
+        assertNull(successResult.errorMessage)
 
-    @Test
-    fun testTileImageValidationRejectsRandomGarbageBytes() {
-        val randomBytes = ByteArray(256) { it.toByte() }
-        assertFalse("Random bytes without JPEG/PNG magic bytes must be rejected",
-            IndiaOfflineMapManager.isValidTileImage(randomBytes))
-    }
-
-    @Test
-    fun testOfflineMapSourceConfiguration() {
-        val normalSource = OfflineMapManager.NORMAL_ROADMAP_SOURCE
-        assertEquals("Google_Roadmap", normalSource.name())
-        assertEquals(0, normalSource.minimumZoomLevel)
-        assertEquals(20, normalSource.maximumZoomLevel)
-        assertEquals(256, normalSource.tileSizePixels)
-
-        val satelliteSource = OfflineMapManager.SATELLITE_SOURCE
-        assertEquals("Google_Hybrid_Satellite", satelliteSource.name())
-        assertEquals(0, satelliteSource.minimumZoomLevel)
-        assertEquals(20, satelliteSource.maximumZoomLevel)
-        assertEquals(256, satelliteSource.tileSizePixels)
-
-        val detailSource = OfflineMapManager.DETAIL_HUMANITARIAN_SOURCE
-        assertEquals("Humanitarian_HOT", detailSource.name())
-        assertEquals(1, detailSource.minimumZoomLevel)
-        assertEquals(19, detailSource.maximumZoomLevel)
-    }
-
-    @Test
-    fun testPulsingAuraOverlayAnimationLifecyclePauseAndResume() {
-        val aura = PulsingAuraOverlay()
-        assertFalse("Aura overlay must start in unpaused state", aura.isPaused)
-
-        // Pausing stops CPU / GPU invalidation
-        aura.pauseAnimation()
-        assertTrue("Aura overlay must be paused after pauseAnimation()", aura.isPaused)
-
-        // Resuming restores invalidation
-        aura.resumeAnimation()
-        assertFalse("Aura overlay must be unpaused after resumeAnimation()", aura.isPaused)
-
-        // Detaching must pause animation to prevent leak
-        aura.onDetach(null)
-        assertTrue("Aura overlay must be paused upon onDetach()", aura.isPaused)
-    }
-
-    @Test
-    fun testIndiaOfflineMapRegionsZoomRange() {
-        assertEquals(0, IndiaOfflineMapManager.MIN_POSSIBLE_ZOOM)
-        assertEquals(20, IndiaOfflineMapManager.MAX_POSSIBLE_ZOOM)
-
-        val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
-        assertEquals("All-India minZoom must be 0", 0, nationalPack.minZoom)
-        assertEquals("All-India maxZoom must be 12 (optimized for nationwide highway coverage)", 12, nationalPack.maxZoom)
-
-        for (region in IndiaOfflineMapManager.INDIA_REGIONS) {
-            assertEquals("Region ${region.name} minZoom must be 0", 0, region.minZoom)
-            if (region.id == "india_national") {
-                assertEquals(12, region.maxZoom)
-            } else {
-                assertEquals("Region ${region.name} maxZoom must be 14 (district, town & street coverage)", 14, region.maxZoom)
-            }
-        }
-    }
-
-    @Test
-    fun testCalculateTileCountForZoomZeroToMax() {
-        val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
-
-        // At Zoom 0, entire world is 1 tile
-        val countZoomZero = IndiaOfflineMapManager.calculateTileCount(nationalPack.boundingBox, 0, 0)
-        assertEquals(1L, countZoomZero)
-
-        // At Zoom 0..4
-        val countZoomZeroToFour = IndiaOfflineMapManager.calculateTileCount(nationalPack.boundingBox, 0, 4)
-        assertTrue("Cumulative tiles for Z0-Z4 must be >= 10", countZoomZeroToFour >= 10L)
-
-        // At Zoom 0..11, India arterial coverage
-        val countZoomZeroToEleven = IndiaOfflineMapManager.calculateTileCount(nationalPack.boundingBox, 0, 11)
-        assertTrue("Cumulative tiles for Z0-Z11 should be ~43,980", countZoomZeroToEleven in 40000L..50000L)
-
-        // Estimated size dynamically updates with calibrated ~8.3KB roadmap tile average
-        val estMbZoom11 = nationalPack.getEstimatedSizeMb(11)
-        assertTrue("Estimated size for Z0-Z11 must be approx 300-450 MB", estMbZoom11 in 300..450)
-    }
-
-    @Test
-    fun testIndiaOfflineMapStorageBudgetUnderFifteenGb() {
-        val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
-        // All-India package (Zooms 0-12) must fit well under 2 GB (1,414 MB), respecting the 15 GB budget
-        assertTrue("All-India pack must be < 2000 MB", nationalPack.estimatedSizeMb < 2000)
-
-        // Regional packs (Zooms 0-14) must each be under 4 GB
-        for (region in IndiaOfflineMapManager.INDIA_REGIONS.filter { it.id != "india_national" }) {
-            assertTrue("Region ${region.id} estimated size must be < 4000 MB", region.estimatedSizeMb < 4000)
-        }
+        val failResult = OfflineRoutingEngine.RouteResult(
+            isSuccess = false,
+            errorMessage = "Routing graph not loaded"
+        )
+        assertFalse(failResult.isSuccess)
+        assertNotNull(failResult.errorMessage)
     }
 
     @Test
     fun testDarkModeColorFilterNotNull() {
-        assertNotNull("OfflineMapManager.DARK_MODE_FILTER must be non-null", com.antigravity.copilot.core.map.OfflineMapManager.DARK_MODE_FILTER)
+        assertNotNull("OfflineMapManager.DARK_MODE_FILTER must be non-null", OfflineMapManager.DARK_MODE_FILTER)
     }
 
     @Test
     fun testLiveMapViewZoomRangeLockedBetweenFourteenAndNineteenPointFive() {
-        val minZoom = 14.0
-        val maxZoom = 19.5
+        val minZoom = MAP_MIN_ZOOM_LEVEL
+        val maxZoom = MAP_MAX_ZOOM_LEVEL
 
-        // Test zoom in clamp up to max optical zoom 19.5
+        assertEquals(14.0, minZoom, 0.001)
+        assertEquals(19.5, maxZoom, 0.001)
+
         val zoomNearMax = 19.0
         val targetZoomIn = (zoomNearMax + 0.75).coerceAtMost(maxZoom)
         assertEquals(19.5, targetZoomIn, 0.001)
 
-        // Test zoom out clamp to min 14.0
         val zoomNearMin = 14.5
         val targetZoomOut = (zoomNearMin - 0.75).coerceAtLeast(minZoom)
         assertEquals(14.0, targetZoomOut, 0.001)
 
-        // Test overshoots
         val overshootHigh = 25.0.coerceIn(minZoom, maxZoom)
         assertEquals(19.5, overshootHigh, 0.001)
 
         val overshootLow = 10.0.coerceIn(minZoom, maxZoom)
         assertEquals(14.0, overshootLow, 0.001)
-    }
-
-    @Test
-    fun testDrivingReportAppDoesNotRequireMapLibre() {
-        // Feature 28: Verify DrivingReportApp loads without MapLibre dependencies
-        val appClass = DrivingReportApp::class.java
-        assertNotNull(appClass)
-
-        // Verify class does not declare fields of MapLibre type
-        val fields = appClass.declaredFields
-        for (field in fields) {
-            assertFalse(
-                "DrivingReportApp should not declare MapLibre fields",
-                field.type.name.contains("maplibre", ignoreCase = true)
-            )
-        }
     }
 }

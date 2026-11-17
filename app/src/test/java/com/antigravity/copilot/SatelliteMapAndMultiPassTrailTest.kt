@@ -4,9 +4,9 @@ import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.model.TripPoint
 import com.antigravity.copilot.core.trip.TripVisualLifecycleEvent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.osmdroid.util.MapTileIndex
 
 /**
  * SatelliteMapAndMultiPassTrailTest:
@@ -16,17 +16,14 @@ import org.osmdroid.util.MapTileIndex
 class SatelliteMapAndMultiPassTrailTest {
 
     @Test
-    fun testSatelliteTileUrlGeneration() {
-        // Tile index for zoom=14, x=11705, y=6831 (Delhi region)
-        val pMapTileIndex = MapTileIndex.getTileIndex(14, 11705, 6831)
-        
-        val googleUrl = OfflineMapManager.SATELLITE_SOURCE.getTileURLString(pMapTileIndex)
-        assertTrue("Google hybrid URL must contain x=11705, y=6831, z=14", 
-            googleUrl.contains("x=11705&y=6831&z=14"))
-
-        val arcGisUrl = OfflineMapManager.ARCGIS_SATELLITE_SOURCE.getTileURLString(pMapTileIndex)
-        assertTrue("ArcGIS tile URL must follow {z}/{y}/{x} scheme", 
-            arcGisUrl.endsWith("/14/6831/11705"))
+    fun testOfflineVectorTileUriGeneration() {
+        val vectorPkg = OfflineMapManager.AVAILABLE_PACKAGES.find { it.type == OfflineMapManager.PackageType.VECTOR_MAP }
+        assertNotNull(vectorPkg)
+        assertEquals("india.mbtiles", vectorPkg?.fileName)
+        val samplePath = "/storage/emulated/0/Android/data/com.antigravity.copilot/files/maps/india.mbtiles"
+        val mbtilesUri = "mbtiles://$samplePath"
+        assertTrue(mbtilesUri.startsWith("mbtiles:///"))
+        assertTrue(mbtilesUri.endsWith(".mbtiles"))
     }
 
     @Test

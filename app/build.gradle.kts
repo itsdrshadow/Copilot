@@ -23,6 +23,10 @@ android {
         buildConfigField("String", "VERSION_NAME", "\"1.41.0\"")
         buildConfigField("int", "VERSION_CODE", "68")
 
+        ndk {
+            abiFilters.add("armeabi-v7a")
+        }
+
         kapt {
             arguments {
                 arg("room.schemaLocation", "$projectDir/schemas")
@@ -69,6 +73,10 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/INDEX.LIST"
+            excludes += "META-INF/license.txt"
+            excludes += "META-INF/notice.txt"
         }
     }
 
@@ -109,8 +117,15 @@ dependencies {
     // Jetpack DataStore (Preferences & Versioned Settings)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
-    // Map Engine: OSMDroid (Canvas rock-solid offline/online)
-    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    // Map Engine: MapLibre Android SDK (Pinned to 10.3.2 for armeabi-v7a & head unit GPUs)
+    implementation("org.maplibre.gl:android-sdk:10.3.2")
+
+    // Pure-JVM Offline Routing Engine (32-bit armeabi-v7a compatible)
+    implementation("com.graphhopper:graphhopper-core:8.0")
+
+    // WorkManager & OkHttp (Resumable downloads with Range header)
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Location (Fused Location + Fallback to native LocationManager)
     implementation("com.google.android.gms:play-services-location:21.1.0")

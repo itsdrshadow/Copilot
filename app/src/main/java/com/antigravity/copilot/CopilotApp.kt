@@ -31,8 +31,13 @@ class CopilotApp : Application() {
             Log.e(TAG, "StorageMigrationManager initialization exception: ${e.message}", e)
         }
 
-        // 3. Initialize OSMDroid 100% Offline-First Map Engine with 10-year SQLite persistence
-        OfflineMapManager.initOfflineConfiguration(this)
+        // 3. Initialize MapLibre Native & Offline Map Engine (32-bit armeabi-v7a)
+        try {
+            com.mapbox.mapboxsdk.Mapbox.getInstance(this)
+        } catch (e: Throwable) {
+            Log.w(TAG, "MapLibre Native init: ${e.message}")
+        }
+        OfflineMapManager.init(this)
 
         // 4. Auto-start continuous tracking service on app launch
         DrivingTrackingService.start(this)

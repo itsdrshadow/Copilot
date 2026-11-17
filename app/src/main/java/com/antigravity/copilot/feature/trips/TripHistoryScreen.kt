@@ -67,12 +67,9 @@ import com.antigravity.copilot.core.database.TripPointEntity
 import com.antigravity.copilot.core.designsystem.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-import org.osmdroid.util.BoundingBox
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Polyline
 import com.antigravity.copilot.core.map.OfflineMapManager
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.StrokeJoin
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.max
@@ -2351,7 +2348,7 @@ private fun MonthlyDistanceCanvas(
     }
 }
 
-// ==================== OSMDROID MAP VIEW COMPOSABLE ====================
+// ==================== TRIP PLAYBACK ROUTE COMPOSABLE ====================
 
 @Composable
 fun TripPlaybackMapView(
@@ -2359,144 +2356,121 @@ fun TripPlaybackMapView(
     currentIndex: Int,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
-    var vehicleMarker by remember { mutableStateOf<Marker?>(null) }
-    var fullRoutePolyline by remember { mutableStateOf<Polyline?>(null) }
-    var trailPolyline by remember { mutableStateOf<Polyline?>(null) }
-    var startMarker by remember { mutableStateOf<Marker?>(null) }
-    var endMarker by remember { mutableStateOf<Marker?>(null) }
-    val cachedGeoPoints = remember(points) {
-        points.map { GeoPoint(it.latitude, it.longitude) }
+    if (points.isEmpty()) {
+        Box(
+            modifier = modifier.background(Color(0xFF0F151F)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No trip GPS trail recorded", color = Color.White.copy(alpha = 0.5f))
+        }
+        return
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            mapViewInstance?.onPause()
-            mapViewInstance?.onDetach()
-            mapViewInstance = null
+    // Calculate normalized bounding box for Canvas projection
+    val bounds = remember(points) {
+        var minLat = Double.MAX_VALUE
+        var maxLat = -Double.MAX_VALUE
+        var minLon = Double.MAX_VALUE
+        var maxLon = -Double.MAX_VALUE
+        points.forEach { pt ->
+            if (pt.latitude < minLat) minLat = pt.latitude
+            if (pt.latitude > maxLat) maxLat = pt.latitude
+            if (pt.longitude < minLon) minLon = pt.longitude
+            if (pt.longitude > maxLon) maxLon = pt.longitude
+        }
+        val latSpan = (maxLat - minLat).coerceAtLeast(0.001)
+        val lonSpan = (maxLon - minLon).coerceAtLeast(0.001)
+        object {
+            val minLa = minLat - latSpan * 0.1
+            val maxLa = maxLat + latSpan * 0.1
+            val minLo = minLon - lonSpan * 0.1
+            val maxLo = maxLon + lonSpan * 0.1
+            val spanLat = (maxLa - minLa)
+            val spanLon = (maxLo - minLo)
         }
     }
 
-    LaunchedEffect(points, mapViewInstance) {
-        val mv = mapViewInstance ?: return@LaunchedEffect
-        if (points.size >= 2) {
-            var minLat = Double.MAX_VALUE
-            var maxLat = -Double.MAX_VALUE
-            var minLon = Double.MAX_VALUE
-            var maxLon = -Double.MAX_VALUE
-            points.forEach { pt ->
-                if (pt.latitude < minLat) minLat = pt.latitude
-                if (pt.latitude > maxLat) maxLat = pt.latitude
-                if (pt.longitude < minLon) minLon = pt.longitude
-                if (pt.longitude > maxLon) maxLon = pt.longitude
-            }
-            val latSpan = (maxLat - minLat).coerceAtLeast(0.005)
-            val lonSpan = (maxLon - minLon).coerceAtLeast(0.005)
-            val box = BoundingBox(
-                maxLat + latSpan * 0.25,
-                maxLon + lonSpan * 0.25,
-                minLat - latSpan * 0.25,
-                minLon - lonSpan * 0.25
-            )
+    Box(
+        modifier = modifier
+            .background(Color(0xFF0A0E17))
+            .border(1.dp, Color(0xFF1B2433))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+            val w = size.width
+            val h = size.height
 
-            fullRoutePolyline?.setPoints(cachedGeoPoints)
-
-            val startGeo = cachedGeoPoints.firstOrNull() ?: GeoPoint(points.first().latitude, points.first().longitude)
-            startMarker?.apply {
-                position = startGeo
-                title = "Trip Start"
-                icon = createTripFlagDrawable(context, "START", android.graphics.Color.parseColor("#00E676"))
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                setVisible(true)
+            fun project(lat: Double, lon: Double): Offset {
+                val x = ((lon - bounds.minLo) / bounds.spanLon * w).toFloat()
+                val y = (h - ((lat - bounds.minLa) / bounds.spanLat * h)).toFloat()
+                return Offset(x, y)
             }
 
-            val endGeo = cachedGeoPoints.lastOrNull() ?: GeoPoint(points.last().latitude, points.last().longitude)
-            endMarker?.apply {
-                position = endGeo
-                title = "Trip End"
-                icon = createTripFlagDrawable(context, "END", android.graphics.Color.parseColor("#FF5252"))
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                setVisible(true)
-            }
-
-            mv.post {
-                mv.zoomToBoundingBox(box, false)
-                mv.invalidate()
-            }
-        }
-    }
-
-    AndroidView(
-        modifier = modifier.clipToBounds(),
-        factory = { ctx ->
-            MapView(ctx).apply {
-                clipToOutline = true
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
+            // Draw full trip path in muted cyan
+            if (points.size >= 2) {
+                val fullPath = Path()
+                val firstPt = project(points.first().latitude, points.first().longitude)
+                fullPath.moveTo(firstPt.x, firstPt.y)
+                for (i in 1 until points.size) {
+                    val p = project(points[i].latitude, points[i].longitude)
+                    fullPath.lineTo(p.x, p.y)
+                }
+                drawPath(
+                    path = fullPath,
+                    color = Color(0xFF1E3A5F),
+                    style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
-                setMultiTouchControls(true)
-                minZoomLevel = 0.0
-                maxZoomLevel = 20.0
-                zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-                setTileSource(OfflineMapManager.NORMAL_ROADMAP_SOURCE)
-                overlayManager.tilesOverlay.setColorFilter(null)
 
-                // Background route line (High contrast against photorealistic satellite)
-                val fullLine = Polyline().apply {
-                    outlinePaint.color = android.graphics.Color.parseColor("#8038BDF8")
-                    outlinePaint.strokeWidth = 10f
-                    outlinePaint.strokeCap = android.graphics.Paint.Cap.ROUND
+                // Draw playback active trail
+                val safeIdx = currentIndex.coerceIn(0, points.lastIndex)
+                if (safeIdx >= 1) {
+                    val activePath = Path()
+                    activePath.moveTo(firstPt.x, firstPt.y)
+                    for (i in 1..safeIdx) {
+                        val p = project(points[i].latitude, points[i].longitude)
+                        activePath.lineTo(p.x, p.y)
+                    }
+                    drawPath(
+                        path = activePath,
+                        color = Color(0xFF00E5FF),
+                        style = Stroke(width = 12f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    )
                 }
-                overlays.add(fullLine)
-                fullRoutePolyline = fullLine
 
-                // Active glowing trail
-                val trail = Polyline().apply {
-                    outlinePaint.color = android.graphics.Color.parseColor("#00E5FF")
-                    outlinePaint.strokeWidth = 14f
-                    outlinePaint.strokeCap = android.graphics.Paint.Cap.ROUND
-                }
-                overlays.add(trail)
-                trailPolyline = trail
+                // Draw Start Marker (Green)
+                drawCircle(
+                    color = Color(0xFF00E676),
+                    radius = 12f,
+                    center = firstPt
+                )
 
-                // Start Marker
-                val startM = Marker(this).apply { setVisible(false) }
-                overlays.add(startM)
-                startMarker = startM
+                // Draw End Marker (Red)
+                val lastPt = project(points.last().latitude, points.last().longitude)
+                drawCircle(
+                    color = Color(0xFFFF5252),
+                    radius = 12f,
+                    center = lastPt
+                )
 
-                // End Marker
-                val endM = Marker(this).apply { setVisible(false) }
-                overlays.add(endM)
-                endMarker = endM
-
-                // Vehicle Marker
-                val carMarker = Marker(this).apply {
-                    icon = ContextCompat.getDrawable(ctx, R.drawable.ic_navigation_car)
-                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                }
-                overlays.add(carMarker)
-                vehicleMarker = carMarker
-
-                mapViewInstance = this
-            }
-        },
-        update = { mapView ->
-            if (cachedGeoPoints.isNotEmpty() && currentIndex in cachedGeoPoints.indices) {
-                val geoPt = cachedGeoPoints[currentIndex]
-                val currentPt = points[currentIndex]
-
-                vehicleMarker?.position = geoPt
-                vehicleMarker?.rotation = 360f - currentPt.bearing
-
-                val playedPts = cachedGeoPoints.subList(0, currentIndex + 1)
-                trailPolyline?.setPoints(playedPts)
-
-                mapView.invalidate()
+                // Draw Current Vehicle Position Puck
+                val currentPt = project(points[safeIdx].latitude, points[safeIdx].longitude)
+                drawCircle(
+                    color = Color(0xFF00E5FF).copy(alpha = 0.35f),
+                    radius = 24f,
+                    center = currentPt
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 10f,
+                    center = currentPt
+                )
+                drawCircle(
+                    color = Color(0xFF00E5FF),
+                    radius = 7f,
+                    center = currentPt
+                )
             }
         }
-    )
+    }
 }
 
 // ==================== TIMELINE & STATS GENERATORS ====================

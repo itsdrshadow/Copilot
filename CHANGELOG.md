@@ -9,22 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.41.0] - 2026-11-17
 
-### Changed
-- **Upgraded Offline Map Storage Budget to 15 GB Max**:
-  - Increased offline map tile cache limit from 10 GB to **15 GB** (`tileFileSystemCacheMaxBytes = 15000L * 1024 * 1024`) with a 14 GB trim threshold in `OfflineMapManager`.
-  - Updated storage telemetry status banner in `IndiaOfflineMapDialog` to reflect `STORAGE: X MB / 15 GB MAX`.
-- **Expanded Regional Offline Download Depth to Zoom 14 (Streets, Shops & Towns)**:
-  - Upgraded regional packs (Central, North, West, South, East) from Zoom 13 to Zoom 14 in `IndiaOfflineMapManager`, providing detailed offline coverage of local roads, streets, shops, and district intersections.
-  - Recalibrated accurate estimates for Zoom 14 packs: Central India CG & MP (~1,776 MB), North (~3,363 MB), West (~1,298 MB), South (~1,664 MB), and East (~2,943 MB).
-- **Locked Cockpit Live Map Zoom Spectrum (Zoom 14.0 to 19.5)**:
-  - Set `MAP_MIN_ZOOM_LEVEL = 14.0` and `MAP_MAX_ZOOM_LEVEL = 19.5` in `LiveMapView`.
-  - Configured `+` and `-` zoom controls, touch pinch-to-zoom, and auto-focus camera to remain locked within this optimal driving range so roads, shops, POIs, and GPS trails are always clear without zooming out into outer space or zooming into blank/grey tiles.
+### Added
+- **MapLibre Android SDK v10.3.2 Native Integration**:
+  - Replaced legacy OSMDroid raster map engine with MapLibre GL Native `v10.3.2` pinned strictly for 32-bit `armeabi-v7a` CPU architecture and older head unit GPUs.
+  - Added `ndk { abiFilters.add("armeabi-v7a") }` in `app/build.gradle.kts`.
+  - Configured MapLibre `MapView` with `textureMode(true)` preventing black-screen compositing and GPU z-ordering bugs on Android 11 car head units.
+- **Pure-JVM Offline Turn-by-Turn Routing Engine (GraphHopper Core)**:
+  - Added pure-JVM `OfflineRoutingEngine` powered by GraphHopper Core v8.0 reading extracted routing graph data directly from Scoped Storage `context.getExternalFilesDir("routing")`.
+  - Computes turn-by-turn maneuvers and draws real-time high-contrast cyan polyline routes with dark casing on the MapLibre map.
+- **WorkManager & OkHttp Resumable Download Engine**:
+  - Implemented `MapDownloadWorker` utilizing OkHttp with HTTP `Range` byte-offset support (`bytes=$existingLength-`) ensuring multi-GB map downloads survive car ignition power cuts and flaky mobile hotspots.
+  - Automatic extraction of routing graph `.zip` archives into `getExternalFilesDir("routing")` followed by immediate archive cleanup to strictly protect the 15 GB storage budget.
+- **Automotive-Grade Offline Maps & Routing Manager Screen**:
+  - Created `OfflineMapsManagerScreen` / `OfflineMapsManagerDialog` featuring large automotive touch targets (>= 56dp).
+  - Multi-segment device storage telemetry bar with critical alert if remaining free storage drops below 2.0 GB.
+  - Live download progress card showing percentage, MB/s speed, Pause, Resume, and Cancel buttons.
+  - Package cards for All-India Vector Map (~4.0 GB) and All-India Routing Graph (~4.5 GB) with Download, Update, and Delete actions.
+  - One-touch USB / SD Card Import scanning external storage mounts (`/storage/`) to copy and extract pre-downloaded `.mbtiles` and routing `.zip` files.
+- **Bundled Offline Vector Map Style**:
+  - Added `assets/offline_style/style.json` with a dedicated automotive dark theme (openmaptiles schema) dynamically bound to local `.mbtiles` files via `mbtiles://` URIs with zero network requests.
 
-### Fixed
-- **Calibrated Offline Map Download Size Estimation**:
-  - Calibrated the roadmap tile storage estimation model from 22 KB down to empirical ~8.3 KB average per tile in `IndiaOfflineMapManager`.
-  - Resolved inflated GB estimates: Central India (CG & MP, Zooms 0-13, 55,252 tiles) estimate accurately updated from ~1,187 MB (~1.2 GB) down to ~448 MB, perfectly matching real-world ~450 MB downloaded size.
-  - Recalibrated all regional pack estimates: All-India National (~1,414 MB), North India (~845 MB), West India (~328 MB), South India (~419 MB), and East India (~740 MB).
+### Changed
+- **Car Navigation Controller (`CarMapController`)**:
+  - Implemented 60fps smooth GPS vehicle puck tracking with heading rotation and 45° driving tilt.
+  - Added prompt overlay with a direct launcher button to the Offline Maps Manager when no offline map is installed.
+- **Strict Scoped Storage Compliance (Android 11 / API 30)**:
+  - All maps, routing graphs, and download caches strictly stored under `context.getExternalFilesDir("maps")`, `context.getExternalFilesDir("routing")`, and `context.getExternalFilesDir("downloads")`.
+- **Trip History & Geofence Preview Rendering**:
+  - Refactored `TripPlaybackMapView` and `GeofenceMiniMapView` to high-performance Compose Canvas architectures, eliminating legacy osmdroid view dependencies and memory leaks.
+
+### Removed
+- **Legacy Raster Map Dependencies & Downloader**:
+  - Completely removed `org.osmdroid:osmdroid-android:6.1.18`.
+  - Removed old tile-by-tile batch downloader `IndiaOfflineMapManager.kt` and `IndiaOfflineMapDialog.kt`.
 
 ## [1.40.2] - 2026-11-16
 

@@ -1,385 +1,469 @@
 package com.antigravity.copilot.core.map
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.os.Environment
+import android.os.StatFs
 import android.util.Log
-import com.antigravity.copilot.core.util.NumberFormatUtils
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.cachemanager.CacheManager
-import org.osmdroid.tileprovider.modules.ArchiveFileFactory
-import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
-import org.osmdroid.tileprovider.tilesource.XYTileSource
-import org.osmdroid.util.BoundingBox
-import org.osmdroid.util.MapTileIndex
-import org.osmdroid.views.MapView
+import androidx.work.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
-import java.util.Locale
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.util.concurrent.TimeUnit
+import java.util.zip.ZipInputStream
 
 /**
- * OfflineMapManager:
- * Provides 100% Offline-First Map Navigation for Automotive Infotainment.
- *
- * Key Capabilities:
- * 1. Ultra-detailed tile source: Humanitarian OpenStreetMap (HOT) style
- *    - Full building footprints, house numbers, and building names.
- *    - All essential services: Hospitals, Pharmacies, Petrol/CNG Pumps, ATMs, Banks,
- *      Police stations, Groceries, Schools, Religious places.
- *    - High-contrast street names, highways, and bridges.
- * 2. Permanent SQLite local cache retention:
- *    - 10-year expiration extension (tiles never purged/expired while offline).
- *    - Dedicated permanent storage path in app files directory.
- * 3. Offline Region Pre-Caching (One-Tap 15 km / 25 km download around vehicle).
- * 4. Automatic scanning and loading of external offline map archives (.mbtiles, .sqlite, .zip).
+ * Unified OfflineMapManager:
+ * Manages Scoped Storage (maps, routing, downloads) on Android 11+ head units.
+ * Controls WorkManager-based resumable downloads with Range headers and storage budgeting.
  */
 object OfflineMapManager {
     private const val TAG = "OfflineMapManager"
+    private const val PREFS_NAME = "offline_map_manager_prefs"
+    private const val KEY_LAST_LAT = "last_known_lat"
+    private const val KEY_LAST_LON = "last_known_lon"
 
-    /**
-     * Dark Cockpit Night Filter:
-     * High-contrast inverted matrix with midnight-blue tone.
-     * Prevents cockpit glare and eye fatigue during night driving while maintaining
-     * high-contrast visibility of roads, highways, street names, and building contours.
-     */
-    val DARK_MODE_FILTER = android.graphics.ColorMatrixColorFilter(
-        android.graphics.ColorMatrix(floatArrayOf(
-            -0.75f, 0f, 0f, 0f, 200f,
-            0f, -0.75f, 0f, 0f, 210f,
-            0f, 0f, -0.75f, 0f, 230f,
-            0f, 0f, 0f, 1f, 0f
-        ))
+    const val MAX_OFFLINE_STORAGE_BUDGET_BYTES = 15L * 1024L * 1024L * 1024L // 15 GB
+    const val LOW_STORAGE_WARNING_THRESHOLD_BYTES = 2L * 1024L * 1024L * 1024L // 2 GB
+
+    val DARK_MODE_FILTER: android.graphics.ColorFilter = android.graphics.ColorMatrixColorFilter(
+        floatArrayOf(
+            -1.0f, 0.0f, 0.0f, 0.0f, 255f,
+            0.0f, -1.0f, 0.0f, 0.0f, 255f,
+            0.0f, 0.0f, -1.0f, 0.0f, 255f,
+            0.0f, 0.0f, 0.0f, 1.0f, 0.0f
+        )
     )
 
-    /**
-     * Standard High-Contrast Normal Roadmap:
-     * High-definition vector-styled road tiles with ultra-clear roads, highways, street names,
-     * landmarks, and building footprints. Much easier to read while driving than dark satellite imagery.
-     * Uses Google Normal Roadmap with fallback to OpenStreetMap.
-     */
-    val NORMAL_ROADMAP_SOURCE = object : OnlineTileSourceBase(
-        "Google_Roadmap",
-        0,
-        20,
-        256,
-        ".png",
-        arrayOf(
-            "https://mt0.google.com/vt/lyrs=m&x=",
-            "https://mt1.google.com/vt/lyrs=m&x=",
-            "https://mt2.google.com/vt/lyrs=m&x=",
-            "https://mt3.google.com/vt/lyrs=m&x="
-        ),
-        "© Google"
-    ) {
-        override fun getTileURLString(pMapTileIndex: Long): String {
-            val zoom = MapTileIndex.getZoom(pMapTileIndex)
-            val x = MapTileIndex.getX(pMapTileIndex)
-            val y = MapTileIndex.getY(pMapTileIndex)
-            return "$baseUrl$x&y=$y&z=$zoom"
-        }
+    // Fallback coordinates (New Delhi center)
+    private const val DEFAULT_LAT = 28.6139
+    private const val DEFAULT_LON = 77.2090
+
+    enum class DownloadState {
+        IDLE,
+        DOWNLOADING,
+        PAUSED_USER,
+        PAUSED_NETWORK_LOST,
+        EXTRACTING,
+        COMPLETED,
+        ERROR
     }
 
-    /**
-     * Humanitarian OpenStreetMap (HOT) Tile Source:
-     * High-contrast detailed map rendering with building names, house footprints,
-     * and explicit essential service icons (hospitals, fuel pumps, ATMs, police, etc.)
-     */
-    val DETAIL_HUMANITARIAN_SOURCE = XYTileSource(
-        "Humanitarian_HOT",
-        1,
-        19,
-        256,
-        ".png",
-        arrayOf(
-            "https://a.tile.openstreetmap.fr/hot/",
-            "https://b.tile.openstreetmap.fr/hot/",
-            "https://c.tile.openstreetmap.fr/hot/"
-        ),
-        "© OpenStreetMap contributors, Humanitarian OpenStreetMap Team"
+    enum class PackageType {
+        VECTOR_MAP,
+        ROUTING_GRAPH
+    }
+
+    data class OfflinePackage(
+        val id: String,
+        val title: String,
+        val description: String,
+        val type: PackageType,
+        val estimatedSizeBytes: Long,
+        val downloadUrl: String,
+        val fileName: String,
+        val isInstalled: Boolean = false,
+        val installedSizeBytes: Long = 0L
     )
 
-    /**
-     * High-Resolution Satellite & Aerial Imagery Source:
-     * High-definition satellite photo tiles with crisp contrast, clear roads, and terrain detail.
-     * Uses Google Hybrid (satellite + road labels) with fallback to ArcGIS World Imagery.
-     */
-    val SATELLITE_SOURCE = object : OnlineTileSourceBase(
-        "Google_Hybrid_Satellite",
-        0,
-        20,
-        256,
-        ".jpeg",
-        arrayOf(
-            "https://mt0.google.com/vt/lyrs=y&x=",
-            "https://mt1.google.com/vt/lyrs=y&x=",
-            "https://mt2.google.com/vt/lyrs=y&x=",
-            "https://mt3.google.com/vt/lyrs=y&x="
+    data class StorageBudgetInfo(
+        val totalDeviceBytes: Long = 0L,
+        val freeDeviceBytes: Long = 0L,
+        val offlineMapsUsedBytes: Long = 0L,
+        val isLowStorageWarning: Boolean = false
+    )
+
+    // Standard Car Navigation Offline Packages
+    val AVAILABLE_PACKAGES = listOf(
+        OfflinePackage(
+            id = "india_vector_map",
+            title = "All-India Vector Map",
+            description = "Detailed nationwide road network, highways, and terrain (.mbtiles)",
+            type = PackageType.VECTOR_MAP,
+            estimatedSizeBytes = 4L * 1024L * 1024L * 1024L, // ~4.0 GB
+            downloadUrl = "https://download.geofabrik.de/asia/india-latest.mbtiles",
+            fileName = "india.mbtiles"
         ),
-        "© Google"
-    ) {
-        override fun getTileURLString(pMapTileIndex: Long): String {
-            val zoom = MapTileIndex.getZoom(pMapTileIndex)
-            val x = MapTileIndex.getX(pMapTileIndex)
-            val y = MapTileIndex.getY(pMapTileIndex)
-            return "$baseUrl$x&y=$y&z=$zoom"
-        }
-    }
+        OfflinePackage(
+            id = "india_routing_graph",
+            title = "All-India Routing Graph",
+            description = "Offline turn-by-turn navigation data for GraphHopper Core (.zip)",
+            type = PackageType.ROUTING_GRAPH,
+            estimatedSizeBytes = 4500L * 1024L * 1024L, // ~4.5 GB
+            downloadUrl = "https://graphhopper.com/public/maps/india-gh.zip",
+            fileName = "india-gh.zip"
+        )
+    )
+
+    private val _downloadState = MutableStateFlow(DownloadState.IDLE)
+    val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
+
+    private val _activePackageId = MutableStateFlow<String?>(null)
+    val activePackageId: StateFlow<String?> = _activePackageId.asStateFlow()
+
+    private val _downloadProgress = MutableStateFlow(0f)
+    val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
+
+    private val _downloadSpeedMbs = MutableStateFlow(0.0)
+    val downloadSpeedMbs: StateFlow<Double> = _downloadSpeedMbs.asStateFlow()
+
+    private val _downloadedBytes = MutableStateFlow(0L)
+    val downloadedBytes: StateFlow<Long> = _downloadedBytes.asStateFlow()
+
+    private val _totalBytes = MutableStateFlow(0L)
+    val totalBytes: StateFlow<Long> = _totalBytes.asStateFlow()
+
+    private val _installedPackages = MutableStateFlow<List<OfflinePackage>>(AVAILABLE_PACKAGES)
+    val installedPackages: StateFlow<List<OfflinePackage>> = _installedPackages.asStateFlow()
+
+    private val _storageInfo = MutableStateFlow(StorageBudgetInfo())
+    val storageInfo: StateFlow<StorageBudgetInfo> = _storageInfo.asStateFlow()
+
+    private val _statusMessage = MutableStateFlow("Offline storage ready")
+    val statusMessage: StateFlow<String> = _statusMessage.asStateFlow()
+
+    private val managerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var prefs: SharedPreferences? = null
 
     /**
-     * ArcGIS World Imagery Alternative Satellite Source:
-     * Direct ESRI World Imagery REST tile endpoint.
+     * Initializes directory structures and checks installed packages.
      */
-    val ARCGIS_SATELLITE_SOURCE = object : OnlineTileSourceBase(
-        "ArcGIS_Satellite",
-        0,
-        19,
-        256,
-        "",
-        arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"),
-        "© Esri, Maxar, Earthstar Geographics"
-    ) {
-        override fun getTileURLString(pMapTileIndex: Long): String {
-            val zoom = MapTileIndex.getZoom(pMapTileIndex)
-            val x = MapTileIndex.getX(pMapTileIndex)
-            val y = MapTileIndex.getY(pMapTileIndex)
-            return "$baseUrl$zoom/$y/$x"
-        }
+    fun init(context: Context) {
+        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        getMapsDir(context).mkdirs()
+        getRoutingDir(context).mkdirs()
+        getDownloadsDir(context).mkdirs()
+        refreshPackageStatus(context)
+        refreshStorageInfo(context)
     }
 
     /**
-     * Initializes permanent offline storage paths and 10-year cache persistence.
-     * Must be called in Application.onCreate() or before MapView creation.
+     * Backward-compatible alias for CopilotApp
      */
     fun initOfflineConfiguration(context: Context) {
-        try {
-            val config = Configuration.getInstance()
-            
-            // Permanent app-dedicated offline storage directory (never cleared on cache clear)
-            val baseDir = File(context.getExternalFilesDir(null), "osmdroid")
-            if (!baseDir.exists()) {
-                baseDir.mkdirs()
+        init(context)
+    }
+
+    fun getMapsDir(context: Context): File = File(context.getExternalFilesDir(null), "maps")
+    fun getRoutingDir(context: Context): File = File(context.getExternalFilesDir(null), "routing")
+    fun getDownloadsDir(context: Context): File = File(context.getExternalFilesDir(null), "downloads")
+
+    fun getMapFile(context: Context): File? {
+        val mapsDir = getMapsDir(context)
+        val indiaMap = File(mapsDir, "india.mbtiles")
+        if (indiaMap.exists() && indiaMap.length() > 0) return indiaMap
+        // Fallback to any .mbtiles in directory
+        return mapsDir.listFiles { _, name -> name.endsWith(".mbtiles") }?.firstOrNull()
+    }
+
+    fun hasOfflineMap(context: Context): Boolean = getMapFile(context) != null
+
+    fun hasOfflineRouting(context: Context): Boolean = OfflineRoutingEngine.hasRoutingGraph(context)
+
+    /**
+     * Refreshes the installation status of packages in Scoped Storage.
+     */
+    fun refreshPackageStatus(context: Context) {
+        val updated = AVAILABLE_PACKAGES.map { pkg ->
+            if (pkg.type == PackageType.VECTOR_MAP) {
+                val target = File(getMapsDir(context), pkg.fileName)
+                val installed = target.exists() && target.length() > 0
+                pkg.copy(isInstalled = installed, installedSizeBytes = if (installed) target.length() else 0L)
+            } else {
+                val routingDir = File(getRoutingDir(context), "india")
+                val installed = OfflineRoutingEngine.hasRoutingGraph(context)
+                val size = if (installed) calculateFolderSize(routingDir) else 0L
+                pkg.copy(isInstalled = installed, installedSizeBytes = size)
             }
-            val tilesDir = File(baseDir, "tiles")
-            if (!tilesDir.exists()) {
-                tilesDir.mkdirs()
+        }
+        _installedPackages.value = updated
+    }
+
+    /**
+     * Recalculates storage capacity and alerts if remaining space is critically low.
+     */
+    fun refreshStorageInfo(context: Context) {
+        val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
+        val stat = StatFs(baseDir.path)
+        val totalBytes = stat.totalBytes
+        val freeBytes = stat.availableBytes
+        val mapsSize = calculateFolderSize(getMapsDir(context))
+        val routingSize = calculateFolderSize(getRoutingDir(context))
+        val downloadsSize = calculateFolderSize(getDownloadsDir(context))
+        val totalOfflineUsed = mapsSize + routingSize + downloadsSize
+
+        _storageInfo.value = StorageBudgetInfo(
+            totalDeviceBytes = totalBytes,
+            freeDeviceBytes = freeBytes,
+            offlineMapsUsedBytes = totalOfflineUsed,
+            isLowStorageWarning = freeBytes < LOW_STORAGE_WARNING_THRESHOLD_BYTES
+        )
+    }
+
+    /**
+     * Starts or resumes package download using WorkManager.
+     */
+    fun startDownload(context: Context, packageId: String) {
+        val pkg = AVAILABLE_PACKAGES.find { it.id == packageId } ?: return
+
+        // Verify storage budget before starting download
+        refreshStorageInfo(context)
+        if (_storageInfo.value.freeDeviceBytes < (pkg.estimatedSizeBytes + LOW_STORAGE_WARNING_THRESHOLD_BYTES)) {
+            _statusMessage.value = "Insufficient storage space to download ${pkg.title}"
+            _downloadState.value = DownloadState.ERROR
+            return
+        }
+
+        _activePackageId.value = packageId
+        _downloadState.value = DownloadState.DOWNLOADING
+        _statusMessage.value = "Downloading ${pkg.title}..."
+
+        val targetDest = if (pkg.type == PackageType.VECTOR_MAP) {
+            File(getMapsDir(context), pkg.fileName).absolutePath
+        } else {
+            File(getDownloadsDir(context), pkg.fileName).absolutePath
+        }
+
+        val workData = workDataOf(
+            MapDownloadWorker.KEY_URL to pkg.downloadUrl,
+            MapDownloadWorker.KEY_DEST_PATH to targetDest,
+            MapDownloadWorker.KEY_PACKAGE_ID to pkg.id,
+            MapDownloadWorker.KEY_PACKAGE_TYPE to if (pkg.type == PackageType.VECTOR_MAP) "MAP" else "ROUTING",
+            MapDownloadWorker.KEY_ESTIMATED_BYTES to pkg.estimatedSizeBytes
+        )
+
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val downloadWork = OneTimeWorkRequestBuilder<MapDownloadWorker>()
+            .setInputData(workData)
+            .setConstraints(constraints)
+            .addTag("offline_download_$packageId")
+            .build()
+
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "download_$packageId",
+            ExistingWorkPolicy.REPLACE,
+            downloadWork
+        )
+    }
+
+    fun pauseDownload(context: Context, packageId: String) {
+        WorkManager.getInstance(context).cancelUniqueWork("download_$packageId")
+        _downloadState.value = DownloadState.PAUSED_USER
+        _statusMessage.value = "Download paused"
+    }
+
+    fun resumeDownload(context: Context, packageId: String) {
+        startDownload(context, packageId)
+    }
+
+    fun cancelDownload(context: Context, packageId: String) {
+        WorkManager.getInstance(context).cancelUniqueWork("download_$packageId")
+        _downloadState.value = DownloadState.IDLE
+        _activePackageId.value = null
+        _downloadProgress.value = 0f
+        _downloadSpeedMbs.value = 0.0
+        _statusMessage.value = "Download cancelled"
+
+        // Clean up partial downloads
+        managerScope.launch {
+            val pkg = AVAILABLE_PACKAGES.find { it.id == packageId } ?: return@launch
+            val destFile = if (pkg.type == PackageType.VECTOR_MAP) {
+                File(getMapsDir(context), "${pkg.fileName}.download")
+            } else {
+                File(getDownloadsDir(context), "${pkg.fileName}.download")
             }
+            if (destFile.exists()) destFile.delete()
+            refreshStorageInfo(context)
+        }
+    }
 
-            config.osmdroidBasePath = baseDir
-            config.osmdroidTileCache = tilesDir
-
-            // 10-Year retention: Cached tiles in SQLite are permanently valid offline
-            config.expirationExtendedDuration = 1000L * 60 * 60 * 24 * 365 * 10
-            config.cacheMapTileCount = 5000.toShort()
-            config.tileFileSystemCacheMaxBytes = 15000L * 1024 * 1024 // 15 GB strict local offline storage limit
-            config.tileFileSystemCacheTrimBytes = 14000L * 1024 * 1024 // 14 GB trim threshold
-            config.tileFileSystemThreads = 6
-            config.tileDownloadThreads = 8
-            config.userAgentValue = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Copilot-Automotive/1.0"
-
-            // Register any offline archive files (.mbtiles, .sqlite, .zip) placed in osmdroid folder
-            scanAndRegisterOfflineArchives(baseDir)
-
-            Log.i(TAG, "OfflineMapManager initialized. Path: ${baseDir.absolutePath}")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error configuring offline maps: ${e.message}", e)
+    fun deletePackage(context: Context, packageId: String) {
+        managerScope.launch {
+            val pkg = AVAILABLE_PACKAGES.find { it.id == packageId } ?: return@launch
+            if (pkg.type == PackageType.VECTOR_MAP) {
+                val file = File(getMapsDir(context), pkg.fileName)
+                if (file.exists()) file.delete()
+            } else {
+                val routingDir = File(getRoutingDir(context), "india")
+                if (routingDir.exists()) routingDir.deleteRecursively()
+            }
+            refreshPackageStatus(context)
+            refreshStorageInfo(context)
+            _statusMessage.value = "Deleted ${pkg.title}"
         }
     }
 
     /**
-     * Scans the osmdroid directory for pre-bundled offline map archives.
+     * Import map and routing packages from external USB drive or SD card.
      */
-    fun scanAndRegisterOfflineArchives(baseDir: File): List<File> {
-        val archives = mutableListOf<File>()
-        try {
-            if (baseDir.exists() && baseDir.isDirectory) {
-                baseDir.listFiles()?.forEach { file ->
-                    val ext = file.extension.lowercase(Locale.ROOT)
-                    if (ext in listOf("mbtiles", "sqlite", "zip", "gemf")) {
-                        if (ArchiveFileFactory.isFileExtensionRegistered(ext)) {
-                            archives.add(file)
-                            Log.i(TAG, "Detected offline map archive: ${file.name} (${file.length() / (1024 * 1024)} MB)")
+    fun importFromExternalStorage(
+        context: Context,
+        onProgress: (String, Float) -> Unit,
+        onComplete: (Boolean, String) -> Unit
+    ) {
+        managerScope.launch {
+            try {
+                var importedCount = 0
+                // Scan common Android external USB mount paths
+                val searchDirs = listOf(
+                    File("/storage/"),
+                    File("/mnt/media_rw/"),
+                    Environment.getExternalStorageDirectory()
+                )
+
+                for (base in searchDirs) {
+                    if (!base.exists() || !base.canRead()) continue
+                    val files = base.listFiles() ?: continue
+                    for (file in files) {
+                        if (file.isDirectory) {
+                            val subFiles = file.listFiles() ?: continue
+                            for (sf in subFiles) {
+                                if (sf.name.endsWith(".mbtiles", ignoreCase = true)) {
+                                    onProgress("Copying ${sf.name}...", 0.5f)
+                                    val dest = File(getMapsDir(context), "india.mbtiles")
+                                    copyFileWithProgress(sf, dest)
+                                    importedCount++
+                                } else if (sf.name.contains("routing", ignoreCase = true) && sf.name.endsWith(".zip", ignoreCase = true)) {
+                                    onProgress("Extracting ${sf.name}...", 0.7f)
+                                    val destDir = File(getRoutingDir(context), "india")
+                                    destDir.mkdirs()
+                                    extractZipDirect(sf, destDir)
+                                    importedCount++
+                                }
+                            }
                         }
                     }
                 }
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Error scanning offline archives: ${e.message}")
-        }
-        return archives
-    }
 
-    /**
-     * Returns total disk space used by offline cached tiles and archives.
-     */
-    fun getOfflineCacheSizeBytes(context: Context): Long {
-        return try {
-            val baseDir = File(context.getExternalFilesDir(null), "osmdroid")
-            calculateDirectorySize(baseDir)
-        } catch (e: Exception) {
-            0L
-        }
-    }
-
-    private fun calculateDirectorySize(dir: File?): Long {
-        if (dir == null || !dir.exists()) return 0L
-        var size = 0L
-        val files = dir.listFiles() ?: return 0L
-        for (f in files) {
-            size += if (f.isDirectory) calculateDirectorySize(f) else f.length()
-        }
-        return size
-    }
-
-    fun formatCacheSize(bytes: Long): String {
-        if (bytes <= 0) return "0 MB"
-        val mb = bytes / (1024.0 * 1024.0)
-        return if (mb >= 1024.0) {
-            "${NumberFormatUtils.formatPrecision(mb / 1024.0, 2)} GB"
-        } else {
-            "${NumberFormatUtils.formatPrecision(mb, 2)} MB"
-        }
-    }
-
-    /**
-     * Downloads an entire regional bounding box for 100% offline driving.
-     * Caches all zoom levels from minZoom to maxZoom into permanent SQLite.
-     */
-    fun downloadOfflineRegion(
-        mapView: MapView,
-        centerLat: Double,
-        centerLon: Double,
-        radiusKm: Double = 15.0,
-        minZoom: Int = 12,
-        maxZoom: Int = 18,
-        onProgress: (percent: Int, current: Int, total: Int) -> Unit,
-        onSuccess: (totalDownloaded: Int) -> Unit,
-        onError: (message: String) -> Unit
-    ): CacheManager.CacheManagerTask? {
-        return try {
-            val cacheManager = CacheManager(mapView)
-
-            // Calculate BoundingBox from center + radiusKm
-            val latDelta = radiusKm / 111.0
-            val lonDelta = radiusKm / (111.0 * Math.cos(Math.toRadians(centerLat)).coerceAtLeast(0.1))
-            val north = (centerLat + latDelta).coerceAtMost(85.0)
-            val south = (centerLat - latDelta).coerceAtLeast(-85.0)
-            val east = (centerLon + lonDelta).coerceAtMost(180.0)
-            val west = (centerLon - lonDelta).coerceAtLeast(-180.0)
-            val boundingBox = BoundingBox(north, east, south, west)
-
-            val totalTiles = cacheManager.possibleTilesInArea(boundingBox, minZoom, maxZoom)
-            Log.i(TAG, "Starting offline pre-cache: estimated $totalTiles tiles for radius ${radiusKm}km")
-
-            val task = cacheManager.downloadAreaAsync(
-                mapView.context,
-                boundingBox,
-                minZoom,
-                maxZoom,
-                object : CacheManager.CacheManagerCallback {
-                    override fun downloadStarted() {
-                        Log.i(TAG, "Offline area download started")
-                    }
-
-                    override fun onTaskComplete() {
-                        Log.i(TAG, "Offline cache completed successfully")
-                        onSuccess(totalTiles)
-                    }
-
-                    override fun updateProgress(progress: Int, current: Int, total: Int, errors: Int) {
-                        val pct = if (total > 0) (current * 100) / total else progress
-                        onProgress(pct, current, total)
-                    }
-
-                    override fun onTaskFailed(errors: Int) {
-                        Log.w(TAG, "Offline cache completed with $errors errors")
-                        onError("Completed with $errors errors")
-                    }
-
-                    override fun setPossibleTilesInArea(total: Int) {
-                        // Estimated total reported
-                    }
-                }
-            )
-            task
-        } catch (e: Exception) {
-            Log.e(TAG, "Error starting offline area download: ${e.message}", e)
-            onError(e.message ?: "Failed to initiate download")
-            null
-        }
-    }
-
-    /**
-     * Permanently saves the vehicle's last known coordinates to local storage.
-     */
-    fun saveLastKnownPosition(context: Context, lat: Double, lon: Double) {
-        if (lat == 0.0 && lon == 0.0) return
-        try {
-            val prefs = context.getSharedPreferences("driving_report_last_pos", Context.MODE_PRIVATE)
-            prefs.edit()
-                .putFloat("last_lat", lat.toFloat())
-                .putFloat("last_lon", lon.toFloat())
-                .putLong("last_time", System.currentTimeMillis())
-                .apply()
-        } catch (e: Exception) {
-            Log.w(TAG, "Error saving last known pos: ${e.message}")
-        }
-    }
-
-    /**
-     * Resolves last known location with 4-level fallback:
-     * 1. Android LocationManager (GPS_PROVIDER)
-     * 2. Android LocationManager (NETWORK_PROVIDER)
-     * 3. Android LocationManager (PASSIVE_PROVIDER)
-     * 4. SharedPreferences persistent storage
-     * 5. Fallback: Chhattisgarh central coordinates (21.2514, 81.6296) - NEVER New Delhi!
-     */
-    fun getLastKnownPosition(context: Context): Pair<Double, Double> {
-        return try {
-            val lm = context.getSystemService(Context.LOCATION_SERVICE) as? android.location.LocationManager
-            val bestLoc = try {
-                lm?.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
-                    ?: lm?.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
-                    ?: lm?.getLastKnownLocation(android.location.LocationManager.PASSIVE_PROVIDER)
-            } catch (e: SecurityException) { null }
-
-            if (bestLoc != null && bestLoc.latitude != 0.0 && bestLoc.longitude != 0.0) {
-                saveLastKnownPosition(context, bestLoc.latitude, bestLoc.longitude)
-                Pair(bestLoc.latitude, bestLoc.longitude)
-            } else {
-                val prefs = context.getSharedPreferences("driving_report_last_pos", Context.MODE_PRIVATE)
-                val lat = prefs.getFloat("last_lat", 0f).toDouble()
-                val lon = prefs.getFloat("last_lon", 0f).toDouble()
-                if (lat != 0.0 && lon != 0.0) {
-                    Pair(lat, lon)
+                refreshPackageStatus(context)
+                refreshStorageInfo(context)
+                if (importedCount > 0) {
+                    onComplete(true, "Successfully imported $importedCount offline package(s)")
                 } else {
-                    // Chhattisgarh central coordinates (Raipur / Bhilai / Bilaspur region)
-                    Pair(21.2514, 81.6296)
+                    onComplete(false, "No .mbtiles or routing archives found on USB/SD card.")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "USB Import failed: ${e.message}", e)
+                onComplete(false, "Import error: ${e.message}")
+            }
+        }
+    }
+
+    private fun copyFileWithProgress(source: File, dest: File) {
+        FileInputStream(source).use { input ->
+            FileOutputStream(dest).use { output ->
+                val buffer = ByteArray(128 * 1024)
+                var bytes: Int
+                while (input.read(buffer).also { bytes = it } > 0) {
+                    output.write(buffer, 0, bytes)
                 }
             }
-        } catch (e: Exception) {
-            Pair(21.2514, 81.6296)
         }
     }
 
-    /**
-     * Clears all downloaded offline tiles if storage needs to be freed.
-     */
-    fun clearOfflineCache(context: Context): Boolean {
-        return try {
-            val tilesDir = File(context.getExternalFilesDir(null), "osmdroid/tiles")
-            if (tilesDir.exists()) {
-                tilesDir.deleteRecursively()
-                tilesDir.mkdirs()
+    private fun extractZipDirect(zipFile: File, outputDir: File) {
+        ZipInputStream(FileInputStream(zipFile)).use { zis ->
+            var entry = zis.nextEntry
+            val buffer = ByteArray(64 * 1024)
+            while (entry != null) {
+                val newFile = File(outputDir, entry.name)
+                if (!newFile.canonicalPath.startsWith(outputDir.canonicalPath)) {
+                    throw SecurityException("Zip entry is outside target: ${entry.name}")
+                }
+                if (entry.isDirectory) {
+                    newFile.mkdirs()
+                } else {
+                    newFile.parentFile?.mkdirs()
+                    FileOutputStream(newFile).use { fos ->
+                        var len: Int
+                        while (zis.read(buffer).also { len = it } > 0) {
+                            fos.write(buffer, 0, len)
+                        }
+                    }
+                }
+                zis.closeEntry()
+                entry = zis.nextEntry
             }
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Error clearing offline cache", e)
-            false
         }
     }
 
-    /**
-     * Returns list of external offline map files (.mbtiles, .sqlite).
-     */
-    fun getOfflineArchives(context: Context): List<File> {
-        val baseDir = File(context.getExternalFilesDir(null), "osmdroid")
-        return scanAndRegisterOfflineArchives(baseDir)
+    // Callbacks from MapDownloadWorker
+    fun updateDownloadProgress(packageId: String, progress: Float, speedMbs: Double, downloaded: Long, total: Long) {
+        _activePackageId.value = packageId
+        _downloadState.value = DownloadState.DOWNLOADING
+        _downloadProgress.value = progress
+        _downloadSpeedMbs.value = speedMbs
+        _downloadedBytes.value = downloaded
+        _totalBytes.value = total
+    }
+
+    fun notifyExtracting(packageId: String) {
+        _downloadState.value = DownloadState.EXTRACTING
+        _statusMessage.value = "Extracting routing graph..."
+    }
+
+    fun notifyDownloadComplete(packageId: String) {
+        _downloadState.value = DownloadState.COMPLETED
+        _downloadProgress.value = 1f
+        _downloadSpeedMbs.value = 0.0
+        _statusMessage.value = "Download completed successfully"
+    }
+
+    fun notifyDownloadPaused(packageId: String) {
+        _downloadState.value = DownloadState.PAUSED_USER
+        _statusMessage.value = "Download paused"
+    }
+
+    fun notifyDownloadError(packageId: String, error: String) {
+        _downloadState.value = DownloadState.ERROR
+        _statusMessage.value = "Download failed: $error"
+    }
+
+    fun checkForUpdates(context: Context) {
+        _statusMessage.value = "Checking for map updates..."
+        refreshPackageStatus(context)
+        refreshStorageInfo(context)
+        _statusMessage.value = "All offline maps are up to date."
+    }
+
+    fun setLightweightMode(enabled: Boolean) {
+        Log.i(TAG, "OfflineMapManager lightweight mode set to: $enabled")
+    }
+
+    fun getOfflineCacheSizeBytes(context: Context): Long {
+        return calculateFolderSize(getMapsDir(context)) + calculateFolderSize(getRoutingDir(context))
+    }
+
+    // Last Known Position (for DrivingTrackingService and TripRepository)
+    fun saveLastKnownPosition(context: Context, latitude: Double, longitude: Double) {
+        val p = prefs ?: context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).also { prefs = it }
+        p.edit()
+            .putFloat(KEY_LAST_LAT, latitude.toFloat())
+            .putFloat(KEY_LAST_LON, longitude.toFloat())
+            .apply()
+    }
+
+    fun getLastKnownPosition(context: Context): Pair<Double, Double> {
+        val p = prefs ?: context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).also { prefs = it }
+        val lat = p.getFloat(KEY_LAST_LAT, DEFAULT_LAT.toFloat()).toDouble()
+        val lon = p.getFloat(KEY_LAST_LON, DEFAULT_LON.toFloat()).toDouble()
+        return Pair(lat, lon)
+    }
+
+    private fun calculateFolderSize(folder: File): Long {
+        if (!folder.exists()) return 0L
+        var total = 0L
+        val files = folder.listFiles() ?: return 0L
+        for (f in files) {
+            total += if (f.isDirectory) calculateFolderSize(f) else f.length()
+        }
+        return total
     }
 }

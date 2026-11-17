@@ -34,12 +34,11 @@ import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.trip.TripGeofenceManager
 import com.antigravity.copilot.core.util.NumberFormatUtils
 import kotlinx.coroutines.launch
-import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.MapEventsOverlay
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Polygon
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import java.util.Locale
 
 @Composable
@@ -738,81 +737,90 @@ fun GeofenceMiniMapView(
     radiusMeters: Float,
     onLocationPicked: (Double, Double) -> Unit
 ) {
-    var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
-    var centerMarker by remember { mutableStateOf<Marker?>(null) }
-    var radiusPolygon by remember { mutableStateOf<Polygon?>(null) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0B1017))
+            .pointerInput(centerLat, centerLon, radiusMeters) {
+                detectTapGestures { offset ->
+                    val w = size.width.toFloat()
+                    val h = size.height.toFloat()
+                    val dx = (offset.x - w / 2f) / (w / 2f)
+                    val dy = (h / 2f - offset.y) / (h / 2f)
+                    // Convert screen offset to lat/lon delta based on radius scale
+                    val maxMeterScale = (radiusMeters * 2.2f).coerceAtLeast(100f)
+                    val latDelta = (dy * maxMeterScale) / 111320.0
+                    val lonDelta = (dx * maxMeterScale) / (111320.0 * Math.cos(Math.toRadians(centerLat)))
+                    onLocationPicked(centerLat + latDelta, centerLon + lonDelta)
+                }
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val maxRadiusPx = minOf(size.width, size.height) / 2f - 16f
+            val geofenceRadiusPx = maxRadiusPx * 0.70f
 
-    DisposableEffect(Unit) {
-        onDispose {
-            mapViewInstance?.onPause()
-            mapViewInstance?.onDetach()
-            mapViewInstance = null
+            // Radar background rings
+            drawCircle(
+                color = Color(0xFF16202E),
+                radius = maxRadiusPx,
+                center = center,
+                style = Stroke(width = 1.5f)
+            )
+            drawCircle(
+                color = Color(0xFF1C2B3E),
+                radius = maxRadiusPx * 0.45f,
+                center = center,
+                style = Stroke(width = 1.5f)
+            )
+
+            // Geofence Circle Boundary Fill & Outline
+            drawCircle(
+                color = Color(0xFF00E5FF).copy(alpha = 0.15f),
+                radius = geofenceRadiusPx,
+                center = center
+            )
+            drawCircle(
+                color = Color(0xFF00E5FF),
+                radius = geofenceRadiusPx,
+                center = center,
+                style = Stroke(width = 2.5f)
+            )
+
+            // Center Target Crosshairs
+            drawLine(
+                color = Color(0xFF00E5FF).copy(alpha = 0.4f),
+                start = Offset(center.x - 20f, center.y),
+                end = Offset(center.x + 20f, center.y),
+                strokeWidth = 2f
+            )
+            drawLine(
+                color = Color(0xFF00E5FF).copy(alpha = 0.4f),
+                start = Offset(center.x, center.y - 20f),
+                end = Offset(center.x, center.y + 20f),
+                strokeWidth = 2f
+            )
+
+            // Center Pin Point
+            drawCircle(
+                color = Color.White,
+                radius = 6f,
+                center = center
+            )
+            drawCircle(
+                color = Color(0xFF00E5FF),
+                radius = 4f,
+                center = center
+            )
         }
+
+        Text(
+            text = "Tap to move center • Radius: ${radiusMeters.toInt()}m",
+            fontSize = 11.sp,
+            color = Color.White.copy(alpha = 0.6f),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 8.dp)
+        )
     }
-
-    LaunchedEffect(centerLat, centerLon, radiusMeters, mapViewInstance) {
-        val mv = mapViewInstance ?: return@LaunchedEffect
-        val centerGeo = GeoPoint(centerLat, centerLon)
-
-        val zoomLevel = if (radiusMeters <= 75f) 17.8 else if (radiusMeters <= 120f) 17.2 else 16.8
-        mv.controller.setCenter(centerGeo)
-        mv.controller.setZoom(zoomLevel)
-
-        // Update Center Marker
-        if (centerMarker == null) {
-            centerMarker = Marker(mv).apply {
-                position = centerGeo
-                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                title = "Geofence Center"
-                mv.overlays.add(this)
-            }
-        } else {
-            centerMarker?.position = centerGeo
-        }
-
-        // Update Radius Polygon Circle
-        if (radiusPolygon == null) {
-            radiusPolygon = Polygon(mv).apply {
-                fillPaint.color = android.graphics.Color.parseColor("#330284C7") // Semi-transparent sky
-                outlinePaint.color = android.graphics.Color.parseColor("#FF38BDF8")
-                outlinePaint.strokeWidth = 3f
-                points = Polygon.pointsAsCircle(centerGeo, radiusMeters.toDouble())
-                mv.overlays.add(0, this)
-            }
-        } else {
-            radiusPolygon?.points = Polygon.pointsAsCircle(centerGeo, radiusMeters.toDouble())
-        }
-
-        mv.invalidate()
-    }
-
-    AndroidView(
-        factory = { ctx ->
-            MapView(ctx).apply {
-                setTileSource(OfflineMapManager.NORMAL_ROADMAP_SOURCE)
-                setMultiTouchControls(true)
-                minZoomLevel = 0.0
-                maxZoomLevel = 20.0
-                val initialZoom = 17.5
-                controller.setZoom(initialZoom)
-                controller.setCenter(GeoPoint(centerLat, centerLon))
-                overlayManager.tilesOverlay.setColorFilter(null)
-
-                // Tap overlay to pick coordinate
-                val tapOverlay = MapEventsOverlay(object : MapEventsReceiver {
-                    override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
-                        p?.let {
-                            onLocationPicked(it.latitude, it.longitude)
-                        }
-                        return true
-                    }
-                    override fun longPressHelper(p: GeoPoint?): Boolean = false
-                })
-                overlays.add(tapOverlay)
-
-                mapViewInstance = this
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    )
 }

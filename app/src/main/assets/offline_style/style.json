@@ -1,0 +1,110 @@
+{
+  "version": 8,
+  "name": "Cockpit Automotive Dark",
+  "metadata": {
+    "maputnik:renderer": "mbgljs"
+  },
+  "sources": {
+    "openmaptiles": {
+      "type": "vector",
+      "tiles": [
+        "mbtiles://{mbtiles_path}"
+      ],
+      "minzoom": 0,
+      "maxzoom": 14
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#0B0E14"
+      }
+    },
+    {
+      "id": "landuse_park",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "landcover",
+      "paint": {
+        "fill-color": "#0D1B1A",
+        "fill-opacity": 0.6
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#0A1D33"
+      }
+    },
+    {
+      "id": "waterway",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "waterway",
+      "paint": {
+        "line-color": "#123456",
+        "line-width": 1.5
+      }
+    },
+    {
+      "id": "building",
+      "type": "fill",
+      "source": "openmaptiles",
+      "source-layer": "building",
+      "minzoom": 13,
+      "paint": {
+        "fill-color": "#151B27",
+        "fill-outline-color": "#1E2738"
+      }
+    },
+    {
+      "id": "road_minor",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "minor", "service", "track"]],
+      "paint": {
+        "line-color": "#1C2433",
+        "line-width": 1.2
+      }
+    },
+    {
+      "id": "road_secondary_tertiary",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "secondary", "tertiary"]],
+      "paint": {
+        "line-color": "#28354A",
+        "line-width": 2.2
+      }
+    },
+    {
+      "id": "road_primary",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "primary"]],
+      "paint": {
+        "line-color": "#3A4D6B",
+        "line-width": 3.2
+      }
+    },
+    {
+      "id": "road_trunk_motorway",
+      "type": "line",
+      "source": "openmaptiles",
+      "source-layer": "transportation",
+      "filter": ["all", ["==", "$type", "LineString"], ["in", "class", "motorway", "trunk"]],
+      "paint": {
+        "line-color": "#00B4D8",
+        "line-width": 4.5
+      }
+    }
+  ]
+}
