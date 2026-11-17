@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased] - improve-logic
+## [1.43.0] - 2026-11-17
 
 ### Added
 - `core/logic/Config.kt`: single home for all trip / fuel / map thresholds.
