@@ -66,6 +66,9 @@ class DrivingTrackingService : Service(), LocationListener {
     private var lastPromptStationLat = 0.0
     private var lastPromptStationLon = 0.0
     private var lastFusedFixTimeMs: Long = 0L
+    /** elapsedRealtime of the last precise (GNSS-grade) fix, used to drop network fixes while GPS is live. */
+    private var lastPreciseFixElapsedMs: Long = 0L
+    private val serviceCreatedElapsedMs: Long = android.os.SystemClock.elapsedRealtime()
 
     private val gpsFilter = com.antigravity.copilot.core.map.GpsLocationFilter()
     private var isLocationUpdatesActive: Boolean = false
@@ -79,6 +82,15 @@ class DrivingTrackingService : Service(), LocationListener {
         val rawBearing = if (rawLocation.hasBearing()) rawLocation.bearing else 0f
         val rawAccuracy = if (rawLocation.hasAccuracy()) rawLocation.accuracy else 5.0f
         val timestamp = if (rawLocation.time > 0L) rawLocation.time else System.currentTimeMillis()
+        val isPrecise = isPreciseFix(rawLocation)
+        val nowElapsed = android.os.SystemClock.elapsedRealtime()
+        if (isPrecise) {
+            lastPreciseFixElapsedMs = nowElapsed
+        } else if (lastPreciseFixElapsedMs == 0L && nowElapsed - serviceCreatedElapsedMs < COARSE_STARTUP_GRACE_MS) {
+            // Startup: give GNSS a moment before trusting a coarse (network / cached) fix, so the map
+            // never flashes to a far-away network position and back on load.
+            return
+        }
 
         val filtered = gpsFilter.filter(
             rawLat = rawLocation.latitude,
@@ -86,7 +98,8 @@ class DrivingTrackingService : Service(), LocationListener {
             rawBearing = rawBearing,
             rawSpeedKmh = rawSpeedKmh,
             rawAccuracyMeters = rawAccuracy,
-            timestamp = timestamp
+            timestamp = timestamp,
+            isPrecise = isPrecise
         )
 
         val filteredLocation = Location(rawLocation).apply {
@@ -116,6 +129,9 @@ class DrivingTrackingService : Service(), LocationListener {
     companion object {
         const val CHANNEL_ID = "driving_tracking_channel"
         const val NOTIFICATION_ID = 1001
+        private const val PRECISE_ACCURACY_METERS = 50f
+        private const val NETWORK_FALLBACK_AFTER_MS = 30_000L
+        private const val COARSE_STARTUP_GRACE_MS = 15_000L
 
         fun start(context: Context) {
             val intent = Intent(context, DrivingTrackingService::class.java)
@@ -666,9 +682,11 @@ class DrivingTrackingService : Service(), LocationListener {
         fusedLocationClient.lastLocation.addOnSuccessListener { fusedLoc ->
             if (fusedLoc != null && (now - fusedLoc.time) < 5000L) {
                 lastCachedFixTimestamp = fusedLoc.time
-                com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(
-                    applicationContext, fusedLoc.latitude, fusedLoc.longitude
-                )
+                if (isPreciseFix(fusedLoc)) {
+                    com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(
+                        applicationContext, fusedLoc.latitude, fusedLoc.longitude
+                    )
+                }
                 filterAndDispatchLocation(fusedLoc)
             } else {
                 queryLocationManagerCachedFix(now)
@@ -689,9 +707,11 @@ class DrivingTrackingService : Service(), LocationListener {
 
             if (bestInitial != null && (now - bestInitial.time) < 5000L) {
                 lastCachedFixTimestamp = bestInitial.time
-                com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(
-                    applicationContext, bestInitial.latitude, bestInitial.longitude
-                )
+                if (isPreciseFix(bestInitial)) {
+                    com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(
+                        applicationContext, bestInitial.latitude, bestInitial.longitude
+                    )
+                }
                 filterAndDispatchLocation(bestInitial)
             }
         } catch (e: SecurityException) {
@@ -699,7 +719,24 @@ class DrivingTrackingService : Service(), LocationListener {
         }
     }
 
+    /**
+     * GNSS fixes are precise; network (cell / Wi-Fi / IP) fixes never are, whatever accuracy they claim
+     * (emulators and some head units report bogus 1 m network accuracy). Fused fixes count as precise
+     * only when their accuracy is GNSS-grade.
+     */
+    private fun isPreciseFix(location: Location): Boolean = when (location.provider) {
+        LocationManager.GPS_PROVIDER -> true
+        LocationManager.NETWORK_PROVIDER -> false
+        else -> location.hasAccuracy() && location.accuracy <= PRECISE_ACCURACY_METERS
+    }
+
     override fun onLocationChanged(location: Location) {
+        // Network fixes are only a fallback: ignore them while GNSS is delivering.
+        if (location.provider == LocationManager.NETWORK_PROVIDER &&
+            android.os.SystemClock.elapsedRealtime() - lastPreciseFixElapsedMs < NETWORK_FALLBACK_AFTER_MS
+        ) {
+            return
+        }
         // Provider Arbitration: If Fused Location is actively emitting fixes (<3500ms),
         // ignore native LocationManager callbacks to prevent dual-processing & distance inflation
         val timeSinceFused = android.os.SystemClock.elapsedRealtime() - lastFusedFixTimeMs

@@ -60,6 +60,17 @@ class CarMapController(
 
         // Deadband: ignore sub-3 m GPS wander while (nearly) stationary.
         const val JITTER_SPEED_KMH = 3f
+
+        /** Auto 3D: tilt only while moving at/above this speed; flat 2D below it (parked, crawling). */
+        const val AUTO_3D_SPEED_KMH = 3.0
+        /** The speed condition must hold this long before the tilt flips, so it never flickers. */
+        private const val TILT_HOLD_MS = 1_500L
+        private const val TILT_EASE_MS = 900L
+        /** A fix farther than this from the camera is a relocation (first real fix, re-anchor): snap, don't pan. */
+        private const val SNAP_DISTANCE_M = 2_000.0
+        /** No fix for this long = parked (GNSS goes quiet / fixes are de-duplicated when stopped). */
+        private const val STALE_FIX_MS = 3_000L
+        private const val TILT_SPEED_TAU_MS = 1_000.0
         const val JITTER_DISTANCE_M = 3.0
 
         // Camera transition length tracks the GPS interval (≈1 Hz) so motion never pauses.
@@ -106,8 +117,16 @@ class CarMapController(
     private val _activeRegionTitle = MutableStateFlow<String?>(null)
     val activeRegionTitle: StateFlow<String?> = _activeRegionTitle.asStateFlow()
 
+    /** User preference: allow the automatic 3D tilt. When off the map is always flat. */
     private val _is3DTiltActive = MutableStateFlow(true)
     val is3DTiltActive: StateFlow<Boolean> = _is3DTiltActive.asStateFlow()
+
+    /** Speed-driven tilt state (see [AUTO_3D_SPEED_KMH]); starts flat so load never animates a tilt. */
+    private var autoTiltOn = false
+    private var tiltCandidateSinceMs = 0L
+    private var staleFixJob: Job? = null
+    /** Fast speed EMA for the tilt decision: averages out duplicate 0 km/h fixes, still reacts within ~1 s. */
+    private var tiltSpeedKmh = 0.0
 
     private val _isHeadingUp = MutableStateFlow(true)
     val isHeadingUp: StateFlow<Boolean> = _isHeadingUp.asStateFlow()
@@ -166,6 +185,15 @@ class CarMapController(
         map.addOnMoveListener(moveListener)
         map.addOnRotateListener(rotateListener)
         this.mapboxMap = map
+        // Start where the car last was (not a hard-coded city) so the first fix needs no camera pan.
+        if (!hasFix) {
+            val (savedLat, savedLon) = OfflineMapManager.getLastKnownPosition(context)
+            if (savedLat.isFinite() && savedLon.isFinite() && savedLat in -90.0..90.0 && savedLon in -180.0..180.0 &&
+                !(savedLat == 0.0 && savedLon == 0.0)
+            ) {
+                lastLocation = LatLng(savedLat, savedLon)
+            }
+        }
         map.moveCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(currentFollowZoom())))
         lastRegionId = OfflineMapManager.getRegionForLocation(lastLocation.latitude, lastLocation.longitude)?.id
         requestStyle(force = true)
@@ -174,6 +202,8 @@ class CarMapController(
     fun detachMap() {
         styleJob?.cancel()
         styleJob = null
+        staleFixJob?.cancel()
+        staleFixJob = null
         trailJob?.cancel()
         puckAnimator?.cancel()
         puckAnimator = null
@@ -481,11 +511,23 @@ class CarMapController(
         val dtMs = if (lastFixElapsedMs == 0L) 1_000L else (now - lastFixElapsedMs).coerceIn(100L, 5_000L)
         lastFixElapsedMs = now
 
-        val speed = speedKmh.coerceAtLeast(0f).toDouble()
-        smoothedSpeedKmh = if (!hasFix) speed else smoothedSpeedKmh + emaAlpha(dtMs) * (speed - smoothedSpeedKmh)
-
         val newLocation = LatLng(lat, lon)
-        val jitter = hasFix && speedKmh < JITTER_SPEED_KMH && lastLocation.distanceTo(newLocation) < JITTER_DISTANCE_M
+        // First fix, or a jump of kilometres (GNSS re-anchor after a bad cached / network fix):
+        // place camera and puck instantly instead of panning across the map, which is what made
+        // the map jitter and fly around on load.
+        val snap = !hasFix || lastLocation.distanceTo(newLocation) > SNAP_DISTANCE_M
+
+        val speed = speedKmh.coerceAtLeast(0f).toDouble()
+        smoothedSpeedKmh = if (snap) speed else smoothedSpeedKmh + emaAlpha(dtMs) * (speed - smoothedSpeedKmh)
+        tiltSpeedKmh = if (snap) speed else tiltSpeedKmh + emaAlpha(dtMs, TILT_SPEED_TAU_MS) * (speed - tiltSpeedKmh)
+        val tiltChanged = updateAutoTilt(now, snap, tiltSpeedKmh)
+        staleFixJob?.cancel()
+        staleFixJob = coroutineScope.launch {
+            delay(STALE_FIX_MS)
+            onFixesStalled()
+        }
+
+        val jitter = !snap && speedKmh < JITTER_SPEED_KMH && lastLocation.distanceTo(newLocation) < JITTER_DISTANCE_M
         if (!jitter) {
             lastLocation = newLocation
             if (speedKmh >= JITTER_SPEED_KMH || !hasFix) lastBearing = bearing.toDouble()
@@ -501,15 +543,70 @@ class CarMapController(
         }
 
         val map = mapboxMap ?: return
+        if (snap) {
+            puckAnimator?.cancel()
+            setPuck(lastLocation)
+            if (_isFollowing.value) {
+                val zoom = currentFollowZoom()
+                lastEasedZoom = zoom
+                map.moveCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(zoom)))
+            }
+            return
+        }
+
         val easeMs = dtMs.coerceIn(MIN_EASE_MS, MAX_EASE_MS)
         if (!jitter) animatePuckTo(lastLocation, easeMs)
         if (!_isFollowing.value) return
 
         val zoom = currentFollowZoom()
         val zoomChanged = abs(zoom - lastEasedZoom) > ZOOM_EPSILON
-        if (jitter && !zoomChanged) return
+        if (jitter && !zoomChanged && !tiltChanged) return
         lastEasedZoom = zoom
-        map.easeCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(zoom)), easeMs.toInt(), false)
+        val duration = if (tiltChanged) maxOf(easeMs, TILT_EASE_MS) else easeMs
+        map.easeCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(zoom)), duration.toInt(), false)
+    }
+
+    /** Fixes stopped arriving: the car is parked. Drop to flat 2D right away. */
+    private fun onFixesStalled() {
+        smoothedSpeedKmh = 0.0
+        tiltSpeedKmh = 0.0
+        tiltCandidateSinceMs = 0L
+        if (!autoTiltOn) return
+        autoTiltOn = false
+        Log.d(TAG, "Auto 3D off (no fix for ${STALE_FIX_MS} ms)")
+        val map = mapboxMap ?: return
+        if (!_isFollowing.value) return
+        val zoom = currentFollowZoom()
+        lastEasedZoom = zoom
+        map.easeCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(zoom)), TILT_EASE_MS.toInt(), false)
+    }
+
+    /**
+     * Auto 3D: tilt on at/above [AUTO_3D_SPEED_KMH], flat below it, judged on the filtered fix speed
+     * (not the slow zoom EMA, so stopping flattens promptly). The new state must persist for
+     * [TILT_HOLD_MS] before it applies, so stop-and-go traffic doesn't flicker.
+     * @return true when the tilt state flipped on this fix.
+     */
+    private fun updateAutoTilt(nowMs: Long, immediate: Boolean, speedKmh: Double): Boolean {
+        val want = speedKmh >= AUTO_3D_SPEED_KMH
+        if (want == autoTiltOn) {
+            tiltCandidateSinceMs = 0L
+            return false
+        }
+        if (immediate) {
+            autoTiltOn = want
+            tiltCandidateSinceMs = 0L
+            return true
+        }
+        if (tiltCandidateSinceMs == 0L) {
+            tiltCandidateSinceMs = nowMs
+            return false
+        }
+        if (nowMs - tiltCandidateSinceMs < TILT_HOLD_MS) return false
+        autoTiltOn = want
+        tiltCandidateSinceMs = 0L
+        Log.d(TAG, "Auto 3D ${if (want) "on" else "off"} at ${"%.1f".format(speedKmh)} km/h")
+        return true
     }
 
     private fun currentFollowZoom(): Double = manualZoom ?: autoZoomForSpeed(smoothedSpeedKmh)
@@ -517,7 +614,7 @@ class CarMapController(
     private fun followCameraPosition(zoom: Double): CameraPosition = CameraPosition.Builder()
         .target(lastLocation)
         .zoom(zoom)
-        .tilt(if (_is3DTiltActive.value) DEFAULT_DRIVING_TILT else 0.0)
+        .tilt(if (_is3DTiltActive.value && autoTiltOn) DEFAULT_DRIVING_TILT else 0.0)
         .bearing(if (_isHeadingUp.value) lastBearing else 0.0)
         .build()
 

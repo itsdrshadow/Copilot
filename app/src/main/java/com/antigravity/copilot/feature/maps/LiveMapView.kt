@@ -322,7 +322,7 @@ fun LiveMapPanel(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     MapMenuItem(
                         icon = if (is3DActive) Icons.Default.ViewInAr else Icons.Default.Layers,
-                        label = if (is3DActive) "3D view" else "2D view",
+                        label = if (is3DActive) "Auto 3D (moving)" else "2D only",
                         isActive = is3DActive,
                         onClick = { mapController.toggle3DTilt(); menuExpanded = false }
                     )

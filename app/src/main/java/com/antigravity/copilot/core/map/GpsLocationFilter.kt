@@ -33,6 +33,9 @@ class GpsLocationFilter {
     private var lastRejectedLat = 0.0
     private var lastRejectedLon = 0.0
 
+    /** Whether the current anchor came from a precise source (GNSS / fused with good accuracy). */
+    private var anchorPrecise = true
+
     companion object {
         const val STATIONARY_SPEED_THRESHOLD_KMH = 2.0f
         const val MIN_ACCURACY_THRESHOLD_METERS = 35.0f
@@ -41,6 +44,8 @@ class GpsLocationFilter {
         /** Consistent "impossible" fixes in a row after which the filter re-anchors to them. */
         const val REANCHOR_AFTER_REJECTIONS = 5
         const val REANCHOR_CONSISTENCY_METERS = 500.0
+        /** A coarse (network) fix may only move a precise anchor once GNSS has been silent this long. */
+        const val PRECISE_ANCHOR_HOLD_MS = 60_000L
     }
 
     /**
@@ -53,7 +58,8 @@ class GpsLocationFilter {
         rawBearing: Float,
         rawSpeedKmh: Float,
         rawAccuracyMeters: Float = 5.0f,
-        timestamp: Long = System.currentTimeMillis()
+        timestamp: Long = System.currentTimeMillis(),
+        isPrecise: Boolean = true
     ): FilteredState {
         // Guard against invalid coordinates
         if (rawLat == 0.0 && rawLon == 0.0) {
@@ -74,6 +80,7 @@ class GpsLocationFilter {
             lastState = initialState
             lastValidBearing = initialState.bearing
             lastReportTime = timestamp
+            anchorPrecise = isPrecise
             return initialState
         }
 
@@ -85,6 +92,16 @@ class GpsLocationFilter {
         // 1. Multipath glitch rejection: reject impossible jumps (>240 km/h) unconditionally
         val impliedSpeedKmh = (distanceM / dtSeconds) * 3.6
         if (impliedSpeedKmh > MAX_VALID_SPEED_KMH) {
+            // Source arbitration before the streak logic: a precise GNSS fix immediately overrides an
+            // anchor that came from a coarse source (stale cache / network / a far-off first fix),
+            // and a coarse fix can never drag a recent precise anchor across the map.
+            if (isPrecise && !anchorPrecise) {
+                reset()
+                return filter(rawLat, rawLon, rawBearing, rawSpeedKmh, rawAccuracyMeters, timestamp, isPrecise)
+            }
+            if (!isPrecise && anchorPrecise && (timestamp - lastReportTime) < PRECISE_ANCHOR_HOLD_MS) {
+                return previous
+            }
             val consistent = rejectedStreak > 0 &&
                 calculateDistanceMeters(lastRejectedLat, lastRejectedLon, rawLat, rawLon) < REANCHOR_CONSISTENCY_METERS
             rejectedStreak = if (consistent) rejectedStreak + 1 else 1
@@ -97,7 +114,7 @@ class GpsLocationFilter {
             // The "jump" persists and is self-consistent: the old anchor was wrong (bad first fix,
             // stale cached/network position). Re-anchor instead of rejecting forever.
             reset()
-            return filter(rawLat, rawLon, rawBearing, rawSpeedKmh, rawAccuracyMeters, timestamp)
+            return filter(rawLat, rawLon, rawBearing, rawSpeedKmh, rawAccuracyMeters, timestamp, isPrecise)
         }
         rejectedStreak = 0
 
@@ -164,6 +181,7 @@ class GpsLocationFilter {
 
         lastState = updatedState
         lastReportTime = timestamp
+        anchorPrecise = isPrecise
         return updatedState
     }
 
@@ -172,6 +190,7 @@ class GpsLocationFilter {
         lastValidBearing = 0f
         lastReportTime = 0L
         rejectedStreak = 0
+        anchorPrecise = true
     }
 
     private fun calculateDistanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

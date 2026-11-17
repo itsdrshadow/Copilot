@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.48.0] - 2026-11-17
+
+### Added
+- **Auto 3D map:** the follow camera tilts to 3D at 3 km/h and above, and stays flat 2D below 3 km/h (parked, crawling). The speed must hold for 1.5 s before the tilt changes, so stop-and-go traffic doesn't make it flicker. If no GPS fix arrives for 3 s, the car counts as parked and the map goes flat. The map menu's 3D item now switches between "Auto 3D (moving)" and "2D only".
+
+### Fixed
+- **Blank map:** a far-away coarse fix (network / Wi-Fi / cached position, e.g. a bogus network location) could become the GPS filter's anchor. Real GNSS fixes were then rejected as "impossible jumps", and interleaved network fixes kept resetting the re-anchor count, so the camera stayed where the offline map has no tiles. Fixes are now classified as precise (GNSS, or fused with ≤ 50 m accuracy) or coarse (network). A precise fix overrides a coarse anchor immediately, and a coarse fix can't move a precise anchor that is less than 60 s old.
+- Native network-provider fixes are ignored while GNSS is delivering. At startup the service waits up to 15 s for GNSS before trusting a coarse fix, and only precise fixes are saved as the map's start position.
+- **Jitter on load:** the camera started at a hard-coded Delhi position and then panned to the first fix. It now starts at the last saved position. The first fix, and any relocation over 2 km, snaps the camera and puck instantly instead of panning across the map.
+
 ## [1.47.0] - 2026-11-17
 
 ### Added
