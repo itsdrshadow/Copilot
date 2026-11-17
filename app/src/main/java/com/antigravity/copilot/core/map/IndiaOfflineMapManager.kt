@@ -90,7 +90,7 @@ object IndiaOfflineMapManager {
     const val MAX_POSSIBLE_ZOOM = 20
     const val DEFAULT_MAX_ZOOM = 13
 
-    // Tiered Geographic Partitioning of India (Optimized for <= 10 GB Offline Roadmap Budget)
+    // Tiered Geographic Partitioning of India (Optimized for <= 15 GB Offline Roadmap Budget)
     val INDIA_REGIONS = listOf(
         RegionPack(
             id = "india_national",
@@ -107,62 +107,62 @@ object IndiaOfflineMapManager {
         RegionPack(
             id = "india_central",
             name = "Central India Road Map (CG & MP)",
-            description = "Raipur, Bilaspur, Durg, Bhilai, Bhopal, Indore district & road network (Zooms 0-13)",
+            description = "Raipur, Bilaspur, Durg, Bhilai, Bhopal, Indore streets, shops & district network (Zooms 0-14)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 14,
             north = 24.5,
             east = 84.5,
             south = 17.5,
             west = 74.0,
-            estimatedSizeMb = 448
+            estimatedSizeMb = 1776
         ),
         RegionPack(
             id = "india_north",
             name = "North India Road Map (Delhi NCR & North)",
-            description = "Delhi, Punjab, Haryana, UP, Rajasthan, UK, HP district & road network (Zooms 0-13)",
+            description = "Delhi, Punjab, Haryana, UP, Rajasthan, UK, HP streets, shops & district network (Zooms 0-14)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 14,
             north = 37.5,
             east = 84.5,
             south = 26.5,
             west = 73.0,
-            estimatedSizeMb = 845
+            estimatedSizeMb = 3363
         ),
         RegionPack(
             id = "india_west",
             name = "West India Road Map (MH & Gujarat)",
-            description = "Mumbai, Pune, Ahmedabad, Surat, Goa district & road network (Zooms 0-13)",
+            description = "Mumbai, Pune, Ahmedabad, Surat, Goa streets, shops & district network (Zooms 0-14)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 14,
             north = 24.5,
             east = 74.5,
             south = 15.5,
             west = 68.5,
-            estimatedSizeMb = 328
+            estimatedSizeMb = 1298
         ),
         RegionPack(
             id = "india_south",
             name = "South India Road Map (KA, TN, KL, AP, TS)",
-            description = "Bengaluru, Hyderabad, Chennai, Kochi, Coimbatore district & road network (Zooms 0-13)",
+            description = "Bengaluru, Hyderabad, Chennai, Kochi, Coimbatore streets, shops & district network (Zooms 0-14)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 14,
             north = 19.0,
             east = 80.5,
             south = 8.0,
             west = 74.0,
-            estimatedSizeMb = 419
+            estimatedSizeMb = 1664
         ),
         RegionPack(
             id = "india_east",
             name = "East & NE India Road Map",
-            description = "Kolkata, Bhubaneswar, Patna, Guwahati & NE district road network (Zooms 0-13)",
+            description = "Kolkata, Bhubaneswar, Patna, Guwahati & NE streets, shops & district network (Zooms 0-14)",
             minZoom = 0,
-            maxZoom = 13,
+            maxZoom = 14,
             north = 28.5,
             east = 97.5,
             south = 20.0,
             west = 83.5,
-            estimatedSizeMb = 740
+            estimatedSizeMb = 2943
         )
     )
 

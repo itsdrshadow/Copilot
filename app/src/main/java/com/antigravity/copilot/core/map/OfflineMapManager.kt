@@ -167,8 +167,8 @@ object OfflineMapManager {
             // 10-Year retention: Cached tiles in SQLite are permanently valid offline
             config.expirationExtendedDuration = 1000L * 60 * 60 * 24 * 365 * 10
             config.cacheMapTileCount = 5000.toShort()
-            config.tileFileSystemCacheMaxBytes = 10000L * 1024 * 1024 // 10 GB strict local offline storage limit
-            config.tileFileSystemCacheTrimBytes = 9000L * 1024 * 1024  // 9 GB trim threshold
+            config.tileFileSystemCacheMaxBytes = 15000L * 1024 * 1024 // 15 GB strict local offline storage limit
+            config.tileFileSystemCacheTrimBytes = 14000L * 1024 * 1024 // 14 GB trim threshold
             config.tileFileSystemThreads = 6
             config.tileDownloadThreads = 8
             config.userAgentValue = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Copilot-Automotive/1.0"

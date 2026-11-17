@@ -155,7 +155,7 @@ class Milestone3MapTileAndLifecycleTest {
             if (region.id == "india_national") {
                 assertEquals(12, region.maxZoom)
             } else {
-                assertEquals("Region ${region.name} maxZoom must be 13 (district & street coverage)", 13, region.maxZoom)
+                assertEquals("Region ${region.name} maxZoom must be 14 (district, town & street coverage)", 14, region.maxZoom)
             }
         }
     }
@@ -182,14 +182,14 @@ class Milestone3MapTileAndLifecycleTest {
     }
 
     @Test
-    fun testIndiaOfflineMapStorageBudgetUnderTenGb() {
+    fun testIndiaOfflineMapStorageBudgetUnderFifteenGb() {
         val nationalPack = IndiaOfflineMapManager.INDIA_REGIONS.first { it.id == "india_national" }
-        // All-India package (Zooms 0-12) must fit well under 4 GB (3,747 MB), respecting the 10 GB budget
-        assertTrue("All-India pack must be < 4000 MB", nationalPack.estimatedSizeMb < 4000)
+        // All-India package (Zooms 0-12) must fit well under 2 GB (1,414 MB), respecting the 15 GB budget
+        assertTrue("All-India pack must be < 2000 MB", nationalPack.estimatedSizeMb < 2000)
 
-        // Regional packs (Zooms 0-13) must each be under 3 GB
+        // Regional packs (Zooms 0-14) must each be under 4 GB
         for (region in IndiaOfflineMapManager.INDIA_REGIONS.filter { it.id != "india_national" }) {
-            assertTrue("Region ${region.id} estimated size must be < 3000 MB", region.estimatedSizeMb < 3000)
+            assertTrue("Region ${region.id} estimated size must be < 4000 MB", region.estimatedSizeMb < 4000)
         }
     }
 
@@ -199,26 +199,26 @@ class Milestone3MapTileAndLifecycleTest {
     }
 
     @Test
-    fun testLiveMapViewZoomRangeUnlockedUpToTwenty() {
-        val minZoom = 0.0
-        val maxZoom = 20.0
+    fun testLiveMapViewZoomRangeLockedBetweenFourteenAndNineteenPointFive() {
+        val minZoom = 14.0
+        val maxZoom = 19.5
 
-        // Test zoom in clamp up to max optical zoom 20
-        val zoomNearMax = 19.8
+        // Test zoom in clamp up to max optical zoom 19.5
+        val zoomNearMax = 19.0
         val targetZoomIn = (zoomNearMax + 0.75).coerceAtMost(maxZoom)
-        assertEquals(20.0, targetZoomIn, 0.001)
+        assertEquals(19.5, targetZoomIn, 0.001)
 
-        // Test zoom out clamp to min 0
-        val zoomNearMin = 0.5
+        // Test zoom out clamp to min 14.0
+        val zoomNearMin = 14.5
         val targetZoomOut = (zoomNearMin - 0.75).coerceAtLeast(minZoom)
-        assertEquals(0.0, targetZoomOut, 0.001)
+        assertEquals(14.0, targetZoomOut, 0.001)
 
         // Test overshoots
         val overshootHigh = 25.0.coerceIn(minZoom, maxZoom)
-        assertEquals(20.0, overshootHigh, 0.001)
+        assertEquals(19.5, overshootHigh, 0.001)
 
-        val overshootLow = (-5.0).coerceIn(minZoom, maxZoom)
-        assertEquals(0.0, overshootLow, 0.001)
+        val overshootLow = 10.0.coerceIn(minZoom, maxZoom)
+        assertEquals(14.0, overshootLow, 0.001)
     }
 
     @Test

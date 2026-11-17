@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Upgraded Offline Map Storage Budget to 15 GB Max**:
+  - Increased offline map tile cache limit from 10 GB to **15 GB** (`tileFileSystemCacheMaxBytes = 15000L * 1024 * 1024`) with a 14 GB trim threshold in `OfflineMapManager`.
+  - Updated storage telemetry status banner in `IndiaOfflineMapDialog` to reflect `STORAGE: X MB / 15 GB MAX`.
+- **Expanded Regional Offline Download Depth to Zoom 14 (Streets, Shops & Towns)**:
+  - Upgraded regional packs (Central, North, West, South, East) from Zoom 13 to Zoom 14 in `IndiaOfflineMapManager`, providing detailed offline coverage of local roads, streets, shops, and district intersections.
+  - Recalibrated accurate estimates for Zoom 14 packs: Central India CG & MP (~1,776 MB), North (~3,363 MB), West (~1,298 MB), South (~1,664 MB), and East (~2,943 MB).
+- **Locked Cockpit Live Map Zoom Spectrum (Zoom 14.0 to 19.5)**:
+  - Set `MAP_MIN_ZOOM_LEVEL = 14.0` and `MAP_MAX_ZOOM_LEVEL = 19.5` in `LiveMapView`.
+  - Configured `+` and `-` zoom controls, touch pinch-to-zoom, and auto-focus camera to remain locked within this optimal driving range so roads, shops, POIs, and GPS trails are always clear without zooming out into outer space or zooming into blank/grey tiles.
+
 ### Fixed
 - **Calibrated Offline Map Download Size Estimation**:
   - Calibrated the roadmap tile storage estimation model from 22 KB down to empirical ~8.3 KB average per tile in `IndiaOfflineMapManager`.

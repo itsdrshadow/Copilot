@@ -222,7 +222,7 @@ fun IndiaOfflineMapDialog(
                                             .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
                                         Text(
-                                            text = "STORAGE: ${OfflineMapManager.formatCacheSize(totalStorageBytes)} / 10 GB MAX",
+                                            text = "STORAGE: ${OfflineMapManager.formatCacheSize(totalStorageBytes)} / 15 GB MAX",
                                             style = CockpitTheme.typography.labelSmall.copy(
                                                 fontFeatureSettings = "tnum"
                                             ),

@@ -74,8 +74,8 @@ import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
 
-private const val MAP_MIN_ZOOM_LEVEL = 0.0
-private const val MAP_MAX_ZOOM_LEVEL = 20.0
+private const val MAP_MIN_ZOOM_LEVEL = 14.0
+private const val MAP_MAX_ZOOM_LEVEL = 19.5
 private const val MAP_DEFAULT_DRIVING_ZOOM = 17.5
 
 /**
