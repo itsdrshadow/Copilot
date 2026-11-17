@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.dashboard
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.graphics.Bitmap
 import android.os.SystemClock
 import android.text.format.DateFormat
@@ -61,7 +62,7 @@ fun SmartMusicClockCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val playbackState by MediaPlaybackManager.playbackState.collectAsState()
+    val playbackState by MediaPlaybackManager.playbackState.collectAsStateWithLifecycle()
 
     // 1-second interval ticker for independent clock and smooth live playback progress
     var tickerTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }

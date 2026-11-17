@@ -9,6 +9,7 @@ import com.antigravity.copilot.core.model.VehicleState
 import com.antigravity.copilot.core.model.VehicleStateMetrics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +36,7 @@ class VehicleStateManager private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val database = AppDatabase.getInstance(appContext)
     private val vehicleStateDao = database.vehicleStateDao()
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val prefs: SharedPreferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 

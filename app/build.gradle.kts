@@ -12,16 +12,16 @@ android {
         applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 68
-        versionName = "1.41.0"
+        versionCode = 69
+        versionName = "1.41.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "VERSION_NAME", "\"1.41.0\"")
-        buildConfigField("int", "VERSION_CODE", "68")
+        buildConfigField("String", "VERSION_NAME", "\"1.41.1\"")
+        buildConfigField("int", "VERSION_CODE", "69")
 
         ndk {
             abiFilters.add("armeabi-v7a")
@@ -98,6 +98,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
 
     // Jetpack Compose

@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.maps
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -54,14 +55,14 @@ fun OfflineMapsManagerContent(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val downloadState by OfflineMapManager.downloadState.collectAsState()
-    val activePkgId by OfflineMapManager.activePackageId.collectAsState()
-    val downloadProgress by OfflineMapManager.downloadProgress.collectAsState()
-    val downloadSpeedMbs by OfflineMapManager.downloadSpeedMbs.collectAsState()
-    val installedPackages by OfflineMapManager.installedPackages.collectAsState()
-    val currentGpsRegion by OfflineMapManager.currentGpsRegion.collectAsState()
-    val storageInfo by OfflineMapManager.storageInfo.collectAsState()
-    val statusMessage by OfflineMapManager.statusMessage.collectAsState()
+    val downloadState by OfflineMapManager.downloadState.collectAsStateWithLifecycle()
+    val activePkgId by OfflineMapManager.activePackageId.collectAsStateWithLifecycle()
+    val downloadProgress by OfflineMapManager.downloadProgress.collectAsStateWithLifecycle()
+    val downloadSpeedMbs by OfflineMapManager.downloadSpeedMbs.collectAsStateWithLifecycle()
+    val installedPackages by OfflineMapManager.installedPackages.collectAsStateWithLifecycle()
+    val currentGpsRegion by OfflineMapManager.currentGpsRegion.collectAsStateWithLifecycle()
+    val storageInfo by OfflineMapManager.storageInfo.collectAsStateWithLifecycle()
+    val statusMessage by OfflineMapManager.statusMessage.collectAsStateWithLifecycle()
 
     var isImportingUsb by remember { mutableStateOf(false) }
     var usbImportProgressText by remember { mutableStateOf<String?>(null) }

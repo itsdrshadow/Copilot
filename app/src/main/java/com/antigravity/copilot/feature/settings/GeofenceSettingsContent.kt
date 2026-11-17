@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,7 +47,7 @@ fun GeofenceSettingsContent() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val geofenceManager = remember { TripGeofenceManager.getInstance(context) }
-    val geofences by geofenceManager.geofences.collectAsState()
+    val geofences by geofenceManager.geofences.collectAsStateWithLifecycle()
 
     val (currentLat, currentLon) = remember { OfflineMapManager.getLastKnownPosition(context) }
 

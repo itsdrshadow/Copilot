@@ -5,6 +5,7 @@ import com.antigravity.copilot.core.database.AppDatabase
 import com.antigravity.copilot.core.database.TripGeofenceEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,7 +27,7 @@ class TripGeofenceManager private constructor(context: Context) : GeofenceProvid
 
     private val database = AppDatabase.getInstance(context)
     private val dao = database.tripGeofenceDao()
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val _geofences = MutableStateFlow<List<TripGeofenceEntity>>(emptyList())
     val geofences: StateFlow<List<TripGeofenceEntity>> = _geofences.asStateFlow()

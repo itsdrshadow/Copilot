@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.41.1] - 2026-11-17
+
+### Fixed
+- **Security**: The `TEST_MEDIA_STATE` exported broadcast receiver in `MainActivity` is now registered only in debug builds; previously any installed app could spoof the now-playing card in release.
+- **Coroutine resilience**: Added `SupervisorJob` to the singleton scopes in `PersistentDataManager`, `StationPriceManager`, `SpeedLimitEngine`, `TripGeofenceManager` and `VehicleStateManager`, so one failed job no longer permanently cancels all later work in that scope.
+- **Lifecycle-aware UI collection**: Replaced `collectAsState()` with `collectAsStateWithLifecycle()` across all screens (added `lifecycle-runtime-compose`) so flows stop collecting while the launcher is in the background.
+
+### Removed
+- Duplicate `CrashGuardian.init` call in `MainActivity` (already initialized in `CopilotApp`).
+
+---
+
 ## [1.41.0] - 2026-11-17
 
 ### Fixed

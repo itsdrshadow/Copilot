@@ -5,6 +5,7 @@ import android.os.Environment
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -22,7 +23,7 @@ object PersistentDataManager {
     private const val BACKUP_DIR_NAME = "Copilot"
     private const val LEGACY_BACKUP_DIR_NAME = "DrivingReport"
     private const val BACKUP_FILE_NAME = "permanent_data_store.json"
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     const val MIN_BACKUP_INTERVAL_MS = 30_000L
     private var lastBackupTimestamp: Long = 0L

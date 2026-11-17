@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.maps
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -69,12 +70,12 @@ fun LiveMapPanel(
     var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
     val mapController = remember { CarMapController(context.applicationContext, coroutineScope) }
 
-    val hasMapInstalled by mapController.hasMapInstalled.collectAsState()
-    val activeRegionTitle by mapController.activeRegionTitle.collectAsState()
-    val is3DActive by mapController.is3DTiltActive.collectAsState()
-    val isHeadingUp by mapController.isHeadingUp.collectAsState()
-    val activeInstruction by mapController.activeInstruction.collectAsState()
-    val remainingDistance by mapController.routeDistanceMeters.collectAsState()
+    val hasMapInstalled by mapController.hasMapInstalled.collectAsStateWithLifecycle()
+    val activeRegionTitle by mapController.activeRegionTitle.collectAsStateWithLifecycle()
+    val is3DActive by mapController.is3DTiltActive.collectAsStateWithLifecycle()
+    val isHeadingUp by mapController.isHeadingUp.collectAsStateWithLifecycle()
+    val activeInstruction by mapController.activeInstruction.collectAsStateWithLifecycle()
+    val remainingDistance by mapController.routeDistanceMeters.collectAsStateWithLifecycle()
 
     // Ensure MapLibre native engine is initialized with applicationContext
     remember {

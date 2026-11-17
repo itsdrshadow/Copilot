@@ -4,6 +4,7 @@ import android.content.Context
 import com.antigravity.copilot.core.model.TripPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,7 +43,7 @@ class SpeedLimitEngine private constructor() {
     @Volatile
     private var appContext: Context? = null
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val _speedLimitInfo = MutableStateFlow(SpeedLimitInfo())
     val speedLimitInfo: StateFlow<SpeedLimitInfo> = _speedLimitInfo.asStateFlow()
 

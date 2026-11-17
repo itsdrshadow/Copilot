@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.dashboard
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -99,7 +100,7 @@ fun SpeedometerCluster(
         OdometerManager.init(context)
     }
 
-    val odoConfig by OdometerManager.odometerConfig.collectAsState()
+    val odoConfig by OdometerManager.odometerConfig.collectAsStateWithLifecycle()
     val currentOdometerKm = remember(odoConfig.baselineOdometerKm, totalLifetimeKm, odoConfig.baselineLifetimeKmAtUpdate) {
         OdometerManager.calculateLiveOdometer(totalLifetimeKm)
     }

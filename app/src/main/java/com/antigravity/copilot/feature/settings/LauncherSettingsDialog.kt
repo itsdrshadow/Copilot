@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -79,7 +80,7 @@ fun LauncherSettingsDialog(
         AppSettingsManager.init(context)
     }
 
-    val settingsState by AppSettingsManager.settingsState.collectAsState()
+    val settingsState by AppSettingsManager.settingsState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(SettingsTab.GENERAL) }
 
     // Vehicle state

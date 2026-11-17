@@ -1,5 +1,6 @@
 package com.antigravity.copilot
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -115,35 +116,8 @@ class MainActivity : ComponentActivity() {
         }
         registerReceiver(packageReceiver, packageFilter)
 
-        val mediaFilter = IntentFilter("com.antigravity.copilot.TEST_MEDIA_STATE")
-        testMediaReceiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val isPlaying = intent?.getBooleanExtra("playing", true) ?: true
-                val title = intent?.getStringExtra("title") ?: if (isPlaying) "Nightcall" else ""
-                val artist = intent?.getStringExtra("artist") ?: if (isPlaying) "Kavinsky" else ""
-                val album = intent?.getStringExtra("album") ?: if (isPlaying) "OutRun" else ""
-                val code = if (isPlaying) android.media.session.PlaybackState.STATE_PLAYING else android.media.session.PlaybackState.STATE_STOPPED
-                com.antigravity.copilot.core.media.MediaPlaybackManager.setTestPlaybackState(
-                    com.antigravity.copilot.core.media.MediaPlaybackState(
-                        title = title,
-                        artist = artist,
-                        album = album,
-                        isPlaying = isPlaying,
-                        hasActiveSession = isPlaying,
-                        playbackStateCode = code,
-                        durationMs = 259000L,
-                        positionMs = 64000L,
-                        lastPositionUpdateTime = android.os.SystemClock.elapsedRealtime(),
-                        playbackSpeed = 1.0f
-                    )
-                )
-            }
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(testMediaReceiver, mediaFilter, Context.RECEIVER_EXPORTED)
-        } else {
-            registerReceiver(testMediaReceiver, mediaFilter)
-        }
+        // Debug-only test hook: an exported receiver in release would let any app spoof now-playing state.
+        if (BuildConfig.DEBUG) registerTestMediaReceiver()
 
         // Automotive Edge-to-Edge Immersive Sticky Mode (Hides status bar and gesture navigation)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -157,8 +131,7 @@ class MainActivity : ComponentActivity() {
         com.antigravity.copilot.core.media.MediaPlaybackManager.init(applicationContext)
         PersistentDataManager.backupAsync(applicationContext)
 
-        // Automotive CrashGuardian lifecycle verification
-        CrashGuardian.init(application)
+        // CrashGuardian is initialized in CopilotApp.onCreate
         if (CrashGuardian.isSafeModeActive(this)) {
             Toast.makeText(this, "Copilot: Running in Safe Mode", Toast.LENGTH_LONG).show()
         }
@@ -169,7 +142,7 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val settings by AppSettingsManager.settingsState.collectAsState()
+            val settings by AppSettingsManager.settingsState.collectAsStateWithLifecycle()
 
             CopilotTheme(
                 themeMode = settings.cockpitThemeMode
@@ -177,6 +150,38 @@ class MainActivity : ComponentActivity() {
                 MainAppScreen(viewModel = viewModel)
             }
         }
+    }
+
+    private fun registerTestMediaReceiver() {
+    val mediaFilter = IntentFilter("com.antigravity.copilot.TEST_MEDIA_STATE")
+    testMediaReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val isPlaying = intent?.getBooleanExtra("playing", true) ?: true
+            val title = intent?.getStringExtra("title") ?: if (isPlaying) "Nightcall" else ""
+            val artist = intent?.getStringExtra("artist") ?: if (isPlaying) "Kavinsky" else ""
+            val album = intent?.getStringExtra("album") ?: if (isPlaying) "OutRun" else ""
+            val code = if (isPlaying) android.media.session.PlaybackState.STATE_PLAYING else android.media.session.PlaybackState.STATE_STOPPED
+            com.antigravity.copilot.core.media.MediaPlaybackManager.setTestPlaybackState(
+                com.antigravity.copilot.core.media.MediaPlaybackState(
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    isPlaying = isPlaying,
+                    hasActiveSession = isPlaying,
+                    playbackStateCode = code,
+                    durationMs = 259000L,
+                    positionMs = 64000L,
+                    lastPositionUpdateTime = android.os.SystemClock.elapsedRealtime(),
+                    playbackSpeed = 1.0f
+                )
+            )
+        }
+    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        registerReceiver(testMediaReceiver, mediaFilter, Context.RECEIVER_EXPORTED)
+    } else {
+        registerReceiver(testMediaReceiver, mediaFilter)
+    }
     }
 
     override fun onResume() {
@@ -239,22 +244,22 @@ class MainActivity : ComponentActivity() {
 private fun MainAppScreen(
     viewModel: MainViewModel
 ) {
-    val currentTrip by viewModel.currentTrip.collectAsState()
-    val latestPoint by viewModel.latestPoint.collectAsState()
-    val tripTrail by viewModel.tripTrail.collectAsState()
-    val qualifyingTrips by viewModel.qualifyingTrips.collectAsState(initial = emptyList())
-    val lastThreeTrips by viewModel.lastThreeTrips.collectAsState(initial = emptyList())
-    val fuelState by viewModel.fuelState.collectAsState()
-    val fuelHistory by viewModel.fuelHistory.collectAsState(initial = emptyList())
-    val tripVisualState by viewModel.tripVisualState.collectAsState()
-    val speedLimitInfo by viewModel.speedLimitInfo.collectAsState()
-    val selectedTab by viewModel.selectedTab.collectAsState()
-    val isAppDrawerOpen by viewModel.isAppDrawerOpen.collectAsState()
-    val isFuelDialogOpen by viewModel.isFuelDialogOpen.collectAsState()
-    val isSettingsDialogOpen by viewModel.isSettingsDialogOpen.collectAsState()
-    val installedApps by viewModel.installedApps.collectAsState()
+    val currentTrip by viewModel.currentTrip.collectAsStateWithLifecycle()
+    val latestPoint by viewModel.latestPoint.collectAsStateWithLifecycle()
+    val tripTrail by viewModel.tripTrail.collectAsStateWithLifecycle()
+    val qualifyingTrips by viewModel.qualifyingTrips.collectAsStateWithLifecycle(initialValue = emptyList())
+    val lastThreeTrips by viewModel.lastThreeTrips.collectAsStateWithLifecycle(initialValue = emptyList())
+    val fuelState by viewModel.fuelState.collectAsStateWithLifecycle()
+    val fuelHistory by viewModel.fuelHistory.collectAsStateWithLifecycle(initialValue = emptyList())
+    val tripVisualState by viewModel.tripVisualState.collectAsStateWithLifecycle()
+    val speedLimitInfo by viewModel.speedLimitInfo.collectAsStateWithLifecycle()
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+    val isAppDrawerOpen by viewModel.isAppDrawerOpen.collectAsStateWithLifecycle()
+    val isFuelDialogOpen by viewModel.isFuelDialogOpen.collectAsStateWithLifecycle()
+    val isSettingsDialogOpen by viewModel.isSettingsDialogOpen.collectAsStateWithLifecycle()
+    val installedApps by viewModel.installedApps.collectAsStateWithLifecycle()
     val splashViewModel: SplashViewModel = viewModel()
-    val isSplashCompleted by splashViewModel.isSplashCompleted.collectAsState()
+    val isSplashCompleted by splashViewModel.isSplashCompleted.collectAsStateWithLifecycle()
 
     BackHandler(enabled = !isSplashCompleted) {
         splashViewModel.skipSplash()
@@ -375,7 +380,7 @@ private fun MainAppScreen(
                 animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
             ) + fadeOut(animationSpec = tween(220))
         ) {
-            val appSettings by AppSettingsManager.settingsState.collectAsState()
+            val appSettings by AppSettingsManager.settingsState.collectAsStateWithLifecycle()
             AppDrawerScreen(
                 apps = installedApps,
                 onAppClick = { app ->
@@ -391,7 +396,7 @@ private fun MainAppScreen(
             )
         }
 
-        val refuelPromptData by viewModel.refuelPromptEvent.collectAsState()
+        val refuelPromptData by viewModel.refuelPromptEvent.collectAsStateWithLifecycle()
         refuelPromptData?.let { prompt ->
             RefuelStationPromptDialog(
                 promptData = prompt,

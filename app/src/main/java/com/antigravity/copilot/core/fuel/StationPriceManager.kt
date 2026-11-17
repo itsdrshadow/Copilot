@@ -6,6 +6,7 @@ import android.util.Log
 import com.antigravity.copilot.core.database.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -35,7 +36,7 @@ object StationPriceManager {
     private const val PREFS_NAME = "driving_report_station_prices"
     private const val KEY_STATIONS_JSON = "station_price_records"
     private const val MAX_MATCH_DISTANCE_METERS = 280.0 // 280 meter geofence radius for fuel plazas
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     data class StationPriceRecord(
         val stationName: String,
