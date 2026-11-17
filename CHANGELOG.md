@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.51.0] - 2026-11-17
+
+### Added
+- **The trip card keeps the last trip.** When a trip ends, the dashboard card switches from "CURRENT TRIP" to "LAST TRIP" and keeps that trip's distance, duration and speed stats until the next trip starts. The last trip is restored after an app restart, and a discarded movement candidate no longer blanks the card.
+- **Liquid Glass ambient background.** Soft violet, cyan and emerald color pools sit behind every screen. They are radial gradients built once per size with `drawWithCache`, with no blur.
+
+### Changed
+- The speedometer no longer shows the IDLE/CRUISING label under the speed. The trend pill now reads "0.0 m/s²" / "STEADY", and the dial sits lower in its card.
+- Dock buttons have a thinner, softer border (1dp at 45% instead of 1.5dp at 60%).
+
+### Fixed
+- **The fuel tank could show 0 L / 0% / "---" range after launch.** The pre-load seed model was anchored at odometer 0 km. A state built from it could also be published *after* the stored model loaded, overwriting the real level, and a stationary car never triggered a rebuild. The seed now anchors at the live odometer, and all fuel-state publishes use compare-and-set (`MutableStateFlow.update`), so a state built from a stale model is recomputed instead of overwriting a newer one.
+- The Liquid Glass border token is now opaque. Screens call `border.copy(alpha = x)`, which replaces alpha, so the old translucent token produced glaring 60% white rims (most visible on the dock).
+- `AutomotiveDesignTokensTest` still expected the system sans-serif numeric font from before 1.50.0.
+
 ## [1.50.0] - 2026-11-17
 
 ### Added

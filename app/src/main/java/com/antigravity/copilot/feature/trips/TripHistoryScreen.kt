@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.trips
 
+import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.domain.trip.*
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TintedBadge
@@ -159,7 +160,7 @@ fun TripHistoryScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.backgroundBrush)
+            .cockpitBackground()
             .padding(14.dp)
     ) {
         val isCompactWidth = maxWidth < 760.dp

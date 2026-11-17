@@ -84,7 +84,7 @@ class AutomotiveDesignTokensTest {
 
     @Test
     fun testStandardizedNumericTypographyTokens() {
-        assertEquals(androidx.compose.ui.text.font.FontFamily.SansSerif, AutomotiveDesignTokens.NumericTypography.fontFamily)
+        assertEquals(com.antigravity.copilot.core.designsystem.typography.GoogleSansFamily, AutomotiveDesignTokens.NumericTypography.fontFamily)
         assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveDesignTokens.NumericTypography.fontWeightHero)
         assertEquals("tnum", AutomotiveDesignTokens.NumericTypography.fontFeatureSettings)
         assertEquals((-0.5).sp, AutomotiveDesignTokens.NumericTypography.letterSpacing)

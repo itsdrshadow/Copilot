@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.launcher
 
+import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.activity.compose.BackHandler
@@ -75,7 +76,7 @@ fun AppDrawerScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.backgroundBrush)
+            .cockpitBackground()
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Column(

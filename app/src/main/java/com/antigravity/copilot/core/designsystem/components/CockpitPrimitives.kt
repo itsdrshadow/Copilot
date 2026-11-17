@@ -27,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -89,6 +91,30 @@ fun Modifier.cockpitSurface(
         .clip(shape)
         .background(background)
         .glassBorder(border, colors, glass, shape, borderWidth)
+}
+
+/**
+ * Full-screen backdrop. Liquid Glass layers its ambient colour pools over the base gradient;
+ * brushes are built once per size in drawWithCache, so redraws allocate nothing.
+ */
+@Composable
+@ReadOnlyComposable
+fun Modifier.cockpitBackground(): Modifier {
+    val colors = LocalCockpitColors.current
+    val glows = colors.glass?.ambientGlows.orEmpty()
+    val base = this.background(colors.backgroundBrush)
+    if (glows.isEmpty()) return base
+    return base.drawWithCache {
+        val longest = maxOf(size.width, size.height)
+        val brushes = glows.map { g ->
+            Brush.radialGradient(
+                colors = listOf(g.color, g.color.copy(alpha = 0f)),
+                center = Offset(size.width * g.centerX, size.height * g.centerY),
+                radius = (longest * g.radius).coerceAtLeast(1f)
+            )
+        }
+        onDrawBehind { brushes.forEach { drawRect(it) } }
+    }
 }
 
 private fun Modifier.glassShadow(enabled: Boolean, glass: GlassStyle, shape: Shape): Modifier =

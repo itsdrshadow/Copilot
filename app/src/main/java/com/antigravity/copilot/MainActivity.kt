@@ -1,5 +1,6 @@
 package com.antigravity.copilot
 
+import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import dagger.hilt.android.AndroidEntryPoint
 import com.antigravity.copilot.feature.trips.TripHistoryRoute
 import com.antigravity.copilot.feature.fuel.FuelHistoryRoute
@@ -343,7 +344,7 @@ private fun MainAppScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.backgroundBrush)
+            .cockpitBackground()
     ) {
         // Tabs 2 (Trips) and 3 (Fuel) are opaque overlays on top of a dashboard that stays composed
         // for the whole session, so the single MapView (and its loaded style, tiles and camera) is
@@ -402,7 +403,7 @@ private fun MainAppScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(CockpitTheme.colors.backgroundBrush)
+                    .cockpitBackground()
             ) {
                 when (overlayTab ?: lastOverlayTab) {
                     2 -> TripHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })

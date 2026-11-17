@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -88,7 +89,7 @@ fun DashboardScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.backgroundBrush)
+            .cockpitBackground()
     ) {
         val screenHeight = maxHeight
         val screenWidth = maxWidth
@@ -306,7 +307,7 @@ private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, mo
                 scaleX = scale
                 scaleY = scale
             }
-            .cockpitSurface(dockActionBg, if (isPressed) CockpitTheme.colors.accent else CockpitTheme.colors.border.copy(alpha = 0.6f), shape, borderWidth = 1.5.dp)
+            .cockpitSurface(dockActionBg, if (isPressed) CockpitTheme.colors.accent else CockpitTheme.colors.border.copy(alpha = 0.45f), shape, borderWidth = 1.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),

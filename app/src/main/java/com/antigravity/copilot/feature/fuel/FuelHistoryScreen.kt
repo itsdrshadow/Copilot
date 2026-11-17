@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.fuel
 
+import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TintedBadge
 import com.antigravity.copilot.core.designsystem.components.BadgeSize
@@ -137,7 +138,7 @@ fun FuelHistoryScreen(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.backgroundBrush)
+            .cockpitBackground()
     ) {
             val isCompact = maxWidth < 750.dp
 

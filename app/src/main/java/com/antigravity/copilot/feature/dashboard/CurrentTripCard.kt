@@ -342,7 +342,7 @@ fun CurrentTripCard(
                         )
                     }
                     Text(
-                        text = "CURRENT TRIP",
+                        text = if (isTripCompleted) "LAST TRIP" else "CURRENT TRIP",
                         style = CockpitTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.1.sp

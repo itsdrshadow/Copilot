@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.settings
 
+import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.core.designsystem.colors.Glass_Base
 import com.antigravity.copilot.core.designsystem.colors.Glass_Cyan
 import com.antigravity.copilot.core.designsystem.colors.Glass_Indigo
@@ -104,7 +105,7 @@ fun LauncherSettingsDialog(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(CockpitTheme.colors.backgroundBrush)
+            .cockpitBackground()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // ==================== TOP ACTION BAR ====================

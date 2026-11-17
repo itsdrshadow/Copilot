@@ -290,7 +290,9 @@ fun SpeedometerCluster(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .padding(top = 14.dp)
+                    .offset(y = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {}) { // own layer: dial redraws stay isolated
@@ -386,22 +388,6 @@ fun SpeedometerCluster(
                         ),
                         color = statusColor
                     )
-                    // Driving state label (IDLE / ACCELERATING / CRUISING / BRAKING)
-                    val drivingStateLabel = if (isGpsValid) latestPoint?.drivingState.orEmpty().ifBlank { "IDLE" } else "IDLE"
-                    Text(
-                        text = drivingStateLabel,
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp
-                        ),
-                        color = when (drivingStateLabel) {
-                            "BRAKING" -> CockpitTheme.colors.critical
-                            "ACCELERATING" -> CockpitTheme.colors.warning
-                            "CRUISING" -> CockpitTheme.colors.accent
-                            else -> textSecondary
-                        }
-                    )
-
                     Spacer(Modifier.height(6.dp))
 
                     // Prominent Dynamic Speed Trend Readout
@@ -444,8 +430,8 @@ fun SpeedometerCluster(
                                 !isGpsValid -> "-- GPS"
                                 isAccelerating -> "+${String.format(Locale.US, "%.1f", smoothedAccelMss)} m/s² ACCEL"
                                 isDecelerating -> "${String.format(Locale.US, "%.1f", smoothedAccelMss)} m/s² DECEL"
-                                rawSpeed < 1.0f -> "IDLE • 0.0 m/s²"
-                                else -> "CRUISING • STEADY"
+                                rawSpeed < 1.0f -> "0.0 m/s²"
+                                else -> "STEADY"
                             },
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,

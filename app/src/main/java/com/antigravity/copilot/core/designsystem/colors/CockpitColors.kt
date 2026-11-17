@@ -99,18 +99,25 @@ data class GlassStyle(
     /** 1dp edge: specular highlight top-left → faint rim bottom-right. */
     val specularBorder: Brush,
     /** Cheap RenderNode outline shadow under neutral glass surfaces. */
-    val shadowElevationDp: Float
+    val shadowElevationDp: Float,
+    /** Soft ambient colour pools painted behind screens (see `Modifier.cockpitBackground`). */
+    val ambientGlows: List<AmbientGlow> = emptyList()
 )
+
+/** One radial colour pool; [centerX]/[centerY]/[radius] are fractions of the screen size. */
+data class AmbientGlow(val color: Color, val centerX: Float, val centerY: Float, val radius: Float)
 
 // ==================== LIQUID GLASS PALETTE ====================
 
 val Glass_Base = Color(0xFF0B1220)
-val Glass_BaseIndigoTint = Color(0xFF111735)
-val Glass_BaseTealTint = Color(0xFF0A1A22)
+val Glass_BaseIndigoTint = Color(0xFF151B45)
+val Glass_BaseTealTint = Color(0xFF07222C)
 val Glass_Surface = Color(0xD1111A2E) // #111A2E @ 82%
 val Glass_SurfaceElevated = Color(0xD91A2540) // lifted panel @ 85%
 val Glass_SurfaceLow = Color(0xC70E1628) // #0E1628 @ 78%
-val Glass_Border = Color(0x2EFFFFFF)
+// Opaque on purpose (≈18% white over Glass_Base): screens call border.copy(alpha = x),
+// which REPLACES alpha — a translucent token would turn 0.6 into a glaring 60% white rim.
+val Glass_Border = Color(0xFF353D4D)
 val Glass_Cyan = Color(0xFF38BDF8)
 val Glass_Indigo = Color(0xFF818CF8)
 val Glass_Emerald = Color(0xFF34D399)
@@ -123,7 +130,12 @@ val Glass_TextTertiary = Color(0xFF6B7A93)
 val LiquidGlassStyle = GlassStyle(
     sheen = Brush.linearGradient(listOf(Color(0x26FFFFFF), Color(0x12FFFFFF), Color(0x0DFFFFFF))),
     specularBorder = Brush.linearGradient(listOf(Color(0x55FFFFFF), Color(0x24FFFFFF), Color(0x14FFFFFF))),
-    shadowElevationDp = 3f
+    shadowElevationDp = 3f,
+    ambientGlows = listOf(
+        AmbientGlow(Color(0x478B5CF6), centerX = 0.08f, centerY = 0.05f, radius = 0.75f), // violet, top-left
+        AmbientGlow(Color(0x3D38BDF8), centerX = 0.95f, centerY = 0.95f, radius = 0.80f), // cyan, bottom-right
+        AmbientGlow(Color(0x2634D399), centerX = 0.62f, centerY = 0.18f, radius = 0.45f)  // emerald haze
+    )
 )
 
 // Pre-composited sheen-over-surface fill for screens that paint a single brush.

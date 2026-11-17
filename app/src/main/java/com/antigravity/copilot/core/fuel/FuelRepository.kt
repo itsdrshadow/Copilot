@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -103,11 +104,15 @@ class FuelRepository private constructor(context: Context) {
         actualCapacityL = maxCapacity,
         defaultKmpl = baselineVehicleMileage,
         anchorLitres = prefs.getFloat("remaining_liters", (designCapacity * 0.5).toFloat()).toDouble(),
-        anchorOdoKm = 0.0,
+        // Anchor at the live odometer: an anchor at 0 km made the pre-load seed estimate
+        // "litres − 8,800 km / kmpl" and flash (or stick at) 0 L on the dashboard.
+        anchorOdoKm = seedOdometerKm(),
         anchorTimeMs = System.currentTimeMillis()
     )
     @Volatile
     private var modelLoaded = false
+
+    private fun seedOdometerKm(): Double = try { getEffectiveOdometer() } catch (_: Exception) { 0.0 }
 
     /** Read-only view of the current fuel model (for tests / diagnostics / UI). */
     val fuelModelState: FuelModelState get() = model
@@ -138,7 +143,7 @@ class FuelRepository private constructor(context: Context) {
             Log.e(TAG, "Fuel model load failed; keeping seed: ${e.message}", e)
         }
         modelLoaded = true
-        _fuelState.value = buildFuelState()
+        _fuelState.update { buildFuelState() }
     }
 
     private suspend fun persistModelNow() {
@@ -159,7 +164,7 @@ class FuelRepository private constructor(context: Context) {
             stateMutex.withLock {
                 model = FuelModel.onGaugeReading(model, point, getEffectiveOdometer(), System.currentTimeMillis())
                 persistModelNow()
-                _fuelState.value = buildFuelState()
+                _fuelState.update { buildFuelState() }
             }
         }
     }
@@ -331,7 +336,7 @@ class FuelRepository private constructor(context: Context) {
                     Log.w("FuelRepository", "Error rehydrating fuel ledger", e)
                 }
 
-                _fuelState.value = buildFuelState()
+                _fuelState.update { buildFuelState() }
             }
         }
     }
@@ -487,20 +492,20 @@ class FuelRepository private constructor(context: Context) {
         mileageEngine.updateBaseline(safeMileage)
         model = FuelModel.withConfig(model, safeCapacity, safeMileage)
         persistModelAsync()
-        _fuelState.value = buildFuelState()
+        _fuelState.update { buildFuelState() }
     }
 
     fun calibrateOdometer(newOdometerReadingKm: Double, currentRecordedKm: Double) {
         latestAppLifetimeKm = currentRecordedKm
         OdometerManager.setBaselineOdometer(appContext, newOdometerReadingKm, currentRecordedKm)
-        _fuelState.value = buildFuelState()
+        _fuelState.update { buildFuelState() }
     }
 
     fun syncOdometerDistance(currentRecordedKm: Double) {
         if (latestAppLifetimeKm != currentRecordedKm) {
             latestAppLifetimeKm = currentRecordedKm
             OdometerManager.syncLifetimeKm(currentRecordedKm)
-            _fuelState.value = buildFuelState()
+            _fuelState.update { buildFuelState() }
         }
     }
 
@@ -577,7 +582,7 @@ class FuelRepository private constructor(context: Context) {
                     fuelDao.insertFuelEvent(legacyEvent)
 
                     persistValuesImmediate()
-                    _fuelState.value = buildFuelState()
+                    _fuelState.update { buildFuelState() }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error in syncMidAndOdometer Room DB writes: ${e.message}", e)
                 }
@@ -625,7 +630,7 @@ class FuelRepository private constructor(context: Context) {
                     _missedRefuelAlert.value = null
 
                     persistValuesImmediate()
-                    _fuelState.value = buildFuelState()
+                    _fuelState.update { buildFuelState() }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error in resolveInferredRefuel Room DB writes: ${e.message}", e)
                 }
@@ -799,7 +804,7 @@ class FuelRepository private constructor(context: Context) {
                     }
 
                     persistValuesImmediate()
-                    _fuelState.value = buildFuelState()
+                    _fuelState.update { buildFuelState() }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error in recordRefuel Room DB writes: ${e.message}", e)
                 }
@@ -888,7 +893,7 @@ class FuelRepository private constructor(context: Context) {
         // which comes from the pure FuelModel (anchor − km / learned mileage).
 
         persistValuesDebounced()
-        _fuelState.value = buildFuelState()
+        _fuelState.update { buildFuelState() }
     }
 
     fun getFuelTelemetrySnapshot(): FuelTelemetrySnapshot {
@@ -903,7 +908,7 @@ class FuelRepository private constructor(context: Context) {
 
     fun resetTripConsumption() {
         cumulativeTripConsumedLiters = 0.0
-        _fuelState.value = buildFuelState()
+        _fuelState.update { buildFuelState() }
     }
 
     /**
@@ -916,7 +921,7 @@ class FuelRepository private constructor(context: Context) {
             stateMutex.withLock {
                 if (cumulativeTripConsumedLiters == 0.0) {
                     cumulativeTripConsumedLiters = FuelMath.roundFuel(consumedLiters)
-                    _fuelState.value = buildFuelState()
+                    _fuelState.update { buildFuelState() }
                 }
             }
         }
@@ -936,7 +941,7 @@ class FuelRepository private constructor(context: Context) {
                             persistModelNow()
                             recordUnloggedEntry(entry, odo)
                         }
-                        _fuelState.value = buildFuelState()
+                        _fuelState.update { buildFuelState() }
                     } catch (e: Exception) {
                         Log.e(TAG, "Unlogged-consumption bookkeeping failed: ${e.message}", e)
                     }
@@ -962,7 +967,7 @@ class FuelRepository private constructor(context: Context) {
                         fuelLedgerDao.insertEvent(FuelLedgerEntity.fromDomainEvent(event))
                     }
                     persistValuesImmediate()
-                    _fuelState.value = buildFuelState()
+                    _fuelState.update { buildFuelState() }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error in onTripCompleted Room DB writes: ${e.message}", e)
                 }
@@ -1027,7 +1032,7 @@ class FuelRepository private constructor(context: Context) {
         persistModelAsync()
 
         persistValuesImmediate()
-        _fuelState.value = buildFuelState()
+        _fuelState.update { buildFuelState() }
     }
 
     fun deleteFuelEvent(eventId: Long) {
@@ -1052,7 +1057,7 @@ class FuelRepository private constructor(context: Context) {
                     fuelLedgerDao.deleteEventById(eventId)
 
                     persistValuesImmediate()
-                    _fuelState.value = buildFuelState()
+                    _fuelState.update { buildFuelState() }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error in deleteFuelEvent Room DB writes: ${e.message}", e)
                 }
@@ -1102,7 +1107,7 @@ class FuelRepository private constructor(context: Context) {
                     }
 
                     persistValuesImmediate()
-                    _fuelState.value = buildFuelState()
+                    _fuelState.update { buildFuelState() }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error in updateFuelEvent Room DB writes: ${e.message}", e)
                 }
@@ -1132,7 +1137,7 @@ class FuelRepository private constructor(context: Context) {
         StationPriceManager.clearAll(appContext)
 
         persistValuesImmediate()
-        _fuelState.value = buildFuelState()
+        _fuelState.update { buildFuelState() }
 
         scope.launch {
             try {

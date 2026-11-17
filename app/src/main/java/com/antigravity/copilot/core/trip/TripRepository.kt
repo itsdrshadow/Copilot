@@ -261,8 +261,9 @@ class TripRepository private constructor(context: Context) {
                     trailVersion++
                     _tripTrail.value = mapped
                 } else {
-                    // Trip was already completed or no active trip: reset current trip to empty to avoid double-counting with historical list
-                    _currentTrip.value = TripSummary.empty()
+                    // No active trip: show the last completed trip (status COMPLETED, so it is never
+                    // counted as active distance) until a new trip starts.
+                    _currentTrip.value = loadLastCompletedSummary() ?: TripSummary.empty()
                     synchronized(trailLock) {
                         activeTrailPoints = ArrayList()
                     }
@@ -484,6 +485,36 @@ class TripRepository private constructor(context: Context) {
     private val pendingPoints = ConcurrentLinkedQueue<TripPointEntity>()
     private var lastDbFlushTime = 0L
 
+    private suspend fun loadLastCompletedSummary(): TripSummary? = try {
+        lastCompletedTripPrefs.getLong("last_completed_trip_id", -1L).takeIf { it > 0 }
+            ?.let { tripDao.getTripById(it) }
+            ?.takeIf { it.endTime > 0L }
+            ?.toCompletedSummary()
+    } catch (e: Exception) {
+        Log.w(TAG, "Could not restore last completed trip: ${e.message}")
+        null
+    }
+
+    private fun TripEntity.toCompletedSummary(): TripSummary = TripSummary(
+        id = id,
+        startTime = startTime,
+        endTime = endTime,
+        distanceMeters = distanceMeters,
+        drivingDurationMs = drivingDurationMs,
+        stationaryDurationMs = stationaryDurationMs,
+        avgSpeedKmh = avgSpeedKmh,
+        maxSpeedKmh = maxSpeedKmh,
+        estimatedFuelConsumedLiters = estimatedFuelLiters,
+        calculatedMileageKmpl = calculatedMileageKmpl,
+        driverScore = driverScore,
+        brakeCount = brakeCount,
+        accelCount = accelCount,
+        bestMileageKmpl = bestMileageKmpl,
+        startLocationName = startLocationName,
+        endLocationName = endLocationName,
+        status = TripStatus.COMPLETED
+    )
+
     fun onLocationReceived(point: TripPoint) {
         _latestPoint.value = point
     }
@@ -689,7 +720,11 @@ class TripRepository private constructor(context: Context) {
 
     fun onTripCompleted(summary: TripSummary) {
         updateVisualLifecycle(TripVisualLifecycleEvent.COMPLETED, System.currentTimeMillis(), summary.id)
-        _currentTrip.value = TripSummary.empty()
+        // Keep the finished trip on the dashboard ("LAST TRIP") until the next trip starts.
+        _currentTrip.value = summary.copy(
+            status = TripStatus.COMPLETED,
+            endTime = if (summary.endTime > 0L) summary.endTime else System.currentTimeMillis()
+        )
         synchronized(trailLock) {
             activeTrailPoints = ArrayList()
         }
@@ -753,7 +788,14 @@ class TripRepository private constructor(context: Context) {
     }
 
     fun onTripDiscarded(tripId: Long) {
-        _currentTrip.value = TripSummary(id = 0, startTime = 0L, status = TripStatus.IDLE)
+        _currentTrip.value = _lastCompletedTrip.value?.toCompletedSummary()
+            ?: TripSummary(id = 0, startTime = 0L, status = TripStatus.IDLE)
+        if (_lastCompletedTrip.value == null) {
+            scope.launch {
+                val last = loadLastCompletedSummary()
+                if (last != null && _currentTrip.value.id == 0L) _currentTrip.value = last
+            }
+        }
         synchronized(trailLock) {
             activeTrailPoints = ArrayList()
         }
