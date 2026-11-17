@@ -32,10 +32,11 @@ private class CanvasGeometryCache {
 
 @Composable
 fun CarSilhouetteCanvas(
-    trailsProgress: Float,
-    silhouetteProgress: Float,
-    reflectionAlpha: Float,
-    glowIntensity: Float,
+    // Providers, read only inside the draw block: animation frames redraw, never recompose.
+    trails: () -> Float,
+    silhouette: () -> Float,
+    reflection: () -> Float,
+    glow: () -> Float,
     modifier: Modifier = Modifier
 ) {
     val carRooflinePath = remember { Path() }
@@ -61,6 +62,10 @@ fun CarSilhouetteCanvas(
         val width = size.width
         val height = size.height
         if (width <= 0f || height <= 0f) return@Canvas
+        val trailsProgress = trails()
+        val silhouetteProgress = silhouette()
+        val reflectionAlpha = reflection()
+        val glowIntensity = glow()
         if (width != cache.width || height != cache.height) {
             cache.width = width
             cache.height = height

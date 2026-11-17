@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2026-11-17
+
+### Added
+- **Trip stats rotate on the map.** A translucent chip at the map's top-right shows average speed, max speed, trip economy, fuel used, trip cost, drive score, peak braking and driving time, one at a time. It slides to the next stat every 30 s, and a tap moves to the next one straight away. It is hidden while parked with no trip.
+
+### Changed
+- **The splash is shorter and smoother.** The animation runs about 5.4 s instead of 8.2 s, with the same stages. It no longer rebuilds the screen on every frame: the logo is drawn once and only faded and scaled, and the car outline and text only redraw.
+- **The map and dashboard load during the splash.** The splash draws first on its own, so it appears sooner. The dashboard and map then load behind the still logo, and the animation starts once the map has loaded its style (or after 2.5 s at most). The startup stalls no longer land in the middle of the animation. The dashboard is not drawn under the splash until the splash starts fading. Trips and Fuel history start loading their lists at app start, so they open with data.
+
+### Fixed
+- **No beige flash on the map at startup.** Until the first tiles are drawn, the map shows the theme background instead of MapLibre's default beige.
+
+### Removed
+- **The trip popup.** Tapping the trip pill ("Last trip" / "Live"), trip time or distance no longer opens the trip card; its stats are on the map now. Long-press the trip pill to start or end a trip by hand, as before.
+- **The overlap legend chip (1× 2× 3×+)** on the map, to make room for the trip stats.
+
 ## [2.1.0] - 2026-11-17
 
 ### Changed

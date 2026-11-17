@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.zIndex
@@ -110,7 +111,9 @@ fun LiveMapPanel(
     speedLimitInfo: SpeedLimitInfo = SpeedLimitInfo(),
     isFullScreen: Boolean = false,
     isCovered: Boolean = false,
-    onToggleFullScreen: () -> Unit = {}
+    onToggleFullScreen: () -> Unit = {},
+    /** Top-right overlay (the rotating trip stat); recomposes on its own, not with the map. */
+    topOverlay: @Composable () -> Unit = {}
 ) {
     if (isFullScreen && !isCovered) {
         BackHandler {
@@ -224,6 +227,9 @@ fun LiveMapPanel(
         }
     }
 
+    // MapLibre paints this until its first frame is rendered (default is a beige #F0E9E1 flash).
+    val mapLoadColor = CockpitTheme.colors.bg.toArgb()
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -236,6 +242,7 @@ fun LiveMapPanel(
                 val options = MapboxMapOptions.createFromAttributes(ctx)
                     .textureMode(true) // Crucial for older Mali / Adreno GPUs
                     .pixelRatio(1.0f) // Cap map density at 1x for GLES2 head units
+                    .foregroundLoadColor(mapLoadColor)
                     .compassEnabled(false)
                     .logoEnabled(false)
                     .attributionEnabled(false)
@@ -312,7 +319,7 @@ fun LiveMapPanel(
             )
         }
 
-        // Legend chip top-right: trail overlap, or the mileage scale while that overlay is on.
+        // Top-right: rotating trip stat, plus the mileage scale while that overlay is on.
         // On a narrow map (small phones) it sits under the limit sign, clear of the map controls.
         BoxWithConstraints(modifier = Modifier.matchParentSize()) {
             val narrow = maxWidth < 420.dp
@@ -324,7 +331,7 @@ fun LiveMapPanel(
                 horizontalAlignment = if (narrow) Alignment.Start else Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OverlapLegendChip()
+                topOverlay()
                 if (roadMileageVisible) MileageLegendChip()
             }
         }
@@ -514,20 +521,6 @@ private fun LegendChipFrame(content: @Composable RowScope.() -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         content = content
     )
-}
-
-/** Trail legend: single pass (cyan), 2 passes (orange), 3+ passes (red). */
-@Composable
-fun OverlapLegendChip() {
-    val c = CockpitTheme.colors
-    val label = CockpitTheme.typography.labelMedium
-    LegendChipFrame {
-        LegendDot(c.accent); Text("1×", style = label, color = c.textPrimary)
-        Spacer(Modifier.width(4.dp))
-        LegendDot(c.overlapOrange); Text("2×", style = label, color = c.textPrimary)
-        Spacer(Modifier.width(4.dp))
-        LegendDot(c.critical); Text("3×+", style = label, color = c.textPrimary)
-    }
 }
 
 /** Mileage scale: red (low km/L) → amber → green (high km/L), relative to learned mileage. */

@@ -22,7 +22,8 @@ class TripHistoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     val trips: StateFlow<List<TripEntity>> = tripHistory.completedTrips
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        // Eager: loaded at startup (warmed by MainAppScreen) so the screen opens with data.
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val fuelPricePerLiter: StateFlow<Double> = fuelLog.fuelState
         .map { it.fuelPricePerLiter }

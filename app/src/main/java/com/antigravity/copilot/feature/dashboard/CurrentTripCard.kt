@@ -48,72 +48,20 @@ data class PremiumRotatingMetric(
 )
 
 /**
- * Current Trip Instrument Card:
- * Features live dynamic trip duration timer, rotating metrics, peak braking deceleration, and tactile status indicators.
+ * Trip metrics shown by the rotating trip stat (map ticker / trip card). Shared so both read the
+ * same values and formatting.
  */
 @Composable
-fun CurrentTripCard(
-    currentTrip: TripSummary,
-    tripVisualState: TripVisualState = TripVisualState(),
-    modifier: Modifier = Modifier,
-    baselineMileage: Double = 18.0
-) {
-    val cardBg = CockpitTheme.colors.cardTopLightGradient
-    val cardBorder = CockpitTheme.colors.border
-    val cyanAccent = CockpitTheme.colors.accent
-    val positiveAccent = CockpitTheme.colors.accent
-    val warningAccent = CockpitTheme.colors.warning
-    val dangerAccent = CockpitTheme.colors.critical
-    val textPrimary = CockpitTheme.colors.textPrimary
-    val textSecondary = CockpitTheme.colors.textSecondary
-
-    val isTripActive = currentTrip.status == TripStatus.ACTIVE_TRIP ||
-            currentTrip.status == TripStatus.MOVEMENT_CANDIDATE ||
-            currentTrip.status == TripStatus.TEMPORARY_STOP
-
-    val isTripCompleted = !isTripActive && (
-            currentTrip.status == TripStatus.COMPLETED ||
-            (currentTrip.endTime > 0L && currentTrip.endTime >= currentTrip.startTime)
-    )
-
-    val isVisualFlashing = (tripVisualState.event == TripVisualLifecycleEvent.STARTED ||
-            tripVisualState.event == TripVisualLifecycleEvent.COMPLETED) &&
-            (System.currentTimeMillis() - tripVisualState.eventTimestamp < 10_000L)
-
-    // Live 1-second elapsed trip timer & visual lifecycle dismiss ticker
-    var liveWallTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(isTripActive, tripVisualState.eventTimestamp) {
-        if (isTripActive || isVisualFlashing) {
-            while (isTripActive || (System.currentTimeMillis() - tripVisualState.eventTimestamp < 10_000L)) {
-                delay(1000L)
-                liveWallTimeMs = System.currentTimeMillis()
-            }
-        }
-    }
-
-    val totalDurationMs = (currentTrip.drivingDurationMs + currentTrip.stationaryDurationMs)
-    val elapsedDurationMs = when {
-        isTripCompleted -> {
-            if (currentTrip.endTime > currentTrip.startTime && currentTrip.startTime > 0L) {
-                (currentTrip.endTime - currentTrip.startTime).coerceAtLeast(0L)
-            } else {
-                totalDurationMs.coerceAtLeast(0L)
-            }
-        }
-        isTripActive && currentTrip.startTime > 0L -> {
-            (liveWallTimeMs - currentTrip.startTime).coerceAtLeast(0L)
-        }
-        else -> 0L
-    }
-
-    val liveTripTimerText = remember(elapsedDurationMs) {
-        com.antigravity.copilot.core.trip.TimeFormatUtils.formatLiveTripTimer(elapsedDurationMs)
-    }
-
+internal fun rememberTripMetrics(currentTrip: TripSummary, baselineMileage: Double): List<PremiumRotatingMetric> {
+    val c = CockpitTheme.colors
+    val cyanAccent = c.accent
+    val positiveAccent = c.accent
+    val warningAccent = c.warning
+    val dangerAccent = c.critical
+    val isTripActive = currentTrip.isActive()
+    val isTripCompleted = currentTrip.isCompleted()
     val hasTripMoved = (isTripActive || isTripCompleted) && currentTrip.distanceMeters >= 50.0
-
-    // Dynamic Rotating Trip Metrics Carousel (Expanded driver telemetry suite)
-    val metrics = remember(currentTrip, baselineMileage, hasTripMoved, isTripActive, isTripCompleted) {
+    return remember(currentTrip, baselineMileage, hasTripMoved, isTripActive, isTripCompleted, c) {
         listOf(
             PremiumRotatingMetric(
                 id = "trip_distance",
@@ -212,6 +160,72 @@ fun CurrentTripCard(
             )
         )
     }
+}
+
+/**
+ * Current Trip Instrument Card:
+ * Features live dynamic trip duration timer, rotating metrics, peak braking deceleration, and tactile status indicators.
+ */
+@Composable
+fun CurrentTripCard(
+    currentTrip: TripSummary,
+    tripVisualState: TripVisualState = TripVisualState(),
+    modifier: Modifier = Modifier,
+    baselineMileage: Double = 18.0
+) {
+    val cardBg = CockpitTheme.colors.cardTopLightGradient
+    val cardBorder = CockpitTheme.colors.border
+    val cyanAccent = CockpitTheme.colors.accent
+    val positiveAccent = CockpitTheme.colors.accent
+    val warningAccent = CockpitTheme.colors.warning
+    val dangerAccent = CockpitTheme.colors.critical
+    val textPrimary = CockpitTheme.colors.textPrimary
+    val textSecondary = CockpitTheme.colors.textSecondary
+
+    val isTripActive = currentTrip.status == TripStatus.ACTIVE_TRIP ||
+            currentTrip.status == TripStatus.MOVEMENT_CANDIDATE ||
+            currentTrip.status == TripStatus.TEMPORARY_STOP
+
+    val isTripCompleted = !isTripActive && (
+            currentTrip.status == TripStatus.COMPLETED ||
+            (currentTrip.endTime > 0L && currentTrip.endTime >= currentTrip.startTime)
+    )
+
+    val isVisualFlashing = (tripVisualState.event == TripVisualLifecycleEvent.STARTED ||
+            tripVisualState.event == TripVisualLifecycleEvent.COMPLETED) &&
+            (System.currentTimeMillis() - tripVisualState.eventTimestamp < 10_000L)
+
+    // Live 1-second elapsed trip timer & visual lifecycle dismiss ticker
+    var liveWallTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(isTripActive, tripVisualState.eventTimestamp) {
+        if (isTripActive || isVisualFlashing) {
+            while (isTripActive || (System.currentTimeMillis() - tripVisualState.eventTimestamp < 10_000L)) {
+                delay(1000L)
+                liveWallTimeMs = System.currentTimeMillis()
+            }
+        }
+    }
+
+    val totalDurationMs = (currentTrip.drivingDurationMs + currentTrip.stationaryDurationMs)
+    val elapsedDurationMs = when {
+        isTripCompleted -> {
+            if (currentTrip.endTime > currentTrip.startTime && currentTrip.startTime > 0L) {
+                (currentTrip.endTime - currentTrip.startTime).coerceAtLeast(0L)
+            } else {
+                totalDurationMs.coerceAtLeast(0L)
+            }
+        }
+        isTripActive && currentTrip.startTime > 0L -> {
+            (liveWallTimeMs - currentTrip.startTime).coerceAtLeast(0L)
+        }
+        else -> 0L
+    }
+
+    val liveTripTimerText = remember(elapsedDurationMs) {
+        com.antigravity.copilot.core.trip.TimeFormatUtils.formatLiveTripTimer(elapsedDurationMs)
+    }
+
+    val metrics = rememberTripMetrics(currentTrip, baselineMileage)
 
     var activeMetricIndex by remember { mutableIntStateOf(0) }
 

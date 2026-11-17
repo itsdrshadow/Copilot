@@ -73,6 +73,7 @@ import androidx.compose.material.icons.outlined.Settings
 import com.antigravity.copilot.core.designsystem.components.RailItem
 import com.antigravity.copilot.core.designsystem.components.RaahiNavRail
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -313,6 +314,12 @@ private fun MainAppScreen(
     val installedApps by viewModel.installedApps.collectAsStateWithLifecycle()
     val splashViewModel: SplashViewModel = viewModel()
     val isSplashCompleted by splashViewModel.isSplashCompleted.collectAsStateWithLifecycle()
+    val isSplashExiting by splashViewModel.isExiting.collectAsStateWithLifecycle()
+
+    // Warm the Trips / Fuel history screens during the splash: same activity-scoped instances the
+    // routes get from hiltViewModel(), and their lists load eagerly, so the first open is instant.
+    hiltViewModel<com.antigravity.copilot.feature.trips.TripHistoryViewModel>()
+    hiltViewModel<com.antigravity.copilot.feature.fuel.FuelHistoryViewModel>()
 
     BackHandler(enabled = !isSplashCompleted) {
         splashViewModel.skipSplash()
@@ -397,12 +404,35 @@ private fun MainAppScreen(
         }
     }
 
+    // Startup order: the splash's first frame is drawn alone (cheap), then the dashboard, map and
+    // rail compose behind it in the next frame while the logo is still. The splash animation waits
+    // for that heavy frame, so it never stutters mid-animation.
+    var mainContentComposed by remember { mutableStateOf(isSplashCompleted) }
+    LaunchedEffect(Unit) {
+        if (!mainContentComposed) {
+            withFrameNanos { }
+            mainContentComposed = true
+        }
+    }
+    // The map's GL setup + first style load also stalls the main thread: preload it behind the
+    // still logo too, but never hold the splash more than 2.5 s for it (e.g. no map installed).
+    val mapStyleLoaded by com.antigravity.copilot.core.map.CarMapController.firstStyleLoaded
+        .collectAsStateWithLifecycle()
+    var mapWaitTimedOut by remember { mutableStateOf(false) }
+    LaunchedEffect(mainContentComposed) {
+        if (mainContentComposed) {
+            delay(2_500L)
+            mapWaitTimedOut = true
+        }
+    }
+    val splashContentReady = mainContentComposed && (mapStyleLoaded || mapWaitTimedOut)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .cockpitBackground()
     ) {
-      Row(modifier = Modifier.fillMaxSize()) {
+      if (mainContentComposed) Row(modifier = Modifier.fillMaxSize()) {
         RaahiNavRail(
             items = railItems,
             bottomItems = railBottom,
@@ -449,8 +479,11 @@ private fun MainAppScreen(
             onDismissFuelNotice = { viewModel.dismissFuelNotice() },
             isMapFullScreen = selectedTab == 1,
             isCovered = isDashboardCovered,
-            // Hidden under an opaque overlay: alpha 0 lets the RenderThread skip drawing it entirely.
-            modifier = Modifier.graphicsLayer { alpha = if (isDashboardCovered) 0f else 1f }
+            // Hidden under an opaque overlay (or the splash, until it starts fading): alpha 0 lets
+            // the RenderThread skip drawing it, while the map keeps loading its style and tiles.
+            modifier = Modifier.graphicsLayer {
+                alpha = if (isDashboardCovered || !isSplashExiting) 0f else 1f
+            }
         )
 
         androidx.compose.animation.AnimatedVisibility(
@@ -657,6 +690,7 @@ private fun MainAppScreen(
         if (!isSplashCompleted) {
             WelcomeSplashScreen(
                 viewModel = splashViewModel,
+                contentReady = splashContentReady,
                 onSplashFinished = {
                     splashViewModel.onAnimationFinished()
                 }

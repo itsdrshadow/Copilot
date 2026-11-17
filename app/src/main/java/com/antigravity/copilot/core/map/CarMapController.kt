@@ -48,6 +48,10 @@ class CarMapController(
 ) {
     companion object {
         private const val TAG = "CarMapController"
+
+        private val _firstStyleLoaded = MutableStateFlow(false)
+        /** True once any map has finished loading its style this process (startup splash waits on it). */
+        val firstStyleLoaded: StateFlow<Boolean> = _firstStyleLoaded.asStateFlow()
         private const val TRAIL_SOURCE_ID = "copilot_trail_source"
         private const val TRAIL_LAYER_ID = "copilot_trail_layer"
         private const val VEHICLE_SOURCE_ID = "copilot_vehicle_source"
@@ -281,6 +285,7 @@ class CarMapController(
                 setupVehicleLayer(style)
                 isStyleLoaded = true
                 loadedMapId = resolved.mapId
+                _firstStyleLoaded.value = true
                 Log.i(TAG, "MapLibre style loaded. Active pack: ${resolved.fileName ?: "None"}, Region: ${resolved.regionTitle}")
             }
         }

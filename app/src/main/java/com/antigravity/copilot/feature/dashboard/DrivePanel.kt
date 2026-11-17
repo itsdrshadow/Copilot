@@ -80,7 +80,7 @@ internal fun rememberTripElapsedMs(trip: TripSummary): Long {
 
 /**
  * Top row of the Drive panel: trip pill (state + from → to) and a clock pill.
- * Tap the trip pill for the full trip card; long-press it to start / end a trip by hand.
+ * Long-press the trip pill to start / end a trip by hand (trip stats rotate on the map).
  * Tap the clock for the music player.
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -88,7 +88,6 @@ internal fun rememberTripElapsedMs(trip: TripSummary): Long {
 fun DriveTopRow(
     currentTrip: TripSummary,
     tripVisualState: TripVisualState,
-    onOpenTripDetails: () -> Unit,
     onOpenMedia: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -135,9 +134,9 @@ fun DriveTopRow(
                     .border(Raahi.Border, if (active) c.accent.copy(alpha = 0.6f) else c.border, Raahi.PillShape)
                     .combinedClickable(
                         role = Role.Button,
-                        onClickLabel = "Trip details",
                         onLongClickLabel = if (active) "End trip" else "Start trip",
-                        onClick = onOpenTripDetails,
+                        // Tap does nothing (no trip popup); long-press is the manual trip control.
+                        onClick = {},
                         onLongClick = { showManualTripDialog = true },
                     ).padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -234,14 +233,12 @@ private fun ClockPill(
 }
 
 /**
- * Trip strip: trip time, distance, odometer. Time / distance open the trip card; the odometer
- * opens the calibration popup.
+ * Trip strip: trip time, distance, odometer. The odometer opens the calibration popup.
  */
 @Composable
 fun DriveTripStrip(
     currentTrip: TripSummary,
     totalLifetimeKm: Double,
-    onOpenTripDetails: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val c = CockpitTheme.colors
@@ -271,7 +268,7 @@ fun DriveTripStrip(
             label = "Trip time",
             value = if (showTrip) TimeFormatUtils.formatLiveTripTimer(elapsed) else "--",
             valueStyle = CockpitTheme.typography.headlineSmall,
-            modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onOpenTripDetails).then(cell),
+            modifier = Modifier.weight(1f).then(cell),
         )
         VDivider()
         StatCell(
@@ -279,7 +276,7 @@ fun DriveTripStrip(
             value = if (showTrip) NumberFormatUtils.formatDistance(currentTrip.distanceKm) else "--",
             unit = "km",
             valueStyle = CockpitTheme.typography.headlineSmall,
-            modifier = Modifier.weight(1f).clickable(role = Role.Button, onClick = onOpenTripDetails).then(cell),
+            modifier = Modifier.weight(1f).then(cell),
         )
         VDivider()
         StatCell(
@@ -307,24 +304,6 @@ fun DriveTripStrip(
                     .calibrateOdometer(newKm, totalLifetimeKm)
                 showOdometerDialog = false
             },
-        )
-    }
-}
-
-/** Secondary area: the full trip card (rotating metrics, score, cost, peak braking). */
-@Composable
-fun TripDetailsDialog(
-    currentTrip: TripSummary,
-    tripVisualState: TripVisualState,
-    baselineMileage: Double,
-    onDismiss: () -> Unit,
-) {
-    RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 560.dp) {
-        CurrentTripCard(
-            currentTrip = currentTrip,
-            tripVisualState = tripVisualState,
-            baselineMileage = baselineMileage,
-            modifier = Modifier.fillMaxWidth().height(400.dp),
         )
     }
 }

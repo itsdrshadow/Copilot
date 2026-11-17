@@ -22,8 +22,8 @@ import com.antigravity.copilot.feature.maps.LiveMapPanel
 
 /**
  * Raahi Drive screen: map in the centre, ~372 dp panel on the right with the trip pill + clock,
- * Speed card, Fuel card and Trip strip. Same data and callbacks as before; the trip card and
- * music player are one tap away (trip pill / clock pill). Navigation lives in the left rail.
+ * Speed card, Fuel card and Trip strip. Trip stats rotate on the map (top-right); the music
+ * player is one tap away (clock pill). Navigation lives in the left rail.
  */
 @Composable
 fun DashboardScreen(
@@ -62,8 +62,13 @@ fun DashboardScreen(
         fuelState.expectedMileageKmpl > 0.0 -> fuelState.expectedMileageKmpl
         else -> 18.0
     }
-    var showTripDetails by remember { mutableStateOf(false) }
     var showMedia by remember { mutableStateOf(false) }
+    // The map reads the trip through these, so trip updates recompose only the ticker chip.
+    val tripState = rememberUpdatedState(currentTrip)
+    val mileageState = rememberUpdatedState(fallbackMileage)
+    val tripTicker: @Composable () -> Unit = remember {
+        { TripMetricTicker(trip = { tripState.value }, baselineMileage = { mileageState.value }) }
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -91,6 +96,7 @@ fun DashboardScreen(
                 isFullScreen = isMapFullScreen,
                 isCovered = isCovered,
                 onToggleFullScreen = onToggleFullMap,
+                topOverlay = tripTicker,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -109,7 +115,6 @@ fun DashboardScreen(
                     DriveTopRow(
                         currentTrip = currentTrip,
                         tripVisualState = tripVisualState,
-                        onOpenTripDetails = { showTripDetails = true },
                         onOpenMedia = { showMedia = true }
                     )
                     LiveSpeedometer(
@@ -128,22 +133,13 @@ fun DashboardScreen(
                     )
                     DriveTripStrip(
                         currentTrip = currentTrip,
-                        totalLifetimeKm = totalLifetimeKm,
-                        onOpenTripDetails = { showTripDetails = true }
+                        totalLifetimeKm = totalLifetimeKm
                     )
                 }
             }
         }
     }
 
-    if (showTripDetails) {
-        TripDetailsDialog(
-            currentTrip = currentTrip,
-            tripVisualState = tripVisualState,
-            baselineMileage = fallbackMileage,
-            onDismiss = { showTripDetails = false }
-        )
-    }
     if (showMedia) {
         MediaDialog(onDismiss = { showMedia = false })
     }

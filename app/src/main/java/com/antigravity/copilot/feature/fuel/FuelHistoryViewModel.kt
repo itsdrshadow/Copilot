@@ -16,7 +16,8 @@ class FuelHistoryViewModel @Inject constructor(
 ) : ViewModel() {
 
     val fuelEvents: StateFlow<List<FuelEventEntity>> = fuelLog.fuelEvents
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        // Eager: loaded at startup (warmed by MainAppScreen) so the screen opens with data.
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     fun updateEvent(event: FuelEventEntity) = fuelLog.updateFuelEvent(event)
 
