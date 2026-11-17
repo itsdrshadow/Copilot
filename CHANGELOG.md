@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.1] - 2026-11-18
+
+### Changed
+- **The Fuel card's header stays at the top.** The "Fuel" label and the button, renamed from "Add fuel" to "Fuel", are pinned to the top of the card. Litres, percent, the gauge, range and km/L sit together at the bottom, with free space between.
+
 ## [2.3.0] - 2026-11-18
 
 ### Changed

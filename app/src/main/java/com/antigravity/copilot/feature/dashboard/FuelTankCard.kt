@@ -77,13 +77,15 @@ fun FuelTankCard(
         modifier = modifier
             .raahiCard()
             .padding(Raahi.CardPadding),
-        // Spreads out when the Drive panel gives it extra height.
-        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        // Header pinned to the top; the readouts sit at the bottom with free space between.
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             RaahiLabel("Fuel", modifier = Modifier.weight(1f))
-            RaahiButton(text = "Add fuel", onClick = onClick, icon = Icons.Outlined.Add)
+            RaahiButton(text = "Fuel", onClick = onClick, icon = Icons.Outlined.Add)
         }
+        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.weight(1f))
 
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(
