@@ -64,6 +64,8 @@ fun DashboardScreen(
     onLaunchSettings: () -> Unit,
     onToggleFullMap: () -> Unit,
     onCalibrateMidBar: (Double) -> Unit = {},
+    isMapFullScreen: Boolean = false,
+    isCovered: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var isSpeedTimedOut by remember { mutableStateOf(false) }
@@ -96,7 +98,8 @@ fun DashboardScreen(
         val screenHeight = maxHeight
         val screenWidth = maxWidth
         val isPortrait = screenWidth < screenHeight
-        val itemSpacing = AutomotiveDesignTokens.Spacing.extraSmall
+        val itemSpacing = if (isMapFullScreen) 0.dp else AutomotiveDesignTokens.Spacing.extraSmall
+        val mapShape = if (isMapFullScreen) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(AutomotiveDesignTokens.Radii.container)
 
         Column(
             modifier = Modifier
@@ -110,20 +113,23 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Map Panel (Top 50%)
+                    // Map Panel (Top 50%, or everything in full-screen map mode). It stays in this
+                    // composition slot in both modes so the MapView is never recreated.
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
                         speedLimitInfo = speedLimitInfo,
+                        isFullScreen = isMapFullScreen,
+                        isCovered = isCovered,
                         onToggleFullScreen = onToggleFullMap,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(0.50f)
-                            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
+                            .weight(if (isMapFullScreen) 1f else 0.50f)
+                            .clip(mapShape)
                     )
 
                     // Telemetry Area (Bottom 50%)
-                    Column(
+                    if (!isMapFullScreen) Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(0.50f),
@@ -177,20 +183,23 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
-                    // Left Pane: Live Map (50%)
+                    // Left Pane: Live Map (50%, or everything in full-screen map mode). Same
+                    // composition slot in both modes so the MapView is never recreated.
                     LiveMapPanel(
                         latestPoint = latestPoint,
                         trail = tripTrail,
                         speedLimitInfo = speedLimitInfo,
+                        isFullScreen = isMapFullScreen,
+                        isCovered = isCovered,
                         onToggleFullScreen = onToggleFullMap,
                         modifier = Modifier
-                            .weight(0.50f)
+                            .weight(if (isMapFullScreen) 1f else 0.50f)
                             .fillMaxHeight()
-                            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.container))
+                            .clip(mapShape)
                     )
 
                     // Right Pane: Telemetry Area (50%)
-                    Column(
+                    if (!isMapFullScreen) Column(
                         modifier = Modifier
                             .weight(0.50f)
                             .fillMaxHeight(),
@@ -239,7 +248,7 @@ fun DashboardScreen(
                     }
                 }
             }
-            CockpitDock(
+            if (!isMapFullScreen) CockpitDock(
                 onOpenTrips = { onNavItemSelected(2) },
                 onOpenFuel = onOpenFuelHistory,
                 onOpenApps = onOpenAppDrawer,

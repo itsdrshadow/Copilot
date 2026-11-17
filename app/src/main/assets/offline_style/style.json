@@ -417,7 +417,30 @@
           ],
           0
         ]
-      }
+      },
+      "filter": [
+        "all",
+        [
+          "!=",
+          [
+            "get",
+            "location"
+          ],
+          "underground"
+        ],
+        [
+          ">=",
+          [
+            "to-number",
+            [
+              "get",
+              "layer"
+            ],
+            0
+          ],
+          0
+        ]
+      ]
     },
     {
       "id": "water_name",

@@ -26,6 +26,15 @@ import kotlinx.coroutines.launch
  * MainViewModel - Centralized state holder for Automotive Cockpit & Launcher.
  * Follows modern Android Architecture guidelines (UDF: Unidirectional Data Flow).
  */
+private const val UI_TELEMETRY_INTERVAL_MS = 200L
+
+/** Emit immediately, then at most once per [periodMs], always delivering the latest value. */
+internal fun <T> Flow<T>.throttleLatest(periodMs: Long): Flow<T> =
+    conflate().transform {
+        emit(it)
+        kotlinx.coroutines.delay(periodMs)
+    }
+
 @HiltViewModel
 class MainViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
@@ -38,7 +47,13 @@ class MainViewModel @Inject constructor(
     // Core Domain Streams
     val currentTrip: StateFlow<TripSummary> = tripRepository.currentTrip
     val tripVisualState = tripRepository.tripVisualState
+    /**
+     * UI-facing position, capped at [UI_TELEMETRY_INTERVAL_MS] (5 Hz) so a burst of fused/raw GPS
+     * fixes can never cause a recomposition storm. Latest value always wins (conflated).
+     */
     val latestPoint: StateFlow<TripPoint?> = tripRepository.latestPoint
+        .throttleLatest(UI_TELEMETRY_INTERVAL_MS)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), tripRepository.latestPoint.value)
     val tripTrail: StateFlow<List<TripPoint>> = tripRepository.tripTrail
     val qualifyingTrips: Flow<List<TripEntity>> = tripRepository.qualifyingTrips
     val lastThreeTrips: Flow<List<TripEntity>> = tripRepository.lastThreeTrips
@@ -74,7 +89,8 @@ class MainViewModel @Inject constructor(
     init {
         // Observe latest location point for real-time speed limit updates
         viewModelScope.launch {
-            latestPoint.collect { point ->
+            // Speed-limit engine needs every fix: read the unthrottled repository stream.
+            tripRepository.latestPoint.collect { point ->
                 speedLimitEngine.updateTelemetry(point)
             }
         }

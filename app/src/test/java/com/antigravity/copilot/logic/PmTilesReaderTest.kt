@@ -43,6 +43,11 @@ class PmTilesReaderTest {
                 for ((zxy, bytes) in tiles) assertArrayEquals(bytes, r.getTile(zxy.first, zxy.second, zxy.third))
                 assertNull(r.getTile(1, 0, 1))  // not in archive
                 assertNull(r.getTile(5, 0, 0))  // above max zoom
+                // Raw bytes stay gzipped (pass-through form) and are now served from RAM
+                assertEquals(tiles.size, r.tileCache.entryCount)
+                val raw = r.getTileRaw(0, 0, 0)!!
+                assertTrue(PmTilesReader.isGzip(raw))
+                assertArrayEquals(tiles.getValue(Triple(0, 0, 0)), PmTilesReader.decompress(raw, r.header.tileCompression))
             }
         }
     }

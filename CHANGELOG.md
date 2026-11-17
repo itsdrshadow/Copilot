@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.46.0] - 2026-11-17
+
+### Added
+- Speed-adaptive auto-zoom in follow mode: 17.5 when stopped (0-5 km/h), easing to 16.0 at 30, 14.8 at 60 and 13.5 at 100+ km/h. Speed is EMA-smoothed and the camera eases linearly over each GPS interval (800-1200 ms), so zoom and position glide instead of stepping.
+- Pan/rotate pauses follow mode and pinch/double-tap pauses auto-zoom. The Recenter button lights up while follow is paused; tap it to resume.
+- 50 MB in-RAM PMTiles tile cache (byte-bounded LRU of raw gzipped tiles, capped at 1/8 of the heap) and in-memory root/leaf directory cache. It is cleared under memory pressure.
+
+### Changed
+- The map is created once per session. Trips and Fuel now open as overlays above the dashboard, and the full-screen map tab is the same map panel expanded in place. While covered, the map is paused/stopped but never destroyed, so the style, tiles and camera survive tab switches.
+- The offline style loads only on first attach, after an import, or when a region change resolves to a different map file. It no longer reloads on every resume. File resolution, opening the PMTiles file and building the style now run off the main thread.
+- PMTiles reads use one persistent `FileChannel` with positional (lock-free) reads. The tile dispatcher allows 16 concurrent local requests (OkHttp's default is 5 per host).
+- The MapLibre pixel ratio is capped at 1.0. UI GPS telemetry is capped at 5 Hz. The dashboard is not drawn while an opaque overlay covers it.
+
+### Fixed
+- Map reload/jitter when returning from the Trips / Fuel / Apps / Settings tabs.
+- GPS jitter while parked: moves under 3 m below 3 km/h are ignored, and bearing is held when stationary.
+- The vehicle puck no longer jumps ahead of the camera. It animates in step with the camera ease.
+- Underground buildings (e.g. Connaught Place / Palika Bazaar) no longer draw as 3D shadows: `location=underground` and negative `layer` are filtered from the building layer.
+- Main-thread disk I/O on every GPS fix (map-file lookup) and on every trail update (full trail copy) removed.
+- The music/clock card no longer calls the Settings provider every second.
+
 ## [1.45.0] - 2026-11-17
 
 ### Changed

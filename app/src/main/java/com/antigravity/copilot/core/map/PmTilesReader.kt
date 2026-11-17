@@ -3,11 +3,13 @@ package com.antigravity.copilot.core.map
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
+import java.io.EOFException
 import java.io.File
 import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.channels.FileChannel
 import java.util.zip.GZIPInputStream
 
 /**
@@ -17,8 +19,20 @@ import java.util.zip.GZIPInputStream
  * the emulator lack) cannot open local MBTiles/PMTiles itself, so tiles are served from this
  * reader in-process via [MapNetworkGuard] — no socket is ever opened.
  * Supports internal/tile compression "none" and "gzip" (Planetiler and Protomaps defaults).
+ *
+ * Low-RAM / flash-friendly pipeline:
+ * - One persistent [FileChannel] for the archive's lifetime. Reads are positional
+ *   ([FileChannel.read] with an explicit offset), so concurrent tile requests never share a file
+ *   pointer and disk I/O never runs under a global lock.
+ * - Root + leaf directories are decoded once and kept in a small in-memory LRU.
+ * - A byte-bounded RAM LRU (default 50 MB) holds the *raw* (still gzipped) tile bytes, so panning
+ *   back over recently seen areas never touches flash. Keeping the compressed form fits ~3x more
+ *   tiles in the same budget than decoded MVT would.
  */
-class PmTilesReader(private val file: File) : Closeable {
+class PmTilesReader(
+    private val file: File,
+    tileCacheBytes: Long = DEFAULT_TILE_CACHE_BYTES
+) : Closeable {
 
     data class Header(
         val rootDirOffset: Long,
@@ -39,32 +53,47 @@ class PmTilesReader(private val file: File) : Closeable {
     data class Entry(val tileId: Long, val offset: Long, val length: Int, val runLength: Int)
 
     private val raf = RandomAccessFile(file, "r")
-    val header: Header = readHeader()
+    private val channel: FileChannel = raf.channel
+
     private val dirCache = object : LinkedHashMap<Long, List<Entry>>(64, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, List<Entry>>?) = size > 64
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, List<Entry>>?) = size > MAX_CACHED_DIRECTORIES
     }
+
+    /** Raw tile bytes keyed by PMTiles tile id (one reader == one archive, so the id is unique). */
+    val tileCache = ByteLruCache(tileCacheBytes)
+
+    val header: Header = readHeader()
 
     init {
         if (header.internalCompression !in SUPPORTED_COMPRESSION || header.tileCompression !in SUPPORTED_COMPRESSION) {
-            raf.close()
+            close()
             throw IOException("Unsupported PMTiles compression (internal=${header.internalCompression}, tile=${header.tileCompression}); rebuild with gzip")
         }
     }
 
     /** Uncompressed tile bytes (e.g. MVT protobuf) or null if the tile is not in the archive. */
-    @Synchronized
-    fun getTile(z: Int, x: Int, y: Int): ByteArray? {
+    fun getTile(z: Int, x: Int, y: Int): ByteArray? =
+        getTileRaw(z, x, y)?.let { decompress(it, header.tileCompression) }
+
+    /**
+     * Tile bytes exactly as stored in the archive (gzip for Planetiler/Protomaps builds), served
+     * from the RAM cache when possible. Thread-safe; disk reads run without holding any lock.
+     */
+    fun getTileRaw(z: Int, x: Int, y: Int): ByteArray? {
         if (z < header.minZoom || z > header.maxZoom) return null
         val n = 1 shl z
         if (x !in 0 until n || y !in 0 until n) return null
         val tileId = zxyToTileId(z, x, y)
+        tileCache.get(tileId)?.let { return it }
+
         var dirOffset = header.rootDirOffset
         var dirLength = header.rootDirLength
         repeat(4) {
             val entry = findTile(directory(dirOffset, dirLength), tileId) ?: return null
             if (entry.runLength > 0) {
                 val bytes = read(header.tileDataOffset + entry.offset, entry.length)
-                return decompress(bytes, header.tileCompression)
+                tileCache.put(tileId, bytes)
+                return bytes
             }
             dirOffset = header.leafDirsOffset + entry.offset
             dirLength = entry.length.toLong()
@@ -72,20 +101,34 @@ class PmTilesReader(private val file: File) : Closeable {
         return null
     }
 
-    private fun directory(offset: Long, length: Long): List<Entry> =
-        dirCache.getOrPut(offset) { deserializeDirectory(decompress(read(offset, length.toInt()), header.internalCompression)) }
+    private fun directory(offset: Long, length: Long): List<Entry> {
+        synchronized(dirCache) { dirCache[offset] }?.let { return it }
+        // Decode outside the lock; a rare duplicate decode by two threads is harmless.
+        val decoded = deserializeDirectory(decompress(read(offset, length.toInt()), header.internalCompression))
+        synchronized(dirCache) { dirCache[offset] = decoded }
+        return decoded
+    }
 
     private fun read(offset: Long, length: Int): ByteArray {
-        val buf = ByteArray(length)
-        raf.seek(offset)
-        raf.readFully(buf)
-        return buf
+        val buf = ByteBuffer.allocate(length)
+        var pos = offset
+        while (buf.hasRemaining()) {
+            val n = channel.read(buf, pos)
+            if (n < 0) throw EOFException("Unexpected end of ${file.name} at $pos")
+            pos += n
+        }
+        return buf.array()
     }
 
     private fun readHeader(): Header {
-        val b = read(0, HEADER_SIZE)
+        val b = try {
+            read(0, HEADER_SIZE)
+        } catch (e: IOException) {
+            close()
+            throw IOException("${file.name} is not a PMTiles v3 archive", e)
+        }
         if (String(b, 0, 7, Charsets.US_ASCII) != "PMTiles" || b[7].toInt() != 3) {
-            raf.close()
+            close()
             throw IOException("${file.name} is not a PMTiles v3 archive")
         }
         val bb = ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN)
@@ -102,13 +145,54 @@ class PmTilesReader(private val file: File) : Closeable {
         )
     }
 
-    override fun close() = raf.close()
+    override fun close() {
+        tileCache.clear()
+        synchronized(dirCache) { dirCache.clear() }
+        try { channel.close() } catch (_: IOException) {}
+        try { raf.close() } catch (_: IOException) {}
+    }
+
+    /** Thread-safe LRU bounded by total value bytes (pure JVM, so it also runs in unit tests). */
+    class ByteLruCache(val maxBytes: Long) {
+        private val map = LinkedHashMap<Long, ByteArray>(256, 0.75f, true)
+        private var bytes = 0L
+
+        val sizeBytes: Long @Synchronized get() = bytes
+        val entryCount: Int @Synchronized get() = map.size
+
+        @Synchronized
+        fun get(key: Long): ByteArray? = map[key]
+
+        @Synchronized
+        fun put(key: Long, value: ByteArray) {
+            if (maxBytes <= 0 || value.size > maxBytes) return
+            map.put(key, value)?.let { bytes -= it.size }
+            bytes += value.size
+            val it = map.entries.iterator()
+            while (bytes > maxBytes && it.hasNext()) {
+                bytes -= it.next().value.size
+                it.remove()
+            }
+        }
+
+        @Synchronized
+        fun clear() {
+            map.clear()
+            bytes = 0L
+        }
+    }
 
     companion object {
         const val HEADER_SIZE = 127
         const val COMPRESSION_NONE = 1
         const val COMPRESSION_GZIP = 2
+        const val DEFAULT_TILE_CACHE_BYTES = 50L * 1024 * 1024
+        private const val MAX_CACHED_DIRECTORIES = 256
         private val SUPPORTED_COMPRESSION = setOf(0, COMPRESSION_NONE, COMPRESSION_GZIP)
+
+        /** 50 MB, but never more than 1/8 of the heap on very low-RAM units. */
+        fun recommendedTileCacheBytes(): Long =
+            minOf(DEFAULT_TILE_CACHE_BYTES, Runtime.getRuntime().maxMemory() / 8)
 
         /** Hilbert-curve tile id (PMTiles v3). */
         fun zxyToTileId(z: Int, x: Int, y: Int): Long {
@@ -181,8 +265,11 @@ class PmTilesReader(private val file: File) : Closeable {
             return null
         }
 
+        fun isGzip(bytes: ByteArray): Boolean =
+            bytes.size > 2 && bytes[0] == 0x1f.toByte() && bytes[1] == 0x8b.toByte()
+
         fun decompress(bytes: ByteArray, compression: Int): ByteArray =
-            if (compression == COMPRESSION_GZIP || (bytes.size > 2 && bytes[0] == 0x1f.toByte() && bytes[1] == 0x8b.toByte())) {
+            if (compression == COMPRESSION_GZIP || isGzip(bytes)) {
                 GZIPInputStream(ByteArrayInputStream(bytes)).use { input ->
                     val out = ByteArrayOutputStream(bytes.size * 3)
                     input.copyTo(out)

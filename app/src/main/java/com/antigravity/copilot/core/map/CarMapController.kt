@@ -1,9 +1,15 @@
 package com.antigravity.copilot.core.map
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
+import android.os.SystemClock
 import android.util.Log
-import com.antigravity.copilot.core.designsystem.colors.Cockpit_Cyan
+import android.view.animation.LinearInterpolator
+import com.antigravity.copilot.core.logic.LatLon
+import com.antigravity.copilot.core.model.TripPoint
+import com.mapbox.android.gestures.MoveGestureDetector
+import com.mapbox.android.gestures.RotateGestureDetector
 import com.mapbox.geojson.Feature
 import com.mapbox.geojson.FeatureCollection
 import com.mapbox.geojson.LineString
@@ -23,12 +29,18 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.io.File
+import kotlin.math.abs
+import kotlin.math.exp
 
 /**
  * CarMapController:
  * High-performance controller for MapLibre Native on automotive Android 11 head units.
- * Supports GPS-based auto-detection of 5 regional zones and dynamic local MBTiles binding.
+ *
+ * - The style is built and the PMTiles file opened off the main thread, and only when the
+ *   resolved map file actually changes (first attach, import, region switch) — never on resume.
+ * - Follow mode: speed-adaptive zoom (EMA-smoothed speed), deadband against stationary GPS
+ *   jitter, and linear `easeCamera` transitions spanning the GPS interval so motion is continuous.
+ *   Any pan/rotate gesture suspends follow, pinch/double-tap suspends auto-zoom; Recenter resumes.
  */
 class CarMapController(
     private val context: Context,
@@ -45,14 +57,50 @@ class CarMapController(
         private const val ROAD_LAYER_ID = "copilot_road_mileage_layer"
 
         private const val DEFAULT_DRIVING_TILT = 45.0
-        private const val DEFAULT_DRIVING_ZOOM = 16.5
+
+        // Deadband: ignore sub-3 m GPS wander while (nearly) stationary.
+        const val JITTER_SPEED_KMH = 3f
+        const val JITTER_DISTANCE_M = 3.0
+
+        // Camera transition length tracks the GPS interval (≈1 Hz) so motion never pauses.
+        private const val MIN_EASE_MS = 800L
+        private const val MAX_EASE_MS = 1_200L
+        private const val RECENTER_EASE_MS = 800L
+
+        // Speed EMA time constant and minimum zoom delta worth animating.
+        private const val SPEED_EMA_TAU_MS = 2_500.0
+        private const val ZOOM_EPSILON = 0.04
+
+        @Volatile private var styleTemplateCache: String? = null
+
+        /**
+         * Speed → follow zoom. Piecewise-linear so the camera never steps:
+         * 0–5 km/h 17.5 · 5–30 → 16.0 · 30–60 → 14.8 · 60–100 → 13.5 · >100 13.5.
+         */
+        fun autoZoomForSpeed(speedKmh: Double): Double {
+            val v = speedKmh.coerceAtLeast(0.0)
+            fun lerp(a: Double, b: Double, t: Double) = a + (b - a) * t.coerceIn(0.0, 1.0)
+            return when {
+                v <= 5.0 -> 17.5
+                v <= 30.0 -> lerp(17.5, 16.0, (v - 5.0) / 25.0)
+                v <= 60.0 -> lerp(16.0, 14.8, (v - 30.0) / 30.0)
+                v <= 100.0 -> lerp(14.8, 13.5, (v - 60.0) / 40.0)
+                else -> 13.5
+            }
+        }
+
+        /** EMA factor for an irregular sample interval [dtMs]. */
+        fun emaAlpha(dtMs: Long, tauMs: Double = SPEED_EMA_TAU_MS): Double = 1.0 - exp(-dtMs / tauMs)
     }
 
     private var mapboxMap: MapboxMap? = null
     private var isStyleLoaded = false
-    private var currentLoadedMbtilesPath: String? = null
+    /** Map id baked into the loaded style (null = background-only style). */
+    private var loadedMapId: String? = null
+    private var styleJob: Job? = null
+    private var lastRegionId: String? = null
 
-    private val _hasMapInstalled = MutableStateFlow(false)
+    private val _hasMapInstalled = MutableStateFlow(true)
     val hasMapInstalled: StateFlow<Boolean> = _hasMapInstalled.asStateFlow()
 
     private val _activeRegionTitle = MutableStateFlow<String?>(null)
@@ -64,91 +112,146 @@ class CarMapController(
     private val _isHeadingUp = MutableStateFlow(true)
     val isHeadingUp: StateFlow<Boolean> = _isHeadingUp.asStateFlow()
 
+    /** Camera follows the vehicle. Cleared by pan/rotate gestures; restored by [recenter]. */
+    private val _isFollowing = MutableStateFlow(true)
+    val isFollowing: StateFlow<Boolean> = _isFollowing.asStateFlow()
+
     private var lastLocation = LatLng(28.6139, 77.2090)
     private var lastBearing = 0.0
+    private var hasFix = false
 
-    /** Zoom the follow camera uses; changed by pinch / double-tap gestures. */
-    private var followZoom = DEFAULT_DRIVING_ZOOM
+    // Speed-adaptive zoom state
+    private var smoothedSpeedKmh = 0.0
+    private var lastFixElapsedMs = 0L
+    private var lastEasedZoom = autoZoomForSpeed(0.0)
+    /** Set by pinch / double-tap: follow keeps tracking position but at the user's zoom. */
+    private var manualZoom: Double? = null
     private var userGestureInProgress = false
 
+    // Vehicle puck animation (kept in lock-step with the camera ease)
+    private var puckPosition: LatLng? = null
+    private var puckAnimator: ValueAnimator? = null
+
+    private val moveListener = object : MapboxMap.OnMoveListener {
+        override fun onMoveBegin(detector: MoveGestureDetector) = suspendFollow()
+        override fun onMove(detector: MoveGestureDetector) {}
+        override fun onMoveEnd(detector: MoveGestureDetector) {}
+    }
+    private val rotateListener = object : MapboxMap.OnRotateListener {
+        override fun onRotateBegin(detector: RotateGestureDetector) = suspendFollow()
+        override fun onRotate(detector: RotateGestureDetector) {}
+        override fun onRotateEnd(detector: RotateGestureDetector) {}
+    }
+    private val cameraMoveStartedListener = MapboxMap.OnCameraMoveStartedListener { reason ->
+        if (reason == MapboxMap.OnCameraMoveStartedListener.REASON_API_GESTURE) userGestureInProgress = true
+    }
+    private val cameraIdleListener = MapboxMap.OnCameraIdleListener {
+        if (userGestureInProgress) {
+            userGestureInProgress = false
+            // Pinch / double-tap: keep the user's zoom until Recenter.
+            mapboxMap?.let { manualZoom = it.cameraPosition.zoom; lastEasedZoom = it.cameraPosition.zoom }
+        }
+    }
+    private val mapClickListener = MapboxMap.OnMapClickListener { latLng -> onMapTapped(latLng) }
+
     /**
-     * Attaches MapLibre map and binds local vector MBTiles to bundled offline style.json.
+     * Attaches the MapLibre map: restores the camera at the last vehicle position immediately
+     * (no fly-in) and loads the offline style once.
      */
-    fun attachMap(map: MapboxMap, onReady: () -> Unit = {}) {
-        map.addOnMapClickListener { latLng -> onMapTapped(latLng) }
-        map.addOnCameraMoveStartedListener { reason ->
-            if (reason == MapboxMap.OnCameraMoveStartedListener.REASON_API_GESTURE) userGestureInProgress = true
-        }
-        map.addOnCameraIdleListener {
-            if (userGestureInProgress) {
-                userGestureInProgress = false
-                followZoom = map.cameraPosition.zoom
-            }
-        }
+    fun attachMap(map: MapboxMap) {
+        if (mapboxMap === map) return
+        map.addOnMapClickListener(mapClickListener)
+        map.addOnCameraMoveStartedListener(cameraMoveStartedListener)
+        map.addOnCameraIdleListener(cameraIdleListener)
+        map.addOnMoveListener(moveListener)
+        map.addOnRotateListener(rotateListener)
         this.mapboxMap = map
-        loadLocalOfflineStyle {
-            onReady()
-        }
+        map.moveCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(currentFollowZoom())))
+        lastRegionId = OfflineMapManager.getRegionForLocation(lastLocation.latitude, lastLocation.longitude)?.id
+        requestStyle(force = true)
     }
 
     fun detachMap() {
-        this.mapboxMap = null
-        this.isStyleLoaded = false
-        this.currentLoadedMbtilesPath = null
+        styleJob?.cancel()
+        styleJob = null
+        trailJob?.cancel()
+        puckAnimator?.cancel()
+        puckAnimator = null
+        mapboxMap?.let { map ->
+            map.removeOnMapClickListener(mapClickListener)
+            map.removeOnCameraMoveStartedListener(cameraMoveStartedListener)
+            map.removeOnCameraIdleListener(cameraIdleListener)
+            map.removeOnMoveListener(moveListener)
+            map.removeOnRotateListener(rotateListener)
+        }
+        mapboxMap = null
+        isStyleLoaded = false
+        loadedMapId = null
     }
 
     /**
-     * Loads the bundled offline style.json and binds the installed local PMTiles map (served in-process).
+     * Re-resolves the best local map file (e.g. after an import in the Offline Maps manager) and
+     * reloads the style only if the file actually changed. Cheap no-op otherwise.
      */
-    fun loadLocalOfflineStyle(
-        lat: Double = lastLocation.latitude,
-        lon: Double = lastLocation.longitude,
-        onCompleted: () -> Unit = {}
-    ) {
+    fun reloadStyleIfMapChanged() = requestStyle(force = false)
+
+    /** Backward-compatible alias. */
+    fun loadLocalOfflineStyle() = reloadStyleIfMapChanged()
+
+    private data class ResolvedMap(val mapId: String?, val fileName: String?, val regionTitle: String?)
+
+    private fun requestStyle(force: Boolean) {
         val map = mapboxMap ?: return
-        val mbtilesFile = OfflineMapManager.getBestMapFileForLocation(context, lat, lon)
-        val hasMap = mbtilesFile != null && mbtilesFile.exists() && mbtilesFile.length() > 0
-        _hasMapInstalled.value = hasMap
-
-        val detectedRegion = OfflineMapManager.getRegionForLocation(lat, lon)
-        _activeRegionTitle.value = detectedRegion?.title
-
-        val targetPath = mbtilesFile?.absolutePath
-        if (isStyleLoaded && targetPath == currentLoadedMbtilesPath) {
-            onCompleted()
-            return
-        }
-
-        try {
-            val styleTemplate = context.assets.open("offline_style/style.json")
-                .bufferedReader()
-                .use { it.readText() }
-
-            // Local PMTiles only; with no (valid) map installed render the background-only style
-            // so nothing ever points at a missing or remote source.
-            // Tiles are served in-process from the local PMTiles file (MapNetworkGuard).
-            val mapId = if (hasMap) MapNetworkGuard.setMapFile(mbtilesFile) else MapNetworkGuard.setMapFile(null)
-            val resolvedJson = if (mapId != null) {
-                com.antigravity.copilot.core.logic.MapOfflinePolicy.bindStyle(styleTemplate, mapId)
-            } else {
-                backgroundOnlyStyle(styleTemplate)
+        val lat = lastLocation.latitude
+        val lon = lastLocation.longitude
+        styleJob?.cancel()
+        styleJob = coroutineScope.launch {
+            // File stat / open / header read are disk I/O: keep them off the main thread.
+            val resolved = withContext(Dispatchers.IO) {
+                val file = OfflineMapManager.getBestMapFileForLocation(context, lat, lon)
+                val usable = file != null && file.isFile && file.length() > 0
+                ResolvedMap(
+                    mapId = MapNetworkGuard.setMapFile(if (usable) file else null),
+                    fileName = file?.name,
+                    regionTitle = OfflineMapManager.getRegionForLocation(lat, lon)?.title
+                )
             }
-            val remote = com.antigravity.copilot.core.logic.MapOfflinePolicy.remoteUrls(resolvedJson)
-            if (remote.isNotEmpty()) Log.e(TAG, "Style contains remote URLs (will be blocked): $remote")
+            _hasMapInstalled.value = resolved.mapId != null
+            _activeRegionTitle.value = resolved.regionTitle
+            if (!force && isStyleLoaded && resolved.mapId == loadedMapId) return@launch
 
-            map.setStyle(Style.Builder().fromJson(resolvedJson)) { style ->
+            val json = withContext(Dispatchers.Default) { buildStyleJson(resolved.mapId) } ?: return@launch
+            if (mapboxMap !== map) return@launch
+            isStyleLoaded = false
+            map.setStyle(Style.Builder().fromJson(json)) { style ->
+                if (mapboxMap !== map) return@setStyle
                 setupRoadMileageLayer(style)
                 setupTrailLayers(style)
                 setupVehicleLayer(style)
                 isStyleLoaded = true
-                currentLoadedMbtilesPath = targetPath
-                Log.i(TAG, "MapLibre style loaded. Active pack: ${mbtilesFile?.name ?: "None"}, Region: ${detectedRegion?.title}")
-                onCompleted()
+                loadedMapId = resolved.mapId
+                Log.i(TAG, "MapLibre style loaded. Active pack: ${resolved.fileName ?: "None"}, Region: ${resolved.regionTitle}")
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading offline style: ${e.message}", e)
-            onCompleted()
         }
+    }
+
+    private fun buildStyleJson(mapId: String?): String? = try {
+        val template = styleTemplateCache ?: context.assets.open("offline_style/style.json")
+            .bufferedReader().use { it.readText() }
+            .also { styleTemplateCache = it }
+        // Local PMTiles only; with no (valid) map installed render the background-only style
+        // so nothing ever points at a missing or remote source.
+        val resolvedJson = if (mapId != null) {
+            com.antigravity.copilot.core.logic.MapOfflinePolicy.bindStyle(template, mapId)
+        } else {
+            backgroundOnlyStyle(template)
+        }
+        val remote = com.antigravity.copilot.core.logic.MapOfflinePolicy.remoteUrls(resolvedJson)
+        if (remote.isNotEmpty()) Log.e(TAG, "Style contains remote URLs (will be blocked): $remote")
+        resolvedJson
+    } catch (e: Exception) {
+        Log.e(TAG, "Error building offline style: ${e.message}", e)
+        null
     }
 
     // ---------------- Live trail with overlap colouring (Phase 6) ----------------
@@ -189,8 +292,9 @@ class CarMapController(
 
     private fun setupVehicleLayer(style: Style) {
         try {
+            val pos = puckPosition ?: lastLocation
             if (style.getSource(VEHICLE_SOURCE_ID) == null) {
-                style.addSource(GeoJsonSource(VEHICLE_SOURCE_ID, Point.fromLngLat(lastLocation.longitude, lastLocation.latitude)))
+                style.addSource(GeoJsonSource(VEHICLE_SOURCE_ID, Point.fromLngLat(pos.longitude, pos.latitude)))
             }
             if (style.getLayer(VEHICLE_LAYER_ID) == null) {
                 style.addLayer(
@@ -199,7 +303,9 @@ class CarMapController(
                             circleRadius(8.0f),
                             circleColor(Color.parseColor("#00E5FF")),
                             circleStrokeColor(Color.WHITE),
-                            circleStrokeWidth(3.0f)
+                            circleStrokeWidth(3.0f),
+                            // Keep the puck flat on the road in 3D tilt.
+                            circlePitchAlignment(Property.CIRCLE_PITCH_ALIGNMENT_MAP)
                         )
                     }
                 )
@@ -210,18 +316,24 @@ class CarMapController(
     }
 
     /**
-     * Live trail polyline: grid pass counts (~15 m) colour each run, Douglas–Peucker simplified.
-     * Heavy work runs off the main thread and is throttled.
+     * Live trail polyline: grid pass counts (~15 m) colour each run, Douglas–Peucker simplified and
+     * vertex-capped ([com.antigravity.copilot.core.logic.Config.TRAIL_MAX_RENDER_POINTS]).
+     * All per-point work (including the snapshot copy) runs off the main thread and is throttled.
      */
-    fun updateTrail(points: List<com.antigravity.copilot.core.model.TripPoint>) {
-        val now = System.currentTimeMillis()
-        if (points.size == lastTrailSize) return
-        if (points.size > 2 && lastTrailSize > 2 && now - lastTrailComputeMs < TRAIL_MIN_INTERVAL_MS) return
+    fun updateTrail(points: List<TripPoint>) {
+        val now = SystemClock.elapsedRealtime()
+        val size = points.size
+        if (size == lastTrailSize) return
+        if (size > 2 && lastTrailSize > 2 && now - lastTrailComputeMs < TRAIL_MIN_INTERVAL_MS) return
         lastTrailComputeMs = now
-        lastTrailSize = points.size
-        val snapshot = points.map { com.antigravity.copilot.core.logic.LatLon(it.latitude, it.longitude) }
+        lastTrailSize = size
         trailJob?.cancel()
         trailJob = coroutineScope.launch(Dispatchers.Default) {
+            val snapshot = try {
+                List(size) { i -> points[i].let { LatLon(it.latitude, it.longitude) } }
+            } catch (_: IndexOutOfBoundsException) {
+                return@launch // trip ended while copying; the next emission resets the trail
+            }
             val runs = com.antigravity.copilot.core.logic.TrailOverlap.runs(snapshot)
             val features = runs.map { run ->
                 Feature.fromGeometry(LineString.fromLngLats(run.points.map { Point.fromLngLat(it.lon, it.lat) })).apply {
@@ -347,37 +459,94 @@ class CarMapController(
         """{"version":8,"sources":{},"layers":[{"id":"background","type":"background","paint":{"background-color":"#0B0E14"}}]}"""
     }
 
+    // ---------------- Vehicle tracking / follow camera ----------------
+
     /**
-     * Smooth 60fps GPS location puck tracking with bearing rotation, 45° driving tilt,
-     * and automatic regional map file switching when crossing zones.
+     * GPS fix → puck + follow camera.
+     * - Deadband: below [JITTER_SPEED_KMH], moves under [JITTER_DISTANCE_M] are ignored and the
+     *   (meaningless) GPS bearing is not applied, so a parked car's map stays perfectly still.
+     * - Speed is EMA-smoothed before mapping to zoom, so zoom glides instead of stepping.
+     * - Camera and puck animate linearly over the GPS interval (800–1200 ms): continuous motion.
+     * - Only the pure region lookup runs per fix; disk work happens only when the region changes.
      */
     fun updateVehiclePosition(lat: Double, lon: Double, bearing: Float, speedKmh: Float) {
-        lastLocation = LatLng(lat, lon)
-        lastBearing = bearing.toDouble()
+        val now = SystemClock.elapsedRealtime()
+        val dtMs = if (lastFixElapsedMs == 0L) 1_000L else (now - lastFixElapsedMs).coerceIn(100L, 5_000L)
+        lastFixElapsedMs = now
 
-        // Inform OfflineMapManager of location to update detected GPS region
+        val speed = speedKmh.coerceAtLeast(0f).toDouble()
+        smoothedSpeedKmh = if (!hasFix) speed else smoothedSpeedKmh + emaAlpha(dtMs) * (speed - smoothedSpeedKmh)
+
+        val newLocation = LatLng(lat, lon)
+        val jitter = hasFix && speedKmh < JITTER_SPEED_KMH && lastLocation.distanceTo(newLocation) < JITTER_DISTANCE_M
+        if (!jitter) {
+            lastLocation = newLocation
+            if (speedKmh >= JITTER_SPEED_KMH || !hasFix) lastBearing = bearing.toDouble()
+        }
+        hasFix = true
+
         OfflineMapManager.updateGpsLocation(lat, lon)
-
-        // Check if regional map file should switch based on new GPS location
-        val bestMap = OfflineMapManager.getBestMapFileForLocation(context, lat, lon)
-        if (bestMap != null && bestMap.absolutePath != currentLoadedMbtilesPath) {
-            Log.i(TAG, "Auto-switching map file to match GPS region: ${bestMap.name}")
-            loadLocalOfflineStyle(lat, lon)
+        val regionId = OfflineMapManager.getRegionForLocation(lat, lon)?.id
+        if (regionId != lastRegionId) {
+            lastRegionId = regionId
+            Log.i(TAG, "GPS region changed to $regionId; re-resolving map file")
+            reloadStyleIfMapChanged()
         }
 
         val map = mapboxMap ?: return
-        map.style?.getSourceAs<GeoJsonSource>(VEHICLE_SOURCE_ID)?.setGeoJson(Point.fromLngLat(lon, lat))
-        val currentTilt = if (_is3DTiltActive.value) DEFAULT_DRIVING_TILT else 0.0
-        val targetBearing = if (_isHeadingUp.value) bearing.toDouble() else 0.0
+        val easeMs = dtMs.coerceIn(MIN_EASE_MS, MAX_EASE_MS)
+        if (!jitter) animatePuckTo(lastLocation, easeMs)
+        if (!_isFollowing.value) return
 
-        val cameraPos = CameraPosition.Builder()
-            .target(lastLocation)
-            .zoom(followZoom)
-            .tilt(currentTilt)
-            .bearing(targetBearing)
-            .build()
+        val zoom = currentFollowZoom()
+        val zoomChanged = abs(zoom - lastEasedZoom) > ZOOM_EPSILON
+        if (jitter && !zoomChanged) return
+        lastEasedZoom = zoom
+        map.easeCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(zoom)), easeMs.toInt(), false)
+    }
 
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos), 300)
+    private fun currentFollowZoom(): Double = manualZoom ?: autoZoomForSpeed(smoothedSpeedKmh)
+
+    private fun followCameraPosition(zoom: Double): CameraPosition = CameraPosition.Builder()
+        .target(lastLocation)
+        .zoom(zoom)
+        .tilt(if (_is3DTiltActive.value) DEFAULT_DRIVING_TILT else 0.0)
+        .bearing(if (_isHeadingUp.value) lastBearing else 0.0)
+        .build()
+
+    /** Linear puck glide matching the camera ease, so the puck stays pinned under the camera. */
+    private fun animatePuckTo(target: LatLng, durationMs: Long) {
+        val start = puckPosition
+        puckAnimator?.cancel()
+        if (start == null || mapboxMap == null) {
+            setPuck(target)
+            return
+        }
+        val from = LatLng(start.latitude, start.longitude)
+        puckAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = durationMs
+            interpolator = LinearInterpolator()
+            addUpdateListener { a ->
+                val t = a.animatedFraction.toDouble()
+                setPuck(
+                    LatLng(
+                        from.latitude + (target.latitude - from.latitude) * t,
+                        from.longitude + (target.longitude - from.longitude) * t
+                    )
+                )
+            }
+            start()
+        }
+    }
+
+    private fun setPuck(pos: LatLng) {
+        puckPosition = pos
+        mapboxMap?.style?.getSourceAs<GeoJsonSource>(VEHICLE_SOURCE_ID)
+            ?.setGeoJson(Point.fromLngLat(pos.longitude, pos.latitude))
+    }
+
+    private fun suspendFollow() {
+        if (_isFollowing.value) _isFollowing.value = false
     }
 
     fun toggle3DTilt() {
@@ -390,18 +559,13 @@ class CarMapController(
         recenter()
     }
 
+    /** Resume follow + speed-adaptive auto-zoom and glide back to the vehicle. */
     fun recenter() {
+        manualZoom = null
+        _isFollowing.value = true
         val map = mapboxMap ?: return
-        val currentTilt = if (_is3DTiltActive.value) DEFAULT_DRIVING_TILT else 0.0
-        val targetBearing = if (_isHeadingUp.value) lastBearing else 0.0
-
-        val cameraPos = CameraPosition.Builder()
-            .target(lastLocation)
-            .zoom(followZoom)
-            .tilt(currentTilt)
-            .bearing(targetBearing)
-            .build()
-
-        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos), 400)
+        val zoom = currentFollowZoom()
+        lastEasedZoom = zoom
+        map.easeCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(zoom)), RECENTER_EASE_MS.toInt())
     }
 }

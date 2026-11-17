@@ -75,7 +75,8 @@ fun SmartMusicClockCard(
         }
     }
 
-    val is24Hour = remember(context, tickerTimeMs) {
+    // Settings-provider IPC: re-read once a minute, not on every 1 s tick.
+    val is24Hour = remember(context, tickerTimeMs / 60_000L) {
         DateFormat.is24HourFormat(context)
     }
 

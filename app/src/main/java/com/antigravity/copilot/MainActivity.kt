@@ -17,6 +17,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -328,61 +330,73 @@ private fun MainAppScreen(
             .fillMaxSize()
             .background(CockpitTheme.colors.backgroundBrush)
     ) {
-        AnimatedContent(
-            targetState = selectedTab,
-            transitionSpec = {
-                val isForward = targetState > initialState
-                (slideInHorizontally(
-                    initialOffsetX = { fullWidth -> if (isForward) (fullWidth * 0.12f).toInt() else -(fullWidth * 0.12f).toInt() },
-                    animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(280)) + scaleIn(
-                    initialScale = 0.97f,
-                    animationSpec = tween(280)
-                )).togetherWith(
-                    slideOutHorizontally(
-                        targetOffsetX = { fullWidth -> if (isForward) -(fullWidth * 0.08f).toInt() else (fullWidth * 0.08f).toInt() },
-                        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
-                    ) + fadeOut(animationSpec = tween(220))
-                )
-            },
-            label = "MainScreenNavigation",
-            modifier = Modifier.fillMaxSize()
-        ) { tabIndex ->
-            when (tabIndex) {
-                0 -> DashboardScreen(
-                    currentTrip = currentTrip,
-                    latestPoint = latestPoint,
-                    tripTrail = tripTrail,
-                    fuelState = fuelState,
-                    allTrips = qualifyingTrips,
-                    lastThreeTrips = lastThreeTrips,
-                    tripVisualState = tripVisualState,
-                    selectedNavIndex = selectedTab,
-                    speedLimitInfo = speedLimitInfo,
-                    onNavItemSelected = { index -> viewModel.selectTab(index) },
-                    onOpenFuelDialog = { viewModel.setFuelDialogOpen(true) },
-                    onOpenFuelHistory = { viewModel.selectTab(3) },
-                    onOpenAppDrawer = { viewModel.setAppDrawerOpen(true) },
-                    onLaunchNavi = { viewModel.launchNavigation() },
-                    onLaunchSettings = { viewModel.setSettingsDialogOpen(true) },
-                    onToggleFullMap = { viewModel.selectTab(1) },
-                    onCalibrateMidBar = { point -> viewModel.calibrateGaugePoint(point) }
-                )
-                1 -> LiveMapPanel(
-                    latestPoint = latestPoint,
-                    trail = tripTrail,
-                    speedLimitInfo = speedLimitInfo,
-                    modifier = Modifier.fillMaxSize(),
-                    isFullScreen = true,
-                    onToggleFullScreen = { viewModel.selectTab(0) }
-                )
-                2 -> TripHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })
-                3 -> FuelHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })
+        // Tabs 2 (Trips) and 3 (Fuel) are opaque overlays on top of a dashboard that stays composed
+        // for the whole session, so the single MapView (and its loaded style, tiles and camera) is
+        // never destroyed on tab switches. Tab 1 (full map) is the same map panel expanded in place.
+        val overlayTab = selectedTab.takeIf { it == 2 || it == 3 }
+        var lastOverlayTab by remember { mutableIntStateOf(2) }
+        if (overlayTab != null) lastOverlayTab = overlayTab
+        val tabOverlayState = remember { MutableTransitionState(false) }
+        tabOverlayState.targetState = overlayTab != null
+        val drawerState = remember { MutableTransitionState(false) }
+        drawerState.targetState = isAppDrawerOpen
+        val settingsState = remember { MutableTransitionState(false) }
+        settingsState.targetState = isSettingsDialogOpen
+
+        // Fully covered only once an opaque overlay has finished sliding in; uncovered as soon as
+        // one starts sliding out, so the map is already live when it becomes visible again.
+        fun MutableTransitionState<Boolean>.fullyShown() = isIdle && currentState && targetState
+        val isDashboardCovered = tabOverlayState.fullyShown() || drawerState.fullyShown() || settingsState.fullyShown()
+
+        DashboardScreen(
+            currentTrip = currentTrip,
+            latestPoint = latestPoint,
+            tripTrail = tripTrail,
+            fuelState = fuelState,
+            allTrips = qualifyingTrips,
+            lastThreeTrips = lastThreeTrips,
+            tripVisualState = tripVisualState,
+            selectedNavIndex = selectedTab,
+            speedLimitInfo = speedLimitInfo,
+            onNavItemSelected = { index -> viewModel.selectTab(index) },
+            onOpenFuelDialog = { viewModel.setFuelDialogOpen(true) },
+            onOpenFuelHistory = { viewModel.selectTab(3) },
+            onOpenAppDrawer = { viewModel.setAppDrawerOpen(true) },
+            onLaunchNavi = { viewModel.launchNavigation() },
+            onLaunchSettings = { viewModel.setSettingsDialogOpen(true) },
+            onToggleFullMap = { viewModel.selectTab(if (selectedTab == 1) 0 else 1) },
+            onCalibrateMidBar = { point -> viewModel.calibrateGaugePoint(point) },
+            isMapFullScreen = selectedTab == 1,
+            isCovered = isDashboardCovered,
+            // Hidden under an opaque overlay: alpha 0 lets the RenderThread skip drawing it entirely.
+            modifier = Modifier.graphicsLayer { alpha = if (isDashboardCovered) 0f else 1f }
+        )
+
+        AnimatedVisibility(
+            visibleState = tabOverlayState,
+            enter = slideInHorizontally(
+                initialOffsetX = { fullWidth -> (fullWidth * 0.12f).toInt() },
+                animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(280)),
+            exit = slideOutHorizontally(
+                targetOffsetX = { fullWidth -> (fullWidth * 0.08f).toInt() },
+                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
+            ) + fadeOut(animationSpec = tween(220))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(CockpitTheme.colors.backgroundBrush)
+            ) {
+                when (overlayTab ?: lastOverlayTab) {
+                    2 -> TripHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })
+                    3 -> FuelHistoryRoute(onBackToCockpit = { viewModel.selectTab(0) })
+                }
             }
         }
 
         AnimatedVisibility(
-            visible = isAppDrawerOpen,
+            visibleState = drawerState,
             enter = slideInHorizontally(
                 initialOffsetX = { fullWidth -> fullWidth },
                 animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
@@ -446,7 +460,7 @@ private fun MainAppScreen(
         }
 
         AnimatedVisibility(
-            visible = isSettingsDialogOpen,
+            visibleState = settingsState,
             enter = slideInHorizontally(
                 initialOffsetX = { fullWidth -> fullWidth },
                 animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)

@@ -4,6 +4,7 @@ import android.util.Log
 import com.antigravity.copilot.core.logic.MapOfflinePolicy
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.module.http.HttpRequestUtil
+import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -30,6 +31,15 @@ object MapNetworkGuard {
     private const val TAG = "MapNetworkGuard"
     private val PBF = "application/x-protobuf".toMediaType()
 
+    /**
+     * Hand gzipped tiles to MapLibre untouched with `Content-Encoding: gzip`.
+     * Off: MapLibre Native 10.3.2 does not inflate HTTP bodies itself (OkHttp's transparent gzip
+     * only applies to real network responses, which our in-process interceptor short-circuits),
+     * so gzip bytes would fail MVT parsing and render a blank map. Tiles are therefore cached
+     * compressed in RAM and inflated once per request instead (~<1 ms per tile).
+     */
+    private const val GZIP_PASS_THROUGH = false
+
     @Volatile private var reader: PmTilesReader? = null
     @Volatile private var readerPath: String? = null
     @Volatile private var currentMapId: String? = null
@@ -48,7 +58,7 @@ object MapNetworkGuard {
         reader = null; readerPath = null; currentMapId = null
         if (file == null || !file.isFile || file.length() == 0L) return null
         return try {
-            reader = PmTilesReader(file)
+            reader = PmTilesReader(file, PmTilesReader.recommendedTileCacheBytes())
             readerPath = file.absolutePath
             currentMapId = MapOfflinePolicy.mapId(file.length(), file.lastModified())
             currentMapId
@@ -58,10 +68,31 @@ object MapNetworkGuard {
         }
     }
 
+    /** Drop the RAM tile cache under memory pressure (tiles are re-read from flash on demand). */
+    fun onTrimMemory(level: Int) {
+        // Foreground pressure (RUNNING_LOW/CRITICAL) or being a background kill candidate;
+        // UI_HIDDEN alone (user switched to another app briefly) keeps the cache.
+        if (level != android.content.ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN &&
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW
+        ) {
+            reader?.tileCache?.clear()
+        }
+    }
+
     fun install(failLoudly: Boolean) {
         try {
             Mapbox.setConnected(true)
-            val client = OkHttpClient.Builder().addInterceptor(Interceptor { chain -> intercept(chain, failLoudly) }).build()
+            // MapLibre fans out many tile requests at once; OkHttp's default of 5 per host would
+            // serialise them behind our single local host. Reads are lock-free (positional
+            // FileChannel + RAM cache), so let the dispatcher's worker pool run them in parallel.
+            val dispatcher = Dispatcher().apply {
+                maxRequests = 32
+                maxRequestsPerHost = 16
+            }
+            val client = OkHttpClient.Builder()
+                .dispatcher(dispatcher)
+                .addInterceptor(Interceptor { chain -> intercept(chain, failLoudly) })
+                .build()
             HttpRequestUtil.setOkHttpClient(client)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to install map network guard: ${e.message}", e)
@@ -73,18 +104,30 @@ object MapNetworkGuard {
         val url = request.url.toString()
         val tile = MapOfflinePolicy.parseLocalTileUrl(url)
         if (tile != null) {
-            val bytes = try {
-                if (tile.mapId == currentMapId) reader?.getTile(tile.z, tile.x, tile.y) else null
+            val r = reader
+            val raw = try {
+                if (tile.mapId == currentMapId) r?.getTileRaw(tile.z, tile.x, tile.y) else null
             } catch (e: Exception) {
                 Log.w(TAG, "Tile read failed $url: ${e.message}"); null
             }
-            return Response.Builder()
+            val builder = Response.Builder()
                 .request(request)
                 .protocol(Protocol.HTTP_1_1)
-                .code(if (bytes != null) 200 else 204)
-                .message(if (bytes != null) "OK" else "No Content")
-                .body((bytes ?: ByteArray(0)).toResponseBody(PBF))
-                .build()
+                .code(if (raw != null) 200 else 204)
+                .message(if (raw != null) "OK" else "No Content")
+            val body = when {
+                raw == null -> ByteArray(0)
+                GZIP_PASS_THROUGH && PmTilesReader.isGzip(raw) -> {
+                    builder.header("Content-Encoding", "gzip")
+                    raw
+                }
+                else -> try {
+                    PmTilesReader.decompress(raw, r?.header?.tileCompression ?: PmTilesReader.COMPRESSION_NONE)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Tile decode failed $url: ${e.message}"); ByteArray(0)
+                }
+            }
+            return builder.body(body.toResponseBody(PBF)).build()
         }
         blockedRequestCount++
         Log.e(TAG, "BLOCKED map network request (map must be 100% offline): $url")

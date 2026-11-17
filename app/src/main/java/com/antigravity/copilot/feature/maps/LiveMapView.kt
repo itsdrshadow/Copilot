@@ -2,7 +2,8 @@ package com.antigravity.copilot.feature.maps
 
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import android.os.Bundle
+import android.content.ComponentCallbacks2
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -32,6 +33,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.antigravity.copilot.core.designsystem.colors.*
 import com.antigravity.copilot.core.location.SpeedLimitInfo
 import com.antigravity.copilot.core.map.CarMapController
+import com.antigravity.copilot.core.map.MapNetworkGuard
 import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.model.TripPoint
 import com.mapbox.mapboxsdk.Mapbox
@@ -43,9 +45,52 @@ const val MAP_MAX_ZOOM_LEVEL = 19.5
 const val MAP_DEFAULT_DRIVING_ZOOM = 17.5
 
 /**
+ * Applies the *effective* lifecycle to a single long-lived [MapView]:
+ * effective = host (Activity) state, capped at CREATED while the panel is covered by a
+ * full-screen overlay (Trips / Fuel / Apps / Settings). Covering pauses + stops the GL render
+ * thread and tile fetching but never destroys the view, so the style, sources and camera survive
+ * and uncovering is instant (no reload, no camera reset). [destroy] runs only when the panel
+ * really leaves composition (activity teardown).
+ */
+private class MapViewLifecycleHolder {
+    var mapView: MapView? = null
+    var hostState: Lifecycle.State = Lifecycle.State.INITIALIZED
+    var visible: Boolean = true
+    private var started = false
+    private var resumed = false
+    private var destroyed = false
+
+    fun sync() {
+        val mv = mapView ?: return
+        if (destroyed) return
+        val wantStarted = visible && hostState.isAtLeast(Lifecycle.State.STARTED)
+        val wantResumed = visible && hostState.isAtLeast(Lifecycle.State.RESUMED)
+        if (wantStarted && !started) { mv.onStart(); started = true }
+        if (wantResumed && !resumed) { mv.onResume(); resumed = true }
+        if (!wantResumed && resumed) { mv.onPause(); resumed = false }
+        if (!wantStarted && started) { mv.onStop(); started = false }
+    }
+
+    fun destroy() {
+        val mv = mapView ?: return
+        if (destroyed) return
+        if (resumed) mv.onPause()
+        if (started) mv.onStop()
+        resumed = false
+        started = false
+        mv.onDestroy()
+        destroyed = true
+        mapView = null
+    }
+}
+
+/**
  * LiveMapPanel:
- * MapLibre Android SDK v10.3.2 integrated with textureMode=true for rock-solid 60fps rendering
+ * MapLibre Android SDK v10.3.2 integrated with textureMode=true for rock-solid rendering
  * on 32-bit armeabi-v7a Android 11 car head units.
+ *
+ * The panel is meant to stay composed for the whole session (see MainAppScreen): pass
+ * [isCovered] = true while an opaque full-screen overlay hides it instead of removing it.
  */
 @Composable
 fun LiveMapPanel(
@@ -54,9 +99,10 @@ fun LiveMapPanel(
     modifier: Modifier = Modifier,
     speedLimitInfo: SpeedLimitInfo = SpeedLimitInfo(),
     isFullScreen: Boolean = false,
+    isCovered: Boolean = false,
     onToggleFullScreen: () -> Unit = {}
 ) {
-    if (isFullScreen) {
+    if (isFullScreen && !isCovered) {
         BackHandler {
             onToggleFullScreen()
         }
@@ -68,13 +114,14 @@ fun LiveMapPanel(
 
     var showOfflineManagerDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
-    var mapViewInstance by remember { mutableStateOf<MapView?>(null) }
+    val lifecycleHolder = remember { MapViewLifecycleHolder() }
     val mapController = remember { CarMapController(context.applicationContext, coroutineScope) }
 
     val hasMapInstalled by mapController.hasMapInstalled.collectAsStateWithLifecycle()
     val activeRegionTitle by mapController.activeRegionTitle.collectAsStateWithLifecycle()
     val is3DActive by mapController.is3DTiltActive.collectAsStateWithLifecycle()
     val isHeadingUp by mapController.isHeadingUp.collectAsStateWithLifecycle()
+    val isFollowing by mapController.isFollowing.collectAsStateWithLifecycle()
     val roadMileageVisible by mapController.roadMileageVisible.collectAsStateWithLifecycle()
     val selectedRoadCell by mapController.selectedRoadCell.collectAsStateWithLifecycle()
 
@@ -98,34 +145,51 @@ fun LiveMapPanel(
         }
     }
 
-    // Live trail with overlap colouring (throttled inside the controller)
+    // Live trail with overlap colouring (throttled + computed off the main thread)
     LaunchedEffect(trail) {
         mapController.updateTrail(trail)
     }
 
-    // Lifecycle observer to forward Android lifecycle events to MapView
+    // Pause rendering while an opaque overlay covers the map; never destroy on tab switches.
+    SideEffect {
+        if (lifecycleHolder.visible == isCovered) {
+            lifecycleHolder.visible = !isCovered
+            lifecycleHolder.sync()
+        }
+    }
+
+    // Forward host lifecycle (start/resume/pause/stop) to the MapView; destroy only on teardown.
     DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_START -> mapViewInstance?.onStart()
-                Lifecycle.Event.ON_RESUME -> {
-                    mapViewInstance?.onResume()
-                    mapController.loadLocalOfflineStyle()
-                }
-                Lifecycle.Event.ON_PAUSE -> mapViewInstance?.onPause()
-                Lifecycle.Event.ON_STOP -> mapViewInstance?.onStop()
-                Lifecycle.Event.ON_DESTROY -> {
-                    mapController.detachMap()
-                    mapViewInstance?.onDestroy()
-                }
-                else -> {}
+        val observer = LifecycleEventObserver { source, event ->
+            if (event == Lifecycle.Event.ON_DESTROY) {
+                mapController.detachMap()
+                lifecycleHolder.destroy()
+            } else {
+                lifecycleHolder.hostState = source.lifecycle.currentState
+                lifecycleHolder.sync()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+        val memoryCallbacks = object : ComponentCallbacks2 {
+            override fun onTrimMemory(level: Int) {
+                MapNetworkGuard.onTrimMemory(level)
+                if (level != ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN && level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+                    lifecycleHolder.mapView?.onLowMemory()
+                }
+            }
+            override fun onConfigurationChanged(newConfig: Configuration) {}
+            @Deprecated("Deprecated in Java")
+            override fun onLowMemory() {
+                MapNetworkGuard.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_COMPLETE)
+                lifecycleHolder.mapView?.onLowMemory()
+            }
+        }
+        context.applicationContext.registerComponentCallbacks(memoryCallbacks)
         onDispose {
+            context.applicationContext.unregisterComponentCallbacks(memoryCallbacks)
             lifecycleOwner.lifecycle.removeObserver(observer)
             mapController.detachMap()
-            mapViewInstance?.onDestroy()
+            lifecycleHolder.destroy()
         }
     }
 
@@ -140,6 +204,7 @@ fun LiveMapPanel(
             factory = { ctx ->
                 val options = MapboxMapOptions.createFromAttributes(ctx)
                     .textureMode(true) // Crucial for older Mali / Adreno GPUs
+                    .pixelRatio(1.0f) // Cap map density at 1x for GLES2 head units
                     .compassEnabled(false)
                     .logoEnabled(false)
                     .attributionEnabled(false)
@@ -147,14 +212,13 @@ fun LiveMapPanel(
                     .maxZoomPreference(MAP_MAX_ZOOM_LEVEL)
 
                 MapView(ctx, options).apply {
-                    onCreate(Bundle())
-                    mapViewInstance = this
+                    onCreate(null)
+                    lifecycleHolder.mapView = this
                     // The lifecycle observer may already have replayed ON_START/ON_RESUME before this
-                    // view existed (fresh launch) — bring the MapView up to the current state, or it
+                    // view existed (fresh launch): bring the MapView up to the current state, or it
                     // never renders until the app is backgrounded once.
-                    val current = lifecycleOwner.lifecycle.currentState
-                    if (current.isAtLeast(Lifecycle.State.STARTED)) onStart()
-                    if (current.isAtLeast(Lifecycle.State.RESUMED)) onResume()
+                    lifecycleHolder.hostState = lifecycleOwner.lifecycle.currentState
+                    lifecycleHolder.sync()
                     getMapAsync { map ->
                         map.uiSettings.isRotateGesturesEnabled = true
                         map.uiSettings.isTiltGesturesEnabled = true
@@ -291,10 +355,11 @@ fun LiveMapPanel(
                     isActive = isHeadingUp,
                     onClick = { mapController.toggleHeadingMode() }
                 )
+                // Highlighted while follow / auto-zoom is suspended by a gesture: tap to resume.
                 MapFloatingButton(
-                    icon = Icons.Default.MyLocation,
-                    contentDescription = "Recenter",
-                    isActive = false,
+                    icon = if (isFollowing) Icons.Default.MyLocation else Icons.Default.LocationSearching,
+                    contentDescription = if (isFollowing) "Recenter" else "Resume follow",
+                    isActive = !isFollowing,
                     onClick = { mapController.recenter() }
                 )
                 MapFloatingButton(
@@ -326,7 +391,7 @@ fun LiveMapPanel(
         OfflineMapsManagerDialog(
             onDismissRequest = {
                 showOfflineManagerDialog = false
-                mapController.loadLocalOfflineStyle()
+                mapController.reloadStyleIfMapChanged()
             }
         )
     }
