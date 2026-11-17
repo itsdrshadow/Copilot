@@ -12,6 +12,9 @@ import com.antigravity.copilot.core.database.FuelModelStateEntity
 import com.antigravity.copilot.core.logic.fuel.FuelModel
 import com.antigravity.copilot.core.logic.fuel.FuelModelState
 import com.antigravity.copilot.core.logic.fuel.RefillInput
+import com.antigravity.copilot.core.logic.fuel.UnloggedEntry
+import com.antigravity.copilot.core.logic.fuel.UnloggedFuel
+import com.antigravity.copilot.core.logic.fuel.UnloggedStatus
 import com.antigravity.copilot.core.model.FuelState
 import com.antigravity.copilot.core.odometer.OdometerManager
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -441,7 +444,8 @@ class FuelRepository private constructor(context: Context) {
             rawFuelLiters = est.rawLitres,
             topBufferLiters = est.topBufferL,
             bottomBufferLiters = est.bottomBufferL,
-            unloggedDebtLiters = model.totalDebtL
+            unloggedDebtLiters = model.totalDebtL,
+            fuelNotice = _fuelNotice.value
         )
     }
 
@@ -524,80 +528,51 @@ class FuelRepository private constructor(context: Context) {
                     // Feature 16: Filter transient pitch, roll, acceleration, and slosh anomalies with 60s rolling median filter
                     val filteredMidBar = estimator.filterSloshAndSlope(newMidBar)
 
-                    // Check for missed refuel event
-                    val detection = missedEntryIntel.evaluateObservedGauge(
+                    // Missed refuels are no longer prompted for: unlogged fuel is reconciled
+                    // automatically at the next refill (UnloggedFuel), with only a quiet notice.
+                    // Normal gauge update
+                    val litersForBar = gaugeCalibration.getLitersForBar(filteredMidBar)
+                    val prevState = estimator.toSnapshot()
+                    estimator.applyManualAdjustment(
+                        adjustedLiters = litersForBar,
                         observedGaugePoints = filteredMidBar,
-                        estimator = estimator,
-                        currentOdometerKm = effectiveOdo
+                        odometerKm = effectiveOdo,
+                        reason = "Gauge updated to $filteredMidBar/10 bars",
+                        confidence = EventConfidence.HIGH
                     )
+                    gaugeCalibration.learnCalibrationPoint(filteredMidBar, litersForBar, 0.15)
 
-                    if (detection.detected) {
-                        _missedRefuelAlert.value = detection
-                        // Record provisional inferred refuel in immutable ledger
-                        val event = detection.suggestedLedgerEvent ?: FuelLedgerEvent(
-                            correlationId = "inferred_${System.currentTimeMillis()}",
-                            eventType = FuelEventType.INFERRED_REFUEL,
-                            timestamp = System.currentTimeMillis(),
-                            odometerKm = effectiveOdo,
-                            fuelQuantityLiters = detection.plausibleNominalLiters,
-                            fuelGaugePoints = filteredMidBar,
-                            source = EventSource.INFERRED,
-                            confidence = EventConfidence.PROVISIONAL,
-                            reasonNote = "Missed refuel detected from gauge reading $filteredMidBar/10"
-                        )
-                        fuelLedgerDao.insertEvent(FuelLedgerEntity.fromDomainEvent(event))
-                        estimator.applyManualAdjustment(
-                            adjustedLiters = gaugeCalibration.getLitersForBar(filteredMidBar),
-                            observedGaugePoints = filteredMidBar,
-                            odometerKm = effectiveOdo,
-                            reason = "Adjusted to inferred level (${filteredMidBar}/10 bars)",
-                            confidence = EventConfidence.PROVISIONAL
-                        )
-                    } else {
-                        // Normal gauge update
-                        val litersForBar = gaugeCalibration.getLitersForBar(filteredMidBar)
-                        val prevState = estimator.toSnapshot()
-                        estimator.applyManualAdjustment(
-                            adjustedLiters = litersForBar,
-                            observedGaugePoints = filteredMidBar,
-                            odometerKm = effectiveOdo,
-                            reason = "Gauge updated to $filteredMidBar/10 bars",
-                            confidence = EventConfidence.HIGH
-                        )
-                        gaugeCalibration.learnCalibrationPoint(filteredMidBar, litersForBar, 0.15)
+                    val ledgerEvent = FuelLedgerEvent(
+                        correlationId = "gauge_${System.currentTimeMillis()}",
+                        eventType = FuelEventType.FUEL_GAUGE_UPDATE,
+                        timestamp = System.currentTimeMillis(),
+                        odometerKm = effectiveOdo,
+                        fuelQuantityLiters = 0.0,
+                        fuelGaugePoints = filteredMidBar,
+                        source = EventSource.MANUAL,
+                        confidence = EventConfidence.HIGH,
+                        previousState = prevState,
+                        resultingState = estimator.toSnapshot(),
+                        reasonNote = "Cluster gauge synchronized to $filteredMidBar/10 bars"
+                    )
+                    fuelLedgerDao.insertEvent(FuelLedgerEntity.fromDomainEvent(ledgerEvent))
 
-                        val ledgerEvent = FuelLedgerEvent(
-                            correlationId = "gauge_${System.currentTimeMillis()}",
-                            eventType = FuelEventType.FUEL_GAUGE_UPDATE,
-                            timestamp = System.currentTimeMillis(),
-                            odometerKm = effectiveOdo,
-                            fuelQuantityLiters = 0.0,
-                            fuelGaugePoints = filteredMidBar,
-                            source = EventSource.MANUAL,
-                            confidence = EventConfidence.HIGH,
-                            previousState = prevState,
-                            resultingState = estimator.toSnapshot(),
-                            reasonNote = "Cluster gauge synchronized to $filteredMidBar/10 bars"
-                        )
-                        fuelLedgerDao.insertEvent(FuelLedgerEntity.fromDomainEvent(ledgerEvent))
-
-                        // Also mirror into legacy fuel_events for backward-compatibility
-                        val legacyEvent = FuelEventEntity(
-                            vehicleId = 1,
-                            timestamp = System.currentTimeMillis(),
-                            eventType = "MID_OBSERVED",
-                            liters = 0.0,
-                            midLevelObserved = filteredMidBar,
-                            pricePerLiter = fuelPrice,
-                            totalCost = 0.0,
-                            calculatedBalanceLiters = estimator.nominalFuelLiters,
-                            notes = "Manual MID cluster sync: $filteredMidBar/10 bars at $effectiveOdo km",
-                            odometerKm = effectiveOdo,
-                            calculatedMileageKmpl = mileageEngine.overallEstimatedMileage,
-                            locationName = "Cluster Calibration"
-                        )
-                        fuelDao.insertFuelEvent(legacyEvent)
-                    }
+                    // Also mirror into legacy fuel_events for backward-compatibility
+                    val legacyEvent = FuelEventEntity(
+                        vehicleId = 1,
+                        timestamp = System.currentTimeMillis(),
+                        eventType = "MID_OBSERVED",
+                        liters = 0.0,
+                        midLevelObserved = filteredMidBar,
+                        pricePerLiter = fuelPrice,
+                        totalCost = 0.0,
+                        calculatedBalanceLiters = estimator.nominalFuelLiters,
+                        notes = "Manual MID cluster sync: $filteredMidBar/10 bars at $effectiveOdo km",
+                        odometerKm = effectiveOdo,
+                        calculatedMileageKmpl = mileageEngine.overallEstimatedMileage,
+                        locationName = "Cluster Calibration"
+                    )
+                    fuelDao.insertFuelEvent(legacyEvent)
 
                     persistValuesImmediate()
                     _fuelState.value = buildFuelState()
@@ -829,11 +804,59 @@ class FuelRepository private constructor(context: Context) {
         }
     }
 
-    /** Phase 3 refill handling (gauge-after litres from the learned curve). */
+    /**
+     * Refill handling with automatic unlogged-fuel reconciliation (Phase 4, no user confirmation).
+     * Gauge-after litres come from the learned curve; a full tank means actual capacity.
+     */
     private suspend fun applyRefillToModel(refill: RefillInput) {
         val gaugeLitres = refill.gaugeAfter?.takeIf { it < 10.0 }?.let { FuelModel.curve(model).litresAt(it) }
-        model = FuelModel.applyRefill(model, refill, gaugeLitres)
+        val outcome = UnloggedFuel.onRefill(model, refill, gaugeLitres)
+        model = outcome.state
         persistModelNow()
+        for (e in outcome.resolved) markUnloggedResolved(e)
+        outcome.autoUnloggedRefillL?.let { litres ->
+            fuelDao.insertFuelEvent(
+                FuelEventEntity(
+                    vehicleId = 1,
+                    timestamp = refill.timeMs - 1,
+                    eventType = "UNLOGGED_REFILL_AUTO",
+                    liters = FuelMath.roundFuel(litres),
+                    calculatedBalanceLiters = model.anchorLitres,
+                    notes = UnloggedFuel.SOURCE_RESOLVED,
+                    odometerKm = refill.odoKm,
+                    locationName = "Unlogged refill (auto)"
+                )
+            )
+        }
+        _fuelNotice.value = outcome.notice?.message
+    }
+
+    private fun unloggedMarker(e: UnloggedEntry) = "[unlogged:${e.tripId}:${e.timeMs}]"
+
+    private suspend fun recordUnloggedEntry(e: UnloggedEntry, odoKm: Double) {
+        fuelDao.insertFuelEvent(
+            FuelEventEntity(
+                vehicleId = 1,
+                timestamp = e.timeMs,
+                eventType = "UNLOGGED_CONSUMPTION",
+                liters = -FuelMath.roundFuel(e.litres),
+                calculatedBalanceLiters = 0.0,
+                notes = "PROVISIONAL • ${e.source} • ${unloggedMarker(e)}",
+                odometerKm = odoKm,
+                calculatedMileageKmpl = if (e.litres > 0) e.km / e.litres else 0.0,
+                locationName = "Unlogged consumption"
+            )
+        )
+    }
+
+    private suspend fun markUnloggedResolved(e: UnloggedEntry) {
+        val row = fuelDao.findUnloggedByMarker("%${unloggedMarker(e)}%") ?: return
+        fuelDao.updateFuelEvent(
+            row.copy(
+                liters = -FuelMath.roundFuel(e.resolvedLitres),
+                notes = "${if (e.status == UnloggedStatus.RESOLVED) "RESOLVED" else "PROVISIONAL"} • ${e.source} • ${unloggedMarker(e)}"
+            )
+        )
     }
 
     /**
@@ -903,8 +926,27 @@ class FuelRepository private constructor(context: Context) {
         }
     }
 
-    fun onTripCompleted() {
+    fun onTripCompleted(tripId: Long = 0L, tripKm: Double = 0.0) {
         flushPendingPersist()
+        // Phase 4: trips ending with the raw estimate at/below 0 create provisional unlogged entries.
+        if (tripKm > 0.0) {
+            scope.launch {
+                stateMutex.withLock {
+                    try {
+                        val odo = getEffectiveOdometer()
+                        val (next, entry) = UnloggedFuel.onTripEnded(model, tripId, tripKm, odo, System.currentTimeMillis())
+                        model = next
+                        if (entry != null) {
+                            persistModelNow()
+                            recordUnloggedEntry(entry, odo)
+                        }
+                        _fuelState.value = buildFuelState()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Unlogged-consumption bookkeeping failed: ${e.message}", e)
+                    }
+                }
+            }
+        }
         // Record trip consumption slice in ledger
         scope.launch {
             stateMutex.withLock {

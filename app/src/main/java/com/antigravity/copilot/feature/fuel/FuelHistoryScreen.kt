@@ -656,7 +656,12 @@ private fun FuelEventCard(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "⛽ REFUEL",
+                            text = when {
+                                event.eventType == "UNLOGGED_CONSUMPTION" && event.notes.startsWith("RESOLVED") -> "✓ UNLOGGED (RESOLVED)"
+                                event.eventType == "UNLOGGED_CONSUMPTION" -> "⚠ UNLOGGED (PROVISIONAL)"
+                                event.eventType == "UNLOGGED_REFILL_AUTO" -> "⛽ UNLOGGED REFILL (AUTO)"
+                                else -> "⛽ REFUEL"
+                            },
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Black,
                                 fontFeatureSettings = "tnum"
@@ -1078,6 +1083,7 @@ private fun computeYearlyAnalytics(
 
     // Filter events for the selected year
     val yearEvents = allEvents.filter {
+        if (it.eventType == "UNLOGGED_CONSUMPTION") return@filter false // consumption, not a purchase
         cal.timeInMillis = it.timestamp
         cal.get(Calendar.YEAR) == selectedYear
     }

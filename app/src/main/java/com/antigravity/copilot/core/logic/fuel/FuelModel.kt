@@ -49,7 +49,9 @@ data class FuelModelState(
     val lastGauge: GaugeAnchor? = null,
     val confidencePenalty: Double = 0.0,
     val unlogged: List<UnloggedEntry> = emptyList(),
-    val maxRefillL: Double = 0.0
+    val maxRefillL: Double = 0.0,
+    /** Multiplier from impossible reconciliations (≤ ±15 % each); heals as new segments arrive. */
+    val mileageBias: Double = 1.0
 ) {
     /** Gson leaves missing fields null/zero; restore safe defaults after loading old JSON. */
     @Suppress("SENSELESS_COMPARISON", "USELESS_ELVIS")
@@ -59,7 +61,8 @@ data class FuelModelState(
         defaultKmpl = if (defaultKmpl > 0) defaultKmpl else Config.DEFAULT_MILEAGE_KMPL,
         observations = observations ?: emptyList(),
         segments = segments ?: emptyList(),
-        unlogged = unlogged ?: emptyList()
+        unlogged = unlogged ?: emptyList(),
+        mileageBias = if (mileageBias > 0) mileageBias else 1.0
     )
 
     val totalDebtL: Double get() = unlogged.filter { it.status == UnloggedStatus.PROVISIONAL }.sumOf { it.litres }
@@ -111,8 +114,10 @@ object FuelModel {
 
     fun curve(s: FuelModelState): GaugeCurve = GaugeCurve.fit(s.actualCapacityL, s.observations)
 
-    fun mileage(s: FuelModelState, nowMs: Long): MileageEstimate =
-        MileageEstimator.estimate(s.segments, nowMs, s.defaultKmpl, s.confidencePenalty)
+    fun mileage(s: FuelModelState, nowMs: Long): MileageEstimate {
+        val e = MileageEstimator.estimate(s.segments, nowMs, s.defaultKmpl, s.confidencePenalty)
+        return e.copy(kmpl = (e.kmpl * s.mileageBias).coerceIn(Config.MILEAGE_MIN_KMPL, Config.MILEAGE_MAX_KMPL))
+    }
 
     fun rawLitres(s: FuelModelState, odoKm: Double, nowMs: Long): Double {
         val km = (odoKm - s.anchorOdoKm).coerceAtLeast(0.0)
@@ -199,7 +204,8 @@ object FuelModel {
             next = next.copy(actualCapacityL = litres.coerceAtMost(s.designCapacityL * Config.ACTUAL_CAPACITY_MAX_FACTOR))
         }
 
-        val modelAfter = rawBefore.coerceAtLeast(0.0) + litres + extraUnloggedL
+        // With a detected unlogged refill, raw (possibly negative) + litres + unlogged = truth.
+        val modelAfter = if (extraUnloggedL > 0.0) rawBefore + litres + extraUnloggedL else rawBefore.coerceAtLeast(0.0) + litres
         val after = when {
             input.fullTank -> next.actualCapacityL
             gaugeAfterLitres != null -> gaugeAfterLitres
@@ -222,7 +228,7 @@ object FuelModel {
                 next = next.copy(lastGauge = s.lastGauge.copy(addedSinceL = s.lastGauge.addedSinceL + litres + extraUnloggedL))
                 next = addGaugeSegment(next, input.odoKm, after, now)
             }
-            if (s.totalDebtL <= 0.0) {
+            if (s.totalDebtL <= 0.0 && extraUnloggedL == 0.0) {
                 next = next.copy(
                     observations = (next.observations + GaugeObservation(g, modelAfter.coerceAtMost(next.actualCapacityL), 0.3 + m.confidence, now))
                         .takeLast(FuelModelState.MAX_OBSERVATIONS)
@@ -256,8 +262,14 @@ object FuelModel {
 
     fun addSegment(s: FuelModelState, seg: MileageSegment): FuelModelState {
         // A consistent new segment slowly heals a past confidence penalty.
-        val healed = if (MileageEstimator.isValid(seg)) s.confidencePenalty * 0.5 else s.confidencePenalty
-        return s.copy(segments = (s.segments + seg).takeLast(FuelModelState.MAX_SEGMENTS), confidencePenalty = healed)
+        val valid = MileageEstimator.isValid(seg)
+        val healed = if (valid) s.confidencePenalty * 0.5 else s.confidencePenalty
+        val bias = if (valid) 1.0 + (s.mileageBias - 1.0) * 0.5 else s.mileageBias
+        return s.copy(
+            segments = (s.segments + seg).takeLast(FuelModelState.MAX_SEGMENTS),
+            confidencePenalty = healed,
+            mileageBias = bias
+        )
     }
 
     fun snap(point: Double): Double =

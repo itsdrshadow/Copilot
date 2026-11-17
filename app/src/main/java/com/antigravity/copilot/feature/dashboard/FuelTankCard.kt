@@ -290,6 +290,16 @@ fun FuelTankCard(
                         color = if (tankPct >= 90.0) positiveAccent else textSecondary
                     )
                 }
+                // Quiet fuel-model notice (e.g. unlogged fuel auto-resolved) — never a blocking prompt.
+                fuelState.fuelNotice?.let { notice ->
+                    Text(
+                        text = notice,
+                        style = CockpitTheme.typography.labelSmall,
+                        color = textSecondary,
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
             }
 
             // ==================== 4. BOTTOM TELEMETRY DOCK (RANGE + MILEAGE) ====================

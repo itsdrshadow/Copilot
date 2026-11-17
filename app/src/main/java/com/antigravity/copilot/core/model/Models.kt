@@ -128,7 +128,9 @@ data class FuelState(
     val topBufferLiters: Double = 3.0,
     val bottomBufferLiters: Double = 5.0,
     /** Sum of provisional unlogged-consumption entries awaiting the next refill. */
-    val unloggedDebtLiters: Double = 0.0
+    val unloggedDebtLiters: Double = 0.0,
+    /** Quiet, non-blocking notice from the fuel model (null = none). */
+    val fuelNotice: String? = null
 )
 
 @androidx.compose.runtime.Immutable

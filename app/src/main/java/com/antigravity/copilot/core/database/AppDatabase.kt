@@ -101,6 +101,10 @@ interface FuelDao {
 
     @Query("SELECT COUNT(*) FROM fuel_events")
     suspend fun getFuelEventCount(): Int
+
+    /** Unlogged-consumption rows carry a stable "[unlogged:tripId:time]" marker in notes. */
+    @Query("SELECT * FROM fuel_events WHERE eventType = 'UNLOGGED_CONSUMPTION' AND notes LIKE :pattern LIMIT 1")
+    suspend fun findUnloggedByMarker(pattern: String): FuelEventEntity?
 }
 
 @Dao

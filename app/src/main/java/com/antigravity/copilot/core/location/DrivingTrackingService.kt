@@ -309,7 +309,7 @@ class DrivingTrackingService : Service(), LocationListener {
                     }
                 }
                 tripRepository.onTripCompleted(summary)
-                fuelRepository.onTripCompleted()
+                fuelRepository.onTripCompleted(summary.id, summary.distanceMeters / 1000.0)
                 lastRecordedDistanceMeters = 0.0
             },
             onTripDiscarded = { tripId ->

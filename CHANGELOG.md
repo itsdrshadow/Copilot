@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Battery-optimisation exemption prompt for the tracking service.
 - `SpeedFilter` (Doppler-only, accuracy-gated EMA), `DrivingStateClassifier` + orientation-independent `LongitudinalAccelEstimator` (linear-acceleration sensor fused with GPS dv/dt), IDLE / ACCELERATING / CRUISING / BRAKING label under the speed readout.
 - Pure fuel model (`core/logic/fuel`): isotonic `GaugeCurve` (21 half-point knots, learned top/bottom buffers, uneven litres-per-point), `MileageEstimator` (weighted last ~3 segments / 30 days, full-to-full and gauge-to-gauge, confidence score), anchor-based tank estimate (`anchor − km / mileage`), learned actual capacity kept separate from OEM design capacity. Persisted in new `fuel_model_state` table (DB v9, strict migration) and included in JSON backup/restore.
+- Automatic unlogged fuel (`UnloggedFuel`): raw estimate may go below 0; trips ending at/below 0 add PROVISIONAL "unlogged consumption" rows to the fuel log; the next refill reconciles (true_before = gauge_after − refill, unexplained = true_before + debt), allocates to trips by km (RESOLVED, "unlogged refill, auto"), rejects impossible amounts (> actual capacity) by lowering mileage confidence instead. Only a quiet notice under the gauge.
 - Refill dialog: "Filled to FULL tank" flag; real odometer at refill re-bases the odometer and teaches *k*.
 - Gauge calibration popup supports half points (tap the top bar again).
 - `OdometerAccumulator` (filtered haversine segments) and odometer correction factor *k* learned from real-odometer entries (shown = base + k·app_delta).
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Trip moving/idle time: short stops (< 30 s) are moving time; trip idle at completion = wall clock − moving.
 
 ### Removed
+- Blocking "missed refuel" alert on gauge calibration (replaced by automatic reconciliation).
 - Idle fuel-burn model (0.75 L/h) from `FuelAIEngine`.
 
 ## [1.42.3] - 2026-11-17
