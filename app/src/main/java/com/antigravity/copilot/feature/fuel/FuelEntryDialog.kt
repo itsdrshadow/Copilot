@@ -36,8 +36,6 @@ import com.antigravity.copilot.core.designsystem.CockpitTheme
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
-import com.antigravity.copilot.core.designsystem.Cockpit_AmberWarning
-import com.antigravity.copilot.core.designsystem.Cockpit_RedAlert
 import com.antigravity.copilot.core.model.FuelState
 import com.antigravity.copilot.core.model.TripPoint
 import com.antigravity.copilot.core.util.NumberFormatUtils
@@ -361,7 +359,7 @@ fun FuelEntryDialog(
                                             modifier = Modifier
                                                 .weight(1.15f)
                                                 .fillMaxHeight()
-                                                .cockpitSurface(Palette.Slate900, if (isAmountActive) Cockpit_AmberWarning else Palette.Slate800, CopilotShapes.R10, borderWidth = 1.5.dp)
+                                                .cockpitSurface(Palette.Slate900, if (isAmountActive) CockpitTheme.colors.warning else Palette.Slate800, CopilotShapes.R10, borderWidth = 1.5.dp)
                                                 .clickable { activeField = ActiveFuelField.AMOUNT }
                                                 .padding(horizontal = 12.dp)
                                         ) {
@@ -379,14 +377,14 @@ fun FuelEntryDialog(
                                                         style = CockpitTheme.typography.labelMedium.copy(
                                                             letterSpacing = 0.5.sp
                                                         ),
-                                                        color = if (isAmountActive) Cockpit_AmberWarning else Palette.Slate400
+                                                        color = if (isAmountActive) CockpitTheme.colors.warning else Palette.Slate400
                                                     )
                                                     if (isAmountActive) {
                                                         Box(
                                                             modifier = Modifier
                                                                 .size(6.dp)
                                                                 .clip(CircleShape)
-                                                                .background(Cockpit_AmberWarning)
+                                                                .background(CockpitTheme.colors.warning)
                                                         )
                                                     }
                                                 }
@@ -399,7 +397,7 @@ fun FuelEntryDialog(
                                                         style = CockpitTheme.typography.titleLarge.copy(
                                                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                                                         ),
-                                                        color = Cockpit_AmberWarning
+                                                        color = CockpitTheme.colors.warning
                                                     )
                                                     Text(
                                                         text = totalAmountText.ifEmpty { "0" },
@@ -466,7 +464,7 @@ fun FuelEntryDialog(
                                     // Row 2: Odometer Reading (KM) directly underneath (Height: 48dp)
                                     val isOdoActive = activeField == ActiveFuelField.ODOMETER
                                     val odoBorderColor = when {
-                                        !isOdometerValid && refuelOdometerText.isNotEmpty() -> Cockpit_RedAlert
+                                        !isOdometerValid && refuelOdometerText.isNotEmpty() -> CockpitTheme.colors.critical
                                         isOdoActive -> Palette.Purple400
                                         else -> Palette.Slate800
                                     }
@@ -493,7 +491,7 @@ fun FuelEntryDialog(
                                                     style = CockpitTheme.typography.labelMedium.copy(
                                                         letterSpacing = 0.5.sp
                                                     ),
-                                                    color = if (!isOdometerValid && refuelOdometerText.isNotEmpty()) Cockpit_RedAlert else if (isOdoActive) Palette.Purple400 else Palette.Slate400
+                                                    color = if (!isOdometerValid && refuelOdometerText.isNotEmpty()) CockpitTheme.colors.critical else if (isOdoActive) Palette.Purple400 else Palette.Slate400
                                                 )
                                                 if (refuelOdometerText.isNotEmpty() && enteredOdo <= 0.0) {
                                                     Text(
@@ -501,7 +499,7 @@ fun FuelEntryDialog(
                                                         style = CockpitTheme.typography.labelSmall.copy(
                                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                                         ),
-                                                        color = Cockpit_RedAlert
+                                                        color = CockpitTheme.colors.critical
                                                     )
                                                 } else if (odoTripDelta > 0.05) {
                                                     Text(
@@ -522,7 +520,7 @@ fun FuelEntryDialog(
                                                         letterSpacing = (-0.5).sp,
                                                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                                                     ),
-                                                    color = if (!isOdometerValid && refuelOdometerText.isNotEmpty()) Cockpit_RedAlert else Color.White
+                                                    color = if (!isOdometerValid && refuelOdometerText.isNotEmpty()) CockpitTheme.colors.critical else Color.White
                                                 )
                                                 Spacer(Modifier.width(4.dp))
                                                 Text(
@@ -575,7 +573,7 @@ fun FuelEntryDialog(
                                     Text(
                                         text = "⚠️ $err",
                                         style = CockpitTheme.typography.labelMedium,
-                                        color = Cockpit_RedAlert,
+                                        color = CockpitTheme.colors.critical,
                                         maxLines = 2
                                     )
                                 }
@@ -684,7 +682,7 @@ fun FuelEntryDialog(
                                         ) {
                                             for (k in row) {
                                                 val isBack = k == "DEL" || k == "⌫"
-                                                val accent = if (isBack) Cockpit_RedAlert else Color.White
+                                                val accent = if (isBack) CockpitTheme.colors.critical else Color.White
                                                 val bg = if (isBack) Color(0xFF261216) else Palette.Ink875
 
                                                 FuelKeypadKey(
@@ -712,7 +710,7 @@ fun FuelEntryDialog(
                                         FuelKeypadKey(
                                             text = "CLR",
                                             onClick = { onKeypadPress("C") },
-                                            accentColor = Cockpit_RedAlert,
+                                            accentColor = CockpitTheme.colors.critical,
                                             backgroundColor = Color(0xFF261216),
                                             isSpecialAction = true,
                                             modifier = Modifier

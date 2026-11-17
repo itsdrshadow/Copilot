@@ -127,6 +127,10 @@ fun LiveMapPanel(
     val roadMileageVisible by mapController.roadMileageVisible.collectAsStateWithLifecycle()
     val selectedRoadCell by mapController.selectedRoadCell.collectAsStateWithLifecycle()
 
+    // Raahi Day / Night basemap colours follow the app theme.
+    val mapPalette = CockpitTheme.map
+    LaunchedEffect(mapController, mapPalette) { mapController.setMapPalette(mapPalette) }
+
     // Ensure MapLibre native engine is initialized with applicationContext
     remember {
         try {
@@ -250,7 +254,7 @@ fun LiveMapPanel(
                 Surface(
                     color = Color(0xFF131C28),
                     shape = CopilotShapes.R16,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan.copy(alpha = 0.6f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.6f)),
                     modifier = Modifier.padding(24.dp)
                 ) {
                     Column(
@@ -260,7 +264,7 @@ fun LiveMapPanel(
                         Icon(
                             imageVector = Icons.Default.CloudDownload,
                             contentDescription = null,
-                            tint = Cockpit_Cyan,
+                            tint = CockpitTheme.colors.accent,
                             modifier = Modifier.size(48.dp)
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -279,7 +283,7 @@ fun LiveMapPanel(
                         Spacer(modifier = Modifier.height(18.dp))
                         Button(
                             onClick = { showOfflineManagerDialog = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan),
+                            colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent),
                             shape = CopilotShapes.R12,
                             modifier = Modifier.height(52.dp)
                         ) {
@@ -409,8 +413,8 @@ fun LiveMapPanel(
 @Composable
 private fun Modifier.mapHudSurface(isActive: Boolean, idleAlpha: Float): Modifier {
     return this.clip(CircleShape)
-        .background(if (isActive) Cockpit_Cyan else Color(0xFF141C28).copy(alpha = idleAlpha))
-        .border(1.dp, if (isActive) Cockpit_Cyan else Color(0xFF263346), CircleShape)
+        .background(if (isActive) CockpitTheme.colors.accent else Color(0xFF141C28).copy(alpha = idleAlpha))
+        .border(1.dp, if (isActive) CockpitTheme.colors.accent else Color(0xFF263346), CircleShape)
 }
 
 @Composable

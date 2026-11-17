@@ -342,6 +342,15 @@ object AppSettingsManager {
         }
     }
 
+    /** Raahi Day / Night / Auto override (Settings › General › Appearance). */
+    fun updateThemeAppearanceMode(context: Context, modeId: String) {
+        getPrefs(context).edit().putString(KEY_THEME_APPEARANCE_MODE, modeId).apply()
+        _settingsState.value = _settingsState.value.copy(themeAppearanceMode = modeId)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_THEME_APPEARANCE_MODE] = modeId }
+        }
+    }
+
     /**
      * Permanent Studio Theme Enforcement:
      * Finalizes and ensures Premium Cockpit is always active.

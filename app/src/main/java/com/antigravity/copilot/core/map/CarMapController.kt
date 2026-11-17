@@ -229,6 +229,16 @@ class CarMapController(
      */
     fun reloadStyleIfMapChanged() = requestStyle(force = false)
 
+    /** Raahi basemap palette (Day / Night). A change reloads the style; map data is unchanged. */
+    @Volatile private var mapPalette: com.antigravity.copilot.core.designsystem.colors.MapPalette =
+        com.antigravity.copilot.core.designsystem.colors.RaahiNight.Map
+
+    fun setMapPalette(palette: com.antigravity.copilot.core.designsystem.colors.MapPalette) {
+        if (palette == mapPalette) return
+        mapPalette = palette
+        if (isStyleLoaded) requestStyle(force = true)
+    }
+
     private data class ResolvedMap(val mapId: String?, val fileName: String?, val regionTitle: String?)
 
     private fun requestStyle(force: Boolean) {
@@ -266,7 +276,7 @@ class CarMapController(
         }
     }
 
-    private fun buildStyleJson(mapId: String?): String? = OfflineStyle.build(context, mapId)
+    private fun buildStyleJson(mapId: String?): String? = OfflineStyle.build(context, mapId, mapPalette)
 
     // ---------------- Live trail with overlap colouring (Phase 6) ----------------
     @Volatile private var lastTrailCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())

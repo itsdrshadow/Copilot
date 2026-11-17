@@ -52,11 +52,12 @@ private const val SNAPSHOT_DEBOUNCE_MS = 150L
 fun rememberStaticMapSnapshot(camera: StaticMapCamera?): StaticMapSnapshot? {
     val context = LocalContext.current.applicationContext
     var result by remember { mutableStateOf<StaticMapSnapshot?>(null) }
-    LaunchedEffect(camera) {
+    val palette = com.antigravity.copilot.core.designsystem.CockpitTheme.map
+    LaunchedEffect(camera, palette) {
         val cam = camera ?: return@LaunchedEffect
         delay(SNAPSHOT_DEBOUNCE_MS) // taps / radius chips / resizes settle first
         val json = withContext(Dispatchers.IO) {
-            OfflineStyle.build(context, resolveMapId(context, cam))
+            OfflineStyle.build(context, resolveMapId(context, cam), palette)
         } ?: return@LaunchedEffect
         val bitmap = takeSnapshot(context, cam, json) ?: return@LaunchedEffect
         result = StaticMapSnapshot(cam, bitmap.asImageBitmap())

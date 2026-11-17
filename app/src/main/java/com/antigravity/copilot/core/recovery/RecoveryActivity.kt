@@ -123,7 +123,7 @@ private fun RecoveryScreen(
                     .fillMaxWidth()
                     .clip(CopilotShapes.R12)
                     .background(Color(0xFF140D12))
-                    .border(1.2.dp, Cockpit_RedAlert.copy(alpha = 0.6f), CopilotShapes.R12)
+                    .border(1.2.dp, CockpitTheme.colors.critical.copy(alpha = 0.6f), CopilotShapes.R12)
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -136,14 +136,14 @@ private fun RecoveryScreen(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
-                            .background(Cockpit_RedAlert.copy(alpha = 0.2f))
-                            .border(1.2.dp, Cockpit_RedAlert, CircleShape),
+                            .background(CockpitTheme.colors.critical.copy(alpha = 0.2f))
+                            .border(1.2.dp, CockpitTheme.colors.critical, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Warning,
                             contentDescription = "Alert",
-                            tint = Cockpit_RedAlert,
+                            tint = CockpitTheme.colors.critical,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -161,21 +161,21 @@ private fun RecoveryScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(CopilotShapes.R4)
-                                    .background(Cockpit_RedAlert.copy(alpha = 0.25f))
-                                    .border(0.8.dp, Cockpit_RedAlert, CopilotShapes.R4)
+                                    .background(CockpitTheme.colors.critical.copy(alpha = 0.25f))
+                                    .border(0.8.dp, CockpitTheme.colors.critical, CopilotShapes.R4)
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
                                     text = "$crashCount FAILURES DETECTED",
                                     style = CockpitTheme.typography.labelSmall,
-                                    color = Cockpit_RedAlert
+                                    color = CockpitTheme.colors.critical
                                 )
                             }
                         }
                         Text(
                             text = "Repeated crash loop intercepted. Vehicle safety guaranteed via stock launcher fallback.",
                             style = CockpitTheme.typography.bodySmall,
-                            color = Cockpit_TextSecondary
+                            color = CockpitTheme.colors.textSecondary
                         )
                     }
                 }
@@ -191,7 +191,7 @@ private fun RecoveryScreen(
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.Monospace
                         ),
-                        color = if (isCountdownPaused) Cockpit_AmberWarning else Cockpit_Cyan
+                        color = if (isCountdownPaused) CockpitTheme.colors.warning else CockpitTheme.colors.accent
                     )
 
                     OutlinedButton(
@@ -200,7 +200,7 @@ private fun RecoveryScreen(
                         contentPadding = PaddingValues(horizontal = 10.dp),
                         shape = CopilotShapes.R6,
                         border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = Brush.horizontalGradient(listOf(Cockpit_CardBorder, Cockpit_Cyan.copy(alpha = 0.4f)))
+                            brush = Brush.horizontalGradient(listOf(CockpitTheme.colors.border, CockpitTheme.colors.accent.copy(alpha = 0.4f)))
                         )
                     ) {
                         Text(
@@ -232,7 +232,7 @@ private fun RecoveryScreen(
                             .fillMaxWidth()
                             .clip(CopilotShapes.R12)
                             .background(Color(0xFF091424))
-                            .border(1.dp, Cockpit_GreenEco.copy(alpha = 0.5f), CopilotShapes.R12)
+                            .border(1.dp, CockpitTheme.colors.positive.copy(alpha = 0.5f), CopilotShapes.R12)
                             .padding(12.dp)
                     ) {
                         Row(
@@ -242,7 +242,7 @@ private fun RecoveryScreen(
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = "Protected",
-                                tint = Cockpit_GreenEco,
+                                tint = CockpitTheme.colors.positive,
                                 modifier = Modifier.size(22.dp)
                             )
                             Column {
@@ -254,7 +254,7 @@ private fun RecoveryScreen(
                                 Text(
                                     text = "All fuel records, odometer baseline and completed trips are securely preserved in permanent SQLite storage.",
                                     style = CockpitTheme.typography.bodySmall,
-                                    color = Cockpit_TextSecondary
+                                    color = CockpitTheme.colors.textSecondary
                                 )
                             }
                         }
@@ -267,7 +267,7 @@ private fun RecoveryScreen(
                             .weight(1f)
                             .clip(CopilotShapes.R12)
                             .background(Color(0xFF0A101C))
-                            .border(1.dp, Cockpit_CardBorder, CopilotShapes.R12)
+                            .border(1.dp, CockpitTheme.colors.border, CopilotShapes.R12)
                             .padding(12.dp)
                     ) {
                         Column(
@@ -285,7 +285,7 @@ private fun RecoveryScreen(
                                         fontWeight = FontWeight.Black,
                                         letterSpacing = 0.5.sp
                                     ),
-                                    color = Cockpit_TextSecondary
+                                    color = CockpitTheme.colors.textSecondary
                                 )
 
                                 TextButton(
@@ -295,7 +295,7 @@ private fun RecoveryScreen(
                                     Text(
                                         text = if (showFullTrace) "SHOW SUMMARY" else "VIEW FULL TRACE",
                                         style = CockpitTheme.typography.labelSmall,
-                                        color = Cockpit_Cyan
+                                        color = CockpitTheme.colors.accent
                                     )
                                 }
                             }
@@ -306,7 +306,7 @@ private fun RecoveryScreen(
                                     .weight(1f)
                                     .clip(CopilotShapes.R8)
                                     .background(Color(0xFF060B12))
-                                    .border(0.8.dp, Cockpit_CardBorder.copy(alpha = 0.5f), CopilotShapes.R8)
+                                    .border(0.8.dp, CockpitTheme.colors.border.copy(alpha = 0.5f), CopilotShapes.R8)
                                     .padding(8.dp)
                                     .verticalScroll(rememberScrollState())
                             ) {
@@ -315,7 +315,7 @@ private fun RecoveryScreen(
                                     style = CockpitTheme.typography.bodySmall.copy(
                                         fontFamily = FontFamily.Monospace
                                     ),
-                                    color = if (showFullTrace) Palette.Slate300 else Cockpit_RedAlert
+                                    color = if (showFullTrace) Palette.Slate300 else CockpitTheme.colors.critical
                                 )
                             }
                         }
@@ -336,7 +336,7 @@ private fun RecoveryScreen(
                             .fillMaxWidth()
                             .height(52.dp),
                         shape = CopilotShapes.R12,
-                        colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan)
+                        colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -374,7 +374,7 @@ private fun RecoveryScreen(
                             .height(48.dp),
                         shape = CopilotShapes.R10,
                         border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = Brush.horizontalGradient(listOf(Cockpit_CardBorder, Cockpit_Cyan.copy(alpha = 0.5f)))
+                            brush = Brush.horizontalGradient(listOf(CockpitTheme.colors.border, CockpitTheme.colors.accent.copy(alpha = 0.5f)))
                         )
                     ) {
                         Row(
@@ -384,7 +384,7 @@ private fun RecoveryScreen(
                             Icon(
                                 imageVector = Icons.Default.SettingsBackupRestore,
                                 contentDescription = null,
-                                tint = Cockpit_Cyan,
+                                tint = CockpitTheme.colors.accent,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
@@ -412,13 +412,13 @@ private fun RecoveryScreen(
                             Icon(
                                 imageVector = Icons.Default.Security,
                                 contentDescription = null,
-                                tint = Cockpit_GreenEco,
+                                tint = CockpitTheme.colors.positive,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = "RESTART COPILOT IN SAFE MODE",
                                 style = CockpitTheme.typography.labelMedium.copy(
-                                    color = Cockpit_GreenEco
+                                    color = CockpitTheme.colors.positive
                                 )
                             )
                         }
@@ -432,7 +432,7 @@ private fun RecoveryScreen(
                             .height(44.dp),
                         shape = CopilotShapes.R10,
                         border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = Brush.horizontalGradient(listOf(Cockpit_CardBorder, Cockpit_AmberWarning.copy(alpha = 0.5f)))
+                            brush = Brush.horizontalGradient(listOf(CockpitTheme.colors.border, CockpitTheme.colors.warning.copy(alpha = 0.5f)))
                         )
                     ) {
                         Row(
@@ -442,13 +442,13 @@ private fun RecoveryScreen(
                             Icon(
                                 imageVector = Icons.Default.PowerSettingsNew,
                                 contentDescription = null,
-                                tint = Cockpit_AmberWarning,
+                                tint = CockpitTheme.colors.warning,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
                                 text = "REBOOT INFOTAINMENT UNIT",
                                 style = CockpitTheme.typography.labelMedium.copy(
-                                    color = Cockpit_AmberWarning
+                                    color = CockpitTheme.colors.warning
                                 )
                             )
                         }

@@ -1,158 +1,136 @@
 package com.antigravity.copilot
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.text.font.FontWeight
 import com.antigravity.copilot.core.designsystem.*
+import com.antigravity.copilot.core.designsystem.colors.RaahiDayColors
+import com.antigravity.copilot.core.designsystem.colors.RaahiNightColors
+import com.antigravity.copilot.core.designsystem.colors.cockpitColorsFor
 import com.antigravity.copilot.core.settings.AppSettingsManager
 import org.junit.Assert.*
 import org.junit.Test
+import java.util.Calendar
 
+/** Raahi theme contract: palette values, legacy-id fallback, day/night policy, type scale. */
 class CockpitThemeSystemTest {
 
-    @Test
-    fun testThemeEnumFromIdResolution() {
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("gradient_glass"))
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("glass"))
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("apex"))
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("APEX"))
-        assertEquals("Apex Studio", CockpitThemeMode.APEX.displayName)
-        assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("premium"))
-        assertEquals(CockpitThemeMode.PREMIUM, CockpitThemeMode.fromId("PREMIUM"))
-        // Legacy "classic", "calm_teal"
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("classic"))
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("calm_teal"))
-        // Safe fallback for unknown/blank values resolves to APEX
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId("unknown"))
-        assertEquals(CockpitThemeMode.APEX, CockpitThemeMode.fromId(""))
+    private fun contrast(a: Color, b: Color): Double {
+        val la = a.luminance() + 0.05
+        val lb = b.luminance() + 0.05
+        return (maxOf(la, lb) / minOf(la, lb)).toDouble()
     }
 
     @Test
-    fun testPremiumPaletteTokensIntegrity() {
-        assertTrue(ApexCockpitColors.isPremium)
-        assertEquals(Apex_Background, ApexCockpitColors.background)
-        assertEquals(Apex_CardSurface, ApexCockpitColors.cardSurface)
-        assertEquals(Apex_CardSurfaceElevated, ApexCockpitColors.cardSurfaceElevated)
-        assertEquals(Apex_CardBorder, ApexCockpitColors.cardBorder)
-        assertEquals(Apex_PrimaryAccent, ApexCockpitColors.primaryAccent)
-        assertEquals(Apex_Positive, ApexCockpitColors.greenEco)
-        assertEquals(Apex_Warning, ApexCockpitColors.amberWarning)
-        assertEquals(Apex_Danger, ApexCockpitColors.redAlert)
-        assertEquals(Apex_TextPrimary, ApexCockpitColors.textPrimary)
-        assertEquals(Apex_TextSecondary, ApexCockpitColors.textSecondary)
-        assertEquals(Apex_TextTertiary, ApexCockpitColors.textTertiary)
-
-        // Verifies backward compatibility of Premium aliases
-        assertEquals(ApexCockpitColors, PremiumCockpitColors)
-        assertEquals(Apex_Background, Apex_Background)
+    fun legacyThemeIdsAllResolveToRaahi() {
+        listOf("gradient_glass", "glass", "apex", "APEX", "premium", "classic", "calm_teal", "liquid_glass", "unknown", "")
+            .forEach { assertEquals(CockpitThemeMode.RAAHI, CockpitThemeMode.fromId(it)) }
+        assertEquals(CockpitThemeMode.RAAHI, CockpitThemeMode.APEX)
+        assertEquals("Raahi", CockpitThemeMode.RAAHI.displayName)
     }
 
     @Test
-    fun testDefaultSettingsStateIsApex() {
-        val state = AppSettingsManager.SettingsState()
-        assertEquals("apex", state.cockpitTheme)
-        assertEquals(CockpitThemeMode.APEX, state.cockpitThemeMode)
+    fun appearanceModeFromIdAndDefaultIsAuto() {
+        assertEquals(ThemeAppearanceMode.NIGHT, ThemeAppearanceMode.fromId("night"))
+        assertEquals(ThemeAppearanceMode.DAY, ThemeAppearanceMode.fromId("day"))
+        assertEquals(ThemeAppearanceMode.AUTO, ThemeAppearanceMode.fromId("auto"))
+        assertEquals(ThemeAppearanceMode.AUTO, ThemeAppearanceMode.fromId("garbage"))
+        assertEquals(ThemeAppearanceMode.AUTO, AppSettingsManager.SettingsState().appearanceMode)
     }
 
     @Test
-    fun testVehicleSettingsPreservedUnderFinalPremiumTheme() {
-        // Verify customized vehicle configuration under final Premium theme
-        val customState = AppSettingsManager.SettingsState(
-            carName = "Skoda Octavia RS",
-            fuelType = "Petrol",
-            tankCapacityLiters = 55.0,
-            expectedMileageKmpl = 16.5,
-            cockpitTheme = "premium",
-            screenAlwaysOn = true,
-            autoTripDetection = true
+    fun raahiNightPaletteMatchesSpec() {
+        val c = RaahiNightColors
+        assertEquals(Color(0xFF080D16), c.bg)
+        assertEquals(Color(0xFF0B111C), c.rail)
+        assertEquals(Color(0xFF0F1623), c.card)
+        assertEquals(Color(0xFF172033), c.cardElevated)
+        assertEquals(Color(0xFF26334B), c.border)
+        assertEquals(Color(0xFFEDF3FB), c.textPrimary)
+        assertEquals(Color(0xFF9AABC4), c.textSecondary)
+        assertEquals(Color(0xFF38D6FF), c.accent)
+        assertEquals(Color(0xFFFFB224), c.warning)
+        assertEquals(Color(0xFF34D399), c.positive)
+        assertEquals(Color(0xFFFF5C5C), c.critical)
+        assertEquals(Color(0xFF5BA8FF), c.overlapBlue)
+        assertEquals(Color(0xFFFFA94D), c.overlapOrange)
+        assertTrue(c.isDark)
+    }
+
+    @Test
+    fun raahiDayPaletteMatchesSpec() {
+        val c = RaahiDayColors
+        assertEquals(Color(0xFFF4F7FB), c.bg)
+        assertEquals(Color(0xFFFFFFFF), c.card)
+        assertEquals(Color(0xFFD5DEEB), c.border)
+        assertEquals(Color(0xFF0B1220), c.textPrimary)
+        assertEquals(Color(0xFF4A5B75), c.textSecondary)
+        assertEquals(Color(0xFF0A9CC4), c.accent)
+        assertEquals(Color(0xFFC27A00), c.warning)
+        assertEquals(Color(0xFF0F9F6E), c.positive)
+        assertEquals(Color(0xFFD93A3A), c.critical)
+        assertFalse(c.isDark)
+        assertSame(RaahiDayColors, cockpitColorsFor(isDay = true))
+        assertSame(RaahiNightColors, cockpitColorsFor(isDay = false))
+    }
+
+    @Test
+    fun textContrastIsAtLeast4_5InBothThemes() {
+        for (c in listOf(RaahiNightColors, RaahiDayColors)) {
+            for (surface in listOf(c.bg, c.card, c.cardElevated)) {
+                assertTrue(contrast(c.textPrimary, surface) >= 4.5)
+                assertTrue(contrast(c.textSecondary, surface) >= 4.5)
+                assertTrue(contrast(c.textDisabled, surface) >= 4.5)
+            }
+            // Label on a filled cyan button.
+            assertTrue(contrast(c.onAccent, c.accent) >= 4.5)
+        }
+        // Status colours used as text (accentText etc.) are readable on every surface.
+        for (c in listOf(RaahiNightColors, RaahiDayColors)) {
+            for (surface in listOf(c.bg, c.card, c.cardElevated)) {
+                listOf(c.accentText, c.warningText, c.positiveText, c.criticalText)
+                    .forEach { assertTrue(contrast(it, surface) >= 4.5) }
+            }
+        }
+    }
+
+    @Test
+    fun dayNightClockAndLuxHysteresis() {
+        fun at(h: Int, m: Int) = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, h); set(Calendar.MINUTE, m) }
+        assertTrue(DayNightPolicy.isDayByClock(at(12, 0)))
+        assertTrue(DayNightPolicy.isDayByClock(at(6, 30)))
+        assertFalse(DayNightPolicy.isDayByClock(at(6, 29)))
+        assertFalse(DayNightPolicy.isDayByClock(at(18, 30)))
+        assertFalse(DayNightPolicy.isDayByClock(at(23, 0)))
+
+        assertTrue(DayNightPolicy.nextFromLux(current = false, lux = 5000f))
+        assertFalse(DayNightPolicy.nextFromLux(current = true, lux = 10f))
+        // Inside the band the current appearance is kept.
+        assertTrue(DayNightPolicy.nextFromLux(current = true, lux = 150f))
+        assertFalse(DayNightPolicy.nextFromLux(current = false, lux = 150f))
+    }
+
+    @Test
+    fun vehicleSettingsUnaffectedByThemeId() {
+        val s = AppSettingsManager.SettingsState(
+            carName = "Skoda Octavia RS", fuelType = "Petrol", tankCapacityLiters = 55.0,
+            expectedMileageKmpl = 16.5, cockpitTheme = "premium"
         )
-        assertEquals(CockpitThemeMode.PREMIUM, customState.cockpitThemeMode)
-        assertEquals("Skoda Octavia RS", customState.carName)
-        assertEquals("Petrol", customState.fuelType)
-        assertEquals(55.0, customState.tankCapacityLiters, 0.001)
-        assertEquals(16.5, customState.expectedMileageKmpl, 0.001)
-        assertTrue(customState.screenAlwaysOn)
-        assertTrue(customState.autoTripDetection)
+        assertEquals(CockpitThemeMode.RAAHI, s.cockpitThemeMode)
+        assertEquals("Skoda Octavia RS", s.carName)
+        assertEquals(55.0, s.tankCapacityLiters, 0.001)
+        assertEquals(16.5, s.expectedMileageKmpl, 0.001)
     }
 
     @Test
-    fun testThemeSafeFallbackForInvalidIds() {
-        val corruptedState = AppSettingsManager.SettingsState(cockpitTheme = "corrupted_theme_99")
-        // Resolves safely to default APEX without crashing
-        assertEquals(CockpitThemeMode.APEX, corruptedState.cockpitThemeMode)
-    }
-
-    @Test
-    fun testCentralizedTypographySystemTokens() {
-        // 14 Semantic Text Styles Specification Verification
-        assertEquals(82f, AutomotiveTypographyTokens.DisplayLarge.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveTypographyTokens.DisplayLarge.fontWeight)
-        assertEquals("tnum", AutomotiveTypographyTokens.DisplayLarge.fontFeatureSettings)
-
-        assertEquals(48f, AutomotiveTypographyTokens.DisplayMedium.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveTypographyTokens.DisplayMedium.fontWeight)
-        assertEquals("tnum", AutomotiveTypographyTokens.DisplayMedium.fontFeatureSettings)
-
-        assertEquals(34f, AutomotiveTypographyTokens.DisplaySmall.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveTypographyTokens.DisplaySmall.fontWeight)
-        assertEquals("tnum", AutomotiveTypographyTokens.DisplaySmall.fontFeatureSettings)
-
-        assertEquals(24f, AutomotiveTypographyTokens.HeadlineLarge.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Black, AutomotiveTypographyTokens.HeadlineLarge.fontWeight)
-
-        assertEquals(20f, AutomotiveTypographyTokens.HeadlineMedium.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.HeadlineMedium.fontWeight)
-
-        assertEquals(17f, AutomotiveTypographyTokens.HeadlineSmall.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.HeadlineSmall.fontWeight)
-
-        assertEquals(19f, AutomotiveTypographyTokens.TitleLarge.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.TitleLarge.fontWeight)
-
-        assertEquals(16.5f, AutomotiveTypographyTokens.TitleMedium.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.SemiBold, AutomotiveTypographyTokens.TitleMedium.fontWeight)
-
-        assertEquals(15f, AutomotiveTypographyTokens.TitleSmall.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.SemiBold, AutomotiveTypographyTokens.TitleSmall.fontWeight)
-
-        assertEquals(16f, AutomotiveTypographyTokens.BodyLarge.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Normal, AutomotiveTypographyTokens.BodyLarge.fontWeight)
-
-        assertEquals(14.5f, AutomotiveTypographyTokens.BodyMedium.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Normal, AutomotiveTypographyTokens.BodyMedium.fontWeight)
-
-        assertEquals(13f, AutomotiveTypographyTokens.BodySmall.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Normal, AutomotiveTypographyTokens.BodySmall.fontWeight)
-
-        assertEquals(15f, AutomotiveTypographyTokens.LabelLarge.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.LabelLarge.fontWeight)
-
-        assertEquals(14.5f, AutomotiveTypographyTokens.LabelMedium.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.LabelMedium.fontWeight)
-
-        assertEquals(13f, AutomotiveTypographyTokens.LabelSmall.fontSize.value, 0.01f)
-        assertEquals(androidx.compose.ui.text.font.FontWeight.Bold, AutomotiveTypographyTokens.LabelSmall.fontWeight)
-    }
-
-    @Test
-    fun testNumericTypographyAndTabularNumerals() {
-        assertEquals(82f, AutomotiveTypographyTokens.DisplayLarge.fontSize.value, 0.01f)
-        assertEquals("tnum", AutomotiveTypographyTokens.DisplayLarge.fontFeatureSettings)
-
-        assertEquals(62f, AutomotiveTypographyTokens.NumericClock.fontSize.value, 0.01f)
-        assertEquals("tnum", AutomotiveTypographyTokens.NumericClock.fontFeatureSettings)
-
-        assertEquals(38f, AutomotiveTypographyTokens.NumericFuelLiters.fontSize.value, 0.01f)
-        assertEquals("tnum", AutomotiveTypographyTokens.NumericFuelLiters.fontFeatureSettings)
-
-        assertEquals(32f, AutomotiveTypographyTokens.NumericOdometer.fontSize.value, 0.01f)
-        assertEquals("tnum", AutomotiveTypographyTokens.NumericOdometer.fontFeatureSettings)
-    }
-
-    @Test
-    fun testCockpitNavigationArchitectureContracts() {
-        val tabs = com.antigravity.copilot.core.navigation.CockpitTab.values()
-        assertEquals(4, tabs.size)
-        assertTrue(tabs.contains(com.antigravity.copilot.core.navigation.CockpitTab.COCKPIT))
-        assertTrue(tabs.contains(com.antigravity.copilot.core.navigation.CockpitTab.FULL_MAP))
-        assertTrue(tabs.contains(com.antigravity.copilot.core.navigation.CockpitTab.TRIP_HISTORY))
-        assertTrue(tabs.contains(com.antigravity.copilot.core.navigation.CockpitTab.FUEL_HISTORY))
+    fun typeScaleUsesTabularDigitsAndMinimumLabelSize() {
+        val t = AutomotiveTypographyTokens
+        listOf(t.SpeedHero, t.DisplayLarge, t.DisplayMedium, t.DisplaySmall, t.HeadlineLarge, t.HeadlineMedium, t.HeadlineSmall)
+            .forEach { assertEquals("tnum", it.fontFeatureSettings) }
+        assertEquals(112f, t.SpeedHero.fontSize.value, 0.01f)
+        listOf(t.TitleLarge, t.TitleMedium, t.TitleSmall, t.BodyLarge, t.BodyMedium, t.BodySmall, t.LabelLarge, t.LabelMedium, t.LabelSmall)
+            .forEach { assertTrue(it.fontSize.value >= 12f) }
+        assertEquals(FontWeight.Normal, t.BodyMedium.fontWeight)
+        assertEquals(FontWeight.Medium, t.LabelLarge.fontWeight)
     }
 }

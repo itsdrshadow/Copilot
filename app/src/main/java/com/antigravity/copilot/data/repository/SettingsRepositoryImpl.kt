@@ -25,6 +25,7 @@ class SettingsRepositoryImpl @Inject constructor(
         AppSettingsManager.updateVehiclePhysicalSpecs(context, name, fuelType, tankCapacityLiters, expectedMileageKmpl)
 
     override fun updateCockpitTheme(mode: CockpitThemeMode) = AppSettingsManager.updateCockpitTheme(context, mode)
+    override fun updateThemeAppearanceMode(modeId: String) = AppSettingsManager.updateThemeAppearanceMode(context, modeId)
 
     override fun setAutoForegroundOnBoot(enabled: Boolean) = AppSettingsManager.updateAutoForegroundOnBoot(context, enabled)
 

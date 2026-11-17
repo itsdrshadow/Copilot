@@ -322,7 +322,7 @@ fun FuelHistoryScreen(
                         onDeleteEvent(targetEvent.id)
                         eventToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
+                    colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.critical),
                     shape = CopilotShapes.R10
                 ) {
                     Text("Delete", fontWeight = FontWeight.Bold)
@@ -1056,7 +1056,7 @@ private fun EditFuelEventDialog(
                             )
                             onSave(updated)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Cockpit_BlueAccent),
+                        colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.overlapBlue),
                         shape = CopilotShapes.R12
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))

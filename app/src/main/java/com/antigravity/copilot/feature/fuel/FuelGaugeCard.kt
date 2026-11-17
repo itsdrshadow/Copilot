@@ -25,9 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antigravity.copilot.core.designsystem.CockpitTheme
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
-import com.antigravity.copilot.core.designsystem.Cockpit_AmberWarning
-import com.antigravity.copilot.core.designsystem.Cockpit_GreenEco
-import com.antigravity.copilot.core.designsystem.Cockpit_RedAlert
 import com.antigravity.copilot.core.util.NumberFormatUtils
 
 /**
@@ -174,9 +171,9 @@ internal fun UnifiedFuelTelemetryAndGaugeCard(
                 // Right: Tank Fill %
                 Column(horizontalAlignment = Alignment.End) {
                     val pctColor = when {
-                        tankPct <= 20 -> Cockpit_RedAlert
-                        tankPct <= 45 -> Cockpit_AmberWarning
-                        else -> Cockpit_GreenEco
+                        tankPct <= 20 -> CockpitTheme.colors.critical
+                        tankPct <= 45 -> CockpitTheme.colors.warning
+                        else -> CockpitTheme.colors.positive
                     }
                     Text(
                         text = "$tankPct%",
@@ -191,7 +188,7 @@ internal fun UnifiedFuelTelemetryAndGaugeCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = if (isOverfill) Cockpit_AmberWarning else Palette.Slate500
+                        color = if (isOverfill) CockpitTheme.colors.warning else Palette.Slate500
                     )
                 }
             }
@@ -509,7 +506,7 @@ internal fun UnifiedFuelTelemetryAndGaugeCard(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = if (isOverfill) Cockpit_AmberWarning else Palette.CyanElectric
+                        color = if (isOverfill) CockpitTheme.colors.warning else Palette.CyanElectric
                     )
                 }
             }

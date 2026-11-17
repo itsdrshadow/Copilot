@@ -265,7 +265,7 @@ fun LauncherSettingsDialog(
                             when (target) {
                                 SettingsTab.GENERAL -> GeneralSettingsContent(
                                     state = settingsState,
-                                    onSelectTheme = viewModel::selectTheme,
+                                    onSelectAppearance = viewModel::selectAppearance,
                                     onToggleAutoForeground = { viewModel.setAutoForegroundOnBoot(!settingsState.autoForegroundOnBoot) },
                                     onToggleScreenAlwaysOn = { viewModel.setScreenAlwaysOn(!settingsState.screenAlwaysOn) },
                                     onToggleAutoMinimizeDrawer = { viewModel.setAutoMinimizeDrawer(!settingsState.autoMinimizeDrawer) },
@@ -314,14 +314,14 @@ fun LauncherSettingsDialog(
             containerColor = Color(0xFF1A0B10),
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Warning, contentDescription = null, tint = Cockpit_RedAlert, modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = CockpitTheme.colors.critical, modifier = Modifier.size(28.dp))
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = "Factory Reset App Data",
                         style = CockpitTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Black
                         ),
-                        color = Cockpit_RedAlert
+                        color = CockpitTheme.colors.critical
                     )
                 }
             },
@@ -349,7 +349,7 @@ fun LauncherSettingsDialog(
                         passwordError = null
                         isPasswordPromptOpen = true
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
+                    colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.critical),
                     shape = CopilotShapes.R12,
                     modifier = Modifier.height(48.dp)
                 ) {
@@ -412,7 +412,7 @@ fun LauncherSettingsDialog(
                         Text(
                             text = err,
                             style = CockpitTheme.typography.labelLarge,
-                            color = Cockpit_RedAlert
+                            color = CockpitTheme.colors.critical
                         )
                     }
                 }
@@ -430,7 +430,7 @@ fun LauncherSettingsDialog(
                             passwordError = "Incorrect password! Access denied."
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
+                    colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.critical),
                     shape = CopilotShapes.R12,
                     modifier = Modifier.height(48.dp)
                 ) {
@@ -451,7 +451,7 @@ fun LauncherSettingsDialog(
 @Composable
 private fun GeneralSettingsContent(
     state: AppSettingsManager.SettingsState,
-    onSelectTheme: (CockpitThemeMode) -> Unit,
+    onSelectAppearance: (com.antigravity.copilot.core.designsystem.ThemeAppearanceMode) -> Unit,
     onToggleAutoForeground: () -> Unit,
     onToggleScreenAlwaysOn: () -> Unit,
     onToggleAutoMinimizeDrawer: () -> Unit,
@@ -461,64 +461,52 @@ private fun GeneralSettingsContent(
     onGeofenceRadiusChange: (Float) -> Unit
 ) {
 
-    // DASHBOARD THEME & APPEARANCE
-    SettingsCard(title = "Cockpit Color Theme & Styling", icon = Icons.Default.Palette) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    // RAAHI APPEARANCE (Auto / Night / Day)
+    SettingsCard(title = "Appearance", icon = Icons.Default.Palette) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "Select high-contrast cockpit styling calibrated for day and night driving:",
+                text = "Raahi theme. Auto switches between Day and Night using the ambient light sensor (or the clock when the device has no light sensor).",
                 style = CockpitTheme.typography.bodyMedium,
                 color = CockpitTheme.colors.textSecondary
             )
-
-            // Switching is instant: the selection flows through AppSettingsManager.settingsState
-            // into CopilotTheme — no activity recreation, the MapView stays alive.
-            CockpitThemeMode.entries.map { mode ->
-                val swatches = when (mode) {
-                    CockpitThemeMode.APEX -> listOf(Apex_Background, Apex_CardSurface, Apex_PrimaryAccent)
-                }
-                Triple(mode, mode.displayName, swatches)
-            }.forEach { (mode, name, swatches) ->
-                val isSelected = state.cockpitThemeMode == mode
+            // Switching is instant: the choice flows through AppSettingsManager.settingsState into
+            // CopilotTheme. No activity recreation, so the MapView stays alive.
+            val modes = com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.entries
+            val subtitles = mapOf(
+                com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.AUTO to "Follows ambient light or time of day",
+                com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.NIGHT to "Dark navy, for driving at night",
+                com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.DAY to "Light, for bright daylight"
+            )
+            modes.forEach { mode ->
+                val isSelected = state.appearanceMode == mode
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .heightIn(min = 56.dp)
                         .clip(CopilotShapes.R16)
-                        .background(if (isSelected) CockpitTheme.colors.accentSoft else CockpitTheme.colors.cardElevated)
+                        .background(if (isSelected) CockpitTheme.colors.cardElevated else CockpitTheme.colors.card)
                         .border(
-                            width = 1.5.dp,
+                            width = 1.dp,
                             color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
                             shape = CopilotShapes.R16
                         )
-                        .clickable { onSelectTheme(mode) }
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .clickable { onSelectAppearance(mode) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    RadioButton(selected = isSelected, onClick = { onSelectAppearance(mode) })
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = name,
+                            text = mode.displayName,
                             style = CockpitTheme.typography.titleMedium,
-                            color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.textPrimary
+                            color = CockpitTheme.colors.textPrimary
                         )
                         Text(
-                            text = mode.subtitle,
+                            text = subtitles[mode].orEmpty(),
                             style = CockpitTheme.typography.bodySmall,
                             color = CockpitTheme.colors.textSecondary
                         )
-                    }
-
-                    // Preview Swatches
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        for (color in swatches) {
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .cockpitSurface(color, CockpitTheme.colors.border, CircleShape, borderWidth = 1.2.dp)
-                            )
-                        }
                     }
                 }
             }
@@ -934,17 +922,17 @@ private fun DataStorageSettingsContent(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .cockpitSurface(Color(0xFF261014), Cockpit_RedAlert.copy(alpha = 0.7f), CopilotShapes.R18, borderWidth = 1.5.dp)
+            .cockpitSurface(Color(0xFF261014), CockpitTheme.colors.critical.copy(alpha = 0.7f), CopilotShapes.R18, borderWidth = 1.5.dp)
             .padding(20.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Warning, contentDescription = null, tint = Cockpit_RedAlert, modifier = Modifier.size(24.dp))
+                Icon(Icons.Default.Warning, contentDescription = null, tint = CockpitTheme.colors.critical, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = "Danger Zone – Factory Reset",
                     style = CockpitTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
-                    color = Cockpit_RedAlert
+                    color = CockpitTheme.colors.critical
                 )
             }
             Text(
@@ -955,7 +943,7 @@ private fun DataStorageSettingsContent(
 
             Button(
                 onClick = onTriggerReset,
-                colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
+                colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.critical),
                 shape = CopilotShapes.R12,
                 modifier = Modifier.height(50.dp)
             ) {

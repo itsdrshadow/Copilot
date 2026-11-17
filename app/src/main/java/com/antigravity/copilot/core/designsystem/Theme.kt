@@ -1,72 +1,40 @@
 package com.antigravity.copilot.core.designsystem
 
+import android.app.Activity
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.material3.*
-import android.app.Activity
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import com.antigravity.copilot.core.designsystem.colors.*
-import com.antigravity.copilot.core.designsystem.typography.*
+import com.antigravity.copilot.core.designsystem.colors.LocalCockpitColors as ColorsLocal
+import com.antigravity.copilot.core.designsystem.colors.LocalCockpitThemeMode as ThemeModeLocal
+import com.antigravity.copilot.core.designsystem.colors.LocalMapPalette as MapPaletteLocal
+import com.antigravity.copilot.core.designsystem.colors.MapPalette
+import com.antigravity.copilot.core.designsystem.colors.cockpitColorsFor
+import com.antigravity.copilot.core.designsystem.colors.mapPaletteFor
+import com.antigravity.copilot.core.designsystem.typography.LocalCockpitTypography
 
-// Re-export color types and objects for backward compatibility
+// Re-export colour types for call sites that import them from this package.
 typealias CockpitColors = com.antigravity.copilot.core.designsystem.colors.CockpitColors
 typealias CockpitThemeMode = com.antigravity.copilot.core.designsystem.colors.CockpitThemeMode
 typealias ThemeAppearanceMode = com.antigravity.copilot.core.designsystem.colors.ThemeAppearanceMode
 
-val Apex_Background = com.antigravity.copilot.core.designsystem.colors.Apex_Background
-val Apex_BackgroundSecondary = com.antigravity.copilot.core.designsystem.colors.Apex_BackgroundSecondary
-val Apex_CardSurface = com.antigravity.copilot.core.designsystem.colors.Apex_CardSurface
-val Apex_CardSurfaceElevated = com.antigravity.copilot.core.designsystem.colors.Apex_CardSurfaceElevated
-val Apex_CardBorder = com.antigravity.copilot.core.designsystem.colors.Apex_CardBorder
-val Apex_CardBorderGlow = com.antigravity.copilot.core.designsystem.colors.Apex_CardBorderGlow
-val Apex_PrimaryAccent = com.antigravity.copilot.core.designsystem.colors.Apex_PrimaryAccent
-val Apex_BlueGlow = com.antigravity.copilot.core.designsystem.colors.Apex_BlueGlow
-val Apex_Positive = com.antigravity.copilot.core.designsystem.colors.Apex_Positive
-val Apex_Warning = com.antigravity.copilot.core.designsystem.colors.Apex_Warning
-val Apex_Danger = com.antigravity.copilot.core.designsystem.colors.Apex_Danger
-val Apex_TextPrimary = com.antigravity.copilot.core.designsystem.colors.Apex_TextPrimary
-val Apex_TextSecondary = com.antigravity.copilot.core.designsystem.colors.Apex_TextSecondary
-val Apex_TextTertiary = com.antigravity.copilot.core.designsystem.colors.Apex_TextTertiary
-
-
-val Cockpit_DarkBg = com.antigravity.copilot.core.designsystem.colors.Cockpit_DarkBg
-val Cockpit_DarkBgSecondary = com.antigravity.copilot.core.designsystem.colors.Cockpit_DarkBgSecondary
-val Cockpit_CardSurface = com.antigravity.copilot.core.designsystem.colors.Cockpit_CardSurface
-val Cockpit_CardSurfaceElevated = com.antigravity.copilot.core.designsystem.colors.Cockpit_CardSurfaceElevated
-val Cockpit_CardBorder = com.antigravity.copilot.core.designsystem.colors.Cockpit_CardBorder
-val Cockpit_CardBorderGlow = com.antigravity.copilot.core.designsystem.colors.Cockpit_CardBorderGlow
-val Cockpit_Cyan = com.antigravity.copilot.core.designsystem.colors.Cockpit_Cyan
-val Cockpit_BlueAccent = com.antigravity.copilot.core.designsystem.colors.Cockpit_BlueAccent
-val Cockpit_BlueGlow = com.antigravity.copilot.core.designsystem.colors.Cockpit_BlueGlow
-val Cockpit_PurpleGlow = com.antigravity.copilot.core.designsystem.colors.Cockpit_PurpleGlow
-val Cockpit_GreenEco = com.antigravity.copilot.core.designsystem.colors.Cockpit_GreenEco
-val Cockpit_AmberWarning = com.antigravity.copilot.core.designsystem.colors.Cockpit_AmberWarning
-val Cockpit_RedAlert = com.antigravity.copilot.core.designsystem.colors.Cockpit_RedAlert
-val Cockpit_TextPrimary = com.antigravity.copilot.core.designsystem.colors.Cockpit_TextPrimary
-val Cockpit_TextSecondary = com.antigravity.copilot.core.designsystem.colors.Cockpit_TextSecondary
-val Cockpit_TextTertiary = com.antigravity.copilot.core.designsystem.colors.Cockpit_TextTertiary
-val Coolwalk_TealPlay = com.antigravity.copilot.core.designsystem.colors.Coolwalk_TealPlay
-val ApexCockpitColors = com.antigravity.copilot.core.designsystem.colors.ApexCockpitColors
+val ApexCockpitColors = com.antigravity.copilot.core.designsystem.colors.RaahiNightColors
 val PremiumCockpitColors = ApexCockpitColors
 val ClassicCockpitColors = ApexCockpitColors
-val LocalCockpitColors = com.antigravity.copilot.core.designsystem.colors.LocalCockpitColors
-val LocalCockpitThemeMode = com.antigravity.copilot.core.designsystem.colors.LocalCockpitThemeMode
+val LocalCockpitColors = ColorsLocal
+val LocalCockpitThemeMode = ThemeModeLocal
 
-// Re-export typography for backward compatibility
 val CockpitTypography = com.antigravity.copilot.core.designsystem.typography.CockpitTypography
 val AutomotiveTypographyTokens = com.antigravity.copilot.core.designsystem.typography.AutomotiveTypographyTokens
 
@@ -74,7 +42,7 @@ object CockpitTheme {
     val colors: CockpitColors
         @Composable
         @ReadOnlyComposable
-        get() = LocalCockpitColors.current
+        get() = ColorsLocal.current
 
     val typography: Typography
         @Composable
@@ -84,136 +52,157 @@ object CockpitTheme {
     val mode: CockpitThemeMode
         @Composable
         @ReadOnlyComposable
-        get() = LocalCockpitThemeMode.current
+        get() = ThemeModeLocal.current
 
     val tokens: AutomotiveDesignTokens
         @Composable
         @ReadOnlyComposable
         get() = LocalAutomotiveTokens.current
 
+    /** Basemap colours for the active appearance. */
+    val map: MapPalette
+        @Composable
+        @ReadOnlyComposable
+        get() = MapPaletteLocal.current
+
+    val isDark: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = ColorsLocal.current.isDark
+
     val isPremium: Boolean
         @Composable
         @ReadOnlyComposable
         get() = true
-
 }
 
-// ==================== DYNAMIC ANIMATED THEME PROVIDER ====================
+@Composable
+private fun animated(target: Color, label: String): Color =
+    animateColorAsState(targetValue = target, animationSpec = tween(durationMillis = 300), label = label).value
 
+/**
+ * Raahi theme provider. [appearanceMode] is the Settings choice (Auto / Night / Day); Auto is
+ * resolved by [rememberIsDay]. Colours cross-fade on a switch; the activity is never recreated, so
+ * the MapView survives.
+ */
 @Composable
 fun CopilotTheme(
-    themeMode: CockpitThemeMode = CockpitThemeMode.APEX,
-    @Suppress("UNUSED_PARAMETER") appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.NIGHT,
+    themeMode: CockpitThemeMode = CockpitThemeMode.RAAHI,
+    appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.AUTO,
     @Suppress("UNUSED_PARAMETER") isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val targetBaseColors = cockpitColorsFor(themeMode)
-    val activeTypography = CockpitTypography
+    val isDay = rememberIsDay(appearanceMode)
+    val base = cockpitColorsFor(isDay)
 
-    val animSpec = tween<Color>(durationMillis = 300)
+    val bg = animated(base.bg, "bg")
+    val rail = animated(base.rail, "rail")
+    val card = animated(base.card, "card")
+    val cardRaised = animated(base.cardElevated, "cardRaised")
+    val border = animated(base.border, "border")
+    val textPrimary = animated(base.textPrimary, "textPrimary")
+    val textSecondary = animated(base.textSecondary, "textSecondary")
+    val textDisabled = animated(base.textDisabled, "textDisabled")
+    val accent = animated(base.accent, "accent")
+    val warning = animated(base.warning, "warning")
+    val critical = animated(base.critical, "critical")
+    val positive = animated(base.positive, "positive")
 
-    val animatedBg = animateColorAsState(targetValue = targetBaseColors.bg, animationSpec = animSpec, label = "bg").value
-    val animatedCard = animateColorAsState(targetValue = targetBaseColors.card, animationSpec = animSpec, label = "card").value
-    val animatedCardElevated = animateColorAsState(targetValue = targetBaseColors.cardElevated, animationSpec = animSpec, label = "cardElevated").value
-    val animatedBorder = animateColorAsState(targetValue = targetBaseColors.border, animationSpec = animSpec, label = "border").value
-    val animatedTextPrimary = animateColorAsState(targetValue = targetBaseColors.textPrimary, animationSpec = animSpec, label = "textPrimary").value
-    val animatedTextSecondary = animateColorAsState(targetValue = targetBaseColors.textSecondary, animationSpec = animSpec, label = "textSecondary").value
-    val animatedTextDisabled = animateColorAsState(targetValue = targetBaseColors.textDisabled, animationSpec = animSpec, label = "textDisabled").value
-    val animatedAccent = animateColorAsState(targetValue = targetBaseColors.accent, animationSpec = animSpec, label = "accent").value
-    val animatedAccentSoft = animateColorAsState(targetValue = targetBaseColors.accentSoft, animationSpec = animSpec, label = "accentSoft").value
-    val animatedOnAccent = animateColorAsState(targetValue = targetBaseColors.onAccent, animationSpec = animSpec, label = "onAccent").value
-    val animatedWarning = animateColorAsState(targetValue = targetBaseColors.warning, animationSpec = animSpec, label = "warning").value
-    val animatedCritical = animateColorAsState(targetValue = targetBaseColors.critical, animationSpec = animSpec, label = "critical").value
+    val solidCard = Brush.verticalGradient(listOf(card, card))
+    val solidRaised = Brush.verticalGradient(listOf(cardRaised, cardRaised))
 
-    val animatedCardGradient = Brush.verticalGradient(listOf(animatedCardElevated, animatedCard))
-    val activeBackgroundBrush = Brush.verticalGradient(listOf(animatedBg, animatedBg))
-    val activeDockBrush = animatedCardGradient
-    val activeDockActionBrush = animatedCardGradient
-
-    val activeColors = CockpitColors(
-        bg = animatedBg,
-        card = animatedCard,
-        cardElevated = animatedCardElevated,
-        border = animatedBorder,
-        textPrimary = animatedTextPrimary,
-        textSecondary = animatedTextSecondary,
-        textDisabled = animatedTextDisabled,
-        accent = animatedAccent,
-        accentSoft = animatedAccentSoft,
-        onAccent = animatedOnAccent,
-        warning = animatedWarning,
-        critical = animatedCritical,
-        cardTopLightGradient = animatedCardGradient,
-        backgroundBrush = activeBackgroundBrush,
-        background = animatedBg,
-        backgroundSecondary = animatedCardElevated,
-        cardSurface = animatedCard,
-        cardSurfaceElevated = animatedCardElevated,
-        cardBorder = animatedBorder,
-        cardBorderGlow = animatedAccent,
-        primaryAccent = animatedAccent,
-        blueGlow = animatedAccent,
-        greenEco = animatedAccent,
-        amberWarning = animatedWarning,
-        redAlert = animatedCritical,
-        textTertiary = animatedTextDisabled,
-        cardGradientOdo = animatedCardGradient,
-        cardGradientFuel = animatedCardGradient,
-        cardGradientTrip = animatedCardGradient,
-        cardGradientSpeedo = animatedCardGradient,
-        activeCardBrush = animatedCardGradient,
-        dockBackground = animatedCardElevated,
-        dockBorder = animatedBorder,
-        dockBrush = activeDockBrush,
-        dockActionBrush = activeDockActionBrush,
-        isPremium = true
+    val colors = base.copy(
+        bg = bg,
+        card = card,
+        cardElevated = cardRaised,
+        border = border,
+        textPrimary = textPrimary,
+        textSecondary = textSecondary,
+        textDisabled = textDisabled,
+        accent = accent,
+        accentSoft = accent.copy(alpha = base.accentSoft.alpha),
+        warning = warning,
+        critical = critical,
+        positive = positive,
+        rail = rail,
+        cardTopLightGradient = solidCard,
+        backgroundBrush = Brush.verticalGradient(listOf(bg, bg)),
+        background = bg,
+        backgroundSecondary = cardRaised,
+        cardSurface = card,
+        cardSurfaceElevated = cardRaised,
+        cardBorder = border,
+        cardBorderGlow = accent,
+        primaryAccent = accent,
+        blueGlow = accent,
+        greenEco = positive,
+        amberWarning = warning,
+        redAlert = critical,
+        textTertiary = textDisabled,
+        cardGradientOdo = solidCard,
+        cardGradientFuel = solidCard,
+        cardGradientTrip = solidCard,
+        cardGradientSpeedo = solidCard,
+        activeCardBrush = solidCard,
+        dockBackground = card,
+        dockBorder = border,
+        dockBrush = solidCard,
+        dockActionBrush = solidRaised
     )
 
-    val materialColors = darkColorScheme(
-        primary = animatedAccent,
-        onPrimary = animatedOnAccent,
-        primaryContainer = animatedCardElevated,
-        onPrimaryContainer = animatedAccent,
-        secondary = animatedAccent,
-        onSecondary = animatedOnAccent,
-        background = animatedBg,
-        onBackground = animatedTextPrimary,
-        surface = animatedCard,
-        onSurface = animatedTextPrimary,
-        surfaceVariant = animatedCardElevated,
-        onSurfaceVariant = animatedTextSecondary,
-        outline = animatedBorder,
-        error = animatedCritical,
-        onError = animatedOnAccent
-    )
+    val materialColors = if (isDay) {
+        lightColorScheme(
+            primary = accent, onPrimary = base.onAccent,
+            primaryContainer = cardRaised, onPrimaryContainer = textPrimary,
+            secondary = accent, onSecondary = base.onAccent,
+            background = bg, onBackground = textPrimary,
+            surface = card, onSurface = textPrimary,
+            surfaceVariant = cardRaised, onSurfaceVariant = textSecondary,
+            surfaceContainerHigh = card, surfaceContainer = card,
+            outline = border, outlineVariant = border,
+            error = critical, onError = Color.White
+        )
+    } else {
+        darkColorScheme(
+            primary = accent, onPrimary = base.onAccent,
+            primaryContainer = cardRaised, onPrimaryContainer = textPrimary,
+            secondary = accent, onSecondary = base.onAccent,
+            background = bg, onBackground = textPrimary,
+            surface = card, onSurface = textPrimary,
+            surfaceVariant = cardRaised, onSurfaceVariant = textSecondary,
+            surfaceContainerHigh = card, surfaceContainer = card,
+            outline = border, outlineVariant = border,
+            error = critical, onError = base.onAccent
+        )
+    }
 
-    // System bars are hidden (immersive), but tint them for the swipe-to-reveal transient state.
-    // Runs once per theme change; never touches the MapView or forces activity recreation.
+    // System bars are hidden (immersive); tint them for the swipe-to-reveal transient state.
     val view = LocalView.current
     if (!view.isInEditMode) {
-        LaunchedEffect(themeMode) {
+        LaunchedEffect(isDay) {
             val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
-            val barColor = targetBaseColors.bg.toArgb()
+            val barColor = base.bg.toArgb()
             @Suppress("DEPRECATION")
             window.statusBarColor = barColor
             @Suppress("DEPRECATION")
             window.navigationBarColor = barColor
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = false
-                isAppearanceLightNavigationBars = false
+                isAppearanceLightStatusBars = isDay
+                isAppearanceLightNavigationBars = isDay
             }
         }
     }
 
     CompositionLocalProvider(
-        LocalCockpitColors provides activeColors,
-        LocalCockpitThemeMode provides themeMode,
+        ColorsLocal provides colors,
+        ThemeModeLocal provides themeMode,
+        MapPaletteLocal provides mapPaletteFor(isDay),
         LocalAutomotiveTokens provides AutomotiveDesignTokens,
-        LocalCockpitTypography provides activeTypography
+        LocalCockpitTypography provides CockpitTypography
     ) {
         MaterialTheme(
             colorScheme = materialColors,
-            typography = activeTypography,
+            typography = CockpitTypography,
             content = content
         )
     }

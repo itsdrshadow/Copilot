@@ -6,39 +6,47 @@ import androidx.compose.ui.graphics.Color
 
 // ==================== THEME ENUMS & CONTRACTS ====================
 
+/** The single app theme family. Legacy ids from retired themes all resolve to Raahi. */
 enum class CockpitThemeMode(val id: String, val displayName: String, val subtitle: String) {
-    APEX(
-        id = "apex",
-        displayName = "Apex Studio",
-        subtitle = "Contemporary dark navy studio cockpit with luminous cyan telemetry"
+    RAAHI(
+        id = "raahi",
+        displayName = "Raahi",
+        subtitle = "Flat solid cards, cyan for live data, colour only where it means something"
     );
 
     companion object {
-        val PREMIUM = APEX
+        val APEX = RAAHI
+        val PREMIUM = RAAHI
 
-        fun fromId(id: String): CockpitThemeMode {
-            return when (id.lowercase().trim()) {
-                // Legacy ids from retired themes (incl. Liquid Glass) fold into Apex.
-                "liquid_glass", "liquidglass",
-                "apex", "premium", "classic", "calm_teal", "gradient_glass", "glass", "splash_glass", "gradient" -> APEX
-                else -> APEX
-            }
-        }
+        @Suppress("UNUSED_PARAMETER")
+        fun fromId(id: String): CockpitThemeMode = RAAHI
     }
 }
 
+/** Day / night choice. AUTO follows ambient light (or the clock when there is no light sensor). */
 enum class ThemeAppearanceMode(val id: String, val displayName: String) {
-    NIGHT(id = "night", displayName = "Night");
+    AUTO(id = "auto", displayName = "Auto"),
+    NIGHT(id = "night", displayName = "Raahi Night"),
+    DAY(id = "day", displayName = "Raahi Day");
 
     companion object {
-        fun fromId(@Suppress("UNUSED_PARAMETER") id: String): ThemeAppearanceMode {
-            return NIGHT
+        fun fromId(id: String): ThemeAppearanceMode = when (id.lowercase().trim()) {
+            "night", "dark" -> NIGHT
+            "day", "light" -> DAY
+            else -> AUTO
         }
     }
 }
 
 /**
- * Strict 12-token semantic design contract.
+ * Semantic colour contract. Screens read these through `CockpitTheme.colors`; nothing else in the
+ * app should spell out a colour literal.
+ *
+ * Meaning of the status colours:
+ * - [accent] (cyan): live / primary / selected.
+ * - [positive] (green): good / full / cruising.
+ * - [warning] (amber): fuel and caution.
+ * - [critical] (red): danger / low / braking.
  */
 data class CockpitColors(
     val bg: Color,
@@ -54,6 +62,21 @@ data class CockpitColors(
     val warning: Color,
     val critical: Color,
     val cardTopLightGradient: Brush,
+    val rail: Color = card,
+    val positive: Color = accent,
+    val overlapBlue: Color = accent,
+    val overlapOrange: Color = warning,
+    val scrim: Color = Color(0x99000000),
+    val isDark: Boolean = true,
+    /**
+     * Status colours for *text* on cards. Same as the fill colours in Night; darker in Day,
+     * where the spec fill colours are below 4.5:1 against white.
+     */
+    val accentText: Color = accent,
+    val positiveText: Color = positive,
+    val warningText: Color = warning,
+    val criticalText: Color = critical,
+    // ---- Legacy aliases (kept so older call sites keep compiling; all point at Raahi tokens) ----
     val backgroundBrush: Brush = Brush.verticalGradient(listOf(bg, bg)),
     val background: Color = bg,
     val backgroundSecondary: Color = cardElevated,
@@ -63,7 +86,7 @@ data class CockpitColors(
     val cardBorderGlow: Color = accent,
     val primaryAccent: Color = accent,
     val blueGlow: Color = accent,
-    val greenEco: Color = accent,
+    val greenEco: Color = positive,
     val amberWarning: Color = warning,
     val redAlert: Color = critical,
     val textTertiary: Color = textDisabled,
@@ -79,76 +102,156 @@ data class CockpitColors(
     val isPremium: Boolean = true
 )
 
-fun cockpitColorsFor(mode: CockpitThemeMode): CockpitColors = when (mode) {
-    CockpitThemeMode.APEX -> ApexCockpitColors
-}
-
-// ==================== APEX STUDIO COCKPIT PALETTE ====================
-
-val Apex_Background = Color(0xFF080E1B)
-val Apex_BackgroundSecondary = Color(0xFF0C1424)
-val Apex_CardSurface = Color(0xFF111D30)
-val Apex_CardSurfaceElevated = Color(0xFF16243A)
-val Apex_CardBorder = Color(0xFF243750)
-val Apex_CardBorderGlow = Color(0xFF35BDF5)
-val Apex_PrimaryAccent = Color(0xFF35BDF5)
-val Apex_BlueGlow = Color(0xFF229ED9)
-val Apex_Positive = Color(0xFF22C993)
-val Apex_Warning = Color(0xFFF5B942)
-val Apex_Danger = Color(0xFFF05B67)
-val Apex_TextPrimary = Color(0xFFF3F6FC)
-val Apex_TextSecondary = Color(0xFF91A1B8)
-val Apex_TextTertiary = Color(0xFF5D718C)
-
-
-val ApexCockpitColors = CockpitColors(
-    bg = Apex_Background,
-    card = Apex_CardSurface,
-    cardElevated = Apex_CardSurfaceElevated,
-    border = Apex_CardBorder,
-    textPrimary = Apex_TextPrimary,
-    textSecondary = Apex_TextSecondary,
-    textDisabled = Apex_TextTertiary,
-    accent = Apex_PrimaryAccent,
-    accentSoft = Color(0x2935BDF5),
-    onAccent = Color(0xFF080E1B),
-    warning = Apex_Warning,
-    critical = Apex_Danger,
-    cardTopLightGradient = Brush.verticalGradient(
-        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
-    ),
-    dockBrush = Brush.verticalGradient(
-        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
-    ),
-    dockActionBrush = Brush.verticalGradient(
-        listOf(Apex_CardSurfaceElevated, Apex_CardSurface)
-    ),
-    greenEco = Apex_Positive,
-    amberWarning = Apex_Warning,
-    redAlert = Apex_Danger
+/** Basemap colours as `#RRGGBB` strings, consumed by the MapLibre style builder. */
+data class MapPalette(
+    val land: String,
+    val park: String,
+    val water: String,
+    val roadMinor: String,
+    val roadMajor: String,
+    val roadHighway: String,
+    val roadCasing: String,
+    val building: String,
+    val label: String,
+    val labelMajor: String,
+    val labelHalo: String,
+    val waterLabel: String
 )
 
-val PremiumCockpitColors = ApexCockpitColors
-val ClassicCockpitColors = ApexCockpitColors
+// ==================== RAAHI NIGHT ====================
 
-val Cockpit_DarkBg = Color(0xFF060A14)
-val Cockpit_DarkBgSecondary = Color(0xFF0A1020)
-val Cockpit_CardSurface = Color(0xFF0E172C)
-val Cockpit_CardSurfaceElevated = Color(0xFF131F3B)
-val Cockpit_CardBorder = Color(0xFF1F325A)
-val Cockpit_CardBorderGlow = Color(0xFF2B467E)
-val Cockpit_Cyan = Color(0xFF00E5FF)
-val Cockpit_BlueAccent = Color(0xFF2979FF)
-val Cockpit_BlueGlow = Color(0xFF448AFF)
-val Cockpit_PurpleGlow = Color(0xFF7C4DFF)
-val Cockpit_GreenEco = Color(0xFF00E676)
-val Cockpit_AmberWarning = Color(0xFFFFAB00)
-val Cockpit_RedAlert = Color(0xFFFF3D00)
-val Cockpit_TextPrimary = Color(0xFFFFFFFF)
-val Cockpit_TextSecondary = Color(0xFF8FA7D1)
-val Cockpit_TextTertiary = Color(0xFF5A7099)
-val Coolwalk_TealPlay = Color(0xFF2DD4BF)
+object RaahiNight {
+    val AppBg = Color(0xFF080D16)
+    val Rail = Color(0xFF0B111C)
+    val Card = Color(0xFF0F1623)
+    val CardRaised = Color(0xFF172033)
+    val Border = Color(0xFF26334B)
+    val TextPrimary = Color(0xFFEDF3FB)
+    val TextSecondary = Color(0xFF9AABC4)
+    val TextDisabled = Color(0xFF7D8DA6)
+    val Cyan = Color(0xFF38D6FF)
+    val Amber = Color(0xFFFFB224)
+    val Green = Color(0xFF34D399)
+    val Red = Color(0xFFFF5C5C)
+    val OverlapBlue = Color(0xFF5BA8FF)
+    val OverlapOrange = Color(0xFFFFA94D)
+    val OnAccent = Color(0xFF04131A)
+
+    val Map = MapPalette(
+        land = "#0B1220",
+        park = "#0D1A1F",
+        water = "#0E3556",
+        roadMinor = "#3B4F70",
+        roadMajor = "#5A7399",
+        roadHighway = "#5A7399",
+        roadCasing = "#080D16",
+        building = "#101A2C",
+        label = "#9AABC4",
+        labelMajor = "#EDF3FB",
+        labelHalo = "#080D16",
+        waterLabel = "#7FB3E0"
+    )
+}
+
+// ==================== RAAHI DAY ====================
+
+object RaahiDay {
+    val AppBg = Color(0xFFF4F7FB)
+    val Rail = Color(0xFFEBF0F6)
+    val Card = Color(0xFFFFFFFF)
+    val CardRaised = Color(0xFFE8EEF6)
+    val Border = Color(0xFFD5DEEB)
+    val TextPrimary = Color(0xFF0B1220)
+    val TextSecondary = Color(0xFF4A5B75)
+    val TextDisabled = Color(0xFF56667E)
+    val Cyan = Color(0xFF0A9CC4)
+    val Amber = Color(0xFFC27A00)
+    val Green = Color(0xFF0F9F6E)
+    val Red = Color(0xFFD93A3A)
+    val OverlapBlue = Color(0xFF2F7FE0)
+    val OverlapOrange = Color(0xFFE07B12)
+    val OnAccent = Color(0xFF04131A)
+    val CyanText = Color(0xFF066F8C)
+    val AmberText = Color(0xFF8A5700)
+    val GreenText = Color(0xFF0A7652)
+    val RedText = Color(0xFFB42C2C)
+
+    val Map = MapPalette(
+        land = "#EEF2F7",
+        park = "#DCEFE3",
+        water = "#A9CBEA",
+        roadMinor = "#FFFFFF",
+        roadMajor = "#C5D0DF",
+        roadHighway = "#AFBDD0",
+        roadCasing = "#D0D9E5",
+        building = "#DCE3EC",
+        label = "#4A5B75",
+        labelMajor = "#0B1220",
+        labelHalo = "#FFFFFF",
+        waterLabel = "#2C5F8E"
+    )
+}
+
+private fun solid(c: Color) = Brush.verticalGradient(listOf(c, c))
+
+val RaahiNightColors = CockpitColors(
+    bg = RaahiNight.AppBg,
+    card = RaahiNight.Card,
+    cardElevated = RaahiNight.CardRaised,
+    border = RaahiNight.Border,
+    textPrimary = RaahiNight.TextPrimary,
+    textSecondary = RaahiNight.TextSecondary,
+    textDisabled = RaahiNight.TextDisabled,
+    accent = RaahiNight.Cyan,
+    accentSoft = RaahiNight.Cyan.copy(alpha = 0.16f),
+    onAccent = RaahiNight.OnAccent,
+    warning = RaahiNight.Amber,
+    critical = RaahiNight.Red,
+    cardTopLightGradient = solid(RaahiNight.Card),
+    rail = RaahiNight.Rail,
+    positive = RaahiNight.Green,
+    overlapBlue = RaahiNight.OverlapBlue,
+    overlapOrange = RaahiNight.OverlapOrange,
+    scrim = Color(0xB3000000),
+    isDark = true
+)
+
+val RaahiDayColors = CockpitColors(
+    bg = RaahiDay.AppBg,
+    card = RaahiDay.Card,
+    cardElevated = RaahiDay.CardRaised,
+    border = RaahiDay.Border,
+    textPrimary = RaahiDay.TextPrimary,
+    textSecondary = RaahiDay.TextSecondary,
+    textDisabled = RaahiDay.TextDisabled,
+    accent = RaahiDay.Cyan,
+    accentSoft = RaahiDay.Cyan.copy(alpha = 0.14f),
+    onAccent = RaahiDay.OnAccent,
+    warning = RaahiDay.Amber,
+    critical = RaahiDay.Red,
+    cardTopLightGradient = solid(RaahiDay.Card),
+    rail = RaahiDay.Rail,
+    positive = RaahiDay.Green,
+    overlapBlue = RaahiDay.OverlapBlue,
+    overlapOrange = RaahiDay.OverlapOrange,
+    scrim = Color(0x66000000),
+    isDark = false,
+    accentText = RaahiDay.CyanText,
+    positiveText = RaahiDay.GreenText,
+    warningText = RaahiDay.AmberText,
+    criticalText = RaahiDay.RedText
+)
+
+fun cockpitColorsFor(isDay: Boolean): CockpitColors = if (isDay) RaahiDayColors else RaahiNightColors
+
+fun mapPaletteFor(isDay: Boolean): MapPalette = if (isDay) RaahiDay.Map else RaahiNight.Map
+
+// Legacy names, now aliases of the Raahi Night palette (Night is the default appearance).
+val ApexCockpitColors = RaahiNightColors
+val PremiumCockpitColors = RaahiNightColors
+val ClassicCockpitColors = RaahiNightColors
 
 // Composition Locals
-val LocalCockpitColors = staticCompositionLocalOf { ApexCockpitColors }
-val LocalCockpitThemeMode = staticCompositionLocalOf { CockpitThemeMode.APEX }
+val LocalCockpitColors = staticCompositionLocalOf { RaahiNightColors }
+val LocalCockpitThemeMode = staticCompositionLocalOf { CockpitThemeMode.RAAHI }
+val LocalMapPalette = staticCompositionLocalOf { RaahiNight.Map }

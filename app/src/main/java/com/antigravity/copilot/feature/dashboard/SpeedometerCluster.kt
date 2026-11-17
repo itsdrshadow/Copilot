@@ -270,7 +270,7 @@ fun SpeedometerCluster(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .cockpitSurface(Color.White, Apex_Danger, CircleShape, borderWidth = 2.5.dp),
+                            .cockpitSurface(Color.White, CockpitTheme.colors.critical, CircleShape, borderWidth = 2.5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
