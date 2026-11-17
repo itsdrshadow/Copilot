@@ -153,6 +153,7 @@ object FullBackupManager {
             val vehicleTransitions = db.vehicleStateDao().getAllTransitions()
             val geofences = db.tripGeofenceDao().getAllGeofencesList()
             val fuelModelState = db.fuelModelDao().get()
+            val roadCells = db.roadCellDao().getAll()
 
             fun encodePrefs(spName: String): Map<String, TypedPrefEntry> {
                 val sp = context.getSharedPreferences(spName, Context.MODE_PRIVATE)
@@ -230,6 +231,7 @@ object FullBackupManager {
             writeZipStringEntry("vehicle_state_transitions.json", gson.toJson(vehicleTransitions))
             writeZipStringEntry("trip_geofences.json", gson.toJson(geofences))
             if (fuelModelState != null) writeZipStringEntry("fuel_model_state.json", gson.toJson(fuelModelState))
+            writeZipStringEntry("road_cells.json", gson.toJson(roadCells))
 
             // 3. SharedPreferences
             writeZipStringEntry("preferences.json", gson.toJson(prefsData))
@@ -354,6 +356,7 @@ object FullBackupManager {
             val transitionsJson = readEntryString("vehicle_state_transitions.json")
             val geofencesJson = readEntryString("trip_geofences.json")
             val fuelModelJson = readEntryString("fuel_model_state.json")
+            val roadCellsJson = readEntryString("road_cells.json")
 
             val prefsJson = readEntryString("preferences.json")
             val mapManifestJson = readEntryString("maps/india_offline_manifest.json")
@@ -432,6 +435,14 @@ object FullBackupManager {
                 // Fuel model (anchor, gauge curve observations, mileage segments, unlogged entries)
                 if (fuelModelEntity != null && fuelModelEntity.json.isNotBlank()) {
                     db.fuelModelDao().upsert(fuelModelEntity)
+                }
+                if (!roadCellsJson.isNullOrBlank()) {
+                    val type = object : TypeToken<List<com.antigravity.copilot.core.database.RoadCellEntity>>() {}.type
+                    val cells: List<com.antigravity.copilot.core.database.RoadCellEntity>? = gson.fromJson(roadCellsJson, type)
+                    if (cells != null) {
+                        db.roadCellDao().clearAll()
+                        db.roadCellDao().upsertAll(cells)
+                    }
                 }
             }
 

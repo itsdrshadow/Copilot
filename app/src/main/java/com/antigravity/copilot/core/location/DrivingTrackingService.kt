@@ -329,6 +329,7 @@ class DrivingTrackingService : Service(), LocationListener {
             }
         }
         registerLinearAccelerationSensor()
+        tripRepository.learnedMileageProvider = { fuelRepository.getFuelTelemetrySnapshot().mileageKmpl }
         engine.fuelTelemetryProvider = {
             fuelRepository.getFuelTelemetrySnapshot()
         }

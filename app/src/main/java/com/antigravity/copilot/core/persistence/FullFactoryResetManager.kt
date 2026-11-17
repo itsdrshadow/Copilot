@@ -43,6 +43,8 @@ object FullFactoryResetManager {
         db.fuelLedgerDao().clearAll()
         db.tripGeofenceDao().clearAllGeofences()
         db.vehicleStateDao().clearAll()
+        db.fuelModelDao().clear()
+        db.roadCellDao().clearAll()
 
         // 3. Clear Internal Backup Cache & App Cache Directory
         PersistentDataManager.clearBackup(appContext)

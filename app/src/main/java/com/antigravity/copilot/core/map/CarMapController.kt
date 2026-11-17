@@ -44,6 +44,8 @@ class CarMapController(
         private const val VEHICLE_SOURCE_ID = "copilot_vehicle_source"
         private const val VEHICLE_LAYER_ID = "copilot_vehicle_layer"
         private const val TRAIL_MIN_INTERVAL_MS = 2_000L
+        private const val ROAD_SOURCE_ID = "copilot_road_mileage_source"
+        private const val ROAD_LAYER_ID = "copilot_road_mileage_layer"
 
         private const val DEFAULT_DRIVING_TILT = 45.0
         private const val DEFAULT_DRIVING_ZOOM = 16.5
@@ -78,6 +80,7 @@ class CarMapController(
      * Attaches MapLibre map and binds local vector MBTiles to bundled offline style.json.
      */
     fun attachMap(map: MapboxMap, onReady: () -> Unit = {}) {
+        map.addOnMapClickListener { latLng -> onMapTapped(latLng) }
         this.mapboxMap = map
         loadLocalOfflineStyle {
             onReady()
@@ -125,6 +128,7 @@ class CarMapController(
             }
 
             map.setStyle(Style.Builder().fromJson(resolvedJson)) { style ->
+                setupRoadMileageLayer(style)
                 setupTrailLayers(style)
                 setupRouteLayers(style)
                 setupVehicleLayer(style)
@@ -222,6 +226,102 @@ class CarMapController(
                 mapboxMap?.style?.getSourceAs<GeoJsonSource>(TRAIL_SOURCE_ID)?.setGeoJson(fc)
             }
         }
+    }
+
+    // ---------------- Per-road mileage layer (Phase 7) ----------------
+    data class RoadCellInfo(val avgKmpl: Double, val passes: Int, val avgSpeedKmh: Double)
+
+    private val _roadMileageVisible = MutableStateFlow(false)
+    val roadMileageVisible: StateFlow<Boolean> = _roadMileageVisible.asStateFlow()
+    private val _selectedRoadCell = MutableStateFlow<RoadCellInfo?>(null)
+    val selectedRoadCell: StateFlow<RoadCellInfo?> = _selectedRoadCell.asStateFlow()
+    @Volatile private var roadCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())
+    var learnedKmplProvider: () -> Double = {
+        try {
+            com.antigravity.copilot.core.fuel.FuelRepository.getInstance(context).getFuelTelemetrySnapshot().mileageKmpl
+        } catch (_: Exception) {
+            com.antigravity.copilot.core.logic.Config.DEFAULT_MILEAGE_KMPL
+        }
+    }
+
+    fun toggleRoadMileage() {
+        val show = !_roadMileageVisible.value
+        _roadMileageVisible.value = show
+        _selectedRoadCell.value = null
+        if (show) refreshRoadMileage()
+        mapboxMap?.style?.getLayer(ROAD_LAYER_ID)?.setProperties(visibility(if (show) Property.VISIBLE else Property.NONE))
+    }
+
+    fun clearSelectedRoadCell() {
+        _selectedRoadCell.value = null
+    }
+
+    fun refreshRoadMileage() {
+        coroutineScope.launch(Dispatchers.IO) {
+            val cells = try {
+                com.antigravity.copilot.core.database.AppDatabase.getInstance(context).roadCellDao().getAll()
+            } catch (e: Exception) {
+                Log.w(TAG, "Road cells unavailable: ${e.message}"); emptyList()
+            }
+            val learned = learnedKmplProvider()
+            val features = cells.filter { it.litres > 0 && it.km >= com.antigravity.copilot.core.logic.Config.ROAD_MIN_CELL_KM }.map { c ->
+                val kmpl = c.km / c.litres
+                Feature.fromGeometry(Point.fromLngLat(c.longitude, c.latitude)).apply {
+                    addNumberProperty("kmpl", kmpl)
+                    addNumberProperty("passes", c.passes)
+                    addNumberProperty("speed", if (c.km > 0) c.speedKm / c.km else 0.0)
+                    addNumberProperty("frac", com.antigravity.copilot.core.logic.RoadMileage.colourFraction(kmpl, learned))
+                }
+            }
+            val fc = FeatureCollection.fromFeatures(features)
+            withContext(Dispatchers.Main) {
+                roadCollection = fc
+                mapboxMap?.style?.getSourceAs<GeoJsonSource>(ROAD_SOURCE_ID)?.setGeoJson(fc)
+            }
+        }
+    }
+
+    private fun setupRoadMileageLayer(style: Style) {
+        try {
+            if (style.getSource(ROAD_SOURCE_ID) == null) style.addSource(GeoJsonSource(ROAD_SOURCE_ID, roadCollection))
+            if (style.getLayer(ROAD_LAYER_ID) == null) {
+                // red (low km/L) -> yellow -> green (high km/L), relative to learned mileage
+                val colour = Expression.interpolate(
+                    Expression.linear(), Expression.get("frac"),
+                    Expression.stop(0.0, Expression.color(Color.parseColor("#E53935"))),
+                    Expression.stop(0.5, Expression.color(Color.parseColor("#FDD835"))),
+                    Expression.stop(1.0, Expression.color(Color.parseColor("#43A047")))
+                )
+                style.addLayer(
+                    CircleLayer(ROAD_LAYER_ID, ROAD_SOURCE_ID).apply {
+                        setProperties(
+                            circleColor(colour),
+                            circleRadius(5.0f),
+                            circleOpacity(0.85f),
+                            visibility(if (_roadMileageVisible.value) Property.VISIBLE else Property.NONE)
+                        )
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error setting up road mileage layer: ${e.message}")
+        }
+    }
+
+    private fun onMapTapped(latLng: LatLng): Boolean {
+        if (!_roadMileageVisible.value) return false
+        val map = mapboxMap ?: return false
+        val screen = map.projection.toScreenLocation(latLng)
+        val box = android.graphics.RectF(screen.x - 24f, screen.y - 24f, screen.x + 24f, screen.y + 24f)
+        val f = map.queryRenderedFeatures(box, ROAD_LAYER_ID).firstOrNull()
+        _selectedRoadCell.value = f?.let {
+            RoadCellInfo(
+                avgKmpl = it.getNumberProperty("kmpl")?.toDouble() ?: 0.0,
+                passes = it.getNumberProperty("passes")?.toInt() ?: 0,
+                avgSpeedKmh = it.getNumberProperty("speed")?.toDouble() ?: 0.0
+            )
+        }
+        return f != null
     }
 
     private fun setupRouteLayers(style: Style) {

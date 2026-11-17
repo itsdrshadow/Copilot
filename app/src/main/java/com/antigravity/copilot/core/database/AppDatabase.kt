@@ -249,6 +249,21 @@ interface FuelModelDao {
     suspend fun clear()
 }
 
+@Dao
+interface RoadCellDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(cells: List<RoadCellEntity>)
+
+    @Query("SELECT * FROM road_cells WHERE cellKey IN (:keys)")
+    suspend fun getByKeys(keys: List<String>): List<RoadCellEntity>
+
+    @Query("SELECT * FROM road_cells")
+    suspend fun getAll(): List<RoadCellEntity>
+
+    @Query("DELETE FROM road_cells")
+    suspend fun clearAll()
+}
+
 @Database(
     entities = [
         VehicleEntity::class,
@@ -258,9 +273,10 @@ interface FuelModelDao {
         VehicleStateTransitionEntity::class,
         FuelLedgerEntity::class,
         TripGeofenceEntity::class,
-        FuelModelStateEntity::class
+        FuelModelStateEntity::class,
+        RoadCellEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -271,6 +287,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun fuelLedgerDao(): FuelLedgerDao
     abstract fun tripGeofenceDao(): TripGeofenceDao
     abstract fun fuelModelDao(): FuelModelDao
+    abstract fun roadCellDao(): RoadCellDao
 
     companion object {
         @Volatile
@@ -452,7 +469,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        const val DATABASE_SCHEMA_VERSION = 10
+        /** Per-road mileage cells. */
+        val MIGRATION_10_11 = object : androidx.room.migration.Migration(10, 11) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `road_cells` (`cellKey` TEXT NOT NULL, `latitude` REAL NOT NULL, " +
+                        "`longitude` REAL NOT NULL, `km` REAL NOT NULL, `litres` REAL NOT NULL, `passes` INTEGER NOT NULL, " +
+                        "`speedKm` REAL NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`cellKey`))"
+                )
+            }
+        }
+
+        const val DATABASE_SCHEMA_VERSION = 11
 
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
@@ -463,7 +491,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_6_7,
             MIGRATION_7_8,
             MIGRATION_8_9,
-            MIGRATION_9_10
+            MIGRATION_9_10,
+            MIGRATION_10_11
         )
 
         fun getInstance(context: Context): AppDatabase {

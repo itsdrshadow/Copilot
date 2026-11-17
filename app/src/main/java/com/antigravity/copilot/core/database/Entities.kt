@@ -143,3 +143,17 @@ data class FuelModelStateEntity(
     val json: String,
     val updatedAt: Long = System.currentTimeMillis()
 )
+
+/** Per-road mileage cell (~40 m), aggregated over all passes (Phase 7). */
+@Entity(tableName = "road_cells")
+data class RoadCellEntity(
+    @PrimaryKey val cellKey: String,
+    val latitude: Double,
+    val longitude: Double,
+    val km: Double,
+    val litres: Double,
+    val passes: Int,
+    /** Σ speed·km for a distance-weighted average speed. */
+    val speedKm: Double,
+    val updatedAt: Long = System.currentTimeMillis()
+)

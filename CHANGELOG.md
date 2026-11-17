@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TripFuelEstimator`: current-trip fuel/mileage estimate from speed, acceleration (braking via the preceding acceleration) and learned mileage; idle excluded; never feeds the tank.
 - Trip history stores brake/accel counts and best mileage (DB v10, strict migration); shown with moving/idle split in trip details.
 - Live map now draws the trail (it was passed but never rendered) plus a vehicle puck; `TrailOverlap` colours runs by ~15 m grid pass count (1 blue, 2 orange, 3+ red; opposite lane counts as the same road) with Douglas–Peucker simplification. Trip playback uses the same colouring.
+- Per-road mileage map (`RoadMileage`): each finished trip's tank-model fuel (km / learned km/L, idle excluded) is spread over ~40 m cells by driving load; cells aggregate over all passes (`road_cells`, DB v11, in backup). Map toggle colours roads red (low km/L) → green (high); tap shows avg mileage, passes, avg speed.
 - Refill dialog: "Filled to FULL tank" flag; real odometer at refill re-bases the odometer and teaches *k*.
 - Gauge calibration popup supports half points (tap the top bar again).
 - `OdometerAccumulator` (filtered haversine segments) and odometer correction factor *k* learned from real-odometer entries (shown = base + k·app_delta).

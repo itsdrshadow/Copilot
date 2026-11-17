@@ -126,6 +126,32 @@ class TripRepository private constructor(context: Context) {
     private val _lastCompletedTrip = MutableStateFlow<TripEntity?>(null)
     val lastCompletedTrip: StateFlow<TripEntity?> = _lastCompletedTrip.asStateFlow()
 
+    /** Learned km/L from the fuel model (set by the tracking service). */
+    @Volatile
+    var learnedMileageProvider: (() -> Double)? = null
+
+    /**
+     * Phase 7: distribute the trip's tank-model fuel (km / learned km/L, idle excluded) over
+     * ~40 m road cells weighted by driving load, and merge into the per-road aggregates.
+     */
+    private suspend fun ingestRoadMileage(tripId: Long, tripKm: Double) {
+        if (tripKm < com.antigravity.copilot.core.logic.Config.ROAD_MIN_TRIP_KM) return
+        val kmpl = learnedMileageProvider?.invoke()?.takeIf { it > 0.0 } ?: getEffectiveMileageFallback()
+        val samples = tripDao.getPointsForTrip(tripId).map {
+            com.antigravity.copilot.core.logic.RoadSample(it.latitude, it.longitude, it.speedKmh.toDouble(), it.timestamp)
+        }
+        val contributions = com.antigravity.copilot.core.logic.RoadMileage.distributeTrip(samples, tripKm / kmpl)
+        if (contributions.isEmpty()) return
+        val dao = database.roadCellDao()
+        val existing = contributions.map { it.key }.chunked(500).flatMap { dao.getByKeys(it) }.associate {
+            it.cellKey to com.antigravity.copilot.core.logic.RoadCellStats(it.cellKey, it.latitude, it.longitude, it.km, it.litres, it.passes, it.speedKm)
+        }
+        val merged = com.antigravity.copilot.core.logic.RoadMileage.aggregate(existing, contributions)
+        dao.upsertAll(merged.map {
+            com.antigravity.copilot.core.database.RoadCellEntity(it.key, it.lat, it.lon, it.km, it.litres, it.passes, it.speedKm)
+        })
+    }
+
     private fun getEffectiveMileageFallback(): Double {
         return try {
             val prefs = appContext.getSharedPreferences("driving_report_fuel_prefs", Context.MODE_PRIVATE)
@@ -715,6 +741,11 @@ class TripRepository private constructor(context: Context) {
                     isQualifying = summary.distanceMeters >= 1000.0
                 )
                 tripDao.updateTrip(completedTrip)
+                try {
+                    ingestRoadMileage(summary.id, summary.distanceMeters / 1000.0)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Per-road mileage ingestion failed: ${e.message}", e)
+                }
 
                 // Atomically update persistent pointer to this newly completed trip
                 lastCompletedTripPrefs.edit().putLong("last_completed_trip_id", summary.id).apply()

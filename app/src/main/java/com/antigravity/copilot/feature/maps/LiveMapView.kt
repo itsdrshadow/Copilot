@@ -76,6 +76,8 @@ fun LiveMapPanel(
     val isHeadingUp by mapController.isHeadingUp.collectAsStateWithLifecycle()
     val activeInstruction by mapController.activeInstruction.collectAsStateWithLifecycle()
     val remainingDistance by mapController.routeDistanceMeters.collectAsStateWithLifecycle()
+    val roadMileageVisible by mapController.roadMileageVisible.collectAsStateWithLifecycle()
+    val selectedRoadCell by mapController.selectedRoadCell.collectAsStateWithLifecycle()
 
     // Ensure MapLibre native engine is initialized with applicationContext
     remember {
@@ -316,6 +318,14 @@ fun LiveMapPanel(
                 onClick = { mapController.recenter() }
             )
 
+            // Per-road mileage layer toggle (red = low km/L, green = high)
+            MapFloatingButton(
+                icon = Icons.Default.LocalGasStation,
+                contentDescription = "Toggle per-road mileage",
+                isActive = roadMileageVisible,
+                onClick = { mapController.toggleRoadMileage() }
+            )
+
             // Open Offline Maps Manager Screen
             MapFloatingButton(
                 icon = Icons.Default.CloudDownload,
@@ -332,6 +342,21 @@ fun LiveMapPanel(
                 onClick = onToggleFullScreen
             )
         }
+    }
+
+    selectedRoadCell?.let { cell ->
+        AlertDialog(
+            onDismissRequest = { mapController.clearSelectedRoadCell() },
+            title = { Text("Road mileage") },
+            text = {
+                Text(
+                    "Avg mileage: ${"%.1f".format(cell.avgKmpl)} km/L\n" +
+                        "Passes: ${cell.passes}\n" +
+                        "Avg speed: ${"%.0f".format(cell.avgSpeedKmh)} km/h"
+                )
+            },
+            confirmButton = { TextButton(onClick = { mapController.clearSelectedRoadCell() }) { Text("OK") } }
+        )
     }
 
     if (showOfflineManagerDialog) {
