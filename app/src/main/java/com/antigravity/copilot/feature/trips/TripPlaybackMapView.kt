@@ -44,8 +44,13 @@ import com.antigravity.copilot.feature.maps.rememberStaticMapSnapshot
 fun TripPlaybackMapView(
     points: List<TripPointEntity>,
     currentIndex: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    layer: TripMapLayer = TripMapLayer.OVERLAP
 ) {
+    val trailColour = CockpitTheme.colors.accent
+    val pass1 = CockpitTheme.colors.overlapBlue
+    val pass2 = CockpitTheme.colors.overlapOrange
+    val pass3 = CockpitTheme.colors.critical
     // Drop GPS sentinels (0,0), NaN and out-of-range fixes: one of them in the bounds would zoom the
     // fitted camera out to the whole planet and the route would collapse to a dot.
     val valid = remember(points) {
@@ -87,7 +92,7 @@ fun TripPlaybackMapView(
                 val xy = cam.project(p.lat, p.lon)
                 if (k == 0) path.moveTo(xy[0], xy[1]) else path.lineTo(xy[0], xy[1])
             }
-            path to Color(PassColor.forPasses(run.passes).argb.toInt()).copy(alpha = 0.85f)
+            path to run.passes
         }
     }
     // Screen xy for every original index (NaN for dropped fixes) so the playback index maps 1:1.
@@ -116,8 +121,16 @@ fun TripPlaybackMapView(
 
             fun pt(i: Int) = Offset(projected[2 * i], projected[2 * i + 1])
 
-            // Full route coloured by overlap (~15 m grid): 1 pass blue, 2 orange, 3+ red
-            for ((path, colour) in runPaths) {
+            // Trail layer: whole route cyan. Overlap layer (~15 m grid): 1 pass blue, 2 orange, 3+ red.
+            for ((path, passes) in runPaths) {
+                val colour = when (layer) {
+                    TripMapLayer.OVERLAP -> when (PassColor.forPasses(passes)) {
+                        PassColor.BLUE -> pass1
+                        PassColor.ORANGE -> pass2
+                        PassColor.RED -> pass3
+                    }
+                    else -> trailColour.copy(alpha = 0.55f)
+                }
                 drawPath(path, StaticPalette.scrim, style = Stroke(width = 11f, cap = StrokeCap.Round, join = StrokeJoin.Round))
                 drawPath(path, colour, style = Stroke(width = 7f, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }

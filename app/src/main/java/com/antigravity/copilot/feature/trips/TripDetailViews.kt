@@ -147,12 +147,15 @@ internal fun TripDetailContainer(
                         }
                     }
 
-                    // Trip quick badge + Delete Option
+                    // Trip quick badge + Delete Option (badges ellipsize; delete always fits)
                     Row(
+                        modifier = Modifier.weight(1f).padding(start = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End)
                     ) {
                         Text(
+                            maxLines = 1,
+                            softWrap = false,
                             text = "${NumberFormatUtils.formatDistanceWithUnit(trip.distanceMeters / 1000.0, 2)} • ${NumberFormatUtils.formatSpeedWithUnit(trip.avgSpeedKmh, 2)}",
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
@@ -161,6 +164,9 @@ internal fun TripDetailContainer(
                         )
                         // Trip-history extras: moving/idle split, brake/accel counts, best mileage.
                         Text(
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             text = "move ${trip.drivingDurationMs / 60000}m • idle ${trip.stationaryDurationMs / 60000}m • " +
                                 "${trip.brakeCount} brakes • ${trip.accelCount} accels" +
                                 (if (trip.bestMileageKmpl > 0.0) " • best ${NumberFormatUtils.formatPrecision(trip.bestMileageKmpl, 1)} km/L" else ""),
@@ -174,7 +180,7 @@ internal fun TripDetailContainer(
                             IconButton(
                                 onClick = { showDeleteConfirm = true },
                                 modifier = Modifier
-                                    .size(44.dp)
+                                    .size(48.dp)
                                     .cockpitSurface(CockpitTheme.colors.critical.copy(alpha = 0.14f), Palette.Red500.copy(alpha = 0.5f), CircleShape, borderWidth = 1.2.dp)
                             ) {
                                 Icon(
@@ -295,6 +301,8 @@ internal fun TripMapReplayView(
         max(1000L, points.last().timestamp - points.first().timestamp)
     } else (trip.drivingDurationMs + trip.stationaryDurationMs)
 
+    var mapLayer by remember { mutableStateOf(TripMapLayer.OVERLAP) }
+
     if (isPointsLoading) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Palette.Sky400, modifier = Modifier.size(36.dp))
@@ -308,10 +316,14 @@ internal fun TripMapReplayView(
             )
         }
     } else {
-        // Dedicated column layout: Unobstructed map on top, dedicated controls panel strictly beneath it
+      BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val sidePanel = maxWidth >= 640.dp
+      Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Map (with layer toggle) on top, playback controls strictly beneath it
         Column(
-            modifier = modifier
-                .fillMaxSize()
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
                 .padding(6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
@@ -326,7 +338,17 @@ internal fun TripMapReplayView(
                 TripPlaybackMapView(
                     points = points,
                     currentIndex = currentIndex,
+                    layer = mapLayer,
                     modifier = Modifier.fillMaxSize()
+                )
+
+                com.antigravity.copilot.core.designsystem.components.SegmentedToggle(
+                    options = visibleTripLayers.map { it to it.label },
+                    selected = mapLayer,
+                    onSelect = { mapLayer = it },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
                 )
 
                 // Top Status HUD
@@ -481,6 +503,17 @@ internal fun TripMapReplayView(
                 }
             }
         }
+        if (sidePanel) {
+            TripSummaryPanel(
+                trip = trip,
+                modifier = Modifier
+                    .width(310.dp)
+                    .fillMaxHeight()
+                    .padding(vertical = 6.dp)
+            )
+        }
+      }
+      }
     }
 }
 

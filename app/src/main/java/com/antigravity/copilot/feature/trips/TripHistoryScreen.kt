@@ -300,7 +300,7 @@ fun TripHistoryScreen(
                             }
                         },
                         modifier = Modifier
-                            .weight(if (isCompactWidth) 1f else 0.40f)
+                            .weight(if (isCompactWidth) 1f else 0.34f)
                             .fillMaxHeight()
                     )
 
@@ -351,7 +351,7 @@ fun TripHistoryScreen(
                                 selectedTrip = null
                             },
                             modifier = Modifier
-                                .weight(0.60f)
+                                .weight(0.66f)
                                 .fillMaxHeight()
                         )
                     }
