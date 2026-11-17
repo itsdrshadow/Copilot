@@ -86,25 +86,25 @@ class Milestone3MapTileAndLifecycleTest {
     }
 
     @Test
-    fun testLiveMapViewZoomRangeLockedBetweenFourteenAndNineteenPointFive() {
+    fun testLiveMapViewZoomRangeBetweenFiveAndNineteenPointFive() {
         val minZoom = MAP_MIN_ZOOM_LEVEL
         val maxZoom = MAP_MAX_ZOOM_LEVEL
 
-        assertEquals(14.0, minZoom, 0.001)
+        assertEquals(5.0, minZoom, 0.001)
         assertEquals(19.5, maxZoom, 0.001)
 
         val zoomNearMax = 19.0
         val targetZoomIn = (zoomNearMax + 0.75).coerceAtMost(maxZoom)
         assertEquals(19.5, targetZoomIn, 0.001)
 
-        val zoomNearMin = 14.5
+        val zoomNearMin = 5.5
         val targetZoomOut = (zoomNearMin - 0.75).coerceAtLeast(minZoom)
-        assertEquals(14.0, targetZoomOut, 0.001)
+        assertEquals(5.0, targetZoomOut, 0.001)
 
         val overshootHigh = 25.0.coerceIn(minZoom, maxZoom)
         assertEquals(19.5, overshootHigh, 0.001)
 
-        val overshootLow = 10.0.coerceIn(minZoom, maxZoom)
-        assertEquals(14.0, overshootLow, 0.001)
+        val overshootLow = 2.0.coerceIn(minZoom, maxZoom)
+        assertEquals(5.0, overshootLow, 0.001)
     }
 }

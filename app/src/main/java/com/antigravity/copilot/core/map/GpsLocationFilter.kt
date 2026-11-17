@@ -28,11 +28,19 @@ class GpsLocationFilter {
     private var lastValidBearing: Float = 0f
     private var lastReportTime: Long = 0L
 
+    // Consecutive rejected fixes that agree with each other: if they persist, the anchor was the outlier.
+    private var rejectedStreak = 0
+    private var lastRejectedLat = 0.0
+    private var lastRejectedLon = 0.0
+
     companion object {
         const val STATIONARY_SPEED_THRESHOLD_KMH = 2.0f
         const val MIN_ACCURACY_THRESHOLD_METERS = 35.0f
         const val MIN_STATIONARY_MOVEMENT_METERS = 2.5 // Jitter dead-zone when stationary
         const val MAX_VALID_SPEED_KMH = 240.0f
+        /** Consistent "impossible" fixes in a row after which the filter re-anchors to them. */
+        const val REANCHOR_AFTER_REJECTIONS = 5
+        const val REANCHOR_CONSISTENCY_METERS = 500.0
     }
 
     /**
@@ -77,9 +85,21 @@ class GpsLocationFilter {
         // 1. Multipath glitch rejection: reject impossible jumps (>240 km/h) unconditionally
         val impliedSpeedKmh = (distanceM / dtSeconds) * 3.6
         if (impliedSpeedKmh > MAX_VALID_SPEED_KMH) {
-            // Reject sudden high-speed spike unconditionally
-            return previous.copy(timestamp = timestamp)
+            val consistent = rejectedStreak > 0 &&
+                calculateDistanceMeters(lastRejectedLat, lastRejectedLon, rawLat, rawLon) < REANCHOR_CONSISTENCY_METERS
+            rejectedStreak = if (consistent) rejectedStreak + 1 else 1
+            lastRejectedLat = rawLat
+            lastRejectedLon = rawLon
+            if (rejectedStreak < REANCHOR_AFTER_REJECTIONS) {
+                // Reject a sudden high-speed spike (multipath glitch)
+                return previous.copy(timestamp = timestamp)
+            }
+            // The "jump" persists and is self-consistent: the old anchor was wrong (bad first fix,
+            // stale cached/network position). Re-anchor instead of rejecting forever.
+            reset()
+            return filter(rawLat, rawLon, rawBearing, rawSpeedKmh, rawAccuracyMeters, timestamp)
         }
+        rejectedStreak = 0
 
         // 2. Stationary jitter filter:
         // When vehicle speed is below stationary threshold, ignore movements within dead-zone
@@ -164,6 +184,7 @@ class GpsLocationFilter {
         lastState = null
         lastValidBearing = 0f
         lastReportTime = 0L
+        rejectedStreak = 0
     }
 
     private fun calculateDistanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {

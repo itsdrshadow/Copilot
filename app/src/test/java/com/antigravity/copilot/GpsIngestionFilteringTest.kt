@@ -63,4 +63,26 @@ class GpsIngestionFilteringTest {
         val exit = filter.filter(21.905000, 83.400000, 90f, 60f, 8f, 40000L)
         assertEquals("Outage recovery must snap directly without low-pass lag", 21.905000, exit.latitude, 1e-4)
     }
+    @Test
+    fun persistentConsistentJumpReanchorsInsteadOfRejectingForever() {
+        // Bad first fix (e.g. emulator / stale network position in the USA), then real GPS in Delhi
+        filter.filter(37.4220, -122.0840, 0f, 0f, 5f, 1_000L)
+        var out = filter.filter(28.6139, 77.2090, 0f, 0f, 5f, 2_000L)
+        assertEquals(37.4220, out.latitude, 1e-6) // single spike rejected
+        for (i in 1 until GpsLocationFilter.REANCHOR_AFTER_REJECTIONS) {
+            out = filter.filter(28.6139, 77.2090 + i * 1e-5, 0f, 0f, 5f, 2_000L + i * 1_000L)
+        }
+        assertEquals(28.6139, out.latitude, 1e-3)
+        assertEquals(77.2090, out.longitude, 1e-3)
+    }
+
+    @Test
+    fun scatteredSpikesStayRejected() {
+        filter.filter(28.6139, 77.2090, 0f, 0f, 5f, 1_000L)
+        repeat(10) { i ->
+            // Each spike lands somewhere different (multipath), never consistent
+            val out = filter.filter(28.6139 + (i + 1) * 0.1, 77.2090, 0f, 0f, 5f, 2_000L + i * 1_000L)
+            assertEquals(28.6139, out.latitude, 1e-6)
+        }
+    }
 }

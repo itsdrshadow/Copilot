@@ -38,7 +38,7 @@ import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.maps.MapView
 import com.mapbox.mapboxsdk.maps.MapboxMapOptions
 
-const val MAP_MIN_ZOOM_LEVEL = 14.0
+const val MAP_MIN_ZOOM_LEVEL = 5.0
 const val MAP_MAX_ZOOM_LEVEL = 19.5
 const val MAP_DEFAULT_DRIVING_ZOOM = 17.5
 
@@ -250,6 +250,22 @@ fun LiveMapPanel(
                 .padding(end = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Zoom In [+]
+            MapFloatingButton(
+                icon = Icons.Default.Add,
+                contentDescription = "Zoom In",
+                isActive = false,
+                onClick = { mapController.zoomIn() }
+            )
+
+            // Zoom Out [-]
+            MapFloatingButton(
+                icon = Icons.Default.Remove,
+                contentDescription = "Zoom Out",
+                isActive = false,
+                onClick = { mapController.zoomOut() }
+            )
+
             // Heading-Up / North-Up Toggle
             MapFloatingButton(
                 icon = if (isHeadingUp) Icons.Default.Explore else Icons.Default.Navigation,

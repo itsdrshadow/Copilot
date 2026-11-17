@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.44.1] - 2026-11-17
+
+### Fixed
+- Map stayed blank when the first GPS fix was far away (e.g. emulator default in the USA, stale network fix): `GpsLocationFilter` rejected every later fix as a >240 km/h jump forever. It now re-anchors after 5 consecutive, mutually consistent "impossible" fixes; scattered multipath spikes are still rejected.
+- Zoom +/- buttons restored on the live map; zoom-out limit lowered from 14 to 5, and the chosen zoom (buttons or pinch) is kept while the camera follows the vehicle instead of snapping back to 16.5.
+
 ## [1.44.0] - 2026-11-17
 
 ### Removed

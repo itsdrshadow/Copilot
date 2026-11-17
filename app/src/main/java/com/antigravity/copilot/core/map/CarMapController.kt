@@ -46,6 +46,7 @@ class CarMapController(
 
         private const val DEFAULT_DRIVING_TILT = 45.0
         private const val DEFAULT_DRIVING_ZOOM = 16.5
+        private const val ZOOM_STEP = 1.0
     }
 
     private var mapboxMap: MapboxMap? = null
@@ -67,11 +68,24 @@ class CarMapController(
     private var lastLocation = LatLng(28.6139, 77.2090)
     private var lastBearing = 0.0
 
+    /** Zoom the follow camera uses; changed by the +/- buttons and by pinch gestures. */
+    private var followZoom = DEFAULT_DRIVING_ZOOM
+    private var userGestureInProgress = false
+
     /**
      * Attaches MapLibre map and binds local vector MBTiles to bundled offline style.json.
      */
     fun attachMap(map: MapboxMap, onReady: () -> Unit = {}) {
         map.addOnMapClickListener { latLng -> onMapTapped(latLng) }
+        map.addOnCameraMoveStartedListener { reason ->
+            if (reason == MapboxMap.OnCameraMoveStartedListener.REASON_API_GESTURE) userGestureInProgress = true
+        }
+        map.addOnCameraIdleListener {
+            if (userGestureInProgress) {
+                userGestureInProgress = false
+                followZoom = map.cameraPosition.zoom
+            }
+        }
         this.mapboxMap = map
         loadLocalOfflineStyle {
             onReady()
@@ -359,7 +373,7 @@ class CarMapController(
 
         val cameraPos = CameraPosition.Builder()
             .target(lastLocation)
-            .zoom(DEFAULT_DRIVING_ZOOM)
+            .zoom(followZoom)
             .tilt(currentTilt)
             .bearing(targetBearing)
             .build()
@@ -384,11 +398,20 @@ class CarMapController(
 
         val cameraPos = CameraPosition.Builder()
             .target(lastLocation)
-            .zoom(DEFAULT_DRIVING_ZOOM)
+            .zoom(followZoom)
             .tilt(currentTilt)
             .bearing(targetBearing)
             .build()
 
         map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPos), 400)
+    }
+    fun zoomIn() = zoomBy(ZOOM_STEP)
+
+    fun zoomOut() = zoomBy(-ZOOM_STEP)
+
+    private fun zoomBy(delta: Double) {
+        val map = mapboxMap ?: return
+        followZoom = (map.cameraPosition.zoom + delta).coerceIn(map.minZoomLevel, map.maxZoomLevel)
+        map.animateCamera(CameraUpdateFactory.zoomTo(followZoom), 250)
     }
 }
