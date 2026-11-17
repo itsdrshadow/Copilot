@@ -244,12 +244,7 @@ fun DashboardScreen(
                     }
                 }
             }
-            if (!isMapFullScreen) CockpitDock(
-                onOpenTrips = { onNavItemSelected(2) },
-                onOpenFuel = onOpenFuelHistory,
-                onOpenApps = onOpenAppDrawer,
-                onOpenSettings = onLaunchSettings
-            )
+            // Trips / Fuel / Apps / Settings live in the left navigation rail now.
         }
     }
 }

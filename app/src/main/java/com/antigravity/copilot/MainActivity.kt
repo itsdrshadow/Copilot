@@ -5,7 +5,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.antigravity.copilot.feature.trips.TripHistoryRoute
 import com.antigravity.copilot.feature.fuel.FuelHistoryRoute
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
-import com.antigravity.copilot.core.designsystem.tokens.Palette
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.Manifest
@@ -64,6 +63,14 @@ import com.antigravity.copilot.feature.settings.LauncherSettingsDialog
 import com.antigravity.copilot.feature.splash.SplashViewModel
 import com.antigravity.copilot.feature.splash.WelcomeSplashScreen
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.LocalGasStation
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.Route
+import androidx.compose.material.icons.outlined.Settings
+import com.antigravity.copilot.core.designsystem.components.RailItem
+import com.antigravity.copilot.core.designsystem.components.RaahiNavRail
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @AndroidEntryPoint
@@ -280,6 +287,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private enum class RailDest { DRIVE, TRIPS, FUEL, MAPS, APPS, SETTINGS }
+
 @Composable
 private fun MainAppScreen(
     viewModel: MainViewModel
@@ -342,11 +351,64 @@ private fun MainAppScreen(
         viewModel.syncOdometer(recordedDistanceKm)
     }
 
+    // Raahi left rail. Drive / Trips / Fuel / Maps are the existing tabs (0 / 2 / 3 / 1); Apps and
+    // Settings open the existing full-screen overlays. Any rail tap closes an open overlay first.
+    val railItems = remember {
+        listOf(
+            RailItem(RailDest.DRIVE, "Drive", Icons.Outlined.DirectionsCar),
+            RailItem(RailDest.TRIPS, "Trips", Icons.Outlined.Route),
+            RailItem(RailDest.FUEL, "Fuel", Icons.Outlined.LocalGasStation),
+            RailItem(RailDest.MAPS, "Maps", Icons.Outlined.Map),
+            RailItem(RailDest.APPS, "Apps", Icons.Outlined.Apps)
+        )
+    }
+    val railBottom = remember { listOf(RailItem(RailDest.SETTINGS, "Settings", Icons.Outlined.Settings)) }
+    val activeRail = when {
+        isSettingsDialogOpen -> RailDest.SETTINGS
+        isAppDrawerOpen -> RailDest.APPS
+        selectedTab == 1 -> RailDest.MAPS
+        selectedTab == 2 -> RailDest.TRIPS
+        selectedTab == 3 -> RailDest.FUEL
+        else -> RailDest.DRIVE
+    }
+    val onRailSelect: (RailDest) -> Unit = { dest ->
+        when (dest) {
+            RailDest.APPS -> {
+                viewModel.setSettingsDialogOpen(false)
+                viewModel.setAppDrawerOpen(true)
+            }
+            RailDest.SETTINGS -> {
+                viewModel.setAppDrawerOpen(false)
+                viewModel.setSettingsDialogOpen(true)
+            }
+            else -> {
+                viewModel.setAppDrawerOpen(false)
+                viewModel.setSettingsDialogOpen(false)
+                viewModel.selectTab(
+                    when (dest) {
+                        RailDest.MAPS -> 1
+                        RailDest.TRIPS -> 2
+                        RailDest.FUEL -> 3
+                        else -> 0
+                    }
+                )
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .cockpitBackground()
     ) {
+      Row(modifier = Modifier.fillMaxSize()) {
+        RaahiNavRail(
+            items = railItems,
+            bottomItems = railBottom,
+            selected = activeRail,
+            onSelect = onRailSelect
+        )
+      Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
         // Tabs 2 (Trips) and 3 (Fuel) are opaque overlays on top of a dashboard that stays composed
         // for the whole session, so the single MapView (and its loaded style, tiles and camera) is
         // never destroyed on tab switches. Tab 1 (full map) is the same map panel expanded in place.
@@ -390,7 +452,7 @@ private fun MainAppScreen(
             modifier = Modifier.graphicsLayer { alpha = if (isDashboardCovered) 0f else 1f }
         )
 
-        AnimatedVisibility(
+        androidx.compose.animation.AnimatedVisibility(
             visibleState = tabOverlayState,
             enter = slideInHorizontally(
                 initialOffsetX = { fullWidth -> (fullWidth * 0.12f).toInt() },
@@ -413,7 +475,7 @@ private fun MainAppScreen(
             }
         }
 
-        AnimatedVisibility(
+        androidx.compose.animation.AnimatedVisibility(
             visibleState = drawerState,
             enter = slideInHorizontally(
                 initialOffsetX = { fullWidth -> fullWidth },
@@ -477,7 +539,7 @@ private fun MainAppScreen(
             )
         }
 
-        AnimatedVisibility(
+        androidx.compose.animation.AnimatedVisibility(
             visibleState = settingsState,
             enter = slideInHorizontally(
                 initialOffsetX = { fullWidth -> fullWidth },
@@ -512,37 +574,36 @@ private fun MainAppScreen(
                         pendingRestoreManifest = null
                     }
                 },
-                containerColor = Color(0xFF111726),
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Restore, contentDescription = null, tint = Palette.Sky400, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Restore, contentDescription = null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Confirm Application Restore", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black), color = Color.White)
+                        Text("Confirm Application Restore", style = MaterialTheme.typography.titleLarge, color = CockpitTheme.colors.textPrimary)
                     }
                 },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Selected backup archive details:", style = MaterialTheme.typography.bodyMedium, color = Palette.Slate400)
+                        Text("Selected backup archive details:", style = MaterialTheme.typography.bodyMedium, color = CockpitTheme.colors.textSecondary)
 
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .cockpitSurface(Palette.Ink950, Palette.Ink750, CopilotShapes.R10)
+                                .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R12)
                                 .padding(12.dp)
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("• Created: ${pendingRestoreManifest?.formattedDate}", style = MaterialTheme.typography.bodySmall, color = Color.White)
-                                Text("• App Version: v${pendingRestoreManifest?.appVersion}", style = MaterialTheme.typography.bodySmall, color = Color.White)
-                                Text("• Driving Trips: ${pendingRestoreManifest?.tripCount}", style = MaterialTheme.typography.bodySmall, color = Palette.Sky400)
-                                Text("• Fuel Refills: ${pendingRestoreManifest?.fuelEventCount}", style = MaterialTheme.typography.bodySmall, color = Palette.Emerald500)
-                                Text("• Ledger Events: ${pendingRestoreManifest?.fuelLedgerCount}", style = MaterialTheme.typography.bodySmall, color = Palette.Amber500)
+                                Text("• Created: ${pendingRestoreManifest?.formattedDate}", style = MaterialTheme.typography.bodySmall, color = CockpitTheme.colors.textPrimary)
+                                Text("• App Version: v${pendingRestoreManifest?.appVersion}", style = MaterialTheme.typography.bodySmall, color = CockpitTheme.colors.textPrimary)
+                                Text("• Driving Trips: ${pendingRestoreManifest?.tripCount}", style = MaterialTheme.typography.bodySmall, color = CockpitTheme.colors.textPrimary)
+                                Text("• Fuel Refills: ${pendingRestoreManifest?.fuelEventCount}", style = MaterialTheme.typography.bodySmall, color = CockpitTheme.colors.textPrimary)
+                                Text("• Ledger Events: ${pendingRestoreManifest?.fuelLedgerCount}", style = MaterialTheme.typography.bodySmall, color = CockpitTheme.colors.textPrimary)
                             }
                         }
 
                         Text(
                             "Restoring will overwrite current driving and fuel records with data from this archive. An automatic pre-restore safety snapshot will be created before applying.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Palette.Slate300
+                            color = CockpitTheme.colors.textSecondary
                         )
                     }
                 },
@@ -566,8 +627,8 @@ private fun MainAppScreen(
                             }
                         },
                         enabled = !isRestoring,
-                        colors = ButtonDefaults.buttonColors(containerColor = Palette.Sky600),
-                        shape = CopilotShapes.R10
+                        colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent, contentColor = CockpitTheme.colors.onAccent),
+                        shape = CopilotShapes.R12
                     ) {
                         Text(if (isRestoring) "Restoring..." else "Confirm Restore", fontWeight = FontWeight.Bold)
                     }
@@ -578,12 +639,15 @@ private fun MainAppScreen(
                             pendingRestoreUri = null
                             pendingRestoreManifest = null
                         }) {
-                            Text("Cancel", color = Color.White)
+                            Text("Cancel", color = CockpitTheme.colors.textPrimary)
                         }
                     }
                 }
             )
         }
+
+      }
+      }
 
         if (!isSplashCompleted) {
             WelcomeSplashScreen(
