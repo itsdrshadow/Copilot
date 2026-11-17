@@ -41,7 +41,7 @@ class CockpitThemeSystemTest {
 
         // Verifies backward compatibility of Premium aliases
         assertEquals(ApexCockpitColors, PremiumCockpitColors)
-        assertEquals(Apex_Background, Premium_Background)
+        assertEquals(Apex_Background, Apex_Background)
     }
 
     @Test

@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.graphics.Bitmap
 import android.os.SystemClock
@@ -111,9 +113,7 @@ fun SmartMusicClockCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(cornerRadius))
-            .background(cardBg)
-            .border(1.25.dp, cardBorder, RoundedCornerShape(cornerRadius))
+            .cockpitSurface(cardBg, cardBorder, RoundedCornerShape(cornerRadius), borderWidth = 1.25.dp)
             .padding(cardPadding)
     ) {
         AnimatedContent(
@@ -191,7 +191,7 @@ private fun ClockOnlyState(
                 Box(
                     modifier = Modifier
                         .size(28.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(CopilotShapes.R6)
                         .background(CockpitTheme.colors.accent.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -333,7 +333,7 @@ private fun ClockWithMusicState(
                 Box(
                     modifier = Modifier
                         .size(28.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(CopilotShapes.R6)
                         .background(CockpitTheme.colors.accent.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center
                 ) {
@@ -391,9 +391,7 @@ private fun ClockWithMusicState(
             Box(
                 modifier = Modifier
                     .size(artSize)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CockpitTheme.colors.cardElevated)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp)),
+                    .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R10),
                 contentAlignment = Alignment.Center
             ) {
                 if (playbackState.albumArt != null) {
@@ -586,13 +584,7 @@ private fun AutomotiveMusicPill(
     Row(
         modifier = Modifier
             .defaultMinSize(minHeight = 44.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(CockpitTheme.colors.cardElevated)
-            .border(
-                1.2.dp,
-                if (isPlaying) CockpitTheme.colors.accent.copy(alpha = 0.6f) else CockpitTheme.colors.border,
-                RoundedCornerShape(12.dp)
-            )
+            .cockpitSurface(CockpitTheme.colors.cardElevated, if (isPlaying) CockpitTheme.colors.accent.copy(alpha = 0.6f) else CockpitTheme.colors.border, CopilotShapes.R12, borderWidth = 1.2.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),

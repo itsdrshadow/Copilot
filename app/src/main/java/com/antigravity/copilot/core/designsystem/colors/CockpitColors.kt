@@ -94,20 +94,6 @@ val Apex_TextPrimary = Color(0xFFF3F6FC)
 val Apex_TextSecondary = Color(0xFF91A1B8)
 val Apex_TextTertiary = Color(0xFF5D718C)
 
-val Premium_Background = Apex_Background
-val Premium_BackgroundSecondary = Apex_BackgroundSecondary
-val Premium_CardSurface = Apex_CardSurface
-val Premium_CardSurfaceElevated = Apex_CardSurfaceElevated
-val Premium_CardBorder = Apex_CardBorder
-val Premium_CardBorderGlow = Apex_CardBorderGlow
-val Premium_PrimaryAccent = Apex_PrimaryAccent
-val Premium_BlueGlow = Apex_BlueGlow
-val Premium_Positive = Apex_Positive
-val Premium_Warning = Apex_Warning
-val Premium_Danger = Apex_Danger
-val Premium_TextPrimary = Apex_TextPrimary
-val Premium_TextSecondary = Apex_TextSecondary
-val Premium_TextTertiary = Apex_TextTertiary
 
 val ApexCockpitColors = CockpitColors(
     bg = Apex_Background,

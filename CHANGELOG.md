@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.41.2] - 2026-11-17
+
+### Added
+- **Design tokens**: `core/designsystem/tokens/Palette` (named primitive colors) and `CopilotShapes` (shared corner shapes).
+- **Reusable primitives** in `core/designsystem/components/CockpitPrimitives.kt`: `Modifier.cockpitSurface` (clip + fill + outline, Color/Brush), `TintedBadge` (Compact/Regular), and a shared `TactileKeypadButton`.
+
+### Changed
+- Replaced 446 inline `Color(0x…)` literals and 275 inline `RoundedCornerShape(n.dp)` allocations in feature code with palette/shape tokens (pixel-identical).
+- Collapsed 81 `clip/background/border` chains into `cockpitSurface`.
+- Fuel and odometer keypads now share one `TactileKeypadButton`; fuel-history and trip-history badges share `TintedBadge`.
+- Split the 2,755-line `TripHistoryScreen.kt` into `TripHistoryModels`, `TripHistoryScreen`, `TripDetailViews`, `TripCharts`, `TripPlaybackMapView` and `TripAnalytics`.
+- Version tests now validate the SemVer format instead of hardcoding a version (they broke on every bump; v1.41.1 shipped with these 3 tests failing).
+
+### Removed
+- Dead code: `Components.kt` (782 lines, no callers), `CockpitComponents`, `AutomotiveDimensions`, `CockpitThemeSystem`, `IndiaOfflineMapDialog`, `AppDrawerCard`/`AppDrawerDialog` aliases, `DrivingReportTheme`, unused `AdaptiveNumberText`.
+- Duplicate `Premium_*` color aliases (identical to `Apex_*`).
+
+---
+
 ## [1.41.1] - 2026-11-17
 
 ### Fixed

@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.maps
 
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
@@ -11,7 +12,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -164,7 +164,7 @@ fun LiveMapPanel(
             ) {
                 Surface(
                     color = Color(0xFF131C28),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = CopilotShapes.R16,
                     border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan.copy(alpha = 0.6f)),
                     modifier = Modifier.padding(24.dp)
                 ) {
@@ -195,7 +195,7 @@ fun LiveMapPanel(
                         Button(
                             onClick = { showOfflineManagerDialog = true },
                             colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = CopilotShapes.R12,
                             modifier = Modifier.height(52.dp)
                         ) {
                             Icon(imageVector = Icons.Default.Map, contentDescription = null, tint = Color.Black)
@@ -222,7 +222,7 @@ fun LiveMapPanel(
         ) {
             Surface(
                 color = Color(0xFF101926).copy(alpha = 0.95f),
-                shape = RoundedCornerShape(14.dp),
+                shape = CopilotShapes.R14,
                 border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan),
                 modifier = Modifier.fillMaxWidth(0.85f)
             ) {

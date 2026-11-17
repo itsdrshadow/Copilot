@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.launcher
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -17,7 +19,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -119,7 +120,7 @@ fun AppDrawerScreen(
                             Button(
                                 onClick = { searchQuery = "" },
                                 colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accentSoft),
-                                shape = RoundedCornerShape(10.dp)
+                                shape = CopilotShapes.R10
                             ) {
                                 Text("Clear Search", color = CockpitTheme.colors.accent, fontWeight = FontWeight.Bold)
                             }
@@ -238,7 +239,7 @@ fun AppGridItem(
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(RoundedCornerShape(16.dp))
+            .clip(CopilotShapes.R16)
             .background(if (isPressed) CockpitTheme.colors.cardElevated.copy(alpha = 0.8f) else Color.Transparent)
             .clickable(
                 interactionSource = interactionSource,
@@ -259,15 +260,13 @@ fun AppGridItem(
                     contentDescription = app.label,
                     modifier = Modifier
                         .size(iconSize)
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(CopilotShapes.R14)
                 )
             } else {
                 Box(
                     modifier = Modifier
                         .size(iconSize)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(CockpitTheme.colors.cardElevated)
-                        .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(14.dp)),
+                        .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R14, borderWidth = 1.2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -311,9 +310,7 @@ fun AppDrawerHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(CockpitTheme.colors.dockBrush)
-            .border(1.2.dp, CockpitTheme.colors.dockBorder, RoundedCornerShape(16.dp))
+            .cockpitSurface(CockpitTheme.colors.dockBrush, CockpitTheme.colors.dockBorder, CopilotShapes.R16, borderWidth = 1.2.dp)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -327,9 +324,7 @@ fun AppDrawerHeader(
                 onClick = onBackToHome,
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(CircleShape)
-                    .background(CockpitTheme.colors.cardElevated)
-                    .border(1.2.dp, CockpitTheme.colors.border, CircleShape)
+                    .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CircleShape, borderWidth = 1.2.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -349,9 +344,7 @@ fun AppDrawerHeader(
                     Spacer(modifier = Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(CockpitTheme.colors.cardElevated)
-                            .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(6.dp))
+                            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R6)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
@@ -410,7 +403,7 @@ fun AppDrawerHeader(
             modifier = Modifier
                 .width(260.dp)
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = CopilotShapes.R12,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = CockpitTheme.colors.textPrimary,
                 unfocusedTextColor = CockpitTheme.colors.textPrimary,
@@ -454,7 +447,7 @@ fun AppDrawerPageIndicator(
                     .padding(horizontal = 4.dp)
                     .height(8.dp)
                     .width(dotWidth)
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(CopilotShapes.R4)
                     .background(
                         if (isSelected) CockpitTheme.colors.accent
                         else CockpitTheme.colors.textSecondary.copy(alpha = 0.35f)
@@ -466,24 +459,3 @@ fun AppDrawerPageIndicator(
         }
     }
 }
-
-/**
- * Backward compatibility aliases.
- */
-@Composable
-fun AppDrawerCard(
-    app: AppDrawerItem,
-    isCompact: Boolean = false,
-    onClick: () -> Unit
-) = AppGridItem(app = app, onClick = onClick)
-
-@Composable
-fun AppDrawerDialog(
-    apps: List<AppDrawerItem>,
-    onAppClick: (AppDrawerItem) -> Unit,
-    onDismiss: () -> Unit
-) = AppDrawerScreen(
-    apps = apps,
-    onAppClick = onAppClick,
-    onBackToHome = onDismiss
-)

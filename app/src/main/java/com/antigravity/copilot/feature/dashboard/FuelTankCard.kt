@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -103,7 +105,7 @@ fun FuelTankCard(
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(CopilotShapes.R6)
                             .background(primaryStatusColor.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -133,7 +135,7 @@ fun FuelTankCard(
                             scaleX = addScale
                             scaleY = addScale
                         }
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(CopilotShapes.R10)
                         .background(cyanAccent)
                         .clickable(
                             interactionSource = addButtonInteraction,
@@ -224,7 +226,7 @@ fun FuelTankCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(CopilotShapes.R8)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = rememberRipple(bounded = true, color = cyanAccent)
@@ -287,9 +289,7 @@ fun FuelTankCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CockpitTheme.colors.dockActionBrush)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
+                    .cockpitSurface(CockpitTheme.colors.dockActionBrush, CockpitTheme.colors.border, CopilotShapes.R10)
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -376,9 +376,7 @@ fun FuelTankCard(
             Box(
                 modifier = Modifier
                     .width(740.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(CockpitTheme.colors.card)
-                    .border(1.5.dp, CockpitTheme.colors.border, RoundedCornerShape(22.dp))
+                    .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CopilotShapes.R22, borderWidth = 1.5.dp)
                     .padding(22.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -395,7 +393,7 @@ fun FuelTankCard(
                             Box(
                                 modifier = Modifier
                                     .size(44.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(CopilotShapes.R10)
                                     .background(CockpitTheme.colors.accentSoft),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -428,9 +426,9 @@ fun FuelTankCard(
                         }
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(CopilotShapes.R10)
                                 .background(activeColor.copy(alpha = 0.15f))
-                                .border(1.2.dp, activeColor.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                .border(1.2.dp, activeColor.copy(alpha = 0.5f), CopilotShapes.R10)
                                 .padding(horizontal = 14.dp, vertical = 7.dp)
                         ) {
                             Text(
@@ -449,9 +447,7 @@ fun FuelTankCard(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(CockpitTheme.colors.cardElevated)
-                            .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
+                            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R12, borderWidth = 1.2.dp)
                             .padding(horizontal = 18.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -499,14 +495,14 @@ fun FuelTankCard(
                                 modifier = Modifier
                                     .width(56.dp)
                                     .height(88.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(CopilotShapes.R10)
                                     .background(
                                         if (isSelected) zoneColor else CockpitTheme.colors.cardElevated
                                     )
                                     .border(
                                         width = if (isSelected) 1.5.dp else 1.dp,
                                         color = if (isSelected) zoneColor else CockpitTheme.colors.border,
-                                        shape = RoundedCornerShape(10.dp)
+                                        shape = CopilotShapes.R10
                                     )
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
@@ -561,7 +557,7 @@ fun FuelTankCard(
                                 showGaugeDialog = false
                             },
                             modifier = Modifier.height(52.dp),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = CopilotShapes.R10,
                             colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
                         ) {
                             Text(

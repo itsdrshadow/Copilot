@@ -1,5 +1,8 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
@@ -239,7 +242,7 @@ fun SpeedometerCluster(
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(CopilotShapes.R6)
                             .background(cyanAccent.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -265,9 +268,7 @@ fun SpeedometerCluster(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .border(2.5.dp, Premium_Danger, CircleShape),
+                            .cockpitSurface(Color.White, Apex_Danger, CircleShape, borderWidth = 2.5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -391,7 +392,7 @@ fun SpeedometerCluster(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(CopilotShapes.R8)
                             .background(
                                 when {
                                     !isGpsValid -> CockpitTheme.colors.cardElevated
@@ -452,9 +453,7 @@ fun SpeedometerCluster(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(CockpitTheme.colors.dockActionBrush)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(10.dp))
+                    .cockpitSurface(CockpitTheme.colors.dockActionBrush, CockpitTheme.colors.border, CopilotShapes.R10)
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -463,7 +462,7 @@ fun SpeedometerCluster(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(CopilotShapes.R6)
                         .clickable { showOdometerDialog = true },
                     horizontalAlignment = Alignment.Start
                 ) {
@@ -498,7 +497,7 @@ fun SpeedometerCluster(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(CopilotShapes.R6)
                         .clickable { showOdometerDialog = true },
                     horizontalAlignment = Alignment.End
                 ) {
@@ -532,9 +531,7 @@ fun SpeedometerCluster(
             Box(
                 modifier = Modifier
                     .width(360.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(CockpitTheme.colors.card)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(18.dp))
+                    .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CopilotShapes.R18)
                     .padding(20.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -595,9 +592,7 @@ fun SpeedometerCluster(
             Box(
                 modifier = Modifier
                     .width(360.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(CockpitTheme.colors.card)
-                    .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(18.dp))
+                    .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CopilotShapes.R18)
                     .padding(20.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -689,9 +684,7 @@ private fun SpeedometerOdometerCalibrationDialog(
         Box(
             modifier = Modifier
                 .width(780.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(CockpitTheme.colors.card)
-                .border(1.5.dp, CockpitTheme.colors.border, RoundedCornerShape(22.dp))
+                .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CopilotShapes.R22, borderWidth = 1.5.dp)
                 .padding(20.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -708,7 +701,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                         Box(
                             modifier = Modifier
                                 .size(42.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(CopilotShapes.R10)
                                 .background(CockpitTheme.colors.accentSoft),
                             contentAlignment = Alignment.Center
                         ) {
@@ -741,9 +734,9 @@ private fun SpeedometerOdometerCalibrationDialog(
                         val diffColor = if (kotlin.math.abs(diff) < 0.05) CockpitTheme.colors.accent else CockpitTheme.colors.warning
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(CopilotShapes.R8)
                                 .background(diffColor.copy(alpha = 0.15f))
-                                .border(1.2.dp, diffColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .border(1.2.dp, diffColor.copy(alpha = 0.5f), CopilotShapes.R8)
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
                             Text(
@@ -773,9 +766,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(CockpitTheme.colors.cardElevated)
-                                .border(1.5.dp, CockpitTheme.colors.accent.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                                .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.accent.copy(alpha = 0.6f), CopilotShapes.R12, borderWidth = 1.5.dp)
                                 .padding(horizontal = 16.dp, vertical = 14.dp)
                         ) {
                             Row(
@@ -841,7 +832,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 modifier = Modifier
                                     .weight(0.40f)
                                     .height(50.dp),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = CopilotShapes.R10,
                                 border = androidx.compose.foundation.BorderStroke(1.2.dp, CockpitTheme.colors.border)
                             ) {
                                 Text(
@@ -863,7 +854,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 modifier = Modifier
                                     .weight(0.60f)
                                     .height(50.dp),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = CopilotShapes.R10,
                                 colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
                             ) {
                                 Text(
@@ -879,9 +870,7 @@ private fun SpeedometerOdometerCalibrationDialog(
                     Box(
                         modifier = Modifier
                             .weight(0.45f)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(CockpitTheme.colors.cardElevated)
-                            .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(14.dp))
+                            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R14, borderWidth = 1.2.dp)
                             .padding(8.dp)
                     ) {
                         Column(
@@ -902,7 +891,11 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 ) {
                                     row.forEach { key ->
                                         val isDel = key == "DEL"
-                                        OdometerTactileKeypadButton(
+                                        TactileKeypadButton(
+                                            shape = CopilotShapes.R10,
+                                            pressedFillAlpha = 0.25f,
+                                            showRipple = true,
+                                            textStyle = CockpitTheme.typography.headlineLarge.copy(fontFeatureSettings = "tnum"),
                                             text = if (isDel) "" else key,
                                             icon = if (isDel) Icons.AutoMirrored.Filled.Backspace else null,
                                             accentColor = if (isDel) CockpitTheme.colors.critical else CockpitTheme.colors.textPrimary,
@@ -927,7 +920,11 @@ private fun SpeedometerOdometerCalibrationDialog(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                OdometerTactileKeypadButton(
+                                TactileKeypadButton(
+                                    shape = CopilotShapes.R10,
+                                    pressedFillAlpha = 0.25f,
+                                    showRipple = true,
+                                    textStyle = CockpitTheme.typography.headlineLarge.copy(fontFeatureSettings = "tnum"),
                                     text = "CLR",
                                     accentColor = CockpitTheme.colors.critical,
                                     modifier = Modifier
@@ -943,63 +940,6 @@ private fun SpeedometerOdometerCalibrationDialog(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun OdometerTactileKeypadButton(
-    text: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    accentColor: Color = Color.White,
-    icon: ImageVector? = null
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1.0f,
-        animationSpec = tween(90),
-        label = "OdoKeyScale"
-    )
-
-    Box(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(RoundedCornerShape(10.dp))
-            .background(
-                if (isPressed) accentColor.copy(alpha = 0.25f) else CockpitTheme.colors.card
-            )
-            .border(
-                1.2.dp,
-                if (isPressed) accentColor.copy(alpha = 0.85f) else CockpitTheme.colors.border,
-                RoundedCornerShape(10.dp)
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = rememberRipple(color = accentColor),
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accentColor,
-                modifier = Modifier.size(24.dp)
-            )
-        } else {
-            Text(
-                text = text,
-                style = CockpitTheme.typography.headlineLarge.copy(
-                    fontFeatureSettings = "tnum"
-                ),
-                color = accentColor
-            )
         }
     }
 }

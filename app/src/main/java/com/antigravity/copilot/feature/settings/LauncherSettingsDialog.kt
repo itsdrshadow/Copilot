@@ -1,5 +1,8 @@
 package com.antigravity.copilot.feature.settings
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -13,7 +16,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -120,9 +122,7 @@ fun LauncherSettingsDialog(
                         onClick = onDismiss,
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(CircleShape)
-                            .background(CockpitTheme.colors.card)
-                            .border(1.2.dp, CockpitTheme.colors.border, CircleShape)
+                            .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CircleShape, borderWidth = 1.2.dp)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -135,9 +135,7 @@ fun LauncherSettingsDialog(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(CircleShape)
-                            .background(CockpitTheme.colors.accentSoft)
-                            .border(1.2.dp, CockpitTheme.colors.accent.copy(alpha = 0.45f), CircleShape),
+                            .cockpitSurface(CockpitTheme.colors.accentSoft, CockpitTheme.colors.accent.copy(alpha = 0.45f), CircleShape, borderWidth = 1.2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -168,9 +166,7 @@ fun LauncherSettingsDialog(
                     onClick = onDismiss,
                     modifier = Modifier
                         .size(48.dp)
-                        .clip(CircleShape)
-                        .background(CockpitTheme.colors.card)
-                        .border(1.2.dp, CockpitTheme.colors.border, CircleShape)
+                        .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CircleShape, borderWidth = 1.2.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -202,12 +198,12 @@ fun LauncherSettingsDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(60.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(CopilotShapes.R16)
                                 .background(if (isSelected) activeBg else Color.Transparent)
                                 .border(
                                     width = if (isSelected) 1.5.dp else 1.dp,
                                     color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = CopilotShapes.R16
                                 )
                                 .clickable { selectedTab = tab }
                                 .padding(horizontal = 14.dp, vertical = 10.dp),
@@ -351,7 +347,7 @@ fun LauncherSettingsDialog(
                         style = CockpitTheme.typography.bodyMedium.copy(
                             lineHeight = 22.sp
                         ),
-                        color = Color(0xFFCBD5E1)
+                        color = Palette.Slate300
                     )
                 }
             },
@@ -364,7 +360,7 @@ fun LauncherSettingsDialog(
                         isPasswordPromptOpen = true
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = CopilotShapes.R12,
                     modifier = Modifier.height(48.dp)
                 ) {
                     Text("Proceed to Confirmation", style = CockpitTheme.typography.labelLarge)
@@ -385,7 +381,7 @@ fun LauncherSettingsDialog(
             containerColor = Color(0xFF111726),
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(26.dp))
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = Palette.Sky400, modifier = Modifier.size(26.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "Admin Authentication",
@@ -399,7 +395,7 @@ fun LauncherSettingsDialog(
                     Text(
                         text = "Enter master admin password to confirm factory reset:",
                         style = CockpitTheme.typography.bodyMedium,
-                        color = Color(0xFF87929A)
+                        color = Palette.Steel400
                     )
 
                     OutlinedTextField(
@@ -411,15 +407,15 @@ fun LauncherSettingsDialog(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = CopilotShapes.R12,
                         textStyle = CockpitTheme.typography.bodyLarge,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color(0xFF38BDF8),
-                            unfocusedBorderColor = Color(0xFF1E2838)
+                            focusedBorderColor = Palette.Sky400,
+                            unfocusedBorderColor = Palette.Ink750
                         ),
-                        placeholder = { Text("Enter password", color = Color(0xFF64748B), style = CockpitTheme.typography.bodyMedium) }
+                        placeholder = { Text("Enter password", color = Palette.Slate500, style = CockpitTheme.typography.bodyMedium) }
                     )
 
                     passwordError?.let { err ->
@@ -445,7 +441,7 @@ fun LauncherSettingsDialog(
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = CopilotShapes.R12,
                     modifier = Modifier.height(48.dp)
                 ) {
                     Text("Confirm Factory Reset", style = CockpitTheme.typography.labelLarge)
@@ -488,12 +484,12 @@ private fun GeneralSettingsContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(CopilotShapes.R16)
                         .background(if (isSelected) CockpitTheme.colors.accentSoft else CockpitTheme.colors.cardElevated)
                         .border(
                             width = 1.5.dp,
                             color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
-                            shape = RoundedCornerShape(16.dp)
+                            shape = CopilotShapes.R16
                         )
                         .clickable { AppSettingsManager.updateCockpitTheme(context, mode) }
                         .padding(horizontal = 18.dp, vertical = 16.dp),
@@ -522,9 +518,7 @@ private fun GeneralSettingsContent(
                             Box(
                                 modifier = Modifier
                                     .size(24.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .border(1.2.dp, CockpitTheme.colors.border, CircleShape)
+                                    .cockpitSurface(color, CockpitTheme.colors.border, CircleShape, borderWidth = 1.2.dp)
                             )
                         }
                     }
@@ -545,12 +539,12 @@ private fun GeneralSettingsContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(CopilotShapes.R16)
                     .background(if (state.autoForegroundOnBoot) CockpitTheme.colors.accentSoft else CockpitTheme.colors.cardElevated)
                     .border(
                         width = 1.5.dp,
                         color = if (state.autoForegroundOnBoot) CockpitTheme.colors.accent else CockpitTheme.colors.border,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = CopilotShapes.R16
                     )
                     .clickable {
                         AppSettingsManager.updateAutoForegroundOnBoot(context, !state.autoForegroundOnBoot)
@@ -607,9 +601,7 @@ private fun GeneralSettingsContent(
 private fun StatusBadge(text: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(CockpitTheme.colors.accentSoft)
-            .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+            .cockpitSurface(CockpitTheme.colors.accentSoft, CockpitTheme.colors.accent.copy(alpha = 0.5f), CopilotShapes.R10)
             .padding(vertical = 10.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -649,17 +641,17 @@ private fun VehicleSettingsContent(
                     value = carName,
                     onValueChange = onCarNameChange,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = CopilotShapes.R14,
                     textStyle = CockpitTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF38BDF8),
-                        unfocusedBorderColor = Color(0xFF1E2838),
-                        focusedContainerColor = Color(0xFF0F172A),
-                        unfocusedContainerColor = Color(0xFF0B1220)
+                        focusedBorderColor = Palette.Sky400,
+                        unfocusedBorderColor = Palette.Ink750,
+                        focusedContainerColor = Palette.Slate900,
+                        unfocusedContainerColor = Palette.Ink950
                     ),
-                    placeholder = { Text("e.g. Honda City, Creta, Nexon", color = Color(0xFF64748B), style = CockpitTheme.typography.bodyMedium) }
+                    placeholder = { Text("e.g. Honda City, Creta, Nexon", color = Palette.Slate500, style = CockpitTheme.typography.bodyMedium) }
                 )
             }
 
@@ -681,12 +673,12 @@ private fun VehicleSettingsContent(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(50.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) Color(0xFF0284C7) else Color(0xFF0F172A))
+                                .clip(CopilotShapes.R12)
+                                .background(if (isSelected) Palette.Sky600 else Palette.Slate900)
                                 .border(
                                     width = if (isSelected) 1.5.dp else 1.dp,
-                                    color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E2838),
-                                    shape = RoundedCornerShape(12.dp)
+                                    color = if (isSelected) Palette.Sky400 else Palette.Ink750,
+                                    shape = CopilotShapes.R12
                                 )
                                 .clickable { onFuelTypeChange(type) },
                             contentAlignment = Alignment.Center
@@ -694,7 +686,7 @@ private fun VehicleSettingsContent(
                             Text(
                                 text = type,
                                 style = CockpitTheme.typography.titleSmall,
-                                color = if (isSelected) Color.White else Color(0xFF94A3B8)
+                                color = if (isSelected) Color.White else Palette.Slate400
                             )
                         }
                     }
@@ -713,21 +705,21 @@ private fun VehicleSettingsContent(
                     onValueChange = onTankCapacityChange,
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = CopilotShapes.R14,
                     textStyle = CockpitTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF38BDF8),
-                        unfocusedBorderColor = Color(0xFF1E2838),
-                        focusedContainerColor = Color(0xFF0F172A),
-                        unfocusedContainerColor = Color(0xFF0B1220)
+                        focusedBorderColor = Palette.Sky400,
+                        unfocusedBorderColor = Palette.Ink750,
+                        focusedContainerColor = Palette.Slate900,
+                        unfocusedContainerColor = Palette.Ink950
                     )
                 )
                 Text(
                     text = "Learned Max: ${NumberFormatUtils.formatFuelLiters(currentFuelState.maxCapacityLiters, 2)} L (Automatically adapts via past fill-ups)",
                     style = CockpitTheme.typography.bodyMedium,
-                    color = Color(0xFF38BDF8)
+                    color = Palette.Sky400
                 )
             }
 
@@ -737,8 +729,8 @@ private fun VehicleSettingsContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                shape = CopilotShapes.R14,
+                colors = ButtonDefaults.buttonColors(containerColor = Palette.Sky600)
             ) {
                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(10.dp))
@@ -762,7 +754,7 @@ private fun DataStorageSettingsContent(
             Text(
                 text = "Create a complete, portable ZIP archive with manifest containing all recorded trips, GPS trails, fuel ledger entries, odometer calibrations, vehicle profile and preferences. Saved to /sdcard/Copilot/Backups.",
                 style = CockpitTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                color = Color(0xFF94A3B8)
+                color = Palette.Slate400
             )
 
             Row(
@@ -775,8 +767,8 @@ private fun DataStorageSettingsContent(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7))
+                    shape = CopilotShapes.R12,
+                    colors = ButtonDefaults.buttonColors(containerColor = Palette.Sky600)
                 ) {
                     Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
@@ -791,12 +783,12 @@ private fun DataStorageSettingsContent(
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF38BDF8))
+                    shape = CopilotShapes.R12,
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Palette.Sky400)
                 ) {
-                    Icon(Icons.Default.Restore, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Restore, contentDescription = null, tint = Palette.Sky400, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Restore from Storage", style = CockpitTheme.typography.labelLarge, color = Color(0xFF38BDF8))
+                    Text("Restore from Storage", style = CockpitTheme.typography.labelLarge, color = Palette.Sky400)
                 }
             }
         }
@@ -806,9 +798,7 @@ private fun DataStorageSettingsContent(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFF261014))
-            .border(1.5.dp, Cockpit_RedAlert.copy(alpha = 0.7f), RoundedCornerShape(18.dp))
+            .cockpitSurface(Color(0xFF261014), Cockpit_RedAlert.copy(alpha = 0.7f), CopilotShapes.R18, borderWidth = 1.5.dp)
             .padding(20.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -830,7 +820,7 @@ private fun DataStorageSettingsContent(
             Button(
                 onClick = onTriggerReset,
                 colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
-                shape = RoundedCornerShape(12.dp),
+                shape = CopilotShapes.R12,
                 modifier = Modifier.height(50.dp)
             ) {
                 Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -864,25 +854,25 @@ private fun AboutSettingsContent() {
                     Text(
                         text = "Blaupunkt Launcher3 (${CrashGuardian.STOCK_LAUNCHER_PACKAGE})",
                         style = CockpitTheme.typography.bodyMedium,
-                        color = Color(0xFF87929A)
+                        color = Palette.Steel400
                     )
                 }
                 Button(
                     onClick = {
                         CrashGuardian.launchStockLauncher(context)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
-                    shape = RoundedCornerShape(10.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Palette.Slate800),
+                    shape = CopilotShapes.R10,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Palette.Slate700),
                     modifier = Modifier.height(48.dp)
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color(0xFF38BDF8))
+                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp), tint = Palette.Sky400)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Switch to Stock", color = Color.White, style = CockpitTheme.typography.labelLarge)
                 }
             }
 
-            HorizontalDivider(color = Color(0xFF1A2332))
+            HorizontalDivider(color = Palette.Ink800)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -893,8 +883,8 @@ private fun AboutSettingsContent() {
                         val ok = CrashGuardian.setCopilotAsDefaultHome(context)
                         Toast.makeText(context, if (ok) "Copilot set as Primary HOME Launcher" else "Failed setting HOME launcher", Toast.LENGTH_SHORT).show()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Palette.Sky600),
+                    shape = CopilotShapes.R12,
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
@@ -909,8 +899,8 @@ private fun AboutSettingsContent() {
                         val ok = CrashGuardian.restoreStockLauncherAsDefault(context)
                         Toast.makeText(context, if (ok) "Stock Blaupunkt restored as default HOME" else "Stock Blaupunkt preference updated", Toast.LENGTH_SHORT).show()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
-                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Palette.Slate700),
+                    shape = CopilotShapes.R12,
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
@@ -921,7 +911,7 @@ private fun AboutSettingsContent() {
                 }
             }
 
-            HorizontalDivider(color = Color(0xFF1A2332))
+            HorizontalDivider(color = Palette.Ink800)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -937,7 +927,7 @@ private fun AboutSettingsContent() {
                     Text(
                         text = if (crashCount == 0) "Status: Normal (0 crashes recorded)" else "Recent crashes: $crashCount / ${CrashGuardian.MAX_CRASHES_BEFORE_RECOVERY}",
                         style = CockpitTheme.typography.bodyMedium,
-                        color = if (crashCount == 0) Color(0xFF10B981) else Color(0xFFF59E0B)
+                        color = if (crashCount == 0) Palette.Emerald500 else Palette.Amber500
                     )
                 }
                 if (crashCount > 0) {
@@ -947,7 +937,7 @@ private fun AboutSettingsContent() {
                             crashCount = 0
                             Toast.makeText(context, "Crash history reset", Toast.LENGTH_SHORT).show()
                         },
-                        shape = RoundedCornerShape(10.dp),
+                        shape = CopilotShapes.R10,
                         modifier = Modifier.height(44.dp)
                     ) {
                         Text("Reset Counter", style = CockpitTheme.typography.labelMedium)
@@ -980,9 +970,7 @@ private fun AboutSettingsContent() {
                 }
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(CockpitTheme.colors.accentSoft)
-                        .border(1.2.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .cockpitSurface(CockpitTheme.colors.accentSoft, CockpitTheme.colors.accent.copy(alpha = 0.5f), CopilotShapes.R8, borderWidth = 1.2.dp)
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
                     Text(
@@ -997,7 +985,7 @@ private fun AboutSettingsContent() {
                 }
             }
 
-            HorizontalDivider(color = Color(0xFF1A2332))
+            HorizontalDivider(color = Palette.Ink800)
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
@@ -1008,7 +996,7 @@ private fun AboutSettingsContent() {
                 Text(
                     text = "Optimized for 1280×800 landscape in-car digital clusters. Built with 100% Kotlin, Jetpack Compose Material 3, Room SQLite, OSMDroid Offline Navigation, and Autonomous Vehicle State Tracking.",
                     style = CockpitTheme.typography.bodyMedium.copy(lineHeight = 22.sp),
-                    color = Color(0xFF87929A)
+                    color = Palette.Steel400
                 )
             }
         }
@@ -1026,9 +1014,7 @@ private fun SettingsCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(CockpitTheme.colors.cardTopLightGradient)
-            .border(1.2.dp, CockpitTheme.colors.border, RoundedCornerShape(18.dp))
+            .cockpitSurface(CockpitTheme.colors.cardTopLightGradient, CockpitTheme.colors.border, CopilotShapes.R18, borderWidth = 1.2.dp)
             .padding(20.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {

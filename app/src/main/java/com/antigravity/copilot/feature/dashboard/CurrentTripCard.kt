@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -297,7 +298,7 @@ fun CurrentTripCard(
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(CopilotShapes.R6)
                             .background(statusColor.copy(alpha = 0.12f)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -324,9 +325,9 @@ fun CurrentTripCard(
                     modifier = Modifier
                         .height(32.dp)
                         .defaultMinSize(minWidth = 32.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(CopilotShapes.R8)
                         .background(statusColor.copy(alpha = 0.14f))
-                        .border(1.dp, statusColor.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                        .border(1.dp, statusColor.copy(alpha = 0.45f), CopilotShapes.R8)
                         .padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -364,7 +365,7 @@ fun CurrentTripCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(CopilotShapes.R10)
                     .clickable {
                         activeMetricIndex = (activeMetricIndex + 1) % metrics.size
                     }
@@ -498,9 +499,9 @@ fun CurrentTripCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(CopilotShapes.R10)
                     .then(dockBackgroundModifier)
-                    .border(dockBorderWidth, dockBorderColor, RoundedCornerShape(10.dp))
+                    .border(dockBorderWidth, dockBorderColor, CopilotShapes.R10)
                     .padding(horizontal = 12.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically

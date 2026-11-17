@@ -1,5 +1,9 @@
 package com.antigravity.copilot.feature.fuel
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
+import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -40,7 +44,7 @@ import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
 import com.antigravity.copilot.core.designsystem.Cockpit_AmberWarning
 import com.antigravity.copilot.core.designsystem.Cockpit_GreenEco
 import com.antigravity.copilot.core.designsystem.Cockpit_RedAlert
-import com.antigravity.copilot.core.designsystem.Premium_PrimaryAccent
+import com.antigravity.copilot.core.designsystem.Apex_PrimaryAccent
 import com.antigravity.copilot.core.fuel.StationPriceManager
 import com.antigravity.copilot.core.location.LocationNameResolver
 import com.antigravity.copilot.core.model.FuelState
@@ -226,16 +230,12 @@ fun FuelEntryDialog(
                     modifier = Modifier
                         .width(dialogMaxWidth)
                         .height(dialogMaxHeight)
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(
-                            Brush.verticalGradient(
+                        .cockpitSurface(Brush.verticalGradient(
                                 listOf(
                                     Color(0xFF0C1527),
                                     Color(0xFF070D18)
                                 )
-                            )
-                        )
-                        .border(1.5.dp, Color(0xFF1E2E44), RoundedCornerShape(22.dp))
+                            ), Palette.Ink725, CopilotShapes.R22, borderWidth = 1.5.dp)
                         .padding(horizontal = 18.dp, vertical = 14.dp)
                 ) {
                     Column(
@@ -256,14 +256,14 @@ fun FuelEntryDialog(
                                     modifier = Modifier
                                         .size(38.dp)
                                         .clip(CircleShape)
-                                        .background(Premium_PrimaryAccent.copy(alpha = 0.15f))
-                                        .border(1.dp, Premium_PrimaryAccent.copy(alpha = 0.40f), CircleShape),
+                                        .background(Apex_PrimaryAccent.copy(alpha = 0.15f))
+                                        .border(1.dp, Apex_PrimaryAccent.copy(alpha = 0.40f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.LocalGasStation,
                                         contentDescription = null,
-                                        tint = Premium_PrimaryAccent,
+                                        tint = Apex_PrimaryAccent,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -281,7 +281,7 @@ fun FuelEntryDialog(
                                         Icon(
                                             imageVector = Icons.Default.PinDrop,
                                             contentDescription = null,
-                                            tint = Premium_PrimaryAccent,
+                                            tint = Apex_PrimaryAccent,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         val cleanAddress = locationNameText
@@ -354,13 +354,7 @@ fun FuelEntryDialog(
                                             modifier = Modifier
                                                 .weight(1.15f)
                                                 .fillMaxHeight()
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(Color(0xFF0F172A))
-                                                .border(
-                                                    1.5.dp,
-                                                    if (isAmountActive) Cockpit_AmberWarning else Color(0xFF1E293B),
-                                                    RoundedCornerShape(10.dp)
-                                                )
+                                                .cockpitSurface(Palette.Slate900, if (isAmountActive) Cockpit_AmberWarning else Palette.Slate800, CopilotShapes.R10, borderWidth = 1.5.dp)
                                                 .clickable { activeField = ActiveFuelField.AMOUNT }
                                                 .padding(horizontal = 12.dp)
                                         ) {
@@ -378,7 +372,7 @@ fun FuelEntryDialog(
                                                         style = CockpitTheme.typography.labelMedium.copy(
                                                             letterSpacing = 0.5.sp
                                                         ),
-                                                        color = if (isAmountActive) Cockpit_AmberWarning else Color(0xFF94A3B8)
+                                                        color = if (isAmountActive) Cockpit_AmberWarning else Palette.Slate400
                                                     )
                                                     if (isAmountActive) {
                                                         Box(
@@ -421,13 +415,7 @@ fun FuelEntryDialog(
                                             modifier = Modifier
                                                 .weight(0.85f)
                                                 .fillMaxHeight()
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(Color(0xFF0F172A))
-                                                .border(
-                                                    1.5.dp,
-                                                    if (isRateActive) Color(0xFF38BDF8) else Color(0xFF1E293B),
-                                                    RoundedCornerShape(10.dp)
-                                                )
+                                                .cockpitSurface(Palette.Slate900, if (isRateActive) Palette.Sky400 else Palette.Slate800, CopilotShapes.R10, borderWidth = 1.5.dp)
                                                 .clickable { activeField = ActiveFuelField.RATE }
                                                 .padding(horizontal = 12.dp)
                                         ) {
@@ -441,7 +429,7 @@ fun FuelEntryDialog(
                                                     style = CockpitTheme.typography.labelMedium.copy(
                                                         letterSpacing = 0.5.sp
                                                     ),
-                                                    color = if (isRateActive) Color(0xFF38BDF8) else Color(0xFF94A3B8)
+                                                    color = if (isRateActive) Palette.Sky400 else Palette.Slate400
                                                 )
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
@@ -450,7 +438,7 @@ fun FuelEntryDialog(
                                                     Text(
                                                         text = "₹",
                                                         style = CockpitTheme.typography.titleMedium,
-                                                        color = Color(0xFF38BDF8)
+                                                        color = Palette.Sky400
                                                     )
                                                     Text(
                                                         text = pricePerLiterText.ifEmpty { "0" },
@@ -472,17 +460,15 @@ fun FuelEntryDialog(
                                     val isOdoActive = activeField == ActiveFuelField.ODOMETER
                                     val odoBorderColor = when {
                                         !isOdometerValid && refuelOdometerText.isNotEmpty() -> Cockpit_RedAlert
-                                        isOdoActive -> Color(0xFFC084FC)
-                                        else -> Color(0xFF1E293B)
+                                        isOdoActive -> Palette.Purple400
+                                        else -> Palette.Slate800
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(48.dp)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(Color(0xFF0F172A))
-                                            .border(1.5.dp, odoBorderColor, RoundedCornerShape(10.dp))
+                                            .cockpitSurface(Palette.Slate900, odoBorderColor, CopilotShapes.R10, borderWidth = 1.5.dp)
                                             .clickable { activeField = ActiveFuelField.ODOMETER }
                                             .padding(horizontal = 12.dp)
                                     ) {
@@ -500,7 +486,7 @@ fun FuelEntryDialog(
                                                     style = CockpitTheme.typography.labelMedium.copy(
                                                         letterSpacing = 0.5.sp
                                                     ),
-                                                    color = if (!isOdometerValid && refuelOdometerText.isNotEmpty()) Cockpit_RedAlert else if (isOdoActive) Color(0xFFC084FC) else Color(0xFF94A3B8)
+                                                    color = if (!isOdometerValid && refuelOdometerText.isNotEmpty()) Cockpit_RedAlert else if (isOdoActive) Palette.Purple400 else Palette.Slate400
                                                 )
                                                 if (refuelOdometerText.isNotEmpty() && enteredOdo <= 0.0) {
                                                     Text(
@@ -516,7 +502,7 @@ fun FuelEntryDialog(
                                                         style = CockpitTheme.typography.labelSmall.copy(
                                                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                                         ),
-                                                        color = Color(0xFFC084FC)
+                                                        color = Palette.Purple400
                                                     )
                                                 }
                                             }
@@ -535,7 +521,7 @@ fun FuelEntryDialog(
                                                 Text(
                                                     text = "km",
                                                     style = CockpitTheme.typography.labelMedium,
-                                                    color = Color(0xFFC084FC),
+                                                    color = Palette.Purple400,
                                                     modifier = Modifier.padding(bottom = 2.dp)
                                                 )
                                             }
@@ -574,10 +560,10 @@ fun FuelEntryDialog(
                                         modifier = Modifier
                                             .weight(0.35f)
                                             .fillMaxHeight(),
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = CopilotShapes.R12,
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF1E293B),
-                                            contentColor = Color(0xFFCBD5E1)
+                                            containerColor = Palette.Slate800,
+                                            contentColor = Palette.Slate300
                                         )
                                     ) {
                                         Text(
@@ -613,12 +599,12 @@ fun FuelEntryDialog(
                                         modifier = Modifier
                                             .weight(0.65f)
                                             .fillMaxHeight(),
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = CopilotShapes.R12,
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF0284C7),
+                                            containerColor = Palette.Sky600,
                                             contentColor = Color.White,
-                                            disabledContainerColor = Color(0xFF1E293B),
-                                            disabledContentColor = Color(0xFF64748B)
+                                            disabledContainerColor = Palette.Slate800,
+                                            disabledContentColor = Palette.Slate500
                                         )
                                     ) {
                                         Icon(
@@ -642,9 +628,7 @@ fun FuelEntryDialog(
                                 modifier = Modifier
                                     .weight(0.40f) // Dedicated exactly 40% space
                                     .fillMaxHeight()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(Color(0xFF070D18))
-                                    .border(1.2.dp, Color(0xFF1E2E44), RoundedCornerShape(16.dp))
+                                    .cockpitSurface(Color(0xFF070D18), Palette.Ink725, CopilotShapes.R16, borderWidth = 1.2.dp)
                                     .padding(8.dp)
                             ) {
                                 Column(
@@ -668,9 +652,9 @@ fun FuelEntryDialog(
                                             for (k in row) {
                                                 val isBack = k == "DEL" || k == "⌫"
                                                 val accent = if (isBack) Cockpit_RedAlert else Color.White
-                                                val bg = if (isBack) Color(0xFF261216) else Color(0xFF0F1A2D)
+                                                val bg = if (isBack) Color(0xFF261216) else Palette.Ink875
 
-                                                TactileKeypadButton(
+                                                FuelKeypadKey(
                                                     text = if (isBack) "" else k,
                                                     onClick = { onKeypadPress(if (isBack) "⌫" else k) },
                                                     accentColor = accent,
@@ -692,7 +676,7 @@ fun FuelEntryDialog(
                                             .weight(0.95f),
                                         horizontalArrangement = Arrangement.spacedBy(5.dp)
                                     ) {
-                                        TactileKeypadButton(
+                                        FuelKeypadKey(
                                             text = "CLR",
                                             onClick = { onKeypadPress("C") },
                                             accentColor = Cockpit_RedAlert,
@@ -703,10 +687,10 @@ fun FuelEntryDialog(
                                                 .fillMaxHeight()
                                         )
 
-                                        TactileKeypadButton(
+                                        FuelKeypadKey(
                                             text = "NEXT",
                                             onClick = { nextField() },
-                                            accentColor = Premium_PrimaryAccent,
+                                            accentColor = Apex_PrimaryAccent,
                                             backgroundColor = Color(0xFF0C2538),
                                             icon = Icons.AutoMirrored.Filled.ArrowForward,
                                             isSpecialAction = true,
@@ -764,9 +748,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF090F1C))
-            .border(1.2.dp, Color(0xFF1E2D44), RoundedCornerShape(14.dp))
+            .cockpitSurface(Color(0xFF090F1C), Color(0xFF1E2D44), CopilotShapes.R14, borderWidth = 1.2.dp)
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Column(
@@ -786,7 +768,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                     Icon(
                         imageVector = Icons.Default.LocalGasStation,
                         contentDescription = null,
-                        tint = Color(0xFF00F5FF),
+                        tint = Palette.CyanElectric,
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
@@ -794,7 +776,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             letterSpacing = 0.8.sp
                         ),
-                        color = Color(0xFF00F5FF)
+                        color = Palette.CyanElectric
                     )
                 }
 
@@ -807,18 +789,18 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = Color(0xFF94A3B8)
+                        color = Palette.Slate400
                     )
 
                     // Delta / Bar Badge
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(if (additionalBars > 0) Color(0xFF0284C7).copy(alpha = 0.25f) else Color(0xFF1E293B))
+                            .clip(CopilotShapes.R6)
+                            .background(if (additionalBars > 0) Palette.Sky600.copy(alpha = 0.25f) else Palette.Slate800)
                             .border(
                                 1.dp,
-                                if (additionalBars > 0) Color(0xFF00B0FF).copy(alpha = 0.70f) else Color(0xFF334155),
-                                RoundedCornerShape(6.dp)
+                                if (additionalBars > 0) Palette.LightBlueA400.copy(alpha = 0.70f) else Palette.Slate700,
+                                CopilotShapes.R6
                             )
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
@@ -827,7 +809,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                             ),
-                            color = if (additionalBars > 0) Color(0xFF00B0FF) else Color(0xFF94A3B8)
+                            color = if (additionalBars > 0) Palette.LightBlueA400 else Palette.Slate400
                         )
                     }
                 }
@@ -855,7 +837,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         Text(
                             text = "L",
                             style = CockpitTheme.typography.titleLarge,
-                            color = Color(0xFF00F5FF),
+                            color = Palette.CyanElectric,
                             modifier = Modifier.padding(bottom = 3.dp)
                         )
                     }
@@ -864,7 +846,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
-                        color = Color(0xFF94A3B8)
+                        color = Palette.Slate400
                     )
                 }
 
@@ -888,7 +870,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = if (isOverfill) Cockpit_AmberWarning else Color(0xFF64748B)
+                        color = if (isOverfill) Cockpit_AmberWarning else Palette.Slate500
                     )
                 }
             }
@@ -911,9 +893,9 @@ fun UnifiedFuelTelemetryAndGaugeCard(
 
                         // Colorful spectrum: Red (1-2) -> Orange/Amber (3-5) -> Vivid Green (6-10)
                         val baseBarColor = when (bar) {
-                            1, 2 -> Color(0xFFEF4444) // Red (Reserve/Empty)
-                            3, 4, 5 -> Color(0xFFFF9100) // Orange/Amber (Low/Mid)
-                            else -> Color(0xFF10B981) // Green (Upper/Full)
+                            1, 2 -> Palette.Red500 // Red (Reserve/Empty)
+                            3, 4, 5 -> Palette.OrangeA400 // Orange/Amber (Low/Mid)
+                            else -> Palette.Emerald500 // Green (Upper/Full)
                         }
 
                         val segmentColor = when {
@@ -923,7 +905,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
 
                         val borderColor = when {
                             isSelected -> Color.White
-                            isAdded -> Color(0xFF00F5FF)
+                            isAdded -> Palette.CyanElectric
                             isFilled -> baseBarColor.copy(alpha = 0.85f)
                             else -> Color(0xFF1E2B40)
                         }
@@ -932,9 +914,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(segmentColor)
-                                .border(if (isSelected) 1.8.dp else 1.dp, borderColor, RoundedCornerShape(4.dp))
+                                .cockpitSurface(segmentColor, borderColor, CopilotShapes.R4, borderWidth = if (isSelected) 1.8.dp else 1.dp)
                                 .clickable { onBarSelected(bar) },
                             contentAlignment = Alignment.Center
                         ) {
@@ -961,14 +941,14 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = Color(0xFFEF4444)
+                        color = Palette.Red500
                     )
                     Text(
                         text = "1/4 (25%)",
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = Color(0xFFFF9100)
+                        color = Palette.OrangeA400
                     )
                     Text(
                         text = "1/2 (50%)",
@@ -989,7 +969,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = Color(0xFF10B981)
+                        color = Palette.Emerald500
                     )
                 }
             }
@@ -1003,9 +983,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF0F1A2D))
-                        .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(8.dp))
+                        .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
                         .padding(horizontal = 10.dp, vertical = 7.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1014,7 +992,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             style = CockpitTheme.typography.labelSmall.copy(
                                 letterSpacing = 0.5.sp
                             ),
-                            color = Color(0xFF94A3B8)
+                            color = Palette.Slate400
                         )
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
@@ -1028,14 +1006,14 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             Text(
                                 text = "L",
                                 style = CockpitTheme.typography.labelSmall,
-                                color = Color(0xFF00F5FF),
+                                color = Palette.CyanElectric,
                                 modifier = Modifier.padding(bottom = 1.dp)
                             )
                         }
                         Text(
                             text = if (addedPct > 0) "+$addedPct% tank boost" else "0% added",
                             style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (addedPct > 0) Color(0xFF00F5FF) else Color(0xFF64748B),
+                            color = if (addedPct > 0) Palette.CyanElectric else Palette.Slate500,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1046,9 +1024,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF0F1A2D))
-                        .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(8.dp))
+                        .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
                         .padding(horizontal = 10.dp, vertical = 7.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1057,7 +1033,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             style = CockpitTheme.typography.labelSmall.copy(
                                 letterSpacing = 0.5.sp
                             ),
-                            color = Color(0xFF94A3B8)
+                            color = Palette.Slate400
                         )
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
@@ -1065,13 +1041,13 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 style = CockpitTheme.typography.headlineMedium.copy(
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
-                                color = Color(0xFF10B981)
+                                color = Palette.Emerald500
                             )
                         }
                         Text(
                             text = "@ ${NumberFormatUtils.formatMileage(effectiveMileage, 1)} km/L",
                             style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFF10B981).copy(alpha = 0.85f),
+                            color = Palette.Emerald500.copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1082,9 +1058,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF0F1A2D))
-                        .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(8.dp))
+                        .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
                         .padding(horizontal = 10.dp, vertical = 7.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1093,7 +1067,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             style = CockpitTheme.typography.labelSmall.copy(
                                 letterSpacing = 0.5.sp
                             ),
-                            color = Color(0xFF94A3B8)
+                            color = Palette.Slate400
                         )
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
@@ -1101,20 +1075,20 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 style = CockpitTheme.typography.headlineMedium.copy(
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
-                                color = Color(0xFFF59E0B)
+                                color = Palette.Amber500
                             )
                             Spacer(Modifier.width(2.dp))
                             Text(
                                 text = "/km",
                                 style = CockpitTheme.typography.labelSmall,
-                                color = Color(0xFFF59E0B).copy(alpha = 0.85f),
+                                color = Palette.Amber500.copy(alpha = 0.85f),
                                 modifier = Modifier.padding(bottom = 1.dp)
                             )
                         }
                         Text(
                             text = "Real-time cost rate",
                             style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFFF59E0B).copy(alpha = 0.85f),
+                            color = Palette.Amber500.copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1125,9 +1099,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF0F1A2D))
-                        .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(8.dp))
+                        .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
                         .padding(horizontal = 10.dp, vertical = 7.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -1136,7 +1108,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             style = CockpitTheme.typography.labelSmall.copy(
                                 letterSpacing = 0.5.sp
                             ),
-                            color = Color(0xFF94A3B8)
+                            color = Palette.Slate400
                         )
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
@@ -1144,13 +1116,13 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 style = CockpitTheme.typography.headlineMedium.copy(
                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                 ),
-                                color = Color(0xFF38BDF8)
+                                color = Palette.Sky400
                             )
                         }
                         Text(
                             text = "${postRefillLiters.toInt()}L post-refill",
                             style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFF38BDF8).copy(alpha = 0.85f),
+                            color = Palette.Sky400.copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1165,7 +1137,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         .fillMaxWidth()
                         .height(9.dp)
                         .clip(RoundedCornerShape(4.5.dp))
-                        .background(Color(0xFF141F32))
+                        .background(Palette.Ink825)
                 ) {
                     Row(modifier = Modifier.fillMaxSize()) {
                         val currentFraction = (currentFuelLiters / designCap).toFloat().coerceIn(0f, 1f)
@@ -1175,7 +1147,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 modifier = Modifier
                                     .weight(currentFraction)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF10B981))
+                                    .background(Palette.Emerald500)
                             )
                         }
                         if (addedFraction > 0.005f) {
@@ -1183,7 +1155,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 modifier = Modifier
                                     .weight(addedFraction)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF00F5FF))
+                                    .background(Palette.CyanElectric)
                             )
                         }
                         val remainingFraction = (1f - currentFraction - addedFraction).coerceAtLeast(0f)
@@ -1192,7 +1164,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                                 modifier = Modifier
                                     .weight(remainingFraction)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF141F32))
+                                    .background(Palette.Ink825)
                             )
                         }
                     }
@@ -1208,7 +1180,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                         style = CockpitTheme.typography.labelMedium.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = Color(0xFF94A3B8)
+                        color = Palette.Slate400
                     )
                     Text(
                         text = "Post-Refill: ${tankPct}% (${postRefillLiters.toInt()}L)",
@@ -1216,7 +1188,7 @@ fun UnifiedFuelTelemetryAndGaugeCard(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = if (isOverfill) Cockpit_AmberWarning else Color(0xFF00F5FF)
+                        color = if (isOverfill) Cockpit_AmberWarning else Palette.CyanElectric
                     )
                 }
             }
@@ -1254,9 +1226,7 @@ fun AutoCalculatedTelemetryCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF09101F))
-            .border(1.dp, Color(0xFF1B273A), RoundedCornerShape(14.dp))
+            .cockpitSurface(Color(0xFF09101F), Color(0xFF1B273A), CopilotShapes.R14)
             .padding(10.dp)
     ) {
         Column(
@@ -1273,7 +1243,7 @@ fun AutoCalculatedTelemetryCard(
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = null,
-                        tint = Color(0xFF38BDF8),
+                        tint = Palette.Sky400,
                         modifier = Modifier.size(15.dp)
                     )
                     Text(
@@ -1281,7 +1251,7 @@ fun AutoCalculatedTelemetryCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             letterSpacing = 0.5.sp
                         ),
-                        color = Color(0xFF38BDF8)
+                        color = Palette.Sky400
                     )
                 }
 
@@ -1290,7 +1260,7 @@ fun AutoCalculatedTelemetryCard(
                     style = CockpitTheme.typography.labelSmall.copy(
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
-                    color = Color(0xFF94A3B8)
+                    color = Palette.Slate400
                 )
             }
 
@@ -1308,9 +1278,7 @@ fun AutoCalculatedTelemetryCard(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF0F1A2D))
-                            .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(8.dp))
+                            .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
                             .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Column {
@@ -1319,7 +1287,7 @@ fun AutoCalculatedTelemetryCard(
                                 style = CockpitTheme.typography.labelSmall.copy(
                                     letterSpacing = 0.5.sp
                                 ),
-                                color = Color(0xFF94A3B8)
+                                color = Palette.Slate400
                             )
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
@@ -1333,14 +1301,14 @@ fun AutoCalculatedTelemetryCard(
                                 Text(
                                     text = "L",
                                     style = CockpitTheme.typography.labelSmall,
-                                    color = Color(0xFF38BDF8),
+                                    color = Palette.Sky400,
                                     modifier = Modifier.padding(bottom = 1.dp)
                                 )
                             }
                             Text(
                                 text = if (addedPct > 0) "+$addedPct% tank boost" else "0% added",
                                 style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = if (addedPct > 0) Color(0xFF38BDF8) else Color(0xFF64748B),
+                                color = if (addedPct > 0) Palette.Sky400 else Palette.Slate500,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1351,9 +1319,7 @@ fun AutoCalculatedTelemetryCard(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF0F1A2D))
-                            .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(8.dp))
+                            .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
                             .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Column {
@@ -1362,7 +1328,7 @@ fun AutoCalculatedTelemetryCard(
                                 style = CockpitTheme.typography.labelSmall.copy(
                                     letterSpacing = 0.5.sp
                                 ),
-                                color = Color(0xFF94A3B8)
+                                color = Palette.Slate400
                             )
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
@@ -1393,9 +1359,7 @@ fun AutoCalculatedTelemetryCard(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF0F1A2D))
-                            .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(8.dp))
+                            .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
                             .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Column {
@@ -1404,7 +1368,7 @@ fun AutoCalculatedTelemetryCard(
                                 style = CockpitTheme.typography.labelSmall.copy(
                                     letterSpacing = 0.5.sp
                                 ),
-                                color = Color(0xFF94A3B8)
+                                color = Palette.Slate400
                             )
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
@@ -1412,20 +1376,20 @@ fun AutoCalculatedTelemetryCard(
                                     style = CockpitTheme.typography.titleMedium.copy(
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
-                                    color = Color(0xFFF59E0B)
+                                    color = Palette.Amber500
                                 )
                                 Spacer(Modifier.width(2.dp))
                                 Text(
                                     text = "/km",
                                     style = CockpitTheme.typography.labelSmall,
-                                    color = Color(0xFFF59E0B).copy(alpha = 0.85f),
+                                    color = Palette.Amber500.copy(alpha = 0.85f),
                                     modifier = Modifier.padding(bottom = 1.dp)
                                 )
                             }
                             Text(
                                 text = "Real-time travel cost",
                                 style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFFF59E0B).copy(alpha = 0.85f),
+                                color = Palette.Amber500.copy(alpha = 0.85f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1436,9 +1400,7 @@ fun AutoCalculatedTelemetryCard(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF0F1A2D))
-                            .border(1.dp, Color(0xFF1E2F4A), RoundedCornerShape(8.dp))
+                            .cockpitSurface(Palette.Ink875, Palette.Ink675, CopilotShapes.R8)
                             .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Column {
@@ -1447,7 +1409,7 @@ fun AutoCalculatedTelemetryCard(
                                 style = CockpitTheme.typography.labelSmall.copy(
                                     letterSpacing = 0.5.sp
                                 ),
-                                color = Color(0xFF94A3B8)
+                                color = Palette.Slate400
                             )
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
@@ -1455,13 +1417,13 @@ fun AutoCalculatedTelemetryCard(
                                     style = CockpitTheme.typography.titleMedium.copy(
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
-                                    color = Color(0xFF00E5FF)
+                                    color = Palette.Cyan
                                 )
                             }
                             Text(
                                 text = "${clampedFinalTank.toInt()}L post-fill",
                                 style = CockpitTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                color = Color(0xFF00E5FF).copy(alpha = 0.85f),
+                                color = Palette.Cyan.copy(alpha = 0.85f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1476,8 +1438,8 @@ fun AutoCalculatedTelemetryCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF141F32))
+                        .clip(CopilotShapes.R4)
+                        .background(Palette.Ink825)
                 ) {
                     Row(modifier = Modifier.fillMaxSize()) {
                         val currentFraction = (currentFuelLiters / designCap).toFloat().coerceIn(0f, 1f)
@@ -1495,7 +1457,7 @@ fun AutoCalculatedTelemetryCard(
                                 modifier = Modifier
                                     .weight(addedFraction)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF00B0FF))
+                                    .background(Palette.LightBlueA400)
                             )
                         }
                         val remainingFraction = (1f - currentFraction - addedFraction).coerceAtLeast(0f)
@@ -1504,7 +1466,7 @@ fun AutoCalculatedTelemetryCard(
                                 modifier = Modifier
                                     .weight(remainingFraction)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF141F32))
+                                    .background(Palette.Ink825)
                             )
                         }
                     }
@@ -1520,7 +1482,7 @@ fun AutoCalculatedTelemetryCard(
                         style = CockpitTheme.typography.labelMedium.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = Color(0xFF94A3B8)
+                        color = Palette.Slate400
                     )
                     Text(
                         text = "Post-Refill: ${finalPct}%",
@@ -1528,7 +1490,7 @@ fun AutoCalculatedTelemetryCard(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
-                        color = if (isOverfill) Cockpit_AmberWarning else Color(0xFF38BDF8)
+                        color = if (isOverfill) Cockpit_AmberWarning else Palette.Sky400
                     )
                 }
             }
@@ -1536,96 +1498,27 @@ fun AutoCalculatedTelemetryCard(
     }
 }
 
-/**
- * TactileKeypadButton:
- * Automotive numeric keypad button with animated touch feedback:
- * 1. Subtle scale-down on press (1.0f -> 0.92f).
- * 2. Temporary background highlight and glowing border in dashboard accent colors.
- */
+/** Fuel-entry keypad key: shared [TactileKeypadButton] with the fuel dialog's slate styling. */
 @Composable
-private fun TactileKeypadButton(
+private fun FuelKeypadKey(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     accentColor: Color = Color.White,
-    backgroundColor: Color = Color(0xFF0F172A),
+    backgroundColor: Color = Palette.Slate900,
     icon: ImageVector? = null,
     isSpecialAction: Boolean = false
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val animatedScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1.0f,
-        animationSpec = tween(durationMillis = 90, easing = FastOutSlowInEasing),
-        label = "KeypadScale"
+) = TactileKeypadButton(
+    text = text,
+    onClick = onClick,
+    modifier = modifier,
+    accentColor = accentColor,
+    backgroundColor = backgroundColor,
+    idleBorderColor = if (isSpecialAction) accentColor.copy(alpha = 0.35f) else Palette.Slate800,
+    icon = icon,
+    labelStyle = CockpitTheme.typography.labelMedium.copy(
+        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
+        fontFeatureSettings = "tnum",
+        letterSpacing = 0.5.sp
     )
-
-    val animatedBg by animateColorAsState(
-        targetValue = if (isPressed) {
-            accentColor.copy(alpha = 0.28f)
-        } else {
-            backgroundColor
-        },
-        animationSpec = tween(durationMillis = 90),
-        label = "KeypadBg"
-    )
-
-    val animatedBorderColor by animateColorAsState(
-        targetValue = if (isPressed) {
-            accentColor.copy(alpha = 0.85f)
-        } else {
-            if (isSpecialAction) accentColor.copy(alpha = 0.35f) else Color(0xFF1E293B)
-        },
-        animationSpec = tween(durationMillis = 90),
-        label = "KeypadBorder"
-    )
-
-    Box(
-        modifier = modifier
-            .graphicsLayer {
-                scaleX = animatedScale
-                scaleY = animatedScale
-            }
-            .clip(RoundedCornerShape(12.dp))
-            .background(animatedBg)
-            .border(1.2.dp, animatedBorderColor, RoundedCornerShape(12.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        if (icon != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                if (text.isNotBlank()) {
-                    Text(
-                        text = text,
-                        style = CockpitTheme.typography.labelMedium.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = accentColor
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                }
-                Icon(
-                    imageVector = icon,
-                    contentDescription = if (text.isNotBlank()) text else "Backspace",
-                    tint = accentColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        } else {
-            Text(
-                text = text,
-                style = CockpitTheme.typography.headlineLarge,
-                color = accentColor
-            )
-        }
-    }
-}
+)

@@ -1,5 +1,8 @@
 package com.antigravity.copilot.feature.settings
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -9,7 +12,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -62,9 +64,9 @@ fun GeofenceSettingsContent() {
         // 1. Header Overview & Add Action Card
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-            shape = RoundedCornerShape(14.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E293B))
+            colors = CardDefaults.cardColors(containerColor = Palette.Slate900),
+            shape = CopilotShapes.R14,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Palette.Slate800)
         ) {
             Row(
                 modifier = Modifier
@@ -78,7 +80,7 @@ fun GeofenceSettingsContent() {
                         Icon(
                             imageVector = Icons.Default.Place,
                             contentDescription = null,
-                            tint = Color(0xFF38BDF8),
+                            tint = Palette.Sky400,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -92,7 +94,7 @@ fun GeofenceSettingsContent() {
                     Text(
                         text = "Departing an enabled geofence starts a journey (including departure distance). Entering an enabled geofence ends the trip. Journeys persist across days and power cycles.",
                         style = CockpitTheme.typography.bodyMedium,
-                        color = Color(0xFF94A3B8)
+                        color = Palette.Slate400
                     )
                 }
 
@@ -103,8 +105,8 @@ fun GeofenceSettingsContent() {
                         selectedGeofenceForEdit = null
                         isAddEditDialogOpen = true
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Palette.Sky600),
+                    shape = CopilotShapes.R12,
                     modifier = Modifier.height(48.dp)
                 ) {
                     Icon(
@@ -122,9 +124,9 @@ fun GeofenceSettingsContent() {
         if (geofences.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0C1322)),
-                shape = RoundedCornerShape(14.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF1E2838))
+                colors = CardDefaults.cardColors(containerColor = Palette.Ink925),
+                shape = CopilotShapes.R14,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Palette.Ink750)
             ) {
                 Column(
                     modifier = Modifier
@@ -136,7 +138,7 @@ fun GeofenceSettingsContent() {
                     Icon(
                         imageVector = Icons.Default.Place,
                         contentDescription = null,
-                        tint = Color(0xFF475569),
+                        tint = Palette.Slate600,
                         modifier = Modifier.size(36.dp)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -148,7 +150,7 @@ fun GeofenceSettingsContent() {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Add your Home, Office, or Farm to enable fully automated departure and arrival tracking.",
-                        color = Color(0xFF87929A),
+                        color = Palette.Steel400,
                         style = CockpitTheme.typography.bodySmall,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
@@ -162,12 +164,12 @@ fun GeofenceSettingsContent() {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (gf.isEnabled) Color(0xFF0C1322) else Color(0xFF080C14)
+                        containerColor = if (gf.isEnabled) Palette.Ink925 else Color(0xFF080C14)
                     ),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = CopilotShapes.R14,
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
-                        if (isInside && gf.isEnabled) Color(0xFF10B981) else Color(0xFF1E2838)
+                        if (isInside && gf.isEnabled) Palette.Emerald500 else Palette.Ink750
                     )
                 ) {
                     Row(
@@ -187,8 +189,8 @@ fun GeofenceSettingsContent() {
                                     .size(38.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        if (gf.isEnabled) Color(0xFF0284C7).copy(alpha = 0.2f)
-                                        else Color(0xFF334155).copy(alpha = 0.2f)
+                                        if (gf.isEnabled) Palette.Sky600.copy(alpha = 0.2f)
+                                        else Palette.Slate700.copy(alpha = 0.2f)
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -197,7 +199,7 @@ fun GeofenceSettingsContent() {
                                     else if (gf.name.contains("Office", ignoreCase = true) || gf.name.contains("Work", ignoreCase = true)) Icons.Default.Business
                                     else Icons.Default.Place,
                                     contentDescription = null,
-                                    tint = if (gf.isEnabled) Color(0xFF38BDF8) else Color(0xFF64748B),
+                                    tint = if (gf.isEnabled) Palette.Sky400 else Palette.Slate500,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -209,14 +211,14 @@ fun GeofenceSettingsContent() {
                                     Text(
                                         text = gf.name,
                                         style = CockpitTheme.typography.titleMedium,
-                                        color = if (gf.isEnabled) Color.White else Color(0xFF64748B)
+                                        color = if (gf.isEnabled) Color.White else Palette.Slate500
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     // Radius pill
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xFF0369A1).copy(alpha = 0.25f))
+                                            .clip(CopilotShapes.R8)
+                                            .background(Palette.Sky700.copy(alpha = 0.25f))
                                             .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
                                         Text(
@@ -225,7 +227,7 @@ fun GeofenceSettingsContent() {
                                                 fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                                 fontFeatureSettings = "tnum"
                                             ),
-                                            color = Color(0xFF38BDF8)
+                                            color = Palette.Sky400
                                         )
                                     }
 
@@ -235,8 +237,8 @@ fun GeofenceSettingsContent() {
                                     if (isInside && gf.isEnabled) {
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(Color(0xFF10B981).copy(alpha = 0.25f))
+                                                .clip(CopilotShapes.R6)
+                                                .background(Palette.Emerald500.copy(alpha = 0.25f))
                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
                                             Text(
@@ -250,8 +252,8 @@ fun GeofenceSettingsContent() {
                                     } else {
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(Color(0xFF334155).copy(alpha = 0.35f))
+                                                .clip(CopilotShapes.R6)
+                                                .background(Palette.Slate700.copy(alpha = 0.35f))
                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
                                             val distText = if (distanceMeters >= 1000f) {
@@ -265,7 +267,7 @@ fun GeofenceSettingsContent() {
                                                     fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                                     fontFeatureSettings = "tnum"
                                                 ),
-                                                color = Color(0xFF94A3B8)
+                                                color = Palette.Slate400
                                             )
                                         }
                                     }
@@ -279,7 +281,7 @@ fun GeofenceSettingsContent() {
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                         fontFeatureSettings = "tnum"
                                     ),
-                                    color = Color(0xFF64748B)
+                                    color = Palette.Slate500
                                 )
                             }
                         }
@@ -294,10 +296,10 @@ fun GeofenceSettingsContent() {
                                     }
                                 },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color(0xFF38BDF8),
-                                    checkedTrackColor = Color(0xFF0369A1),
-                                    uncheckedThumbColor = Color(0xFF64748B),
-                                    uncheckedTrackColor = Color(0xFF1E293B)
+                                    checkedThumbColor = Palette.Sky400,
+                                    checkedTrackColor = Palette.Sky700,
+                                    uncheckedThumbColor = Palette.Slate500,
+                                    uncheckedTrackColor = Palette.Slate800
                                 )
                             )
 
@@ -310,14 +312,12 @@ fun GeofenceSettingsContent() {
                                 },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF0F2642))
-                                    .border(1.2.dp, Color(0xFF38BDF8).copy(alpha = 0.55f), CircleShape)
+                                    .cockpitSurface(Color(0xFF0F2642), Palette.Sky400.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = "Edit Geofence",
-                                    tint = Color(0xFF38BDF8),
+                                    tint = Palette.Sky400,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -328,14 +328,12 @@ fun GeofenceSettingsContent() {
                                 onClick = { geofenceToDelete = gf },
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF3B151E))
-                                    .border(1.2.dp, Color(0xFFF43F5E).copy(alpha = 0.55f), CircleShape)
+                                    .cockpitSurface(Color(0xFF3B151E), Palette.Rose500.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.DeleteOutline,
                                     contentDescription = "Delete Geofence",
-                                    tint = Color(0xFFF43F5E),
+                                    tint = Palette.Rose500,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -360,7 +358,7 @@ fun GeofenceSettingsContent() {
             text = {
                 Text(
                     text = "Are you sure you want to delete '${gf.name}'? Automatic trip start/end will no longer trigger at this location.",
-                    color = Color(0xFF94A3B8)
+                    color = Palette.Slate400
                 )
             },
             confirmButton = {
@@ -379,11 +377,11 @@ fun GeofenceSettingsContent() {
             },
             dismissButton = {
                 OutlinedButton(onClick = { geofenceToDelete = null }) {
-                    Text("Cancel", color = Color(0xFF94A3B8))
+                    Text("Cancel", color = Palette.Slate400)
                 }
             },
-            containerColor = Color(0xFF0F172A),
-            shape = RoundedCornerShape(14.dp)
+            containerColor = Palette.Slate900,
+            shape = CopilotShapes.R14
         )
     }
 
@@ -452,9 +450,7 @@ fun AddEditGeofenceDialog(
                 .fillMaxWidth(0.96f)
                 .wrapContentHeight()
                 .heightIn(max = 660.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF0F172A))
-                .border(1.5.dp, Color(0xFF1E293B), RoundedCornerShape(18.dp))
+                .cockpitSurface(Palette.Slate900, Palette.Slate800, CopilotShapes.R18, borderWidth = 1.5.dp)
                 .padding(16.dp)
         ) {
             val dialogContext = LocalContext.current
@@ -472,7 +468,7 @@ fun AddEditGeofenceDialog(
                         Icon(
                             imageVector = if (existingGeofence != null) Icons.Default.EditLocation else Icons.Default.AddLocationAlt,
                             contentDescription = null,
-                            tint = Color(0xFF38BDF8),
+                            tint = Palette.Sky400,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -487,7 +483,7 @@ fun AddEditGeofenceDialog(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = Color(0xFF87929A)
+                            tint = Palette.Steel400
                         )
                     }
                 }
@@ -512,13 +508,13 @@ fun AddEditGeofenceDialog(
                         OutlinedTextField(
                             value = name,
                             onValueChange = { name = it },
-                            label = { Text("Geofence Name", color = Color(0xFF94A3B8)) },
-                            placeholder = { Text("e.g. Home, Office, Farmhouse", color = Color(0xFF64748B)) },
+                            label = { Text("Geofence Name", color = Palette.Slate400) },
+                            placeholder = { Text("e.g. Home, Office, Farmhouse", color = Palette.Slate500) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF38BDF8),
-                                unfocusedBorderColor = Color(0xFF334155),
+                                focusedBorderColor = Palette.Sky400,
+                                unfocusedBorderColor = Palette.Slate700,
                                 focusedTextColor = Color.White,
                                 unfocusedTextColor = Color.White
                             )
@@ -530,14 +526,14 @@ fun AddEditGeofenceDialog(
                                 latText = currentDeviceLat.toString()
                                 lonText = currentDeviceLon.toString()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
-                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Palette.Slate800),
+                            shape = CopilotShapes.R8,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MyLocation,
                                 contentDescription = null,
-                                tint = Color(0xFF38BDF8),
+                                tint = Palette.Sky400,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -556,13 +552,13 @@ fun AddEditGeofenceDialog(
                             OutlinedTextField(
                                 value = latText,
                                 onValueChange = { latText = it },
-                                label = { Text("Latitude", color = Color(0xFF94A3B8)) },
+                                label = { Text("Latitude", color = Palette.Slate400) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF38BDF8),
-                                    unfocusedBorderColor = Color(0xFF334155),
+                                    focusedBorderColor = Palette.Sky400,
+                                    unfocusedBorderColor = Palette.Slate700,
                                     focusedTextColor = Color.White,
                                     unfocusedTextColor = Color.White
                                 )
@@ -570,13 +566,13 @@ fun AddEditGeofenceDialog(
                             OutlinedTextField(
                                 value = lonText,
                                 onValueChange = { lonText = it },
-                                label = { Text("Longitude", color = Color(0xFF94A3B8)) },
+                                label = { Text("Longitude", color = Palette.Slate400) },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.weight(1f),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF38BDF8),
-                                    unfocusedBorderColor = Color(0xFF334155),
+                                    focusedBorderColor = Palette.Sky400,
+                                    unfocusedBorderColor = Palette.Slate700,
                                     focusedTextColor = Color.White,
                                     unfocusedTextColor = Color.White
                                 )
@@ -596,13 +592,13 @@ fun AddEditGeofenceDialog(
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily,
                                         fontFeatureSettings = "tnum"
                                     ),
-                                    color = Color(0xFF38BDF8)
+                                    color = Palette.Sky400
                                 )
                                 if (radiusMeters == 100f) {
                                     Text(
                                         text = "(Recommended Default)",
                                         style = CockpitTheme.typography.labelSmall,
-                                        color = Color(0xFF10B981)
+                                        color = Palette.Emerald500
                                     )
                                 }
                             }
@@ -613,9 +609,9 @@ fun AddEditGeofenceDialog(
                                 valueRange = 50f..150f,
                                 steps = 19,
                                 colors = SliderDefaults.colors(
-                                    thumbColor = Color(0xFF38BDF8),
-                                    activeTrackColor = Color(0xFF0284C7),
-                                    inactiveTrackColor = Color(0xFF1E293B)
+                                    thumbColor = Palette.Sky400,
+                                    activeTrackColor = Palette.Sky600,
+                                    inactiveTrackColor = Palette.Slate800
                                 )
                             )
 
@@ -628,9 +624,9 @@ fun AddEditGeofenceDialog(
                                     val isSelected = radiusMeters == preset
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
+                                            .clip(CopilotShapes.R6)
                                             .background(
-                                                if (isSelected) Color(0xFF0284C7) else Color(0xFF1E293B)
+                                                if (isSelected) Palette.Sky600 else Palette.Slate800
                                             )
                                             .clickable { radiusMeters = preset }
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -640,7 +636,7 @@ fun AddEditGeofenceDialog(
                                             style = CockpitTheme.typography.labelSmall.copy(
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                             ),
-                                            color = if (isSelected) Color.White else Color(0xFF94A3B8)
+                                            color = if (isSelected) Color.White else Palette.Slate400
                                         )
                                     }
                                 }
@@ -656,15 +652,15 @@ fun AddEditGeofenceDialog(
                         Text(
                             text = "Geofence Map Preview (Tap to reposition center)",
                             style = CockpitTheme.typography.labelSmall,
-                            color = Color(0xFF94A3B8)
+                            color = Palette.Slate400
                         )
 
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(290.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .border(1.dp, Color(0xFF334155), RoundedCornerShape(12.dp))
+                                .clip(CopilotShapes.R12)
+                                .border(1.dp, Palette.Slate700, CopilotShapes.R12)
                         ) {
                             GeofenceMiniMapView(
                                 centerLat = parsedLat,
@@ -691,8 +687,8 @@ fun AddEditGeofenceDialog(
                 ) {
                     OutlinedButton(
                         onClick = onDismiss,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF94A3B8))
+                        shape = CopilotShapes.R10,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Palette.Slate400)
                     ) {
                         Text("Cancel")
                     }
@@ -714,8 +710,8 @@ fun AddEditGeofenceDialog(
                             }
                             onSave(trimmedName, finalLat, finalLon, radiusMeters)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                        shape = RoundedCornerShape(10.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = Palette.Sky600),
+                        shape = CopilotShapes.R10
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
@@ -777,12 +773,12 @@ fun GeofenceMiniMapView(
 
             // Geofence Circle Boundary Fill & Outline
             drawCircle(
-                color = Color(0xFF00E5FF).copy(alpha = 0.15f),
+                color = Palette.Cyan.copy(alpha = 0.15f),
                 radius = geofenceRadiusPx,
                 center = center
             )
             drawCircle(
-                color = Color(0xFF00E5FF),
+                color = Palette.Cyan,
                 radius = geofenceRadiusPx,
                 center = center,
                 style = Stroke(width = 2.5f)
@@ -790,13 +786,13 @@ fun GeofenceMiniMapView(
 
             // Center Target Crosshairs
             drawLine(
-                color = Color(0xFF00E5FF).copy(alpha = 0.4f),
+                color = Palette.Cyan.copy(alpha = 0.4f),
                 start = Offset(center.x - 20f, center.y),
                 end = Offset(center.x + 20f, center.y),
                 strokeWidth = 2f
             )
             drawLine(
-                color = Color(0xFF00E5FF).copy(alpha = 0.4f),
+                color = Palette.Cyan.copy(alpha = 0.4f),
                 start = Offset(center.x, center.y - 20f),
                 end = Offset(center.x, center.y + 20f),
                 strokeWidth = 2f
@@ -809,7 +805,7 @@ fun GeofenceMiniMapView(
                 center = center
             )
             drawCircle(
-                color = Color(0xFF00E5FF),
+                color = Palette.Cyan,
                 radius = 4f,
                 center = center
             )

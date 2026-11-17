@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -259,9 +260,7 @@ private fun CockpitDock(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(dockContainerShape)
-            .background(CockpitTheme.colors.dockBrush)
-            .border(1.25.dp, CockpitTheme.colors.dockBorder, dockContainerShape)
+            .cockpitSurface(CockpitTheme.colors.dockBrush, CockpitTheme.colors.dockBorder, dockContainerShape, borderWidth = 1.25.dp)
             .padding(6.dp)
     ) {
         Row(
@@ -303,13 +302,7 @@ private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, mo
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(shape)
-            .background(dockActionBg)
-            .border(
-                1.5.dp,
-                if (isPressed) CockpitTheme.colors.accent else CockpitTheme.colors.border.copy(alpha = 0.6f),
-                shape
-            )
+            .cockpitSurface(dockActionBg, if (isPressed) CockpitTheme.colors.accent else CockpitTheme.colors.border.copy(alpha = 0.6f), shape, borderWidth = 1.5.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),
@@ -323,9 +316,7 @@ private fun DockAction(label: String, icon: ImageVector, onClick: () -> Unit, mo
         Box(
             modifier = Modifier
                 .size(38.dp)
-                .clip(CircleShape)
-                .background(CockpitTheme.colors.accentSoft)
-                .border(1.2.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), CircleShape),
+                .cockpitSurface(CockpitTheme.colors.accentSoft, CockpitTheme.colors.accent.copy(alpha = 0.5f), CircleShape, borderWidth = 1.2.dp),
             contentAlignment = Alignment.Center
         ) {
             Icon(

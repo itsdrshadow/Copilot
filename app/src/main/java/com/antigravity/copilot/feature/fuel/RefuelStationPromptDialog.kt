@@ -1,9 +1,10 @@
 package com.antigravity.copilot.feature.fuel
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocalGasStation
@@ -51,9 +52,7 @@ fun RefuelStationPromptDialog(
             Box(
                 modifier = Modifier
                     .width(520.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(CockpitTheme.colors.card)
-                    .border(1.5.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), RoundedCornerShape(22.dp))
+                    .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.accent.copy(alpha = 0.5f), CopilotShapes.R22, borderWidth = 1.5.dp)
                     .padding(22.dp)
             ) {
                 Column(
@@ -71,9 +70,7 @@ fun RefuelStationPromptDialog(
                             Box(
                                 modifier = Modifier
                                     .size(42.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(CockpitTheme.colors.accentSoft)
-                                    .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                                    .cockpitSurface(CockpitTheme.colors.accentSoft, CockpitTheme.colors.accent.copy(alpha = 0.5f), CopilotShapes.R12),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -87,9 +84,7 @@ fun RefuelStationPromptDialog(
                             Column {
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(CockpitTheme.colors.accentSoft)
-                                        .border(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                                        .cockpitSurface(CockpitTheme.colors.accentSoft, CockpitTheme.colors.accent.copy(alpha = 0.4f), CopilotShapes.R4)
                                         .padding(horizontal = 6.dp, vertical = 1.dp)
                                 ) {
                                     Text(
@@ -114,7 +109,7 @@ fun RefuelStationPromptDialog(
                             onClick = onDismiss,
                             modifier = Modifier
                                 .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(CopilotShapes.R8)
                                 .background(CockpitTheme.colors.cardElevated)
                         ) {
                             Icon(
@@ -130,9 +125,7 @@ fun RefuelStationPromptDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(CockpitTheme.colors.cardElevated)
-                            .border(1.dp, CockpitTheme.colors.border, RoundedCornerShape(12.dp))
+                            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R12)
                             .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -196,7 +189,7 @@ fun RefuelStationPromptDialog(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(44.dp),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = CopilotShapes.R10,
                             border = androidx.compose.foundation.BorderStroke(1.dp, CockpitTheme.colors.border)
                         ) {
                             Text(
@@ -211,7 +204,7 @@ fun RefuelStationPromptDialog(
                             modifier = Modifier
                                 .weight(1.1f)
                                 .height(44.dp),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = CopilotShapes.R10,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = CockpitTheme.colors.cardElevated,
                                 contentColor = CockpitTheme.colors.textPrimary
@@ -228,7 +221,7 @@ fun RefuelStationPromptDialog(
                             modifier = Modifier
                                 .weight(1.6f)
                                 .height(44.dp),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = CopilotShapes.R10,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = CockpitTheme.colors.accent,
                                 contentColor = CockpitTheme.colors.onAccent

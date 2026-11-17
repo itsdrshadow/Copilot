@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.maps
 
+import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -201,7 +203,7 @@ fun OfflineMapsManagerContent(
             if (isImportingUsb && usbImportProgressText != null) {
                 Surface(
                     color = Color(0xFF16222F),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = CopilotShapes.R12,
                     modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
                 ) {
                     Row(
@@ -275,7 +277,7 @@ fun OfflineMapsManagerContent(
                         .weight(1f)
                         .height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E2D3D)),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = CopilotShapes.R12
                 ) {
                     Icon(
                         imageVector = Icons.Default.Usb,
@@ -303,7 +305,7 @@ fun OfflineMapsManagerContent(
                         .height(52.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan.copy(alpha = 0.2f)),
                     border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(Cockpit_Cyan)),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = CopilotShapes.R12
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
@@ -347,7 +349,7 @@ fun OfflineMapsManagerContent(
 private fun CurrentGpsRegionBanner(currentGpsRegion: OfflineMapManager.OfflinePackage?) {
     Surface(
         color = Color(0xFF131D2A),
-        shape = RoundedCornerShape(12.dp),
+        shape = CopilotShapes.R12,
         border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -398,8 +400,8 @@ private fun StorageBudgetCard(storageInfo: OfflineMapManager.StorageBudgetInfo) 
     val offlineRatio = if (totalGb > 0) (storageInfo.offlineMapsUsedBytes.toFloat() / storageInfo.totalDeviceBytes.toFloat()).coerceIn(0f, 1f) else 0f
 
     Surface(
-        color = Color(0xFF141A24),
-        shape = RoundedCornerShape(12.dp),
+        color = Palette.Ink850,
+        shape = CopilotShapes.R12,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             if (storageInfo.isLowStorageWarning) Cockpit_RedAlert else Color(0xFF222B3A)
@@ -489,7 +491,7 @@ private fun ActiveDownloadCard(
 ) {
     Surface(
         color = Color(0xFF132030),
-        shape = RoundedCornerShape(12.dp),
+        shape = CopilotShapes.R12,
         border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -524,7 +526,7 @@ private fun ActiveDownloadCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp)),
+                    .clip(CopilotShapes.R4),
                 color = Cockpit_Cyan,
                 trackColor = Color(0xFF1C2B3C)
             )
@@ -540,7 +542,7 @@ private fun ActiveDownloadCard(
                 OutlinedButton(
                     onClick = onCancel,
                     modifier = Modifier.height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = CopilotShapes.R8,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Cockpit_RedAlert)
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -553,7 +555,7 @@ private fun ActiveDownloadCard(
                 Button(
                     onClick = if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) onPause else onResume,
                     modifier = Modifier.height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = CopilotShapes.R8,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) Cockpit_AmberWarning else Cockpit_Cyan
                     )
@@ -589,7 +591,7 @@ private fun PackageItemRow(
 ) {
     Surface(
         color = if (isCurrentGpsMatch && !pkg.isInstalled) Color(0xFF122233) else Color(0xFF161C26),
-        shape = RoundedCornerShape(12.dp),
+        shape = CopilotShapes.R12,
         border = androidx.compose.foundation.BorderStroke(
             1.dp,
             if (isCurrentGpsMatch) Cockpit_Cyan.copy(alpha = 0.6f) else Color(0xFF222B38)
@@ -616,7 +618,7 @@ private fun PackageItemRow(
                     if (isCurrentGpsMatch) {
                         Surface(
                             color = Cockpit_Cyan.copy(alpha = 0.25f),
-                            shape = RoundedCornerShape(6.dp)
+                            shape = CopilotShapes.R6
                         ) {
                             Text(
                                 text = "★ GPS REGION",
@@ -632,7 +634,7 @@ private fun PackageItemRow(
                     // Status Badge
                     Surface(
                         color = if (pkg.isInstalled) Cockpit_GreenEco.copy(alpha = 0.2f) else Color(0xFF2A3442),
-                        shape = RoundedCornerShape(6.dp)
+                        shape = CopilotShapes.R6
                     ) {
                         Text(
                             text = if (pkg.isInstalled) "INSTALLED" else "NOT INSTALLED",
@@ -676,7 +678,7 @@ private fun PackageItemRow(
                     onClick = onEditUrl,
                     modifier = Modifier
                         .size(44.dp)
-                        .background(Color(0xFF1E2836), RoundedCornerShape(8.dp))
+                        .background(Color(0xFF1E2836), CopilotShapes.R8)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Link,
@@ -690,7 +692,7 @@ private fun PackageItemRow(
                     OutlinedButton(
                         onClick = onUpdate,
                         modifier = Modifier.height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = CopilotShapes.R8,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Cockpit_Cyan)
                     ) {
                         Text("UPDATE", fontWeight = FontWeight.Bold, fontSize = 11.sp)
@@ -699,7 +701,7 @@ private fun PackageItemRow(
                     OutlinedButton(
                         onClick = onDelete,
                         modifier = Modifier.height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = CopilotShapes.R8,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Cockpit_RedAlert)
                     ) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(15.dp))
@@ -711,7 +713,7 @@ private fun PackageItemRow(
                         onClick = onDownload,
                         enabled = !isCurrentlyDownloading,
                         modifier = Modifier.height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = CopilotShapes.R8,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isCurrentGpsMatch) Cockpit_Cyan else Color(0xFF1E2F42)
                         )
@@ -745,7 +747,7 @@ private fun DownloadErrorCard(
 ) {
     Surface(
         color = Color(0xFF281116),
-        shape = RoundedCornerShape(12.dp),
+        shape = CopilotShapes.R12,
         border = androidx.compose.foundation.BorderStroke(1.5.dp, Cockpit_RedAlert),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -800,7 +802,7 @@ private fun DownloadErrorCard(
                 Button(
                     onClick = onRetry,
                     colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = CopilotShapes.R8,
                     modifier = Modifier.height(42.dp)
                 ) {
                     Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -810,7 +812,7 @@ private fun DownloadErrorCard(
 
                 OutlinedButton(
                     onClick = onImportUsb,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = CopilotShapes.R8,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Cockpit_Cyan),
                     border = ButtonDefaults.outlinedButtonBorder.copy(
                         brush = androidx.compose.ui.graphics.SolidColor(Cockpit_Cyan)
@@ -838,7 +840,7 @@ private fun CustomUrlDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = CopilotShapes.R16,
             color = Color(0xFF131B26),
             border = androidx.compose.foundation.BorderStroke(1.dp, Cockpit_Cyan.copy(alpha = 0.5f)),
             modifier = Modifier
@@ -894,7 +896,7 @@ private fun CustomUrlDialog(
                         Button(
                             onClick = { onSave(urlText) },
                             colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan),
-                            shape = RoundedCornerShape(8.dp)
+                            shape = CopilotShapes.R8
                         ) {
                             Text("SAVE", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         }

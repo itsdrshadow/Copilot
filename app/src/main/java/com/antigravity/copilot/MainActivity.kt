@@ -1,5 +1,8 @@
 package com.antigravity.copilot
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.Manifest
 import android.content.pm.PackageManager
@@ -31,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
 import com.antigravity.copilot.core.database.PersistentDataManager
 import com.antigravity.copilot.core.persistence.FullBackupManager
 import com.antigravity.copilot.core.recovery.CrashGuardian
@@ -471,36 +473,34 @@ private fun MainAppScreen(
                 containerColor = Color(0xFF111726),
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Restore, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.Restore, contentDescription = null, tint = Palette.Sky400, modifier = Modifier.size(24.dp))
                         Spacer(modifier = Modifier.width(10.dp))
                         Text("Confirm Application Restore", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black), color = Color.White)
                     }
                 },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Selected backup archive details:", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF94A3B8))
+                        Text("Selected backup archive details:", style = MaterialTheme.typography.bodyMedium, color = Palette.Slate400)
 
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFF0B1220))
-                                .border(1.dp, Color(0xFF1E2838), RoundedCornerShape(10.dp))
+                                .cockpitSurface(Palette.Ink950, Palette.Ink750, CopilotShapes.R10)
                                 .padding(12.dp)
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("• Created: ${pendingRestoreManifest?.formattedDate}", style = MaterialTheme.typography.bodySmall, color = Color.White)
                                 Text("• App Version: v${pendingRestoreManifest?.appVersion}", style = MaterialTheme.typography.bodySmall, color = Color.White)
-                                Text("• Driving Trips: ${pendingRestoreManifest?.tripCount}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF38BDF8))
-                                Text("• Fuel Refills: ${pendingRestoreManifest?.fuelEventCount}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF10B981))
-                                Text("• Ledger Events: ${pendingRestoreManifest?.fuelLedgerCount}", style = MaterialTheme.typography.bodySmall, color = Color(0xFFF59E0B))
+                                Text("• Driving Trips: ${pendingRestoreManifest?.tripCount}", style = MaterialTheme.typography.bodySmall, color = Palette.Sky400)
+                                Text("• Fuel Refills: ${pendingRestoreManifest?.fuelEventCount}", style = MaterialTheme.typography.bodySmall, color = Palette.Emerald500)
+                                Text("• Ledger Events: ${pendingRestoreManifest?.fuelLedgerCount}", style = MaterialTheme.typography.bodySmall, color = Palette.Amber500)
                             }
                         }
 
                         Text(
                             "Restoring will overwrite current driving and fuel records with data from this archive. An automatic pre-restore safety snapshot will be created before applying.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFCBD5E1)
+                            color = Palette.Slate300
                         )
                     }
                 },
@@ -524,8 +524,8 @@ private fun MainAppScreen(
                             }
                         },
                         enabled = !isRestoring,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                        shape = RoundedCornerShape(10.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = Palette.Sky600),
+                        shape = CopilotShapes.R10
                     ) {
                         Text(if (isRestoring) "Restoring..." else "Confirm Restore", fontWeight = FontWeight.Bold)
                     }

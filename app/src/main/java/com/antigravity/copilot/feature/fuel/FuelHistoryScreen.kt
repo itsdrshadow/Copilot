@@ -1,5 +1,10 @@
 package com.antigravity.copilot.feature.fuel
 
+import com.antigravity.copilot.core.designsystem.components.cockpitSurface
+import com.antigravity.copilot.core.designsystem.components.TintedBadge
+import com.antigravity.copilot.core.designsystem.components.BadgeSize
+import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -157,9 +162,7 @@ fun FuelHistoryScreen(
                             onClick = onBackToCockpit,
                             modifier = Modifier
                                 .size(50.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF141C2B))
-                                .border(1.2.dp, Color(0xFF1E2838), RoundedCornerShape(12.dp))
+                                .cockpitSurface(Color(0xFF141C2B), Palette.Ink750, CopilotShapes.R12, borderWidth = 1.2.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -171,15 +174,13 @@ fun FuelHistoryScreen(
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF0F263E))
-                                .border(1.2.dp, Color(0xFF38BDF8).copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
+                                .cockpitSurface(Color(0xFF0F263E), Palette.Sky400.copy(alpha = 0.5f), CopilotShapes.R12, borderWidth = 1.2.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.LocalGasStation,
                                 contentDescription = null,
-                                tint = Color(0xFF38BDF8),
+                                tint = Palette.Sky400,
                                 modifier = Modifier.size(26.dp)
                             )
                         }
@@ -200,9 +201,7 @@ fun FuelHistoryScreen(
                                 // Current Year Badge
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(0xFF142033))
-                                        .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                                        .cockpitSurface(Color(0xFF142033), Palette.Sky400.copy(alpha = 0.35f), CopilotShapes.R6)
                                         .padding(horizontal = 8.dp, vertical = 3.dp)
                                 ) {
                                     Text(
@@ -211,7 +210,7 @@ fun FuelHistoryScreen(
                                             fontWeight = FontWeight.Black,
                                             fontFeatureSettings = "tnum"
                                         ),
-                                        color = Color(0xFF38BDF8)
+                                        color = Palette.Sky400
                                     )
                                 }
                             }
@@ -221,7 +220,7 @@ fun FuelHistoryScreen(
                                 style = CockpitTheme.typography.labelSmall.copy(
                                     letterSpacing = 0.5.sp
                                 ),
-                                color = Color(0xFF87929A)
+                                color = Palette.Steel400
                             )
                         }
                     }
@@ -240,12 +239,12 @@ fun FuelHistoryScreen(
                                 val isSelected = year == selectedYear
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isSelected) Color(0xFF1E3A5F) else Color(0xFF0F1522))
+                                        .clip(CopilotShapes.R12)
+                                        .background(if (isSelected) Palette.Ink600 else Palette.Ink900)
                                         .border(
                                             width = 1.2.dp,
-                                            color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E2838),
-                                            shape = RoundedCornerShape(12.dp)
+                                            color = if (isSelected) Palette.Sky400 else Palette.Ink750,
+                                            shape = CopilotShapes.R12
                                         )
                                         .clickable { selectedYear = year }
                                         .padding(horizontal = 16.dp, vertical = 10.dp),
@@ -257,7 +256,7 @@ fun FuelHistoryScreen(
                                             fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                             fontFeatureSettings = "tnum"
                                         ),
-                                        color = if (isSelected) Color.White else Color(0xFF87929A)
+                                        color = if (isSelected) Color.White else Palette.Steel400
                                     )
                                 }
                             }
@@ -323,7 +322,7 @@ fun FuelHistoryScreen(
                         eventToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Cockpit_RedAlert),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = CopilotShapes.R10
                 ) {
                     Text("Delete", fontWeight = FontWeight.Bold)
                 }
@@ -349,9 +348,7 @@ private fun YearlySummaryBanner(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF0B1019))
-            .border(1.2.dp, Color(0xFF1E2838), RoundedCornerShape(14.dp))
+            .cockpitSurface(Color(0xFF0B1019), Palette.Ink750, CopilotShapes.R14, borderWidth = 1.2.dp)
             .padding(horizontal = 12.dp, vertical = 9.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -371,7 +368,7 @@ private fun YearlySummaryBanner(
             label = "TOTAL FUEL",
             value = if (analytics.totalLiters > 0) NumberFormatUtils.formatFuelLiters(analytics.totalLiters, 2) else "0",
             unit = "L",
-            color = Color(0xFF38BDF8)
+            color = Palette.Sky400
         )
 
         // Total Cost
@@ -380,7 +377,7 @@ private fun YearlySummaryBanner(
             label = "TOTAL COST",
             value = if (analytics.totalCost > 0) NumberFormatUtils.formatCurrency(analytics.totalCost, 2, useGrouping = true) else "0",
             unit = "₹",
-            color = Color(0xFFF59E0B)
+            color = Palette.Amber500
         )
 
         // Average Mileage (True Tank-to-Tank / Delta)
@@ -389,7 +386,7 @@ private fun YearlySummaryBanner(
             label = "AVG MILEAGE",
             value = if (analytics.avgMileageKmpl > 0) NumberFormatUtils.formatMileage(analytics.avgMileageKmpl, 2) else "--",
             unit = "km/L",
-            color = Color(0xFF10B981)
+            color = Palette.Emerald500
         )
 
         // Total Distance
@@ -398,7 +395,7 @@ private fun YearlySummaryBanner(
             label = "TOTAL DISTANCE",
             value = if (analytics.totalDistanceKm > 0) NumberFormatUtils.formatDistance(analytics.totalDistanceKm, 2, useGrouping = true) else "--",
             unit = "km",
-            color = Color(0xFFA855F7)
+            color = Palette.Purple500
         )
     }
 }
@@ -414,9 +411,7 @@ private fun FuelStatBadgeCard(
     Box(
         modifier = modifier
             .defaultMinSize(minHeight = 62.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF0F1522))
-            .border(1.dp, Color(0xFF1A2332), RoundedCornerShape(10.dp))
+            .cockpitSurface(Palette.Ink900, Palette.Ink800, CopilotShapes.R10)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -442,7 +437,7 @@ private fun FuelStatBadgeCard(
                         style = CockpitTheme.typography.labelSmall.copy(
                             fontFeatureSettings = "tnum"
                         ),
-                        color = Color(0xFF87929A),
+                        color = Palette.Steel400,
                         modifier = Modifier.padding(bottom = 1.dp)
                     )
                 }
@@ -453,7 +448,7 @@ private fun FuelStatBadgeCard(
                 style = CockpitTheme.typography.labelSmall.copy(
                     letterSpacing = 0.4.sp
                 ),
-                color = Color(0xFF87929A),
+                color = Palette.Steel400,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -488,15 +483,13 @@ private fun FuelRecordsMonthGroupedFeed(
                 Box(
                     modifier = Modifier
                         .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF101726))
-                        .border(1.2.dp, Color(0xFF1E2838), CircleShape),
+                        .cockpitSurface(Color(0xFF101726), Palette.Ink750, CircleShape, borderWidth = 1.2.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocalGasStation,
                         contentDescription = null,
-                        tint = Color(0xFF475569),
+                        tint = Palette.Slate600,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -512,7 +505,7 @@ private fun FuelRecordsMonthGroupedFeed(
                 Text(
                     text = "Refuels recorded via '+ ADD FUEL' during ${analytics.year} will appear grouped here with live mileage and costs.",
                     style = CockpitTheme.typography.bodyMedium,
-                    color = Color(0xFF87929A)
+                    color = Palette.Steel400
                 )
             }
         }
@@ -534,9 +527,7 @@ private fun FuelRecordsMonthGroupedFeed(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF0A0F1A))
-                        .border(1.dp, Color(0xFF1A2436), RoundedCornerShape(14.dp))
+                        .cockpitSurface(Color(0xFF0A0F1A), Color(0xFF1A2436), CopilotShapes.R14)
                 ) {
                     // Month Header Accordion Bar (Bada touch target aur bada readable text)
                     Row(
@@ -545,7 +536,7 @@ private fun FuelRecordsMonthGroupedFeed(
                             .defaultMinSize(minHeight = 60.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(color = Color(0xFF38BDF8)),
+                                indication = rememberRipple(color = Palette.Sky400),
                                 onClick = { expandedMonths[monthKey] = !isExpanded }
                             )
                             .padding(horizontal = 18.dp, vertical = 14.dp),
@@ -571,20 +562,20 @@ private fun FuelRecordsMonthGroupedFeed(
                             ) {
                                 PillBadge(
                                     text = "${monthData.refillCount} refills",
-                                    color = Color(0xFF94A3B8)
+                                    color = Palette.Slate400
                                 )
                                 PillBadge(
                                     text = NumberFormatUtils.formatFuelLitersWithUnit(monthData.totalLiters, 2),
-                                    color = Color(0xFF38BDF8)
+                                    color = Palette.Sky400
                                 )
                                 PillBadge(
                                     text = NumberFormatUtils.formatCurrencyWithSymbol(monthData.totalCost, 2, useGrouping = true),
-                                    color = Color(0xFFF59E0B)
+                                    color = Palette.Amber500
                                 )
                                 if (monthData.mileageKmpl > 0) {
                                     PillBadge(
                                         text = NumberFormatUtils.formatMileageWithUnit(monthData.mileageKmpl, 2),
-                                        color = Color(0xFF10B981)
+                                        color = Palette.Emerald500
                                     )
                                 }
                             }
@@ -593,7 +584,7 @@ private fun FuelRecordsMonthGroupedFeed(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = if (isExpanded) "Collapse" else "Expand",
-                            tint = Color(0xFF87929A),
+                            tint = Palette.Steel400,
                             modifier = Modifier
                                 .size(28.dp)
                                 .rotate(arrowRotation)
@@ -628,26 +619,6 @@ private fun FuelRecordsMonthGroupedFeed(
     }
 }
 
-@Composable
-private fun PillBadge(text: String, color: Color) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(color.copy(alpha = 0.15f))
-            .border(1.2.dp, color.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 5.dp)
-    ) {
-        Text(
-            text = text,
-            style = CockpitTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Black,
-                fontFeatureSettings = "tnum"
-            ),
-            color = color
-        )
-    }
-}
-
 // ==================== FUEL EVENT CARD ====================
 
 @Composable
@@ -663,9 +634,7 @@ private fun FuelEventCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF0F1524))
-            .border(1.dp, Color(0xFF1E2838), RoundedCornerShape(12.dp))
+            .cockpitSurface(Color(0xFF0F1524), Palette.Ink750, CopilotShapes.R12)
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -682,8 +651,8 @@ private fun FuelEventCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(5.dp))
-                            .background(Color(0xFF0284C7).copy(alpha = 0.2f))
-                            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.45f), RoundedCornerShape(5.dp))
+                            .background(Palette.Sky600.copy(alpha = 0.2f))
+                            .border(1.dp, Palette.Sky400.copy(alpha = 0.45f), RoundedCornerShape(5.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
@@ -692,7 +661,7 @@ private fun FuelEventCard(
                                 fontWeight = FontWeight.Black,
                                 fontFeatureSettings = "tnum"
                             ),
-                            color = Color(0xFF38BDF8)
+                            color = Palette.Sky400
                         )
                     }
 
@@ -702,17 +671,15 @@ private fun FuelEventCard(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(2.dp),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(5.dp))
-                                .background(Color(0xFF141A24))
-                                .border(1.dp, Color(0xFF262A31), RoundedCornerShape(5.dp))
+                                .cockpitSurface(Palette.Ink850, Palette.Graphite700, RoundedCornerShape(5.dp))
                                 .padding(horizontal = 5.dp, vertical = 3.dp)
                         ) {
                             for (i in 0 until 10) {
                                 val isFilled = i < event.midLevelObserved
                                 val barColor = when {
-                                    isFilled && i < 2 -> Color(0xFFEF4444)
-                                    isFilled && i < 5 -> Color(0xFFF59E0B)
-                                    isFilled -> Color(0xFF38BDF8)
+                                    isFilled && i < 2 -> Palette.Red500
+                                    isFilled && i < 5 -> Palette.Amber500
+                                    isFilled -> Palette.Sky400
                                     else -> Color(0xFF1F2937)
                                 }
                                 Box(
@@ -728,7 +695,7 @@ private fun FuelEventCard(
                                 style = CockpitTheme.typography.labelSmall.copy(
                                     fontFeatureSettings = "tnum"
                                 ),
-                                color = Color(0xFFCBD5E1)
+                                color = Palette.Slate300
                             )
                         }
                     }
@@ -739,7 +706,7 @@ private fun FuelEventCard(
                     style = CockpitTheme.typography.bodySmall.copy(
                         fontFeatureSettings = "tnum"
                     ),
-                    color = Color(0xFF87929A)
+                    color = Palette.Steel400
                 )
             }
 
@@ -762,7 +729,7 @@ private fun FuelEventCard(
                                 fontFeatureSettings = "tnum",
                                 letterSpacing = (-0.5).sp
                             ),
-                            color = Color(0xFF38BDF8)
+                            color = Palette.Sky400
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
@@ -770,7 +737,7 @@ private fun FuelEventCard(
                             style = CockpitTheme.typography.labelSmall.copy(
                                 fontFeatureSettings = "tnum"
                             ),
-                            color = Color(0xFF87929A),
+                            color = Palette.Steel400,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -779,7 +746,7 @@ private fun FuelEventCard(
                             style = CockpitTheme.typography.bodyMedium.copy(
                                 fontFeatureSettings = "tnum"
                             ),
-                            color = Color(0xFF87929A),
+                            color = Palette.Steel400,
                             modifier = Modifier.padding(bottom = 2.dp)
                         )
                     }
@@ -793,7 +760,7 @@ private fun FuelEventCard(
                                 style = CockpitTheme.typography.bodySmall.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
-                                color = Color(0xFF94A3B8),
+                                color = Palette.Slate400,
                                 maxLines = 1
                             )
                         }
@@ -812,7 +779,7 @@ private fun FuelEventCard(
                             fontWeight = FontWeight.Black,
                             fontFeatureSettings = "tnum"
                         ),
-                        color = Color(0xFFF59E0B)
+                        color = Palette.Amber500
                     )
 
                     Row(
@@ -822,9 +789,7 @@ private fun FuelEventCard(
                         if (event.odometerKm > 0) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0xFF141A24))
-                                    .border(1.dp, Color(0xFF262A31), RoundedCornerShape(6.dp))
+                                    .cockpitSurface(Palette.Ink850, Palette.Graphite700, CopilotShapes.R6)
                                     .padding(horizontal = 6.dp, vertical = 3.dp)
                             ) {
                                 Text(
@@ -840,9 +805,9 @@ private fun FuelEventCard(
                         if (event.calculatedMileageKmpl > 0) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color(0xFF10B981).copy(alpha = 0.15f))
-                                    .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                    .clip(CopilotShapes.R6)
+                                    .background(Palette.Emerald500.copy(alpha = 0.15f))
+                                    .border(1.dp, Palette.Emerald500.copy(alpha = 0.4f), CopilotShapes.R6)
                                     .padding(horizontal = 6.dp, vertical = 3.dp)
                             ) {
                                 Text(
@@ -851,7 +816,7 @@ private fun FuelEventCard(
                                         fontWeight = FontWeight.Black,
                                         fontFeatureSettings = "tnum"
                                     ),
-                                    color = Color(0xFF10B981)
+                                    color = Palette.Emerald500
                                 )
                             }
                         }
@@ -868,12 +833,10 @@ private fun FuelEventCard(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF0F2642))
-                            .border(1.2.dp, Color(0xFF38BDF8).copy(alpha = 0.55f), CircleShape)
+                            .cockpitSurface(Color(0xFF0F2642), Palette.Sky400.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = true, color = Color(0xFF38BDF8)),
+                                indication = rememberRipple(bounded = true, color = Palette.Sky400),
                                 onClick = onEdit
                             ),
                         contentAlignment = Alignment.Center
@@ -881,7 +844,7 @@ private fun FuelEventCard(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Refuel",
-                            tint = Color(0xFF38BDF8),
+                            tint = Palette.Sky400,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -889,12 +852,10 @@ private fun FuelEventCard(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF3B151E))
-                            .border(1.2.dp, Color(0xFFEF4444).copy(alpha = 0.55f), CircleShape)
+                            .cockpitSurface(Color(0xFF3B151E), Palette.Red500.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = true, color = Color(0xFFEF4444)),
+                                indication = rememberRipple(bounded = true, color = Palette.Red500),
                                 onClick = onDelete
                             ),
                         contentAlignment = Alignment.Center
@@ -902,7 +863,7 @@ private fun FuelEventCard(
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Refuel",
-                            tint = Color(0xFFEF4444),
+                            tint = Palette.Red500,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -933,9 +894,7 @@ private fun EditFuelEventDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.72f)
-                .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFF0F182A))
-                .border(1.5.dp, Color(0xFF2563EB), RoundedCornerShape(22.dp))
+                .cockpitSurface(Color(0xFF0F182A), Color(0xFF2563EB), CopilotShapes.R22, borderWidth = 1.5.dp)
                 .padding(22.dp)
         ) {
             Column(
@@ -965,7 +924,7 @@ private fun EditFuelEventDialog(
                     }
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(36.dp).clip(CircleShape).background(Color(0xFF1E2D4A))
+                        modifier = Modifier.size(36.dp).clip(CircleShape).background(Palette.Ink700)
                     ) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(18.dp))
                     }
@@ -982,9 +941,9 @@ private fun EditFuelEventDialog(
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White,
                         focusedBorderColor = Cockpit_Cyan,
-                        unfocusedBorderColor = Color(0xFF1E2D4A)
+                        unfocusedBorderColor = Palette.Ink700
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = CopilotShapes.R12
                 )
 
                 // 2x2 fields
@@ -1005,9 +964,9 @@ private fun EditFuelEventDialog(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = Cockpit_Cyan,
-                            unfocusedBorderColor = Color(0xFF1E2D4A)
+                            unfocusedBorderColor = Palette.Ink700
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = CopilotShapes.R12
                     )
 
                     OutlinedTextField(
@@ -1026,9 +985,9 @@ private fun EditFuelEventDialog(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = Cockpit_Cyan,
-                            unfocusedBorderColor = Color(0xFF1E2D4A)
+                            unfocusedBorderColor = Palette.Ink700
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = CopilotShapes.R12
                     )
                 }
 
@@ -1038,15 +997,15 @@ private fun EditFuelEventDialog(
                         onValueChange = { costText = it },
                         label = { Text("Total Bill (₹)", color = Cockpit_TextSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Color(0xFFFFD54F), fontFeatureSettings = "tnum"),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Palette.Amber300, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFFFFD54F),
-                            unfocusedTextColor = Color(0xFFFFD54F),
-                            focusedBorderColor = Color(0xFFFFD54F),
-                            unfocusedBorderColor = Color(0xFF1E2D4A)
+                            focusedTextColor = Palette.Amber300,
+                            unfocusedTextColor = Palette.Amber300,
+                            focusedBorderColor = Palette.Amber300,
+                            unfocusedBorderColor = Palette.Ink700
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = CopilotShapes.R12
                     )
 
                     OutlinedTextField(
@@ -1060,9 +1019,9 @@ private fun EditFuelEventDialog(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = Cockpit_Cyan,
-                            unfocusedBorderColor = Color(0xFF1E2D4A)
+                            unfocusedBorderColor = Palette.Ink700
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = CopilotShapes.R12
                     )
                 }
 
@@ -1092,7 +1051,7 @@ private fun EditFuelEventDialog(
                             onSave(updated)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Cockpit_BlueAccent),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = CopilotShapes.R12
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1252,3 +1211,10 @@ private fun computeYearlyAnalytics(
     )
 }
 
+@Composable
+private fun PillBadge(text: String, color: Color) = TintedBadge(
+    text = text,
+    color = color,
+    size = BadgeSize.Regular,
+    textStyle = CockpitTheme.typography.labelSmall.copy(fontWeight = FontWeight.Black, fontFeatureSettings = "tnum")
+)

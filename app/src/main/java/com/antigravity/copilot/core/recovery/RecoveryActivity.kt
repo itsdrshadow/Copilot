@@ -1,5 +1,7 @@
 package com.antigravity.copilot.core.recovery
 
+import com.antigravity.copilot.core.designsystem.tokens.Palette
+import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -10,7 +12,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -120,9 +121,9 @@ private fun RecoveryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(CopilotShapes.R12)
                     .background(Color(0xFF140D12))
-                    .border(1.2.dp, Cockpit_RedAlert.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                    .border(1.2.dp, Cockpit_RedAlert.copy(alpha = 0.6f), CopilotShapes.R12)
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -159,9 +160,9 @@ private fun RecoveryScreen(
                             )
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(CopilotShapes.R4)
                                     .background(Cockpit_RedAlert.copy(alpha = 0.25f))
-                                    .border(0.8.dp, Cockpit_RedAlert, RoundedCornerShape(4.dp))
+                                    .border(0.8.dp, Cockpit_RedAlert, CopilotShapes.R4)
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
@@ -197,7 +198,7 @@ private fun RecoveryScreen(
                         onClick = { isCountdownPaused = !isCountdownPaused },
                         modifier = Modifier.height(32.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp),
-                        shape = RoundedCornerShape(6.dp),
+                        shape = CopilotShapes.R6,
                         border = ButtonDefaults.outlinedButtonBorder.copy(
                             brush = Brush.horizontalGradient(listOf(Cockpit_CardBorder, Cockpit_Cyan.copy(alpha = 0.4f)))
                         )
@@ -229,9 +230,9 @@ private fun RecoveryScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(CopilotShapes.R12)
                             .background(Color(0xFF091424))
-                            .border(1.dp, Cockpit_GreenEco.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .border(1.dp, Cockpit_GreenEco.copy(alpha = 0.5f), CopilotShapes.R12)
                             .padding(12.dp)
                     ) {
                         Row(
@@ -264,9 +265,9 @@ private fun RecoveryScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(CopilotShapes.R12)
                             .background(Color(0xFF0A101C))
-                            .border(1.dp, Cockpit_CardBorder, RoundedCornerShape(12.dp))
+                            .border(1.dp, Cockpit_CardBorder, CopilotShapes.R12)
                             .padding(12.dp)
                     ) {
                         Column(
@@ -303,9 +304,9 @@ private fun RecoveryScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(CopilotShapes.R8)
                                     .background(Color(0xFF060B12))
-                                    .border(0.8.dp, Cockpit_CardBorder.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                    .border(0.8.dp, Cockpit_CardBorder.copy(alpha = 0.5f), CopilotShapes.R8)
                                     .padding(8.dp)
                                     .verticalScroll(rememberScrollState())
                             ) {
@@ -314,7 +315,7 @@ private fun RecoveryScreen(
                                     style = CockpitTheme.typography.bodySmall.copy(
                                         fontFamily = FontFamily.Monospace
                                     ),
-                                    color = if (showFullTrace) Color(0xFFCBD5E1) else Cockpit_RedAlert
+                                    color = if (showFullTrace) Palette.Slate300 else Cockpit_RedAlert
                                 )
                             }
                         }
@@ -334,7 +335,7 @@ private fun RecoveryScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = CopilotShapes.R12,
                         colors = ButtonDefaults.buttonColors(containerColor = Cockpit_Cyan)
                     ) {
                         Row(
@@ -371,7 +372,7 @@ private fun RecoveryScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = CopilotShapes.R10,
                         border = ButtonDefaults.outlinedButtonBorder.copy(
                             brush = Brush.horizontalGradient(listOf(Cockpit_CardBorder, Cockpit_Cyan.copy(alpha = 0.5f)))
                         )
@@ -401,7 +402,7 @@ private fun RecoveryScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = CopilotShapes.R10,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF143026))
                     ) {
                         Row(
@@ -429,7 +430,7 @@ private fun RecoveryScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(44.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = CopilotShapes.R10,
                         border = ButtonDefaults.outlinedButtonBorder.copy(
                             brush = Brush.horizontalGradient(listOf(Cockpit_CardBorder, Cockpit_AmberWarning.copy(alpha = 0.5f)))
                         )

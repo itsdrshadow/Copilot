@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.splash
 
+import com.antigravity.copilot.core.designsystem.tokens.Palette
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -127,16 +128,16 @@ fun CarSilhouetteCanvas(
             val reflOpacity = (reflectionAlpha * 0.32f).coerceIn(0f, 0.32f)
             drawPath(
                 path = reflectionRooflinePath,
-                color = Color(0xFF00D2FF).copy(alpha = reflOpacity),
+                color = Palette.CyanBright.copy(alpha = reflOpacity),
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
             drawPath(
                 path = reflectionUnderbodyPath,
-                color = Color(0xFF0A58CA).copy(alpha = reflOpacity * 0.6f),
+                color = Palette.Blue700.copy(alpha = reflOpacity * 0.6f),
                 style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round)
             )
             drawLine(
-                color = Color(0xFF00F0FF).copy(alpha = (reflectionAlpha * 0.75f).coerceIn(0f, 0.75f)),
+                color = Palette.CyanNeon.copy(alpha = (reflectionAlpha * 0.75f).coerceIn(0f, 0.75f)),
                 start = Offset(cx - carLength * 0.65f, groundY),
                 end = Offset(cx + carLength * 0.65f, groundY),
                 strokeWidth = 1.5.dp.toPx(),
@@ -154,8 +155,8 @@ fun CarSilhouetteCanvas(
             }
             drawGlowPath(
                 path = pathLeft,
-                coreColor = Color(0xFF00F0FF),
-                glowColor = Color(0xFF0A58CA),
+                coreColor = Palette.CyanNeon,
+                glowColor = Palette.Blue700,
                 glowAlpha = glowIntensity,
                 coreWidth = 2.dp.toPx(),
                 glowWidth = 5.dp.toPx()
@@ -169,8 +170,8 @@ fun CarSilhouetteCanvas(
             }
             drawGlowPath(
                 path = pathRight,
-                coreColor = Color(0xFF00D2FF),
-                glowColor = Color(0xFF0A58CA),
+                coreColor = Palette.CyanBright,
+                glowColor = Palette.Blue700,
                 glowAlpha = glowIntensity,
                 coreWidth = 2.dp.toPx(),
                 glowWidth = 5.dp.toPx()
@@ -188,7 +189,7 @@ fun CarSilhouetteCanvas(
             drawGlowPath(
                 path = pathRoof,
                 coreColor = Color(0xFFFFFFFF),
-                glowColor = Color(0xFF00D2FF),
+                glowColor = Palette.CyanBright,
                 glowAlpha = glowIntensity,
                 coreWidth = 2.dp.toPx(),
                 glowWidth = 5.5.dp.toPx()
@@ -202,8 +203,8 @@ fun CarSilhouetteCanvas(
             }
             drawGlowPath(
                 path = pathUnder,
-                coreColor = Color(0xFF00F0FF),
-                glowColor = Color(0xFF0A58CA),
+                coreColor = Palette.CyanNeon,
+                glowColor = Palette.Blue700,
                 glowAlpha = glowIntensity * 0.8f,
                 coreWidth = 1.6.dp.toPx(),
                 glowWidth = 4.dp.toPx()
@@ -226,7 +227,7 @@ fun CarSilhouetteCanvas(
             if (silhouetteProgress > 0.85f) {
                 val lightAlpha = ((silhouetteProgress - 0.85f) / 0.15f * glowIntensity).coerceIn(0f, 1f)
                 drawLine(
-                    color = Color(0xFF00F0FF).copy(alpha = lightAlpha),
+                    color = Palette.CyanNeon.copy(alpha = lightAlpha),
                     start = Offset(x1 - carLength * 0.08f, groundY - carHeight * 0.24f),
                     end = Offset(x1, groundY - carHeight * 0.20f),
                     strokeWidth = 2.5.dp.toPx(),
