@@ -86,58 +86,71 @@ fun TripMetricTicker(
     }
 
     val shape = Raahi.InnerShape
-    AnimatedContent(
-        targetState = index,
-        transitionSpec = {
-            (
-                slideInVertically(tween(450, easing = FastOutSlowInEasing)) { it } +
-                    fadeIn(tween(450))
-            ).togetherWith(
-                slideOutVertically(tween(350, easing = FastOutSlowInEasing)) { -it } +
-                    fadeOut(tween(250)),
-            ).using(SizeTransform(clip = true))
-        },
-        contentAlignment = Alignment.CenterStart,
-        label = "TripMetricTicker",
+    val live = currentTrip.isActive()
+    // Light outline so the chip reads as a card over any map: cyan while live, grey for last trip.
+    val outline = if (live) c.accent.copy(alpha = 0.55f) else c.textSecondary.copy(alpha = 0.45f)
+    Column(
         modifier =
             modifier
                 .widthIn(min = 220.dp, max = 300.dp)
                 .clip(shape)
                 .background(c.card.copy(alpha = 0.55f))
-                .border(1.dp, c.border.copy(alpha = 0.45f), shape)
+                .border(1.dp, outline, shape)
                 .clickable(role = Role.Button, onClickLabel = "Next trip stat") {
                     index = (index + 1) % metrics.size
-                }.padding(horizontal = 18.dp, vertical = 12.dp),
-    ) { i ->
-        val m = metrics[i % metrics.size]
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(m.icon, contentDescription = null, tint = m.accentColor, modifier = Modifier.size(20.dp))
-                Text(
-                    m.title,
-                    style = CockpitTheme.typography.labelMedium,
-                    color = c.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Row {
-                Text(
-                    m.value,
-                    style = CockpitTheme.typography.headlineLarge,
-                    color = c.textPrimary,
-                    maxLines = 1,
-                    modifier = Modifier.alignByBaseline(),
-                )
-                if (m.unit.isNotEmpty()) {
-                    Spacer(Modifier.width(6.dp))
+                }.padding(horizontal = 18.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            if (live) "CURRENT TRIP" else "LAST TRIP",
+            style = CockpitTheme.typography.labelSmall,
+            color = if (live) c.accent else c.textSecondary,
+            maxLines = 1,
+        )
+        AnimatedContent(
+            targetState = index,
+            transitionSpec = {
+                (
+                    slideInVertically(tween(450, easing = FastOutSlowInEasing)) { it } +
+                        fadeIn(tween(450))
+                ).togetherWith(
+                    slideOutVertically(tween(350, easing = FastOutSlowInEasing)) { -it } +
+                        fadeOut(tween(250)),
+                ).using(SizeTransform(clip = true))
+            },
+            contentAlignment = Alignment.CenterStart,
+            label = "TripMetricTicker",
+        ) { i ->
+            val m = metrics[i % metrics.size]
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(m.icon, contentDescription = null, tint = m.accentColor, modifier = Modifier.size(20.dp))
                     Text(
-                        m.unit,
-                        style = CockpitTheme.typography.labelLarge,
-                        color = m.accentColor,
+                        m.title,
+                        style = CockpitTheme.typography.labelMedium,
+                        color = c.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Row {
+                    Text(
+                        m.value,
+                        style = CockpitTheme.typography.headlineLarge,
+                        color = c.textPrimary,
                         maxLines = 1,
                         modifier = Modifier.alignByBaseline(),
                     )
+                    if (m.unit.isNotEmpty()) {
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            m.unit,
+                            style = CockpitTheme.typography.labelLarge,
+                            color = m.accentColor,
+                            maxLines = 1,
+                            modifier = Modifier.alignByBaseline(),
+                        )
+                    }
                 }
             }
         }

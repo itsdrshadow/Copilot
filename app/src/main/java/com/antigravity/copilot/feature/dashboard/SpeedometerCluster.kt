@@ -5,8 +5,6 @@ import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import com.antigravity.copilot.core.designsystem.components.Raahi
-import com.antigravity.copilot.core.designsystem.components.RaahiLabel
-import com.antigravity.copilot.core.designsystem.components.RaahiPill
 import com.antigravity.copilot.core.designsystem.components.raahiCard
 import com.antigravity.copilot.core.designsystem.components.RaahiDialogHost
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -219,131 +217,244 @@ fun SpeedometerCluster(
     val textPrimary = CockpitTheme.colors.textPrimary
     val textSecondary = CockpitTheme.colors.textSecondary
 
-    // ==================== RAAHI SPEED CARD ====================
-    // Label + "Limit N" · very large speed · km/h · thin bar with a red tick at the limit ·
-    // driving-state chip + acceleration. The speed-limit *sign* is shown once, on the map.
-    val c = CockpitTheme.colors
-    val overLimit = speedLimit > 0 && rawSpeed > speedLimit * 1.05f
-    val stateLabel: String
-    val stateColor: Color
-    when {
-        !isGpsValid -> { stateLabel = "No GPS"; stateColor = textSecondary }
-        rawSpeed < 1.0f -> { stateLabel = "Idle"; stateColor = textSecondary }
-        else -> when (latestPoint?.drivingState?.uppercase()) {
-            "BRAKING" -> { stateLabel = "Braking"; stateColor = c.critical }
-            "ACCELERATING" -> { stateLabel = "Accelerating"; stateColor = c.accent }
-            "IDLE" -> { stateLabel = "Idle"; stateColor = textSecondary }
-            "CRUISING" -> { stateLabel = "Cruising"; stateColor = c.positive }
-            // No classifier label yet: fall back to the GPS acceleration trend.
-            else -> when {
-                isAccelerating -> { stateLabel = "Accelerating"; stateColor = c.accent }
-                isDecelerating -> { stateLabel = "Braking"; stateColor = c.critical }
-                else -> { stateLabel = "Cruising"; stateColor = c.positive }
-            }
-        }
-    }
-    val accelText = String.format(Locale.US, "%+.1f m/s²", smoothedAccelMss)
-
-    Column(
+    // ==================== SPEEDOMETER CARD (240° dial) ====================
+    Box(
         modifier = modifier
-            .raahiCard()
-            .padding(Raahi.CardPadding),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .clip(RoundedCornerShape(AutomotiveDesignTokens.Radii.card))
+            .background(cardBg)
+            .border(
+                width = 1.25.dp,
+                color = cardBorder,
+                shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
+            )
+            .padding(14.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            RaahiLabel("Speed", modifier = Modifier.weight(1f))
-            if (speedLimit > 0) {
-                Text(
-                    text = "Limit $speedLimit",
-                    style = CockpitTheme.typography.labelLarge,
-                    color = if (overLimit) c.criticalText else textSecondary,
-                    maxLines = 1
-                )
-            }
-        }
+            // ==================== 1. SPEED LIMIT SIGN & CLUSTER HEADER ====================
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CopilotShapes.R6)
+                            .background(cyanAccent.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Speed,
+                            contentDescription = null,
+                            tint = cyanAccent,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Text(
+                        text = "SPEEDOMETER",
+                        style = CockpitTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.1.sp
+                        ),
+                        color = textSecondary,
+                        maxLines = 1
+                    )
+                }
 
-        // Hero speed: sized to the room the card actually has (font scale included).
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center
-        ) {
-            val density = androidx.compose.ui.platform.LocalDensity.current
-            val byHeight = maxHeight.value * 0.92f / density.fontScale
-            val byWidth = maxWidth.value * 0.42f / density.fontScale
-            val heroSp = minOf(112f, byHeight, byWidth).coerceAtLeast(28f)
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
-                    style = AutomotiveTypographyTokens.SpeedHero.copy(
-                        fontSize = heroSp.sp,
-                        lineHeight = heroSp.sp
-                    ),
-                    color = if (overLimit) c.criticalText else textPrimary,
-                    maxLines = 1,
-                    softWrap = false
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "km/h",
-                    style = CockpitTheme.typography.titleMedium,
-                    color = textSecondary,
-                    modifier = Modifier.padding(bottom = (heroSp * 0.14f).dp)
-                )
+                if (speedLimit > 0) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .cockpitSurface(Color.White, CockpitTheme.colors.critical, CircleShape, borderWidth = 2.5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "$speedLimit",
+                            style = CockpitTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Black
+                            ),
+                            color = Color.Black
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.size(32.dp))
+                }
             }
-        }
 
-        // Thin progress bar with a red tick at the limit.
-        val maxDisplaySpeed = if (speedLimit > 130) speedLimit * 1.25f else 160f
-        val trackColor = c.cardElevated
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(14.dp)
-                .graphicsLayer {}
-        ) {
-            val barH = 6.dp.toPx()
-            val y = (size.height - barH) / 2f
-            val r = androidx.compose.ui.geometry.CornerRadius(barH / 2f)
-            drawRoundRect(trackColor, topLeft = Offset(0f, y), size = Size(size.width, barH), cornerRadius = r)
-            val p = (animatedSpeedState.value / maxDisplaySpeed).coerceIn(0f, 1f)
-            if (p > 0f) {
-                drawRoundRect(statusColor, topLeft = Offset(0f, y), size = Size(size.width * p, barH), cornerRadius = r)
-            }
-            if (speedLimit in 1..maxDisplaySpeed.toInt()) {
-                val x = size.width * (speedLimit / maxDisplaySpeed)
-                drawLine(
-                    color = criticalColor,
-                    start = Offset(x, 0f),
-                    end = Offset(x, size.height),
-                    strokeWidth = 3.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            }
-        }
+            // ==================== 2. 240° STUDIO DIAL CANVAS ====================
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(top = 14.dp)
+                    .offset(y = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize().graphicsLayer {}) { // own layer: dial redraws stay isolated
+                    val w = size.width
+                    val h = size.height
+                    val dialRadius = (minOf(w, h) / 2f) * 0.88f
+                    val center = Offset(w / 2f, h / 2f + dialRadius * 0.08f)
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            RaahiPill(
-                text = stateLabel,
-                color = stateColor,
-                filled = stateColor != textSecondary,
-                icon = if (!isGpsValid) Icons.Default.GpsNotFixed else null
-            )
-            Spacer(Modifier.weight(1f))
-            Text(
-                text = accelText,
-                style = CockpitTheme.typography.headlineSmall,
-                color = textSecondary,
-                maxLines = 1
-            )
+                    val startAngle = 150f
+                    val sweepRange = 240f
+                    val maxDisplaySpeed = 160f
+                    val speedProgress = (animatedSpeedState.value / maxDisplaySpeed).coerceIn(0f, 1f)
+
+                    // 1. Background Arc Track
+                    drawArc(
+                        color = Color.White.copy(alpha = 0.08f),
+                        startAngle = startAngle,
+                        sweepAngle = sweepRange,
+                        useCenter = false,
+                        topLeft = Offset(center.x - dialRadius, center.y - dialRadius),
+                        size = Size(dialRadius * 2, dialRadius * 2),
+                        style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
+                    )
+
+                    // 2. Active Glowing Speed Arc
+                    val activeSweep = sweepRange * speedProgress
+                    if (activeSweep > 0.5f) {
+                        drawArc(
+                            color = statusColor,
+                            startAngle = startAngle,
+                            sweepAngle = activeSweep,
+                            useCenter = false,
+                            topLeft = Offset(center.x - dialRadius, center.y - dialRadius),
+                            size = Size(dialRadius * 2, dialRadius * 2),
+                            style = Stroke(width = 9.dp.toPx(), cap = StrokeCap.Round)
+                        )
+
+                        // Head pip
+                        val headAngleRad = Math.toRadians((startAngle + activeSweep).toDouble())
+                        val pipCenter = Offset(
+                            (center.x + dialRadius * cos(headAngleRad)).toFloat(),
+                            (center.y + dialRadius * sin(headAngleRad)).toFloat()
+                        )
+                        drawCircle(
+                            color = Color.White,
+                            radius = 6.dp.toPx(),
+                            center = pipCenter
+                        )
+                        drawCircle(
+                            color = statusColor,
+                            radius = 3.dp.toPx(),
+                            center = pipCenter
+                        )
+                    }
+
+                    // 3. Speed Limit Notch
+                    if (speedLimit in 10..160) {
+                        val limitAngle = startAngle + sweepRange * (speedLimit / maxDisplaySpeed)
+                        val limitRad = Math.toRadians(limitAngle.toDouble())
+                        val notchStart = Offset(
+                            (center.x + (dialRadius - 6.dp.toPx()) * cos(limitRad)).toFloat(),
+                            (center.y + (dialRadius - 6.dp.toPx()) * sin(limitRad)).toFloat()
+                        )
+                        val notchEnd = Offset(
+                            (center.x + (dialRadius + 6.dp.toPx()) * cos(limitRad)).toFloat(),
+                            (center.y + (dialRadius + 6.dp.toPx()) * sin(limitRad)).toFloat()
+                        )
+                        drawLine(
+                            color = criticalColor,
+                            start = notchStart,
+                            end = notchEnd,
+                            strokeWidth = 3.5.dp.toPx(),
+                            cap = StrokeCap.Round
+                        )
+                    }
+                }
+
+                // Center Speed Readout
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
+                        style = CockpitTheme.typography.displayLarge,
+                        color = textPrimary
+                    )
+                    Text(
+                        text = "KM/H",
+                        style = CockpitTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.0.sp
+                        ),
+                        color = statusColor
+                    )
+                    Spacer(Modifier.height(6.dp))
+
+                    // Prominent Dynamic Speed Trend Readout
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(CopilotShapes.R8)
+                            .background(
+                                when {
+                                    !isGpsValid -> CockpitTheme.colors.cardElevated
+                                    isAccelerating -> cyanAccent.copy(alpha = 0.15f)
+                                    isDecelerating -> CockpitTheme.colors.warning.copy(alpha = 0.15f)
+                                    else -> CockpitTheme.colors.cardElevated
+                                }
+                            )
+                            .padding(
+                                horizontal = 12.dp,
+                                vertical = 4.dp
+                            )
+                    ) {
+                        Icon(
+                            imageVector = when {
+                                !isGpsValid -> Icons.Default.GpsNotFixed
+                                isAccelerating -> Icons.AutoMirrored.Filled.TrendingUp
+                                isDecelerating -> Icons.AutoMirrored.Filled.TrendingDown
+                                else -> Icons.Default.SwapHoriz
+                            },
+                            contentDescription = null,
+                            tint = when {
+                                !isGpsValid -> textSecondary
+                                isAccelerating -> cyanAccent
+                                isDecelerating -> CockpitTheme.colors.warning
+                                else -> textSecondary
+                            },
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = when {
+                                !isGpsValid -> "-- GPS"
+                                isAccelerating -> "+${String.format(Locale.US, "%.1f", smoothedAccelMss)} m/s² ACCEL"
+                                isDecelerating -> "${String.format(Locale.US, "%.1f", smoothedAccelMss)} m/s² DECEL"
+                                rawSpeed < 1.0f -> "0.0 m/s²"
+                                else -> "STEADY"
+                            },
+                            style = CockpitTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.4.sp
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false,
+                            color = when {
+                                !isGpsValid -> textSecondary
+                                isAccelerating -> cyanAccent
+                                isDecelerating -> CockpitTheme.colors.warning
+                                else -> textPrimary
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 

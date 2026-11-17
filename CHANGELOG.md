@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.1] - 2026-11-17
+
+### Changed
+- **The speed card is back to the dial.** It shows the 240° speed dial again, as before the Raahi redesign: a "Speedometer" heading with the speed-limit badge, a coloured arc with a red mark at the limit, and the speed in the centre with an accelerating/braking pill. The odometer stays in the trip strip below, so the dial's old odometer row is not brought back.
+- **The trip stats chip on the map says whose trip it is.** It is headed "Current trip" (cyan) during a trip or "Last trip" (grey) after one, and has a light border in the same colour so it stands out on the map.
+
 ## [2.2.0] - 2026-11-17
 
 ### Added
