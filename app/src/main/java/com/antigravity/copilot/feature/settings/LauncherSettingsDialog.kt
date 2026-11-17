@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.settings
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
@@ -37,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.antigravity.copilot.core.designsystem.*
 import com.antigravity.copilot.core.model.FuelState
-import com.antigravity.copilot.core.persistence.FullBackupManager
 import com.antigravity.copilot.core.recovery.CrashGuardian
 import com.antigravity.copilot.core.settings.AppSettingsManager
 import com.antigravity.copilot.core.util.NumberFormatUtils
@@ -73,16 +73,20 @@ fun LauncherSettingsDialog(
     onResetAllDataConfirmed: () -> Unit,
     @Suppress("UNUSED_PARAMETER") onPreviewTheme: (CockpitThemeMode) -> Unit = {},
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: SettingsViewModel = hiltViewModel()
 ) {
     BackHandler(onBack = onDismiss)
 
     val context = LocalContext.current
-    LaunchedEffect(Unit) {
-        AppSettingsManager.init(context)
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { msg ->
+            Toast.makeText(context, msg, if (msg.length > 40) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+        }
     }
 
-    val settingsState by AppSettingsManager.settingsState.collectAsStateWithLifecycle()
+    val settingsState by viewModel.settings.collectAsStateWithLifecycle()
+    val isBackupInProgress by viewModel.isBackupInProgress.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(SettingsTab.GENERAL) }
 
     // Vehicle state
@@ -90,8 +94,6 @@ fun LauncherSettingsDialog(
     var selectedFuelType by remember(settingsState.fuelType) { mutableStateOf(settingsState.fuelType.ifBlank { initialFuelType }) }
     var tankCapacityText by remember { mutableStateOf(currentFuelState.designCapacityLiters.toString()) }
 
-    val coroutineScope = rememberCoroutineScope()
-    var isBackupInProgress by remember { mutableStateOf(false) }
 
     // Two-Step Factory Reset State
     var isResetWarningOpen by remember { mutableStateOf(false) }
@@ -264,7 +266,9 @@ fun LauncherSettingsDialog(
                         ) {
                             when (target) {
                                 SettingsTab.GENERAL -> GeneralSettingsContent(
-                                    state = settingsState
+                                    state = settingsState,
+                                    onSelectTheme = viewModel::selectTheme,
+                                    onToggleAutoForeground = { viewModel.setAutoForegroundOnBoot(!settingsState.autoForegroundOnBoot) }
                                 )
                                 SettingsTab.VEHICLE -> VehicleSettingsContent(
                                     currentFuelState = currentFuelState,
@@ -277,32 +281,14 @@ fun LauncherSettingsDialog(
                                     onSaveConfig = {
                                         val cap = (tankCapacityText.toDoubleOrNull() ?: 48.0).coerceIn(10.0, 200.0)
                                         val currentMileage = currentFuelState.expectedMileageKmpl.coerceIn(4.0, 60.0)
-                                        AppSettingsManager.updateVehiclePhysicalSpecs(context, carName, selectedFuelType, cap, currentMileage)
+                                        viewModel.saveVehicleSpecs(carName, selectedFuelType, cap, currentMileage)
                                         onSaveVehicleConfig(carName, selectedFuelType, cap, currentMileage)
-                                        Toast.makeText(context, "Vehicle configuration saved!", Toast.LENGTH_SHORT).show()
                                     }
                                 )
                                 SettingsTab.GEOFENCES -> GeofenceSettingsContent()
                                 SettingsTab.DATA_STORAGE -> DataStorageSettingsContent(
                                     isBackupInProgress = isBackupInProgress,
-                                    onBackupNow = {
-                                        if (!isBackupInProgress) {
-                                            isBackupInProgress = true
-                                            coroutineScope.launch {
-                                                val res = FullBackupManager.createFullBackupZip(context)
-                                                isBackupInProgress = false
-                                                if (res.isSuccess && res.backupFile != null) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "Backup saved: ${res.backupFile.name} (${res.manifest?.tripCount} trips, ${res.manifest?.fuelEventCount} fuel refills)",
-                                                        Toast.LENGTH_LONG
-                                                    ).show()
-                                                } else {
-                                                    Toast.makeText(context, "Backup failed: ${res.errorMessage}", Toast.LENGTH_LONG).show()
-                                                }
-                                            }
-                                        }
-                                    },
+                                    onBackupNow = viewModel::backupNow,
                                     onRestoreNow = onLaunchRestorePicker,
                                     onTriggerReset = {
                                         isResetWarningOpen = true
@@ -460,9 +446,10 @@ fun LauncherSettingsDialog(
 
 @Composable
 private fun GeneralSettingsContent(
-    state: AppSettingsManager.SettingsState
+    state: AppSettingsManager.SettingsState,
+    onSelectTheme: (CockpitThemeMode) -> Unit,
+    onToggleAutoForeground: () -> Unit
 ) {
-    val context = LocalContext.current
 
     // DASHBOARD THEME & APPEARANCE
     SettingsCard(title = "Cockpit Color Theme & Styling", icon = Icons.Default.Palette) {
@@ -491,7 +478,7 @@ private fun GeneralSettingsContent(
                             color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
                             shape = CopilotShapes.R16
                         )
-                        .clickable { AppSettingsManager.updateCockpitTheme(context, mode) }
+                        .clickable { onSelectTheme(mode) }
                         .padding(horizontal = 18.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -546,9 +533,7 @@ private fun GeneralSettingsContent(
                         color = if (state.autoForegroundOnBoot) CockpitTheme.colors.accent else CockpitTheme.colors.border,
                         shape = CopilotShapes.R16
                     )
-                    .clickable {
-                        AppSettingsManager.updateAutoForegroundOnBoot(context, !state.autoForegroundOnBoot)
-                    }
+                    .clickable(onClick = onToggleAutoForeground)
                     .padding(horizontal = 18.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically

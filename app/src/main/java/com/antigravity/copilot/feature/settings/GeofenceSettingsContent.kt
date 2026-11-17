@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.settings
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.tokens.Palette
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
@@ -33,8 +34,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.database.TripGeofenceEntity
 import com.antigravity.copilot.core.designsystem.AutomotiveDesignTokens
-import com.antigravity.copilot.core.map.OfflineMapManager
-import com.antigravity.copilot.core.trip.TripGeofenceManager
 import com.antigravity.copilot.core.util.NumberFormatUtils
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.Canvas
@@ -45,13 +44,18 @@ import androidx.compose.ui.input.pointer.pointerInput
 import java.util.Locale
 
 @Composable
-fun GeofenceSettingsContent() {
+fun GeofenceSettingsContent(
+    viewModel: GeofenceSettingsViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    val geofenceManager = remember { TripGeofenceManager.getInstance(context) }
-    val geofences by geofenceManager.geofences.collectAsStateWithLifecycle()
+    val geofences by viewModel.geofences.collectAsStateWithLifecycle()
+    val (currentLat, currentLon) = viewModel.lastKnownPosition
 
-    val (currentLat, currentLon) = remember { OfflineMapManager.getLastKnownPosition(context) }
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { msg ->
+            Toast.makeText(context, msg, if (msg.length > 40) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+        }
+    }
 
     var isAddEditDialogOpen by remember { mutableStateOf(false) }
     var selectedGeofenceForEdit by remember { mutableStateOf<TripGeofenceEntity?>(null) }
@@ -158,7 +162,7 @@ fun GeofenceSettingsContent() {
             }
         } else {
             geofences.forEach { gf ->
-                val distanceMeters = geofenceManager.calculateDistance(gf, currentLat, currentLon)
+                val distanceMeters = viewModel.distanceMeters(gf)
                 val isInside = distanceMeters <= gf.radiusMeters
 
                 Card(
@@ -290,11 +294,7 @@ fun GeofenceSettingsContent() {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Switch(
                                 checked = gf.isEnabled,
-                                onCheckedChange = { checked ->
-                                    coroutineScope.launch {
-                                        geofenceManager.toggleGeofence(gf.id, checked)
-                                    }
-                                },
+                                onCheckedChange = { checked -> viewModel.toggle(gf.id, checked) },
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Palette.Sky400,
                                     checkedTrackColor = Palette.Sky700,
@@ -364,11 +364,8 @@ fun GeofenceSettingsContent() {
             confirmButton = {
                 Button(
                     onClick = {
-                        coroutineScope.launch {
-                            geofenceManager.deleteGeofence(gf.id)
-                            geofenceToDelete = null
-                            Toast.makeText(context, "Geofence deleted", Toast.LENGTH_SHORT).show()
-                        }
+                        viewModel.delete(gf.id)
+                        geofenceToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
@@ -393,32 +390,8 @@ fun GeofenceSettingsContent() {
             currentDeviceLon = currentLon,
             onDismiss = { isAddEditDialogOpen = false },
             onSave = { name, lat, lon, radius ->
-                coroutineScope.launch {
-                    val toEdit = selectedGeofenceForEdit
-                    val res = if (toEdit != null) {
-                        geofenceManager.updateGeofence(
-                            toEdit.copy(
-                                name = name,
-                                latitude = lat,
-                                longitude = lon,
-                                radiusMeters = radius
-                            )
-                        )
-                    } else {
-                        geofenceManager.addGeofence(
-                            name = name,
-                            latitude = lat,
-                            longitude = lon,
-                            radiusMeters = radius
-                        ).map { Unit }
-                    }
-
-                    if (res.isSuccess) {
-                        Toast.makeText(context, "Geofence saved successfully!", Toast.LENGTH_SHORT).show()
-                        isAddEditDialogOpen = false
-                    } else {
-                        Toast.makeText(context, res.exceptionOrNull()?.message ?: "Failed to save geofence", Toast.LENGTH_LONG).show()
-                    }
+                viewModel.save(selectedGeofenceForEdit, name, lat, lon, radius) {
+                    isAddEditDialogOpen = false
                 }
             }
         )

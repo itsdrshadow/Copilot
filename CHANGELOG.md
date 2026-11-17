@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.42.1] - 2026-11-17
+
+### Fixed
+- **Settings backup cancelled on close**: "Backup Now" ran in the dialog's composition scope, so closing Settings mid-backup cancelled it silently. It now runs in `SettingsViewModel.viewModelScope`.
+- **Geofence save/delete cancelled on close**: same issue in `GeofenceSettingsContent`; now handled by `GeofenceSettingsViewModel`.
+- **Concurrent USB map imports**: import progress lived in composition, so reopening the maps manager mid-import re-enabled the button and allowed a second parallel import. Progress now lives in `OfflineMapsViewModel`, which rejects a second import while one is running.
+
+### Added
+- `domain/repository/SettingsRepository`, `BackupRepository` and their `data/` implementations (bound in `RepositoryModule`).
+- `SettingsViewModel`, `GeofenceSettingsViewModel`, `OfflineMapsViewModel` (Hilt).
+
+### Changed
+- `LauncherSettingsDialog`, `GeofenceSettingsContent` and `OfflineMapsManagerContent` no longer call `AppSettingsManager`, `FullBackupManager`, `TripGeofenceManager` or `OfflineMapManager` directly.
+- The duplicated USB-import lambda in the maps manager is now a single `importFromUsb` call.
+
+---
+
 ## [1.42.0] - 2026-11-17
 
 ### Added

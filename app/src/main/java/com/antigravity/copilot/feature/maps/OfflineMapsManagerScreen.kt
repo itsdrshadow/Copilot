@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.maps
 
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.antigravity.copilot.core.designsystem.tokens.Palette
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,27 +55,28 @@ fun OfflineMapsManagerDialog(
 @Composable
 fun OfflineMapsManagerContent(
     onClose: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: OfflineMapsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val downloadState by OfflineMapManager.downloadState.collectAsStateWithLifecycle()
-    val activePkgId by OfflineMapManager.activePackageId.collectAsStateWithLifecycle()
-    val downloadProgress by OfflineMapManager.downloadProgress.collectAsStateWithLifecycle()
-    val downloadSpeedMbs by OfflineMapManager.downloadSpeedMbs.collectAsStateWithLifecycle()
-    val installedPackages by OfflineMapManager.installedPackages.collectAsStateWithLifecycle()
-    val currentGpsRegion by OfflineMapManager.currentGpsRegion.collectAsStateWithLifecycle()
-    val storageInfo by OfflineMapManager.storageInfo.collectAsStateWithLifecycle()
-    val statusMessage by OfflineMapManager.statusMessage.collectAsStateWithLifecycle()
+    val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
+    val activePkgId by viewModel.activePackageId.collectAsStateWithLifecycle()
+    val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
+    val downloadSpeedMbs by viewModel.downloadSpeedMbs.collectAsStateWithLifecycle()
+    val installedPackages by viewModel.installedPackages.collectAsStateWithLifecycle()
+    val currentGpsRegion by viewModel.currentGpsRegion.collectAsStateWithLifecycle()
+    val storageInfo by viewModel.storageInfo.collectAsStateWithLifecycle()
+    val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
+    val usbImportProgressText by viewModel.usbImportProgress.collectAsStateWithLifecycle()
+    val isImportingUsb = usbImportProgressText != null
 
-    var isImportingUsb by remember { mutableStateOf(false) }
-    var usbImportProgressText by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { msg -> Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
+    }
     var editingPackageForUrl by remember { mutableStateOf<OfflineMapManager.OfflinePackage?>(null) }
 
     LaunchedEffect(Unit) {
-        OfflineMapManager.refreshPackageStatus(context)
-        OfflineMapManager.refreshStorageInfo(context)
-        val (lat, lon) = OfflineMapManager.getLastKnownPosition(context)
-        OfflineMapManager.updateGpsLocation(lat, lon)
+        viewModel.refresh()
     }
 
     Surface(
@@ -169,9 +171,9 @@ fun OfflineMapsManagerContent(
                     downloadState = downloadState,
                     progress = downloadProgress,
                     speedMbs = downloadSpeedMbs,
-                    onPause = { activePkgId?.let { OfflineMapManager.pauseDownload(context, it) } },
-                    onResume = { activePkgId?.let { OfflineMapManager.resumeDownload(context, it) } },
-                    onCancel = { activePkgId?.let { OfflineMapManager.cancelDownload(context, it) } }
+                    onPause = { activePkgId?.let { viewModel.pauseDownload(it) } },
+                    onResume = { activePkgId?.let { viewModel.resumeDownload(it) } },
+                    onCancel = { activePkgId?.let { viewModel.cancelDownload(it) } }
                 )
             }
 
@@ -181,20 +183,10 @@ fun OfflineMapsManagerContent(
             ) {
                 DownloadErrorCard(
                     errorMessage = statusMessage,
-                    onDismiss = { OfflineMapManager.clearDownloadError() },
-                    onRetry = { activePkgId?.let { OfflineMapManager.startDownload(context, it) } },
+                    onDismiss = { viewModel.clearDownloadError() },
+                    onRetry = { activePkgId?.let { viewModel.startDownload(it) } },
                     onImportUsb = {
-                        isImportingUsb = true
-                        usbImportProgressText = "Scanning USB drive & storage..."
-                        OfflineMapManager.importFromExternalStorage(
-                            context = context,
-                            onProgress = { msg, _ -> usbImportProgressText = msg },
-                            onComplete = { _, msg ->
-                                isImportingUsb = false
-                                usbImportProgressText = null
-                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                            }
-                        )
+                        viewModel.importFromUsb("Scanning USB drive & storage...")
                     }
                 )
             }
@@ -242,10 +234,10 @@ fun OfflineMapsManagerContent(
                         isCurrentlyDownloading = downloadState == OfflineMapManager.DownloadState.DOWNLOADING && activePkgId == pkg.id,
                         onDownload = {
                             Toast.makeText(context, "Starting download for ${pkg.title}", Toast.LENGTH_SHORT).show()
-                            OfflineMapManager.startDownload(context, pkg.id)
+                            viewModel.startDownload(pkg.id)
                         },
-                        onDelete = { OfflineMapManager.deletePackage(context, pkg.id) },
-                        onUpdate = { OfflineMapManager.startDownload(context, pkg.id) },
+                        onDelete = { viewModel.deletePackage(pkg.id) },
+                        onUpdate = { viewModel.startDownload(pkg.id) },
                         onEditUrl = { editingPackageForUrl = pkg }
                     )
                 }
@@ -261,17 +253,7 @@ fun OfflineMapsManagerContent(
                 // USB / SD Card Import Button
                 Button(
                     onClick = {
-                        isImportingUsb = true
-                        usbImportProgressText = "Scanning USB drive..."
-                        OfflineMapManager.importFromExternalStorage(
-                            context = context,
-                            onProgress = { msg, _ -> usbImportProgressText = msg },
-                            onComplete = { _, msg ->
-                                isImportingUsb = false
-                                usbImportProgressText = null
-                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                            }
-                        )
+                        viewModel.importFromUsb("Scanning USB drive...")
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -297,8 +279,7 @@ fun OfflineMapsManagerContent(
                 // Check for Updates Button
                 Button(
                     onClick = {
-                        OfflineMapManager.checkForUpdates(context)
-                        Toast.makeText(context, "Checked for map updates", Toast.LENGTH_SHORT).show()
+                        viewModel.checkForUpdates()
                     },
                     modifier = Modifier
                         .weight(1f)
@@ -327,14 +308,14 @@ fun OfflineMapsManagerContent(
             editingPackageForUrl?.let { pkg ->
                 CustomUrlDialog(
                     pkg = pkg,
-                    initialUrl = OfflineMapManager.getEffectiveDownloadUrl(context, pkg),
+                    initialUrl = viewModel.effectiveDownloadUrl(pkg),
                     onSave = { newUrl ->
-                        OfflineMapManager.setCustomDownloadUrl(context, pkg.id, newUrl)
+                        viewModel.setCustomDownloadUrl(pkg.id, newUrl)
                         editingPackageForUrl = null
                         Toast.makeText(context, "Download URL updated for ${pkg.title}", Toast.LENGTH_SHORT).show()
                     },
                     onReset = {
-                        OfflineMapManager.setCustomDownloadUrl(context, pkg.id, null)
+                        viewModel.setCustomDownloadUrl(pkg.id, null)
                         editingPackageForUrl = null
                         Toast.makeText(context, "Reset to default URL", Toast.LENGTH_SHORT).show()
                     },
