@@ -36,7 +36,7 @@ import com.google.android.gms.location.*
 import kotlinx.coroutines.*
 
 @AndroidEntryPoint
-class DrivingTrackingService : Service(), LocationListener {
+class DrivingTrackingService : Service(), LocationListener, TrackingMaintenance.Handler {
 
     private lateinit var locationManager: LocationManager
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -77,9 +77,32 @@ class DrivingTrackingService : Service(), LocationListener {
     private val gnssGate = GnssQualityGate()
     private var gnssCallback: Any? = null
     private var lastActiveTripPersistMono: Long = 0L
+    /** Factory reset / backup restore in progress: no fixes, no persistence (TrackingMaintenance). */
+    @Volatile private var maintenancePaused: Boolean = false
+
+    override suspend fun pauseForMaintenance() = withContext(Dispatchers.Main) {
+        maintenancePaused = true
+        stopLocationUpdates()
+        fixesBeforeRestore.clear()
+        if (::engine.isInitialized) engine.reset()
+        if (::geofenceEngine.isInitialized) geofenceEngine.reset()
+        gpsFilter.reset()
+        lastRecordedDistanceMeters = 0.0
+    }
+
+    override suspend fun resumeAfterMaintenance() = withContext(Dispatchers.Main) {
+        try {
+            restoreActiveTripFromDatabase()
+        } catch (e: Exception) {
+            android.util.Log.w("DrivingTrackingService", "Post-maintenance restore failed: ${e.message}")
+        }
+        maintenancePaused = false
+        startLocationUpdates()
+    }
 
     private fun filterAndDispatchLocation(rawLocation: Location) {
         if (rawLocation.latitude == 0.0 && rawLocation.longitude == 0.0) return
+        if (maintenancePaused) return
         // Spoofed / test-provider fixes never drive trips or the odometer.
         @Suppress("DEPRECATION")
         if (!gnssGate.accept(rawLocation.isFromMockProvider)) return
@@ -295,6 +318,7 @@ class DrivingTrackingService : Service(), LocationListener {
         }
         registerGnssStatus()
         seedLifetimeOdometer()
+        TrackingMaintenance.handler = this
 
         onCreateContinued()
     }
@@ -587,7 +611,7 @@ class DrivingTrackingService : Service(), LocationListener {
         serviceScope.launch {
             while (isActive) {
                 delay(1000)
-                if (isPowerCut) {
+                if (isPowerCut || maintenancePaused) {
                     continue
                 }
                 val now = System.currentTimeMillis()
@@ -734,7 +758,7 @@ class DrivingTrackingService : Service(), LocationListener {
 
     @SuppressLint("MissingPermission")
     private fun startLocationUpdates() {
-        if (isPowerCut || isLocationUpdatesActive) {
+        if (isPowerCut || isLocationUpdatesActive || maintenancePaused) {
             return
         }
         stopLocationUpdates()
@@ -940,9 +964,10 @@ class DrivingTrackingService : Service(), LocationListener {
     }
 
     override fun onDestroy() {
+        if (TrackingMaintenance.handler === this) TrackingMaintenance.handler = null
         // Persist the live trip summary and position before the scope dies (kill / stopService).
         try {
-            persistActiveTripNow()
+            if (!maintenancePaused) persistActiveTripNow()
             saveLastKnownPosition(latestEmittedPoint, force = true)
             com.antigravity.copilot.core.odometer.LifetimeOdometer.flush()
         } catch (e: Exception) {

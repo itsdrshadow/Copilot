@@ -31,6 +31,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -325,7 +328,7 @@ fun LauncherSettingsDialog(
                     Icon(Icons.Default.Lock, contentDescription = null, tint = Palette.Sky400, modifier = Modifier.size(26.dp))
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Enter the reset password",
+                        text = "Confirm erase",
                         style = CockpitTheme.typography.headlineMedium,
                         color = CockpitTheme.colors.textPrimary
                     )
@@ -334,7 +337,7 @@ fun LauncherSettingsDialog(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(
-                        text = "This stops data being erased by mistake.",
+                        text = "Type ${com.antigravity.copilot.core.recovery.ResetConfirmation.WORD} below, then press and hold the red button for 3 seconds.",
                         style = CockpitTheme.typography.bodyMedium,
                         color = Palette.Steel400
                     )
@@ -347,7 +350,6 @@ fun LauncherSettingsDialog(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
                         shape = CopilotShapes.R12,
                         textStyle = CockpitTheme.typography.bodyLarge,
                         colors = OutlinedTextFieldDefaults.colors(
@@ -356,7 +358,7 @@ fun LauncherSettingsDialog(
                             focusedBorderColor = Palette.Sky400,
                             unfocusedBorderColor = Palette.Ink750
                         ),
-                        placeholder = { Text("Enter password", color = Palette.Slate500, style = CockpitTheme.typography.bodyMedium) }
+                        placeholder = { Text(com.antigravity.copilot.core.recovery.ResetConfirmation.WORD, color = Palette.Slate500, style = CockpitTheme.typography.bodyMedium) }
                     )
 
                     passwordError?.let { err ->
@@ -369,24 +371,21 @@ fun LauncherSettingsDialog(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        val trimmed = passwordInput.trim()
-                        if (trimmed == "@Shadow@511" || trimmed == "Shadow@511" || trimmed == "Shadow511" || (trimmed.contains("Shadow") && trimmed.contains("511"))) {
-                            onResetAllDataConfirmed()
-                            isPasswordPromptOpen = false
-                            Toast.makeText(context, "App data successfully reset to 0!", Toast.LENGTH_LONG).show()
-                            onDismiss()
-                        } else {
-                            passwordError = "That password is not right."
-                        }
+                // No secret in the APK (audit N5): a typed word plus a 3 s hold, so nothing can be
+                // erased by a stray tap or a guessed / decompiled password.
+                val typedOk = com.antigravity.copilot.core.recovery.ResetConfirmation.isTypedWordValid(passwordInput)
+                HoldToConfirmButton(
+                    text = if (typedOk) "Hold to erase all data" else "Type ${com.antigravity.copilot.core.recovery.ResetConfirmation.WORD} first",
+                    enabled = typedOk,
+                    holdMillis = com.antigravity.copilot.core.recovery.ResetConfirmation.HOLD_MS,
+                    onConfirmed = {
+                        onResetAllDataConfirmed()
+                        isPasswordPromptOpen = false
+                        Toast.makeText(context, "App data successfully reset to 0!", Toast.LENGTH_LONG).show()
+                        onDismiss()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.critical),
-                    shape = CopilotShapes.R12,
-                    modifier = Modifier.height(48.dp)
-                ) {
-                    Text("Erase all data", style = CockpitTheme.typography.labelLarge, color = contentColorOn(CockpitTheme.colors.critical))
-                }
+                    onReleasedEarly = { passwordError = "Keep holding for 3 seconds to erase." }
+                )
             },
             dismissButton = {
                 TextButton(onClick = { isPasswordPromptOpen = false }) {
@@ -1210,4 +1209,60 @@ private fun lastBackupText(): String {
     }
     return if (days > 7) "Last backup $whenText. Back up again to keep recent trips safe."
     else "Last backup $whenText."
+}
+
+/**
+ * Destructive confirm button that fires only after being held for [holdMillis] (audit N5).
+ * The fill shows the hold progress; releasing early cancels and calls [onReleasedEarly].
+ */
+@Composable
+private fun HoldToConfirmButton(
+    text: String,
+    enabled: Boolean,
+    holdMillis: Long,
+    onConfirmed: () -> Unit,
+    onReleasedEarly: () -> Unit
+) {
+    val progress = remember { androidx.compose.animation.core.Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val critical = CockpitTheme.colors.critical
+    Box(
+        modifier = Modifier
+            .height(48.dp)
+            .widthIn(min = 220.dp)
+            .clip(CopilotShapes.R12)
+            .background(if (enabled) critical.copy(alpha = 0.35f) else Palette.Ink750)
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                detectTapGestures(
+                    onPress = {
+                        val pressedAt = android.os.SystemClock.elapsedRealtime()
+                        val fill = scope.launch {
+                            progress.snapTo(0f)
+                            progress.animateTo(
+                                1f,
+                                androidx.compose.animation.core.tween(holdMillis.toInt(), easing = androidx.compose.animation.core.LinearEasing)
+                            )
+                        }
+                        val released = tryAwaitRelease()
+                        fill.cancel()
+                        val held = com.antigravity.copilot.core.recovery.ResetConfirmation.isHoldLongEnough(
+                            pressedAt, android.os.SystemClock.elapsedRealtime()
+                        )
+                        if (released && held) onConfirmed() else onReleasedEarly()
+                        scope.launch { progress.snapTo(0f) }
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .drawBehind {
+                    drawRect(critical, size = size.copy(width = size.width * progress.value))
+                }
+        )
+        Text(text, style = CockpitTheme.typography.labelLarge, color = contentColorOn(critical), modifier = Modifier.padding(horizontal = 16.dp))
+    }
 }

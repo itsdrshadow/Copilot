@@ -304,6 +304,34 @@ class FuelRepository private constructor(context: Context) {
         rehydrateLedgerAsync()
     }
 
+    /**
+     * After a backup restore (audit N1): the restored prefs and fuel model row replace the
+     * in-memory state, which would otherwise be persisted back over them on the next write.
+     * Without a model row in the archive (older backups) the model is replayed from fuel_events.
+     */
+    fun reloadAfterRestore(hasModelRow: Boolean) {
+        persistJob?.cancel()
+        persistJob = null
+        designCapacity = prefs.getFloat("design_capacity", 48.0f).toDouble().coerceIn(10.0, 200.0)
+        maxCapacity = prefs.getFloat("max_capacity", 48.0f).toDouble().coerceAtLeast(designCapacity)
+        baselineVehicleMileage = prefs.getFloat("baseline_vehicle_mileage", 18.0f).toDouble()
+        fuelPrice = prefs.getFloat("fuel_price", 96.5f).toDouble()
+        tripFuelCalibration = prefs.getFloat("trip_fuel_calibration", 1.0f).toDouble()
+            .takeIf { it.isFinite() && it in com.antigravity.copilot.core.logic.fuel.TripFuelCalibration.MIN..com.antigravity.copilot.core.logic.fuel.TripFuelCalibration.MAX } ?: 1.0
+        predictedSinceFullL = prefs.getFloat("predicted_since_full_l", 0.0f).toDouble()
+        predictedSinceFullKm = prefs.getFloat("predicted_since_full_km", 0.0f).toDouble()
+        cumulativeTripConsumedLiters = 0.0
+        rehydrateLedgerAsync()
+        scope.launch {
+            stateMutex.withLock {
+                // loadModel re-applies the latest hybrid lifetime on top of the restored row.
+                if (hasModelRow) loadModel() else rebuildModelFromHistoryLocked()
+                lastDisplayKey = null
+                _fuelState.update { buildFuelState() }
+            }
+        }
+    }
+
     fun rehydrateLedgerAsync() {
         scope.launch {
             stateMutex.withLock {

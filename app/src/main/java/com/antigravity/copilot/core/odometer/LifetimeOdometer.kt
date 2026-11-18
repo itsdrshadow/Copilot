@@ -38,6 +38,13 @@ object LifetimeOdometer {
         publish()
     }
 
+    /** Backup restore wrote new prefs: reload them into memory. */
+    @Synchronized
+    fun reloadFromPrefs(context: Context) {
+        prefs = null
+        init(context)
+    }
+
     @Synchronized
     fun addMeters(meters: Double) {
         val now = SystemClock.elapsedRealtime()

@@ -1,0 +1,1296 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 17,
+    "identityHash": "31cc1867acbc7af67911eced30d9ec02",
+    "entities": [
+      {
+        "tableName": "vehicles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `fuelType` TEXT NOT NULL, `tankCapacityLiters` REAL NOT NULL, `initialFuelLiters` REAL NOT NULL, `midLevelsCount` INTEGER NOT NULL, `defaultMileageKmpl` REAL NOT NULL, `createdAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fuelType",
+            "columnName": "fuelType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tankCapacityLiters",
+            "columnName": "tankCapacityLiters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "initialFuelLiters",
+            "columnName": "initialFuelLiters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "midLevelsCount",
+            "columnName": "midLevelsCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "defaultMileageKmpl",
+            "columnName": "defaultMileageKmpl",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "trips",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `vehicleId` INTEGER NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER NOT NULL, `distanceMeters` REAL NOT NULL, `drivingDurationMs` INTEGER NOT NULL, `stationaryDurationMs` INTEGER NOT NULL, `avgSpeedKmh` REAL NOT NULL, `maxSpeedKmh` REAL NOT NULL, `estimatedFuelLiters` REAL NOT NULL, `calculatedMileageKmpl` REAL NOT NULL, `driverScore` INTEGER NOT NULL, `startLocationName` TEXT NOT NULL, `endLocationName` TEXT NOT NULL, `status` TEXT NOT NULL, `isQualifying` INTEGER NOT NULL, `brakeCount` INTEGER NOT NULL, `accelCount` INTEGER NOT NULL, `bestMileageKmpl` REAL NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicleId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startTime",
+            "columnName": "startTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endTime",
+            "columnName": "endTime",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanceMeters",
+            "columnName": "distanceMeters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "drivingDurationMs",
+            "columnName": "drivingDurationMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stationaryDurationMs",
+            "columnName": "stationaryDurationMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avgSpeedKmh",
+            "columnName": "avgSpeedKmh",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxSpeedKmh",
+            "columnName": "maxSpeedKmh",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estimatedFuelLiters",
+            "columnName": "estimatedFuelLiters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calculatedMileageKmpl",
+            "columnName": "calculatedMileageKmpl",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "driverScore",
+            "columnName": "driverScore",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startLocationName",
+            "columnName": "startLocationName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endLocationName",
+            "columnName": "endLocationName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isQualifying",
+            "columnName": "isQualifying",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "brakeCount",
+            "columnName": "brakeCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accelCount",
+            "columnName": "accelCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bestMileageKmpl",
+            "columnName": "bestMileageKmpl",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_trips_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trips_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_trips_startTime",
+            "unique": false,
+            "columnNames": [
+              "startTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trips_startTime` ON `${TABLE_NAME}` (`startTime`)"
+          },
+          {
+            "name": "index_trips_isQualifying_startTime",
+            "unique": false,
+            "columnNames": [
+              "isQualifying",
+              "startTime"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trips_isQualifying_startTime` ON `${TABLE_NAME}` (`isQualifying`, `startTime`)"
+          }
+        ]
+      },
+      {
+        "tableName": "trip_points",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tripId` INTEGER NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `altitude` REAL NOT NULL, `speedKmh` REAL NOT NULL, `bearing` REAL NOT NULL, `accuracy` REAL NOT NULL, `timestamp` INTEGER NOT NULL, FOREIGN KEY(`tripId`) REFERENCES `trips`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tripId",
+            "columnName": "tripId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "altitude",
+            "columnName": "altitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speedKmh",
+            "columnName": "speedKmh",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bearing",
+            "columnName": "bearing",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accuracy",
+            "columnName": "accuracy",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_trip_points_tripId",
+            "unique": false,
+            "columnNames": [
+              "tripId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trip_points_tripId` ON `${TABLE_NAME}` (`tripId`)"
+          },
+          {
+            "name": "index_trip_points_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trip_points_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "trips",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tripId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "fuel_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `vehicleId` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `eventType` TEXT NOT NULL, `liters` REAL NOT NULL, `midLevelObserved` INTEGER NOT NULL, `pricePerLiter` REAL NOT NULL, `totalCost` REAL NOT NULL, `calculatedBalanceLiters` REAL NOT NULL, `notes` TEXT NOT NULL, `odometerKm` REAL NOT NULL, `calculatedMileageKmpl` REAL NOT NULL, `locationName` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `fullTank` INTEGER NOT NULL DEFAULT -1, `gaugePoint` REAL NOT NULL DEFAULT -1.0)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicleId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventType",
+            "columnName": "eventType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "liters",
+            "columnName": "liters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "midLevelObserved",
+            "columnName": "midLevelObserved",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pricePerLiter",
+            "columnName": "pricePerLiter",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalCost",
+            "columnName": "totalCost",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calculatedBalanceLiters",
+            "columnName": "calculatedBalanceLiters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "odometerKm",
+            "columnName": "odometerKm",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calculatedMileageKmpl",
+            "columnName": "calculatedMileageKmpl",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "locationName",
+            "columnName": "locationName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullTank",
+            "columnName": "fullTank",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "-1"
+          },
+          {
+            "fieldPath": "gaugePoint",
+            "columnName": "gaugePoint",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "-1.0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fuel_events_vehicleId",
+            "unique": false,
+            "columnNames": [
+              "vehicleId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fuel_events_vehicleId` ON `${TABLE_NAME}` (`vehicleId`)"
+          },
+          {
+            "name": "index_fuel_events_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fuel_events_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          }
+        ]
+      },
+      {
+        "tableName": "vehicle_state_transitions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fromState` TEXT NOT NULL, `toState` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `confidence` TEXT NOT NULL, `triggerReason` TEXT NOT NULL, `tripId` INTEGER, `extraMetadata` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fromState",
+            "columnName": "fromState",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toState",
+            "columnName": "toState",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "triggerReason",
+            "columnName": "triggerReason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tripId",
+            "columnName": "tripId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "extraMetadata",
+            "columnName": "extraMetadata",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_vehicle_state_transitions_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_vehicle_state_transitions_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_vehicle_state_transitions_toState",
+            "unique": false,
+            "columnNames": [
+              "toState"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_vehicle_state_transitions_toState` ON `${TABLE_NAME}` (`toState`)"
+          }
+        ]
+      },
+      {
+        "tableName": "fuel_ledger_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `correlationId` TEXT NOT NULL, `parentId` INTEGER, `eventType` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `odometerKm` REAL NOT NULL, `fuelQuantityLiters` REAL NOT NULL, `fuelGaugePoints` INTEGER NOT NULL, `pricePerLiter` REAL NOT NULL, `totalAmount` REAL NOT NULL, `source` TEXT NOT NULL, `confidence` TEXT NOT NULL, `locationName` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `nominalFuelLiters` REAL NOT NULL, `conservativeFuelLiters` REAL NOT NULL, `upperFuelLiters` REAL NOT NULL, `estimatedRangeKm` REAL NOT NULL, `estimatedMileageKmpl` REAL NOT NULL, `confidencePercent` INTEGER NOT NULL, `reasonNote` TEXT NOT NULL, `calculationMetadataJson` TEXT NOT NULL, `sourceEventId` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "correlationId",
+            "columnName": "correlationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentId",
+            "columnName": "parentId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "eventType",
+            "columnName": "eventType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "odometerKm",
+            "columnName": "odometerKm",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fuelQuantityLiters",
+            "columnName": "fuelQuantityLiters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fuelGaugePoints",
+            "columnName": "fuelGaugePoints",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pricePerLiter",
+            "columnName": "pricePerLiter",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalAmount",
+            "columnName": "totalAmount",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidence",
+            "columnName": "confidence",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "locationName",
+            "columnName": "locationName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nominalFuelLiters",
+            "columnName": "nominalFuelLiters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conservativeFuelLiters",
+            "columnName": "conservativeFuelLiters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "upperFuelLiters",
+            "columnName": "upperFuelLiters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estimatedRangeKm",
+            "columnName": "estimatedRangeKm",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estimatedMileageKmpl",
+            "columnName": "estimatedMileageKmpl",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidencePercent",
+            "columnName": "confidencePercent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reasonNote",
+            "columnName": "reasonNote",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calculationMetadataJson",
+            "columnName": "calculationMetadataJson",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceEventId",
+            "columnName": "sourceEventId",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fuel_ledger_events_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_fuel_ledger_events_eventType",
+            "unique": false,
+            "columnNames": [
+              "eventType"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_eventType` ON `${TABLE_NAME}` (`eventType`)"
+          },
+          {
+            "name": "index_fuel_ledger_events_odometerKm",
+            "unique": false,
+            "columnNames": [
+              "odometerKm"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_odometerKm` ON `${TABLE_NAME}` (`odometerKm`)"
+          },
+          {
+            "name": "index_fuel_ledger_events_parentId",
+            "unique": false,
+            "columnNames": [
+              "parentId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_parentId` ON `${TABLE_NAME}` (`parentId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "trip_geofences",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `radiusMeters` REAL NOT NULL, `isEnabled` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "radiusMeters",
+            "columnName": "radiusMeters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isEnabled",
+            "columnName": "isEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_trip_geofences_isEnabled",
+            "unique": false,
+            "columnNames": [
+              "isEnabled"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trip_geofences_isEnabled` ON `${TABLE_NAME}` (`isEnabled`)"
+          },
+          {
+            "name": "index_trip_geofences_name",
+            "unique": false,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_trip_geofences_name` ON `${TABLE_NAME}` (`name`)"
+          }
+        ]
+      },
+      {
+        "tableName": "fuel_model_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `json` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "json",
+            "columnName": "json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "road_cells",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cellKey` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `km` REAL NOT NULL, `litres` REAL NOT NULL, `passes` INTEGER NOT NULL, `speedKm` REAL NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`cellKey`))",
+        "fields": [
+          {
+            "fieldPath": "cellKey",
+            "columnName": "cellKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "km",
+            "columnName": "km",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "litres",
+            "columnName": "litres",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "passes",
+            "columnName": "passes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speedKm",
+            "columnName": "speedKm",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "cellKey"
+          ]
+        }
+      },
+      {
+        "tableName": "road_segment_stats",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`segmentKey` TEXT NOT NULL, `roadClass` TEXT NOT NULL, `roadName` TEXT, `avgSpeedKmh` REAL NOT NULL, `sampleCount` INTEGER NOT NULL, `totalDistanceKm` REAL NOT NULL, `rawEstimatedMileageKmpl` REAL NOT NULL, `calibratedMileageKmpl` REAL NOT NULL, `lastUpdatedTimestamp` INTEGER NOT NULL, PRIMARY KEY(`segmentKey`))",
+        "fields": [
+          {
+            "fieldPath": "segmentKey",
+            "columnName": "segmentKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roadClass",
+            "columnName": "roadClass",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "roadName",
+            "columnName": "roadName",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "avgSpeedKmh",
+            "columnName": "avgSpeedKmh",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sampleCount",
+            "columnName": "sampleCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalDistanceKm",
+            "columnName": "totalDistanceKm",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rawEstimatedMileageKmpl",
+            "columnName": "rawEstimatedMileageKmpl",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calibratedMileageKmpl",
+            "columnName": "calibratedMileageKmpl",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUpdatedTimestamp",
+            "columnName": "lastUpdatedTimestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "segmentKey"
+          ]
+        }
+      },
+      {
+        "tableName": "road_anomalies",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `maxZForce` REAL NOT NULL, `severity` TEXT NOT NULL, `confidenceScore` INTEGER NOT NULL, `lastUpdated` INTEGER NOT NULL, `headingDeg` REAL NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxZForce",
+            "columnName": "maxZForce",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "severity",
+            "columnName": "severity",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "confidenceScore",
+            "columnName": "confidenceScore",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUpdated",
+            "columnName": "lastUpdated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "headingDeg",
+            "columnName": "headingDeg",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_road_anomalies_latitude_longitude",
+            "unique": false,
+            "columnNames": [
+              "latitude",
+              "longitude"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_road_anomalies_latitude_longitude` ON `${TABLE_NAME}` (`latitude`, `longitude`)"
+          }
+        ]
+      },
+      {
+        "tableName": "fuel_stations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`stationId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `lastFuelRate` REAL NOT NULL, `averageMileage` REAL NOT NULL, `qualityRating` TEXT NOT NULL, `visitCount` INTEGER NOT NULL, `ratedCycles` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `avgFuelRate` REAL NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "stationId",
+            "columnName": "stationId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastFuelRate",
+            "columnName": "lastFuelRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "averageMileage",
+            "columnName": "averageMileage",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "qualityRating",
+            "columnName": "qualityRating",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visitCount",
+            "columnName": "visitCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ratedCycles",
+            "columnName": "ratedCycles",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avgFuelRate",
+            "columnName": "avgFuelRate",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "stationId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_fuel_stations_latitude_longitude",
+            "unique": false,
+            "columnNames": [
+              "latitude",
+              "longitude"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_fuel_stations_latitude_longitude` ON `${TABLE_NAME}` (`latitude`, `longitude`)"
+          }
+        ]
+      },
+      {
+        "tableName": "refuel_logs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`logId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `stationId` INTEGER, `liters` REAL NOT NULL, `rate` REAL NOT NULL, `refuelMode` TEXT NOT NULL, `odometerAtRefuel` REAL NOT NULL, `status` TEXT NOT NULL, `calculatedMileage` REAL, `timestamp` INTEGER NOT NULL, `fuelEventId` INTEGER)",
+        "fields": [
+          {
+            "fieldPath": "logId",
+            "columnName": "logId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stationId",
+            "columnName": "stationId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "liters",
+            "columnName": "liters",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rate",
+            "columnName": "rate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "refuelMode",
+            "columnName": "refuelMode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "odometerAtRefuel",
+            "columnName": "odometerAtRefuel",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calculatedMileage",
+            "columnName": "calculatedMileage",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fuelEventId",
+            "columnName": "fuelEventId",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "logId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_refuel_logs_timestamp",
+            "unique": false,
+            "columnNames": [
+              "timestamp"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_refuel_logs_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_refuel_logs_stationId",
+            "unique": false,
+            "columnNames": [
+              "stationId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_refuel_logs_stationId` ON `${TABLE_NAME}` (`stationId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "osm_place_notes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `name` TEXT NOT NULL, `category` TEXT NOT NULL, `details` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `status` TEXT NOT NULL, `osmNoteId` INTEGER, `lastError` TEXT, `attempts` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "details",
+            "columnName": "details",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "osmNoteId",
+            "columnName": "osmNoteId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "lastError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "attempts",
+            "columnName": "attempts",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '31cc1867acbc7af67911eced30d9ec02')"
+    ]
+  }
+}

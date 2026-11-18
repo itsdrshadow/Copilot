@@ -51,6 +51,28 @@ interface TripDao {
     @Query("SELECT * FROM trips ORDER BY startTime ASC")
     suspend fun getAllTrips(): List<TripEntity>
 
+    /** Rows with missing mileage / fuel (startup repair touches only these, audit D4). */
+    @Query("SELECT * FROM trips WHERE calculatedMileageKmpl <= 0 OR (estimatedFuelLiters <= 0 AND distanceMeters > 0)")
+    suspend fun getTripsNeedingRepair(): List<TripEntity>
+
+    /** Completed trips whose start / end name is still a placeholder or a coordinate fallback. */
+    @Query(
+        "SELECT * FROM trips WHERE status = 'COMPLETED' AND (" +
+            "startLocationName IN ('', 'Trip Origin', 'Start Location') OR endLocationName IN ('', 'Trip Destination') OR " +
+            "startLocationName LIKE '≈%' OR endLocationName LIKE '≈%') ORDER BY startTime DESC LIMIT :limit"
+    )
+    suspend fun getTripsNeedingNames(limit: Int): List<TripEntity>
+
+    @Query("SELECT * FROM trip_points WHERE tripId = :tripId ORDER BY timestamp ASC LIMIT 1")
+    suspend fun getFirstPointForTrip(tripId: Long): TripPointEntity?
+
+    /** Completed trips that ended in (from, to] — retention works through them once (audit M3). */
+    @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND endTime > :fromExclusive AND endTime <= :toInclusive ORDER BY endTime ASC")
+    suspend fun getCompletedTripsEndedBetween(fromExclusive: Long, toInclusive: Long): List<TripEntity>
+
+    @Query("DELETE FROM trip_points WHERE id IN (:ids)")
+    suspend fun deletePointsByIds(ids: List<Long>): Int
+
     /** Completed trips for route-mix statistics (station rating normalisation). */
     @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND endTime > 0 ORDER BY startTime ASC")
     suspend fun getCompletedTripsForStats(): List<TripEntity>
@@ -268,7 +290,8 @@ interface RoadSegmentStatsDao {
         com.antigravity.copilot.core.osm.OsmPlaceNoteEntity::class
     ],
     version = AppDatabase.DB_VERSION,
-    exportSchema = false
+    // Schemas are exported to app/schemas for MigrationTestHelper tests (androidTest).
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun tripDao(): TripDao
@@ -289,6 +312,20 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        /**
+         * Idempotent ADD COLUMN: skips only when the column already exists (a re-run / partially
+         * applied old migration); any other failure surfaces instead of being swallowed.
+         */
+        internal fun addColumnIfMissing(db: androidx.sqlite.db.SupportSQLiteDatabase, table: String, column: String, definition: String) {
+            val exists = db.query("PRAGMA table_info(`$table`)").use { c ->
+                val nameIdx = c.getColumnIndex("name")
+                var found = false
+                while (c.moveToNext()) if (c.getString(nameIdx) == column) { found = true; break }
+                found
+            }
+            if (!exists) db.execSQL("ALTER TABLE `$table` ADD COLUMN `$column` $definition")
+        }
+
         val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 // Version 1 to 2 migration
@@ -297,152 +334,136 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                try {
-                    db.execSQL("ALTER TABLE fuel_events ADD COLUMN odometerKm REAL NOT NULL DEFAULT 0.0")
-                } catch (_: Exception) {}
-                try {
-                    db.execSQL("ALTER TABLE fuel_events ADD COLUMN calculatedMileageKmpl REAL NOT NULL DEFAULT 0.0")
-                } catch (_: Exception) {}
+                addColumnIfMissing(db, "fuel_events", "odometerKm", "REAL NOT NULL DEFAULT 0.0")
+                addColumnIfMissing(db, "fuel_events", "calculatedMileageKmpl", "REAL NOT NULL DEFAULT 0.0")
             }
         }
 
         val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                try {
-                    db.execSQL("ALTER TABLE fuel_events ADD COLUMN locationName TEXT NOT NULL DEFAULT ''")
-                } catch (_: Exception) {}
-                try {
-                    db.execSQL("ALTER TABLE fuel_events ADD COLUMN latitude REAL NOT NULL DEFAULT 0.0")
-                } catch (_: Exception) {}
-                try {
-                    db.execSQL("ALTER TABLE fuel_events ADD COLUMN longitude REAL NOT NULL DEFAULT 0.0")
-                } catch (_: Exception) {}
+                addColumnIfMissing(db, "fuel_events", "locationName", "TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "fuel_events", "latitude", "REAL NOT NULL DEFAULT 0.0")
+                addColumnIfMissing(db, "fuel_events", "longitude", "REAL NOT NULL DEFAULT 0.0")
             }
         }
 
         val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                try {
-                    db.execSQL("CREATE INDEX IF NOT EXISTS index_trips_isQualifying_startTime ON trips (isQualifying, startTime)")
-                } catch (_: Exception) {}
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_trips_isQualifying_startTime ON trips (isQualifying, startTime)")
             }
         }
 
         val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                try {
-                    db.execSQL("""
-                        CREATE TABLE IF NOT EXISTS `vehicle_state_transitions` (
-                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                            `fromState` TEXT NOT NULL,
-                            `toState` TEXT NOT NULL,
-                            `timestamp` INTEGER NOT NULL,
-                            `confidence` TEXT NOT NULL,
-                            `triggerReason` TEXT NOT NULL,
-                            `tripId` INTEGER,
-                            `extraMetadata` TEXT
-                        )
-                    """.trimIndent())
-                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_vehicle_state_transitions_timestamp` ON `vehicle_state_transitions` (`timestamp`)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_vehicle_state_transitions_toState` ON `vehicle_state_transitions` (`toState`)")
-                } catch (_: Exception) {}
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `vehicle_state_transitions` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `fromState` TEXT NOT NULL,
+                        `toState` TEXT NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `confidence` TEXT NOT NULL,
+                        `triggerReason` TEXT NOT NULL,
+                        `tripId` INTEGER,
+                        `extraMetadata` TEXT
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_vehicle_state_transitions_timestamp` ON `vehicle_state_transitions` (`timestamp`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_vehicle_state_transitions_toState` ON `vehicle_state_transitions` (`toState`)")
             }
         }
 
         val MIGRATION_6_7 = object : androidx.room.migration.Migration(6, 7) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                try {
-                    db.execSQL("""
-                        CREATE TABLE IF NOT EXISTS `fuel_ledger_events` (
-                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                            `correlationId` TEXT NOT NULL,
-                            `parentId` INTEGER,
-                            `eventType` TEXT NOT NULL,
-                            `timestamp` INTEGER NOT NULL,
-                            `odometerKm` REAL NOT NULL,
-                            `fuelQuantityLiters` REAL NOT NULL,
-                            `fuelGaugePoints` INTEGER NOT NULL,
-                            `pricePerLiter` REAL NOT NULL,
-                            `totalAmount` REAL NOT NULL,
-                            `source` TEXT NOT NULL,
-                            `confidence` TEXT NOT NULL,
-                            `locationName` TEXT NOT NULL,
-                            `latitude` REAL NOT NULL,
-                            `longitude` REAL NOT NULL,
-                            `nominalFuelLiters` REAL NOT NULL,
-                            `conservativeFuelLiters` REAL NOT NULL,
-                            `upperFuelLiters` REAL NOT NULL,
-                            `estimatedRangeKm` REAL NOT NULL,
-                            `estimatedMileageKmpl` REAL NOT NULL,
-                            `confidencePercent` INTEGER NOT NULL,
-                            `reasonNote` TEXT NOT NULL,
-                            `calculationMetadataJson` TEXT NOT NULL
-                        )
-                    """.trimIndent())
-                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_timestamp` ON `fuel_ledger_events` (`timestamp`)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_eventType` ON `fuel_ledger_events` (`eventType`)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_odometerKm` ON `fuel_ledger_events` (`odometerKm`)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_parentId` ON `fuel_ledger_events` (`parentId`)")
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `fuel_ledger_events` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `correlationId` TEXT NOT NULL,
+                        `parentId` INTEGER,
+                        `eventType` TEXT NOT NULL,
+                        `timestamp` INTEGER NOT NULL,
+                        `odometerKm` REAL NOT NULL,
+                        `fuelQuantityLiters` REAL NOT NULL,
+                        `fuelGaugePoints` INTEGER NOT NULL,
+                        `pricePerLiter` REAL NOT NULL,
+                        `totalAmount` REAL NOT NULL,
+                        `source` TEXT NOT NULL,
+                        `confidence` TEXT NOT NULL,
+                        `locationName` TEXT NOT NULL,
+                        `latitude` REAL NOT NULL,
+                        `longitude` REAL NOT NULL,
+                        `nominalFuelLiters` REAL NOT NULL,
+                        `conservativeFuelLiters` REAL NOT NULL,
+                        `upperFuelLiters` REAL NOT NULL,
+                        `estimatedRangeKm` REAL NOT NULL,
+                        `estimatedMileageKmpl` REAL NOT NULL,
+                        `confidencePercent` INTEGER NOT NULL,
+                        `reasonNote` TEXT NOT NULL,
+                        `calculationMetadataJson` TEXT NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_timestamp` ON `fuel_ledger_events` (`timestamp`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_eventType` ON `fuel_ledger_events` (`eventType`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_odometerKm` ON `fuel_ledger_events` (`odometerKm`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_ledger_events_parentId` ON `fuel_ledger_events` (`parentId`)")
 
-                    // Non-destructive seeding from existing fuel_events if table exists and has rows
-                    db.execSQL("""
-                        INSERT INTO `fuel_ledger_events` (
-                            correlationId, parentId, eventType, timestamp, odometerKm, fuelQuantityLiters,
-                            fuelGaugePoints, pricePerLiter, totalAmount, source, confidence,
-                            locationName, latitude, longitude, nominalFuelLiters, conservativeFuelLiters,
-                            upperFuelLiters, estimatedRangeKm, estimatedMileageKmpl, confidencePercent,
-                            reasonNote, calculationMetadataJson
-                        )
-                        SELECT
-                            'migrated_' || id,
-                            NULL,
-                            CASE WHEN eventType = 'REFUEL' THEN 'REFUEL'
-                                 WHEN eventType = 'MID_OBSERVED' THEN 'FUEL_GAUGE_UPDATE'
-                                 WHEN eventType = 'CONSUMPTION' THEN 'TRIP_FUEL_CONSUMPTION'
-                                 ELSE 'INITIAL_FUEL_BASELINE' END,
-                            timestamp,
-                            odometerKm,
-                            liters,
-                            midLevelObserved,
-                            pricePerLiter,
-                            totalCost,
-                            'MANUAL',
-                            'CONFIRMED',
-                            locationName,
-                            latitude,
-                            longitude,
-                            calculatedBalanceLiters,
-                            MAX(0.0, calculatedBalanceLiters - 2.0),
-                            calculatedBalanceLiters + 2.0,
-                            calculatedBalanceLiters * 18.0,
-                            CASE WHEN calculatedMileageKmpl > 0.0 THEN calculatedMileageKmpl ELSE 18.0 END,
-                            85,
-                            notes,
-                            '{"migratedFromV6":true}'
-                        FROM fuel_events
-                    """.trimIndent())
-                } catch (_: Exception) {}
+                // Non-destructive seeding from existing fuel_events, only into an empty ledger
+                // (a re-run must never duplicate rows).
+                val existing = db.query("SELECT COUNT(*) FROM `fuel_ledger_events`").use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
+                if (existing == 0L) db.execSQL("""
+                    INSERT INTO `fuel_ledger_events` (
+                        correlationId, parentId, eventType, timestamp, odometerKm, fuelQuantityLiters,
+                        fuelGaugePoints, pricePerLiter, totalAmount, source, confidence,
+                        locationName, latitude, longitude, nominalFuelLiters, conservativeFuelLiters,
+                        upperFuelLiters, estimatedRangeKm, estimatedMileageKmpl, confidencePercent,
+                        reasonNote, calculationMetadataJson
+                    )
+                    SELECT
+                        'migrated_' || id,
+                        NULL,
+                        CASE WHEN eventType = 'REFUEL' THEN 'REFUEL'
+                             WHEN eventType = 'MID_OBSERVED' THEN 'FUEL_GAUGE_UPDATE'
+                             WHEN eventType = 'CONSUMPTION' THEN 'TRIP_FUEL_CONSUMPTION'
+                             ELSE 'INITIAL_FUEL_BASELINE' END,
+                        timestamp,
+                        odometerKm,
+                        liters,
+                        midLevelObserved,
+                        pricePerLiter,
+                        totalCost,
+                        'MANUAL',
+                        'CONFIRMED',
+                        locationName,
+                        latitude,
+                        longitude,
+                        calculatedBalanceLiters,
+                        MAX(0.0, calculatedBalanceLiters - 2.0),
+                        calculatedBalanceLiters + 2.0,
+                        calculatedBalanceLiters * 18.0,
+                        CASE WHEN calculatedMileageKmpl > 0.0 THEN calculatedMileageKmpl ELSE 18.0 END,
+                        85,
+                        notes,
+                        '{"migratedFromV6":true}'
+                    FROM fuel_events
+                """.trimIndent())
             }
         }
 
         val MIGRATION_7_8 = object : androidx.room.migration.Migration(7, 8) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                try {
-                    db.execSQL("""
-                        CREATE TABLE IF NOT EXISTS `trip_geofences` (
-                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                            `name` TEXT NOT NULL,
-                            `latitude` REAL NOT NULL,
-                            `longitude` REAL NOT NULL,
-                            `radiusMeters` REAL NOT NULL DEFAULT 200.0,
-                            `isEnabled` INTEGER NOT NULL DEFAULT 1,
-                            `createdAt` INTEGER NOT NULL,
-                            `updatedAt` INTEGER NOT NULL
-                        )
-                    """.trimIndent())
-                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_trip_geofences_isEnabled` ON `trip_geofences` (`isEnabled`)")
-                    db.execSQL("CREATE INDEX IF NOT EXISTS `index_trip_geofences_name` ON `trip_geofences` (`name`)")
-                } catch (_: Exception) {}
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `trip_geofences` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `latitude` REAL NOT NULL,
+                        `longitude` REAL NOT NULL,
+                        `radiusMeters` REAL NOT NULL DEFAULT 200.0,
+                        `isEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_trip_geofences_isEnabled` ON `trip_geofences` (`isEnabled`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_trip_geofences_name` ON `trip_geofences` (`name`)")
             }
         }
 
@@ -554,10 +575,10 @@ abstract class AppDatabase : RoomDatabase() {
          */
         val MIGRATION_16_17 = object : androidx.room.migration.Migration(16, 17) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE `fuel_events` ADD COLUMN `fullTank` INTEGER NOT NULL DEFAULT -1")
-                db.execSQL("ALTER TABLE `fuel_events` ADD COLUMN `gaugePoint` REAL NOT NULL DEFAULT -1.0")
-                db.execSQL("ALTER TABLE `fuel_ledger_events` ADD COLUMN `sourceEventId` INTEGER")
-                db.execSQL("ALTER TABLE `refuel_logs` ADD COLUMN `fuelEventId` INTEGER")
+                addColumnIfMissing(db, "fuel_events", "fullTank", "INTEGER NOT NULL DEFAULT -1")
+                addColumnIfMissing(db, "fuel_events", "gaugePoint", "REAL NOT NULL DEFAULT -1.0")
+                addColumnIfMissing(db, "fuel_ledger_events", "sourceEventId", "INTEGER")
+                addColumnIfMissing(db, "refuel_logs", "fuelEventId", "INTEGER")
             }
         }
 

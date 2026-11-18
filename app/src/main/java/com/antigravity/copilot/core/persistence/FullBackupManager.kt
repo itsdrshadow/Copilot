@@ -121,14 +121,17 @@ object FullBackupManager {
      */
     suspend fun createFullBackupZip(
         context: Context,
-        isSafetyBackup: Boolean = false
+        isSafetyBackup: Boolean = false,
+        /** Auto-backups go to an app-private folder (audit N3/N6); null = the user backup folder. */
+        targetDir: File? = null,
+        filePrefix: String? = null
     ): BackupResult = withContext(Dispatchers.IO) {
         // Tracked outside the try so a failure mid-write still closes the stream and removes the
         // half-written archive (otherwise the fd leaks and a corrupt .zip is left in the backup list).
         var openZip: ZipOutputStream? = null
         var partialZip: File? = null
         try {
-            val backupDir = getBackupDirectory(context)
+            val backupDir = targetDir ?: getBackupDirectory(context)
             if (!backupDir.exists()) backupDir.mkdirs()
 
             // Verify available storage space (require at least 15 MB)
@@ -144,7 +147,7 @@ object FullBackupManager {
             val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
             val readableFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
             val timeTag = dateFormat.format(Date(now))
-            val prefix = if (isSafetyBackup) "Safety_PreRestore" else "Copilot_Backup_v${CURRENT_APP_VERSION}"
+            val prefix = filePrefix ?: if (isSafetyBackup) "Safety_PreRestore" else "Copilot_Backup_v${CURRENT_APP_VERSION}"
             val zipFile = File(backupDir, "${prefix}_${timeTag}.zip")
 
             val db = AppDatabase.getInstance(context)
@@ -192,7 +195,8 @@ object FullBackupManager {
                 "trip_lifecycle" to encodePrefs("trip_visual_lifecycle_prefs"),
                 "last_pos" to encodePrefs("driving_report_last_pos"),
                 "last_completed_trip" to encodePrefs("last_completed_trip_prefs"),
-                "india_offline_map" to encodePrefs("india_offline_map_prefs")
+                "india_offline_map" to encodePrefs("india_offline_map_prefs"),
+                "lifetime_odometer" to encodePrefs("lifetime_odometer_prefs")
             )
 
             // Check for India offline map manifest
@@ -305,7 +309,12 @@ object FullBackupManager {
     /**
      * Restores complete application data from a selected backup ZIP Uri or File.
      */
-    suspend fun restoreFromBackupZip(context: Context, zipUri: Uri): RestoreResult = withContext(Dispatchers.IO) {
+    suspend fun restoreFromBackupZip(
+        context: Context,
+        zipUri: Uri,
+        /** Startup auto-restore into an empty database: a safety snapshot of nothing is pointless. */
+        skipSafetyBackup: Boolean = false
+    ): RestoreResult = withContext(Dispatchers.IO) {
         var tempFile: File? = null
         var openArchive: ZipFile? = null
         try {
@@ -350,8 +359,10 @@ object FullBackupManager {
             }
 
             // 3. Create an automatic safety backup of existing data prior to overwriting
-            val safetyResult = createFullBackupZip(context, isSafetyBackup = true)
-            Log.i(TAG, "Pre-restore safety backup created: ${safetyResult.backupFile?.name}")
+            if (!skipSafetyBackup) {
+                val safetyResult = createFullBackupZip(context, isSafetyBackup = true)
+                Log.i(TAG, "Pre-restore safety backup created: ${safetyResult.backupFile?.name}")
+            }
 
             // 4. Extract data from ZIP
             fun readEntryString(entryName: String): String? {
@@ -386,7 +397,9 @@ object FullBackupManager {
             val pointsList: List<TripPointEntity>? = if (!pointsJson.isNullOrBlank()) gson.fromJson(pointsJson, pointType) else null
 
             val fuelType = object : TypeToken<List<FuelEventEntity>>() {}.type
-            val fuelList: List<FuelEventEntity>? = if (!fuelEventsJson.isNullOrBlank()) gson.fromJson(fuelEventsJson, fuelType) else null
+            // Archives older than schema 17 lack fullTank / gaugePoint; Gson would fill 0 / 0.0
+            // ("not full", "gauge at empty"), so mark them as not recorded (-1) first.
+            val fuelList: List<FuelEventEntity>? = if (!fuelEventsJson.isNullOrBlank()) gson.fromJson(withLegacyFuelDefaults(fuelEventsJson), fuelType) else null
 
             val ledgerType = object : TypeToken<List<FuelLedgerEntity>>() {}.type
             val ledgerList: List<FuelLedgerEntity>? = if (!fuelLedgerJson.isNullOrBlank()) gson.fromJson(fuelLedgerJson, ledgerType) else null
@@ -406,7 +419,22 @@ object FullBackupManager {
             var restoredPoints = 0
             var restoredFuel = 0
             var restoredLedger = 0
+            val stationsToRestore: List<com.antigravity.copilot.core.fuel.station.FuelStationEntity>?
+            val logsToRestore: List<com.antigravity.copilot.core.fuel.station.RefuelLogEntity>?
+            if (!fuelStationsJson.isNullOrBlank() || !refuelLogsJson.isNullOrBlank()) {
+                val stationType = object : TypeToken<List<com.antigravity.copilot.core.fuel.station.FuelStationEntity>>() {}.type
+                val logType = object : TypeToken<List<com.antigravity.copilot.core.fuel.station.RefuelLogEntity>>() {}.type
+                stationsToRestore = fuelStationsJson?.takeIf { it.isNotBlank() }?.let { gson.fromJson(it, stationType) }
+                logsToRestore = refuelLogsJson?.takeIf { it.isNotBlank() }?.let { gson.fromJson(it, logType) }
+            } else {
+                stationsToRestore = null
+                logsToRestore = null
+            }
+            val hasLifetimePrefs = prefsJson?.contains("\"lifetime_odometer\"") == true
 
+            // Live tracking is paused for the whole replace (audit N2): no late trip flush can
+            // write the old active trip into the restored database.
+            com.antigravity.copilot.core.location.TrackingMaintenance.runPaused(context) {
             db.withTransaction {
                 // Trips & Points
                 if (tripsList != null) {
@@ -467,17 +495,14 @@ object FullBackupManager {
                         db.roadAnomalyDao().insertAll(rows)
                     }
                 }
-                if (!fuelStationsJson.isNullOrBlank() || !refuelLogsJson.isNullOrBlank()) {
-                    val stationType = object : TypeToken<List<com.antigravity.copilot.core.fuel.station.FuelStationEntity>>() {}.type
-                    val logType = object : TypeToken<List<com.antigravity.copilot.core.fuel.station.RefuelLogEntity>>() {}.type
-                    val stations: List<com.antigravity.copilot.core.fuel.station.FuelStationEntity>? =
-                        fuelStationsJson?.takeIf { it.isNotBlank() }?.let { gson.fromJson(it, stationType) }
-                    val logs: List<com.antigravity.copilot.core.fuel.station.RefuelLogEntity>? =
-                        refuelLogsJson?.takeIf { it.isNotBlank() }?.let { gson.fromJson(it, logType) }
-                    com.antigravity.copilot.core.fuel.station.FuelStationRepository.getInstance(context).restore(stations, logs)
-                }
             }
 
+            // Station tables are restored after the transaction (audit H5): the station repository
+            // takes its own mutex, and waiting on it while holding the Room transaction could
+            // deadlock against a station write that is itself waiting for the database.
+            if (stationsToRestore != null || logsToRestore != null) {
+                com.antigravity.copilot.core.fuel.station.FuelStationRepository.getInstance(context).restore(stationsToRestore, logsToRestore)
+            }
 
             // 6. Restore SharedPreferences
             if (!prefsJson.isNullOrBlank()) {
@@ -499,6 +524,8 @@ object FullBackupManager {
                             else -> if (prefKey.startsWith("driving_report_") || prefKey.endsWith("_prefs")) prefKey else "driving_report_${prefKey}_prefs"
                         }
                         val sp = context.getSharedPreferences(targetPrefName, Context.MODE_PRIVATE)
+                        // Untyped legacy entries keep the type the app already uses for that key.
+                        val existingTypes = sp.all
                         val editor = sp.edit()
                         val entriesObj = prefFileElem.asJsonObject
                         for ((key, valElem) in entriesObj.entrySet()) {
@@ -520,28 +547,23 @@ object FullBackupManager {
                                     }
                                 }
                             } else if (valElem.isJsonPrimitive) {
-                                val prim = valElem.asJsonPrimitive
-                                if (prim.isBoolean) {
-                                    editor.putBoolean(key, prim.asBoolean)
-                                } else if (prim.isString) {
-                                    editor.putString(key, prim.asString)
-                                } else if (prim.isNumber) {
-                                    val lowerKey = key.lowercase()
-                                    if (lowerKey.endsWith("_timestamp") || lowerKey.endsWith("_time") || lowerKey == "timestamp" || lowerKey.endsWith("_id") || lowerKey == "id" || lowerKey.endsWith("_bits")) {
-                                        editor.putLong(key, prim.asLong)
-                                    } else if (lowerKey.contains("count") || lowerKey == "theme" || lowerKey == "model_confidence" || !prim.asString.contains(".")) {
-                                        editor.putInt(key, prim.asInt)
-                                    } else {
-                                        editor.putFloat(key, prim.asFloat)
-                                    }
+                                // Legacy untyped entry (audit N4): use the type the key already has
+                                // on this device, else a lossless guess (never truncate a Long to Int).
+                                when (val restored = LegacyPrefTyping.coerce(key, valElem.asJsonPrimitive.asString, valElem.asJsonPrimitive.isBoolean, valElem.asJsonPrimitive.isNumber, existingTypes[key])) {
+                                    is Boolean -> editor.putBoolean(key, restored)
+                                    is Int -> editor.putInt(key, restored)
+                                    is Long -> editor.putLong(key, restored)
+                                    is Float -> editor.putFloat(key, restored)
+                                    is String -> editor.putString(key, restored)
                                 }
                             }
                         }
-                        editor.apply()
+                        editor.commit()
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Error restoring preferences: ${e.message}")
                 }
+            }
             }
 
             // 7. Restore offline map manifest
@@ -577,9 +599,23 @@ object FullBackupManager {
                 Log.w(TAG, "Error reloading VehicleStateManager: ${e.message}")
             }
             try {
-                FuelRepository.getInstance(context).rehydrateLedgerAsync()
+                // Restored model row + prefs replace the in-memory fuel state (audit N1).
+                FuelRepository.getInstance(context).reloadAfterRestore(hasModelRow = fuelModelEntity != null && fuelModelEntity.json.isNotBlank())
             } catch (e: Exception) {
                 Log.w(TAG, "Error reloading FuelRepository: ${e.message}")
+            }
+            try {
+                val odo = com.antigravity.copilot.core.odometer.LifetimeOdometer
+                if (hasLifetimePrefs) {
+                    odo.reloadFromPrefs(context)
+                } else {
+                    // Older archive: rebuild the lifetime distance from the restored trips.
+                    val dao = db.tripDao()
+                    val activeM = dao.getActiveTrip()?.takeIf { it.endTime <= 0L }?.distanceMeters ?: 0.0
+                    odo.resetTo((dao.sumQualifyingDistanceMeters() + activeM) / 1000.0)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Error reloading LifetimeOdometer: ${e.message}")
             }
 
             Log.i(TAG, "Restore successfully completed: $restoredTrips trips, $restoredFuel refills.")
@@ -599,6 +635,19 @@ object FullBackupManager {
             tempFile?.delete()
         }
     }
+    /** Adds fullTank = -1 / gaugePoint = -1.0 to fuel_events rows from archives that predate them. */
+    internal fun withLegacyFuelDefaults(json: String): String {
+        val tree = JsonParser.parseString(json)
+        if (!tree.isJsonArray) return json
+        for (el in tree.asJsonArray) {
+            if (!el.isJsonObject) continue
+            val o = el.asJsonObject
+            if (!o.has("fullTank")) o.addProperty("fullTank", -1)
+            if (!o.has("gaugePoint")) o.addProperty("gaugePoint", -1.0)
+        }
+        return tree.toString()
+    }
+
     /**
      * Gson bypasses Kotlin null-safety and defaults: older or hand-edited archives can carry null
      * strings (NOT NULL violation → whole restore rolls back) or corrupt numbers. Normalise them.

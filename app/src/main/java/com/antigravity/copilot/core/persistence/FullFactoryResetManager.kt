@@ -28,11 +28,14 @@ object FullFactoryResetManager {
 
     suspend fun executeFactoryReset(context: Context) = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
+        // 1. Pause live tracking and drain queued trip writes first (audit N2): the old async reset
+        // intent raced the wipe, so a late flush could re-insert the active trip.
+        com.antigravity.copilot.core.location.TrackingMaintenance.runPaused(appContext) {
+            wipeAll(appContext)
+        }
+    }
 
-        // 1. Reset Service & Active Telemetry Loop
-        try {
-            DrivingTrackingService.reset(appContext)
-        } catch (_: Exception) {}
+    private suspend fun wipeAll(appContext: Context) {
 
         // 2. Clear All Room Database Tables
         val db = AppDatabase.getInstance(appContext)
@@ -66,7 +69,9 @@ object FullFactoryResetManager {
             "driving_report_last_pos",
             "driving_report_odometer_prefs",
             "vehicle_state_prefs",
-            "trip_visual_lifecycle_prefs"
+            "trip_visual_lifecycle_prefs",
+            "lifetime_odometer_prefs",
+            "trip_point_retention_prefs"
         )
         for (name in prefNames) {
             try {
@@ -82,6 +87,7 @@ object FullFactoryResetManager {
             AppSettingsManager.resetToDefaults(appContext)
             VehicleStateManager.getInstance(appContext).resetAllData()
             OdometerManager.resetAllData(appContext)
+            com.antigravity.copilot.core.odometer.LifetimeOdometer.resetTo(0.0)
             GeofenceDiagnostics.clear()
         }
     }

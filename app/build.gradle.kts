@@ -90,6 +90,11 @@ android {
         abortOnError = false
     }
 
+    // Exported Room schemas feed MigrationTestHelper in androidTest (audit M1).
+    sourceSets {
+        getByName("androidTest").assets.srcDirs(files("$projectDir/schemas"))
+    }
+
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
@@ -144,6 +149,9 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.room:room-testing:$roomVersion")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")

@@ -158,3 +158,24 @@ object TrailOverlap {
         return result
     }
 }
+
+/**
+ * Old-trip point retention (audit M3): trips older than [Config]-style 90 days keep a
+ * Douglas–Peucker (5 m) simplified track plus every point that borders a time gap (stops,
+ * tunnels), so the replay keeps its shape and timing while 1 Hz storage shrinks.
+ */
+object TripPointRetention {
+    const val TOLERANCE_M = 5.0
+    const val KEEP_GAP_MS = 60_000L
+    const val AGE_MS = 90L * 24 * 60 * 60 * 1000
+
+    /** Indices to keep (sorted, always includes first and last). */
+    fun keepIndices(points: List<LatLon>, timestampsMs: List<Long>, toleranceM: Double = TOLERANCE_M): List<Int> {
+        if (points.size <= 2) return points.indices.toList()
+        val keep = java.util.TreeSet(TrailOverlap.simplify(points, toleranceM))
+        for (i in 1 until timestampsMs.size) {
+            if (timestampsMs[i] - timestampsMs[i - 1] >= KEEP_GAP_MS) { keep += i - 1; keep += i }
+        }
+        return keep.toList()
+    }
+}

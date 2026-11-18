@@ -287,9 +287,8 @@ class TripRepository private constructor(context: Context) {
                     _tripTrail.value = emptyList()
                 }
 
-                // Repair & resolve missing mileage and location names for existing trips
-                val allTrips = tripDao.getAllTrips()
-                for (t in allTrips) {
+                // Repair missing mileage / fuel: only the broken rows (SQL WHERE), not every trip.
+                for (t in tripDao.getTripsNeedingRepair()) {
                     var updated = t
                     var changed = false
 
@@ -310,25 +309,13 @@ class TripRepository private constructor(context: Context) {
                         changed = true
                     }
 
-                    if (updated.startLocationName.isBlank() || updated.startLocationName == "Trip Origin" ||
-                        updated.endLocationName.isBlank() || updated.endLocationName == "Trip Destination"
-                    ) {
-                        val pts = tripDao.getPointsForTrip(t.id)
-                        if (pts.isNotEmpty()) {
-                            val sName = LocationNameResolver.resolveTripLocation(appContext, pts.first().latitude, pts.first().longitude)
-                            val eName = LocationNameResolver.resolveTripLocation(appContext, pts.last().latitude, pts.last().longitude)
-                            updated = updated.copy(
-                                startLocationName = if (sName.isNotBlank() && !sName.contains("Station")) sName else "Pusaur, Raigarh",
-                                endLocationName = if (eName.isNotBlank() && !eName.contains("Station")) eName else "Raigarh Road"
-                            )
-                            changed = true
-                        }
-                    }
-
                     if (changed) {
                         tripDao.updateTrip(updated)
                     }
                 }
+
+                repairTripNames()
+                maintainPointRetentionAsync()
 
                 // Restore persistent pointer to last completed trip
                 var lastId = lastCompletedTripPrefs.getLong("last_completed_trip_id", -1L)
@@ -351,6 +338,92 @@ class TripRepository private constructor(context: Context) {
                 Log.e(TAG, "Database operation failed in reloadFromDatabase: ${e.message}", e)
             }
         }
+    }
+
+    /**
+     * Names for trips that still have none (audit D3/D4): only unnamed rows (SQL WHERE, bounded),
+     * first / last point via LIMIT 1 queries. A failed lookup stores the coordinates (never an
+     * invented place name); coordinate names are retried on later starts once a network is up.
+     */
+    private suspend fun repairTripNames() {
+        val online = LocationNameResolver.isNetworkConnected(appContext)
+        for (t in tripDao.getTripsNeedingNames(NAME_REPAIR_BATCH)) {
+            val needStart = TripNaming.isPlaceholder(t.startLocationName)
+            val needEnd = TripNaming.isPlaceholder(t.endLocationName)
+            // Coordinate names were already tried offline: only retry them with a network.
+            val retryStart = needStart && (online || !TripNaming.isCoordinateName(t.startLocationName))
+            val retryEnd = needEnd && (online || !TripNaming.isCoordinateName(t.endLocationName))
+            if (!retryStart && !retryEnd) continue
+            val first = tripDao.getFirstPointForTrip(t.id) ?: continue
+            val last = tripDao.getLastPointForTrip(t.id) ?: continue
+            suspend fun resolve(lat: Double, lon: Double): String =
+                TripNaming.acceptResolved(LocationNameResolver.resolveTripLocation(appContext, lat, lon))
+                    ?: TripNaming.coordinateName(lat, lon)
+            val updated = t.copy(
+                startLocationName = if (retryStart) resolve(first.latitude, first.longitude) else t.startLocationName,
+                endLocationName = if (retryEnd) resolve(last.latitude, last.longitude) else t.endLocationName
+            )
+            if (updated != t) launchWrite {
+                // Re-read under the single writer: never overwrite a newer row with this snapshot.
+                val current = tripDao.getTripById(t.id) ?: return@launchWrite
+                tripDao.updateTrip(
+                    current.copy(
+                        startLocationName = if (TripNaming.isPlaceholder(current.startLocationName)) updated.startLocationName else current.startLocationName,
+                        endLocationName = if (TripNaming.isPlaceholder(current.endLocationName)) updated.endLocationName else current.endLocationName
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Monthly maintenance (audit M3): trips that ended more than 90 days ago are downsampled once
+     * (Douglas–Peucker 5 m, stop / gap borders kept), then the file is VACUUMed. A prefs cutoff
+     * remembers how far it got, so every trip is processed exactly once.
+     */
+    fun maintainPointRetentionAsync(nowMs: Long = System.currentTimeMillis()) {
+        val prefs = appContext.getSharedPreferences(RETENTION_PREFS, Context.MODE_PRIVATE)
+        val lastRun = prefs.getLong(KEY_RETENTION_LAST_RUN, 0L)
+        if (nowMs - lastRun in 0 until RETENTION_INTERVAL_MS) return
+        launchWrite {
+            try {
+                val from = prefs.getLong(KEY_RETENTION_CUTOFF, 0L)
+                val to = nowMs - com.antigravity.copilot.core.logic.TripPointRetention.AGE_MS
+                var removed = 0
+                if (to > from) {
+                    for (trip in tripDao.getCompletedTripsEndedBetween(from, to)) {
+                        val pts = tripDao.getPointsForTrip(trip.id)
+                        if (pts.size <= 2) continue
+                        val keep = com.antigravity.copilot.core.logic.TripPointRetention.keepIndices(
+                            pts.map { com.antigravity.copilot.core.logic.LatLon(it.latitude, it.longitude) },
+                            pts.map { it.timestamp }
+                        ).toHashSet()
+                        val drop = pts.indices.filter { it !in keep }.map { pts[it].id }
+                        for (chunk in drop.chunked(500)) removed += tripDao.deletePointsByIds(chunk)
+                    }
+                }
+                if (removed > 0) {
+                    // VACUUM cannot run inside a transaction; the single writer guarantees none is open here.
+                    database.openHelper.writableDatabase.execSQL("VACUUM")
+                }
+                prefs.edit()
+                    .putLong(KEY_RETENTION_CUTOFF, maxOf(from, to))
+                    .putLong(KEY_RETENTION_LAST_RUN, nowMs)
+                    .apply()
+                Log.i(TAG, "Point retention: removed $removed old points")
+            } catch (e: Exception) {
+                Log.w(TAG, "Point retention failed: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Maintenance barrier (audit N2): drops queued in-memory points and waits until every write
+     * queued so far has been applied, so a reset / restore never races a late flush.
+     */
+    suspend fun drainPendingWrites() {
+        pendingPoints.clear()
+        launchWrite { }.join()
     }
 
     fun getLastCompletedTripId(): Long {
@@ -790,6 +863,8 @@ class TripRepository private constructor(context: Context) {
                 _lastCompletedTrip.value = completedTrip
 
                 PersistentDataManager.backupAsync(appContext, force = true)
+                // Trip end: full ZIP auto-backup (audit N3).
+                com.antigravity.copilot.core.persistence.AutoBackupManager.requestBackup(appContext, force = true)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed completing trip in Room DB: ${e.message}", e)
             }
@@ -881,6 +956,11 @@ class TripRepository private constructor(context: Context) {
 
     companion object {
         private const val TAG = "TripRepository"
+        private const val NAME_REPAIR_BATCH = 25
+        private const val RETENTION_PREFS = "trip_point_retention_prefs"
+        private const val KEY_RETENTION_LAST_RUN = "last_run_ms"
+        private const val KEY_RETENTION_CUTOFF = "processed_until_end_time"
+        private const val RETENTION_INTERVAL_MS = 30L * 24 * 60 * 60 * 1000
 
         @Volatile
         private var INSTANCE: TripRepository? = null

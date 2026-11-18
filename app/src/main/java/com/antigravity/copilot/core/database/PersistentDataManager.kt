@@ -84,20 +84,26 @@ object PersistentDataManager {
      * Checks if this is a fresh launch after a reinstall or data wipe,
      * and automatically restores all previous trips and fuel records.
      */
-    fun restoreIfNeeded(context: Context) {
+    suspend fun restoreIfNeeded(context: Context) {
         try {
-            val backupFiles = getBackupFiles(context)
-            val validFile = backupFiles.firstOrNull { it.exists() && it.length() > 20 } ?: return
-
             val db = AppDatabase.getInstance(context)
             val fuelPrefs = context.getSharedPreferences("driving_report_fuel_prefs", Context.MODE_PRIVATE)
 
-            // Check if Room database is empty (reinstall situation) BEFORE reading the backup:
-            // this runs on the blocking startup path, and parsing the whole JSON mirror on every
-            // launch cost ~1 s once history grew, only to be thrown away when the DB has data.
+            // Check if Room database is empty (reinstall / wiped data) BEFORE reading any backup:
+            // this runs on the startup path and must stay cheap when the DB has data.
             val tripCount = db.openHelper.readableDatabase.compileStatement("SELECT COUNT(*) FROM trips").simpleQueryForLong()
             val fuelEventCount = db.openHelper.readableDatabase.compileStatement("SELECT COUNT(*) FROM fuel_events").simpleQueryForLong()
             if (tripCount != 0L || fuelEventCount != 0L) return
+
+            // Full ZIP auto-backup first (complete: fuel model, stations, road data, all prefs).
+            if (com.antigravity.copilot.core.persistence.AutoBackupManager.restoreLatestIfAvailable(context)) {
+                Log.i(TAG, "Empty database restored from the latest full auto-backup")
+                return
+            }
+
+            // Legacy fallback: the old JSON mirror (incl. copies left on shared storage).
+            val backupFiles = getBackupFiles(context)
+            val validFile = backupFiles.firstOrNull { it.exists() && it.length() > 20 } ?: return
 
             val jsonStr = validFile.readText()
             if (jsonStr.isBlank()) return
@@ -368,6 +374,8 @@ object PersistentDataManager {
     private val deniedTargets: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
 
     fun backupAsync(context: Context, minIntervalMs: Long = MIN_BACKUP_INTERVAL_MS, force: Boolean = false) {
+        // Daily full ZIP auto-backup (audit N3); trip ends force one via TripRepository.
+        com.antigravity.copilot.core.persistence.AutoBackupManager.requestBackup(context.applicationContext)
         val now = System.currentTimeMillis()
         synchronized(backupLock) {
             if (!force && (now - lastBackupTimestamp < minIntervalMs)) {
@@ -548,7 +556,9 @@ object PersistentDataManager {
                     return@launch
                 }
                 val jsonContent = body.dropLast(1) + ",\"backupTimestamp\":" + JSONObject.numberToString(stamp as Number) + "}"
-                val targetFiles = getBackupFiles(appContext).filter { it.absolutePath !in deniedTargets }
+                // Written only to the app-private folder (audit N6): shared-storage copies are read
+                // for restore but no longer refreshed with location-bearing data.
+                val targetFiles = getMirrorWriteTargets(appContext).filter { it.absolutePath !in deniedTargets }
                 for (target in targetFiles) {
                     try {
                         val parent = target.parentFile
@@ -583,10 +593,16 @@ object PersistentDataManager {
         }
     }
 
-    /**
-     * Explicitly called only when user enters password @Shadow@511 to reset all data.
-     */
+    /** App-private location of the JSON mirror (the only place it is written). */
+    private fun getMirrorWriteTargets(context: Context): List<File> {
+        val extDir = context.getExternalFilesDir(null) ?: return emptyList()
+        if (!extDir.exists()) extDir.mkdirs()
+        return listOf(File(extDir, BACKUP_FILE_NAME))
+    }
+
+    /** Factory reset only (confirmed in Settings): removes the mirrors and the auto-backups. */
     fun clearBackup(context: Context) {
+        com.antigravity.copilot.core.persistence.AutoBackupManager.clearAll(context)
         val targetFiles = getBackupFiles(context)
         for (target in targetFiles) {
             try {
