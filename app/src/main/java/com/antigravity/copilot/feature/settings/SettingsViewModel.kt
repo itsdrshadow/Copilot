@@ -39,6 +39,9 @@ class SettingsViewModel @Inject constructor(
 
     fun selectTheme(mode: CockpitThemeMode) = settingsRepository.updateCockpitTheme(mode)
 
+    fun selectAppearance(mode: com.antigravity.copilot.core.designsystem.ThemeAppearanceMode) =
+        settingsRepository.updateThemeAppearanceMode(mode.id)
+
     fun selectAccent(accentId: String) = settingsRepository.updateAccentColor(accentId)
 
     fun setAutoForegroundOnBoot(enabled: Boolean) = settingsRepository.setAutoForegroundOnBoot(enabled)

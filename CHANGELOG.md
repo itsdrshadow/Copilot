@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.13.3] - 2026-11-18
+
+### Changed
+- Reverted the Bento dark theme, Day-mode removal and Bento home redesign; UI is back to the Raahi 2.11.2 look (tag `pre-bento-theme`). The Bento work stays in git history (v2.12.0 to v2.13.2).
+
+---
+
 ## [2.13.2] - 2026-11-18
 
 ### Removed

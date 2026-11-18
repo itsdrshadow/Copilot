@@ -194,6 +194,7 @@ class MainActivity : ComponentActivity() {
 
             CopilotTheme(
                 themeMode = settings.cockpitThemeMode,
+                appearanceMode = settings.appearanceMode,
                 accentOption = settings.accentOption
             ) {
                 MainAppScreen(viewModel = viewModel)

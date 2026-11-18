@@ -9,6 +9,7 @@ interface SettingsRepository {
     val settings: StateFlow<SettingsState>
     fun updateVehicleSpecs(name: String, fuelType: String, tankCapacityLiters: Double, expectedMileageKmpl: Double)
     fun updateCockpitTheme(mode: CockpitThemeMode)
+    fun updateThemeAppearanceMode(modeId: String)
     fun updateAccentColor(accentId: String)
     fun setAutoForegroundOnBoot(enabled: Boolean)
     fun setScreenAlwaysOn(enabled: Boolean)

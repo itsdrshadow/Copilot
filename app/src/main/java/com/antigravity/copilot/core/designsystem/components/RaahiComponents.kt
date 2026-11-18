@@ -50,7 +50,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.designsystem.CockpitTheme
@@ -111,7 +110,7 @@ fun RaahiCard(
     )
 }
 
-/** Eyebrow caption (uppercase, wide tracking) in textSecondary. */
+/** Small uppercase-free card caption in textSecondary. */
 @Composable
 fun RaahiLabel(
     text: String,
@@ -119,11 +118,8 @@ fun RaahiLabel(
     color: Color = CockpitTheme.colors.textSecondary,
 ) {
     Text(
-        text = text.uppercase(),
-        style = CockpitTheme.typography.labelMedium.copy(
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-            letterSpacing = 1.04.sp,
-        ),
+        text = text,
+        style = CockpitTheme.typography.labelMedium,
         color = color,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -187,10 +183,10 @@ fun SegmentBar(
     val trackBorder = CockpitTheme.colors.border
     Row(
         modifier = modifier.fillMaxWidth().height(height),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         val fill = fillPoints.coerceIn(0.0, segments.toDouble())
-        val shape = RoundedCornerShape(50)
+        val shape = RoundedCornerShape(6.dp)
         for (i in 1..segments) {
             val seg = (fill - (i - 1)).coerceIn(0.0, 1.0).toFloat()
             val segColor = segmentColor?.invoke(i) ?: color
@@ -200,7 +196,8 @@ fun SegmentBar(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(shape)
-                        .background(if (segmentColor != null) segColor.copy(alpha = 0.18f) else track),
+                        .background(if (segmentColor != null) segColor.copy(alpha = 0.16f) else track)
+                        .border(Raahi.Border, if (segmentColor != null) segColor.copy(alpha = 0.35f) else trackBorder, shape),
             ) {
                 if (seg > 0f) {
                     Box(Modifier.fillMaxHeight().fillMaxWidth(seg).clip(shape).background(segColor))

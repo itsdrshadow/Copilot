@@ -418,6 +418,7 @@ object PersistentDataManager {
                 sObj.put("auto_minimize_drawer", settings.autoMinimizeDrawer)
                 sObj.put("app_language", settings.language)
                 sObj.put("cockpit_theme", settings.cockpitTheme)
+                sObj.put("theme_appearance_mode", settings.themeAppearanceMode)
                 sObj.put("car_name", settings.carName)
                 sObj.put("fuel_type", settings.fuelType)
                 sObj.put("tank_capacity_liters", settings.tankCapacityLiters)

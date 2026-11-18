@@ -31,6 +31,7 @@ object AppSettingsManager {
     const val KEY_LANGUAGE = "app_language"
     const val KEY_COCKPIT_THEME = "cockpit_theme"
     const val KEY_LAST_STABLE_THEME = "last_stable_cockpit_theme"
+    const val KEY_THEME_APPEARANCE_MODE = "theme_appearance_mode"
     const val KEY_ACCENT_COLOR = "accent_color"
 
     // Vehicle
@@ -68,6 +69,7 @@ object AppSettingsManager {
         val autoMinimizeDrawer: Boolean = false,
         val language: String = "English (Automotive Standard)",
         val cockpitTheme: String = "apex",
+        val themeAppearanceMode: String = "auto",
         val accentColor: String = "cyan",
         val carName: String = "My Car",
         val fuelType: String = "Petrol",
@@ -94,6 +96,10 @@ object AppSettingsManager {
     ) {
         val cockpitThemeMode: CockpitThemeMode
             get() = CockpitThemeMode.fromId(cockpitTheme)
+
+        val appearanceMode: com.antigravity.copilot.core.designsystem.ThemeAppearanceMode
+            get() = com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.fromId(themeAppearanceMode)
+
         val accentOption: com.antigravity.copilot.core.designsystem.colors.AccentOption
             get() = com.antigravity.copilot.core.designsystem.colors.AccentOption.fromId(accentColor)
     }
@@ -149,6 +155,7 @@ object AppSettingsManager {
             language = prefs.getString(KEY_LANGUAGE, "English (Automotive Standard)") ?: "English",
             // Normalise through fromId: legacy ids (old "glass" variants etc.) fold to Apex, "liquid_glass" survives.
             cockpitTheme = CockpitThemeMode.fromId(prefs.getString(KEY_COCKPIT_THEME, "apex") ?: "apex").id,
+            themeAppearanceMode = prefs.getString(KEY_THEME_APPEARANCE_MODE, "auto") ?: "auto",
             accentColor = prefs.getString(KEY_ACCENT_COLOR, "cyan") ?: "cyan",
             carName = prefs.getString(KEY_CAR_NAME, "My Car") ?: "My Car",
             fuelType = prefs.getString(KEY_FUEL_TYPE, "Petrol") ?: "Petrol",
@@ -338,6 +345,15 @@ object AppSettingsManager {
                 it[SettingsDataStore.KEY_COCKPIT_THEME] = mode.id
                 it[SettingsDataStore.KEY_LAST_STABLE_THEME] = mode.id
             }
+        }
+    }
+
+    /** Raahi Day / Night / Auto override (Settings › General › Appearance). */
+    fun updateThemeAppearanceMode(context: Context, modeId: String) {
+        getPrefs(context).edit().putString(KEY_THEME_APPEARANCE_MODE, modeId).apply()
+        _settingsState.value = _settingsState.value.copy(themeAppearanceMode = modeId)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_THEME_APPEARANCE_MODE] = modeId }
         }
     }
 

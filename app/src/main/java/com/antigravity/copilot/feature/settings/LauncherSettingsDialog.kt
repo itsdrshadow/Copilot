@@ -266,6 +266,7 @@ fun LauncherSettingsDialog(
                             when (target) {
                                 SettingsTab.GENERAL -> GeneralSettingsContent(
                                     state = settingsState,
+                                    onSelectAppearance = viewModel::selectAppearance,
                                     onSelectAccent = viewModel::selectAccent,
                                     onToggleAutoForeground = { viewModel.setAutoForegroundOnBoot(!settingsState.autoForegroundOnBoot) },
                                     onToggleScreenAlwaysOn = { viewModel.setScreenAlwaysOn(!settingsState.screenAlwaysOn) },
@@ -452,6 +453,7 @@ fun LauncherSettingsDialog(
 @Composable
 private fun GeneralSettingsContent(
     state: AppSettingsManager.SettingsState,
+    onSelectAppearance: (com.antigravity.copilot.core.designsystem.ThemeAppearanceMode) -> Unit,
     onSelectAccent: (String) -> Unit,
     onToggleAutoForeground: () -> Unit,
     onToggleScreenAlwaysOn: () -> Unit,
@@ -462,6 +464,58 @@ private fun GeneralSettingsContent(
     onGeofenceRadiusChange: (Float) -> Unit
 ) {
 
+    // RAAHI APPEARANCE (Auto / Night / Day)
+    SettingsCard(title = "Appearance", icon = Icons.Default.Palette) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Raahi theme. Auto switches between Day and Night using the ambient light sensor (or the clock when the device has no light sensor).",
+                style = CockpitTheme.typography.bodyMedium,
+                color = CockpitTheme.colors.textSecondary
+            )
+            // Switching is instant: the choice flows through AppSettingsManager.settingsState into
+            // CopilotTheme. No activity recreation, so the MapView stays alive.
+            val modes = com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.entries
+            val subtitles = mapOf(
+                com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.AUTO to "Follows ambient light or time of day",
+                com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.NIGHT to "Dark navy, for driving at night",
+                com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.DAY to "Light, for bright daylight"
+            )
+            modes.forEach { mode ->
+                val isSelected = state.appearanceMode == mode
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .clip(CopilotShapes.R16)
+                        .background(if (isSelected) CockpitTheme.colors.cardElevated else CockpitTheme.colors.card)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
+                            shape = CopilotShapes.R16
+                        )
+                        .clickable { onSelectAppearance(mode) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = isSelected, onClick = { onSelectAppearance(mode) })
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = mode.displayName,
+                            style = CockpitTheme.typography.titleMedium,
+                            color = CockpitTheme.colors.textPrimary
+                        )
+                        Text(
+                            text = subtitles[mode].orEmpty(),
+                            style = CockpitTheme.typography.bodySmall,
+                            color = CockpitTheme.colors.textSecondary
+                        )
+                    }
+                }
+            }
+        }
+    }
+
     // ACCENT COLOUR: buttons, selected states, nav highlight, small labels and icons
     SettingsCard(title = "Accent colour", icon = Icons.Default.Palette) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -470,6 +524,7 @@ private fun GeneralSettingsContent(
                 style = CockpitTheme.typography.bodyMedium,
                 color = CockpitTheme.colors.textSecondary
             )
+            val isDark = CockpitTheme.isDark
             @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -477,7 +532,7 @@ private fun GeneralSettingsContent(
             ) {
                 com.antigravity.copilot.core.designsystem.colors.AccentOption.entries.forEach { option ->
                     val selected = state.accentOption == option
-                    val swatch = option.night
+                    val swatch = if (isDark) option.night else option.day
                     Column(
                         modifier = Modifier
                             .width(64.dp)

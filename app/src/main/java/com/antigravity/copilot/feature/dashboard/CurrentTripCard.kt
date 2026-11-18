@@ -173,6 +173,7 @@ fun CurrentTripCard(
     modifier: Modifier = Modifier,
     baselineMileage: Double = 18.0
 ) {
+    val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
     val cyanAccent = CockpitTheme.colors.accent
     val positiveAccent = CockpitTheme.colors.accent
@@ -391,10 +392,9 @@ fun CurrentTripCard(
                             modifier = Modifier.size(17.dp)
                         )
                         Text(
-                            text = target.title.uppercase(),
+                            text = target.title,
                             style = CockpitTheme.typography.labelMedium.copy(
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 1.04.sp
+                                letterSpacing = 0.8.sp
                             ),
                             color = textSecondary,
                             maxLines = 1,
@@ -468,7 +468,7 @@ fun CurrentTripCard(
             val dockBorderColor = when {
                 isFlashingGreen -> positiveAccent.copy(alpha = flashPulseAlpha)
                 isFlashingRed -> dangerAccent.copy(alpha = flashPulseAlpha)
-                else -> Color.Transparent
+                else -> CockpitTheme.colors.border
             }
             val dockBorderWidth = if (isFlashingGreen || isFlashingRed) 1.8.dp else 1.dp
 
@@ -496,7 +496,7 @@ fun CurrentTripCard(
             val dockBackgroundModifier = if (isFlashingGreen || isFlashingRed) {
                 Modifier.background(dockBg)
             } else {
-                Modifier.dashedTopDivider()
+                Modifier.background(CockpitTheme.colors.dockActionBrush)
             }
 
             Row(
@@ -515,7 +515,7 @@ fun CurrentTripCard(
                     Text(
                         text = liveTripTimerText,
                         style = CockpitTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Black,
                             fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,
@@ -554,7 +554,7 @@ fun CurrentTripCard(
                     Text(
                         text = movingText,
                         style = CockpitTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Black,
                             fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,

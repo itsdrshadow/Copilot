@@ -331,15 +331,15 @@ fun SpeedometerCluster(
                 ) {
                     Text(
                         text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
-                        style = (if (compactDial) CockpitTheme.typography.displayMedium else CockpitTheme.typography.displayLarge).copy(fontWeight = FontWeight.SemiBold),
+                        style = if (compactDial) CockpitTheme.typography.displayMedium else CockpitTheme.typography.displayLarge,
                         color = textPrimary,
                         maxLines = 1
                     )
                     Text(
                         text = "KM/H",
                         style = CockpitTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Medium,
-                            letterSpacing = 1.04.sp
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.0.sp
                         ),
                         color = statusColor
                     )
