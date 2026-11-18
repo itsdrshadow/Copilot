@@ -51,9 +51,7 @@ class TripGeofenceManager private constructor(context: Context) : GeofenceProvid
 
         fun getInstance(context: Context): TripGeofenceManager {
             return INSTANCE ?: synchronized(this) {
-                val instance = TripGeofenceManager(context.applicationContext)
-                INSTANCE = instance
-                instance
+                INSTANCE ?: TripGeofenceManager(context.applicationContext).also { INSTANCE = it }
             }
         }
     }

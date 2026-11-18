@@ -238,7 +238,11 @@ fun LiveMapPanel(
     val fpsGovernor = remember { MapFpsGovernor() }
     val fpsMode by remember { AppSettingsManager.settingsState.map { it.mapRenderFpsMode }.distinctUntilChanged() }
         .collectAsStateWithLifecycle(AppSettingsManager.settingsState.value.mapRenderFpsMode)
-    LaunchedEffect(fpsMode) { fpsGovernor.setMode(fpsMode) }
+    val safeMode by com.antigravity.copilot.core.recovery.SafeMode.active.collectAsStateWithLifecycle()
+    LaunchedEffect(fpsMode, safeMode) {
+        // Safe mode (after a crash loop) caps the map at the 30 fps battery-saver rate.
+        fpsGovernor.setMode(if (safeMode) com.antigravity.copilot.core.settings.MapRenderFps.BALANCED_30 else fpsMode)
+    }
     val mapController = remember { CarMapController(context.applicationContext, coroutineScope) }
 
     val hasMapInstalled by mapController.hasMapInstalled.collectAsStateWithLifecycle()

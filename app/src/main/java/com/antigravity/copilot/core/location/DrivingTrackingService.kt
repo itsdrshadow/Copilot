@@ -59,13 +59,6 @@ class DrivingTrackingService : Service(), LocationListener {
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var lastPointTimestamp: Long = 0L
     private var latestEmittedPoint: TripPoint? = null
-    private var stationaryStartTime: Long = 0L
-    private var hasPromptedRefuelThisStop: Boolean = false
-    private var hasCheckedStationThisStop: Boolean = false
-    private var detectedStationResult: FuelStationDetectionResult? = null
-    private var lastPromptStationTime = 0L
-    private var lastPromptStationLat = 0.0
-    private var lastPromptStationLon = 0.0
     private var lastFusedFixTimeMs: Long = 0L
     /** elapsedRealtime of the last precise (GNSS-grade) fix, used to drop network fixes while GPS is live. */
     private var lastPreciseFixElapsedMs: Long = 0L
@@ -76,13 +69,33 @@ class DrivingTrackingService : Service(), LocationListener {
     private var initialCachedFixProcessed: Boolean = false
     private var lastCachedFixTimestamp: Long = 0L
 
+    /** Active-trip restore gate: fixes that arrive before the DB restore are buffered and replayed. */
+    private val restoreDone = CompletableDeferred<Unit>()
+    private val fixesBeforeRestore = ArrayList<Location>()
+    private val positionSaveThrottle = PositionSaveThrottle()
+    private val pumpStop = PumpStopStateMachine()
+    private val gnssGate = GnssQualityGate()
+    private var gnssCallback: Any? = null
+    private var lastActiveTripPersistMono: Long = 0L
+
     private fun filterAndDispatchLocation(rawLocation: Location) {
         if (rawLocation.latitude == 0.0 && rawLocation.longitude == 0.0) return
+        // Spoofed / test-provider fixes never drive trips or the odometer.
+        @Suppress("DEPRECATION")
+        if (!gnssGate.accept(rawLocation.isFromMockProvider)) return
+        if (!restoreDone.isCompleted) {
+            // The DB restore of an active trip has not finished: replay this fix after it.
+            if (fixesBeforeRestore.size < MAX_BUFFERED_FIXES) fixesBeforeRestore.add(Location(rawLocation).withElapsed())
+            return
+        }
 
         val rawSpeedKmh = if (rawLocation.hasSpeed()) rawLocation.speed * 3.6f else 0f
         val rawBearing = if (rawLocation.hasBearing()) rawLocation.bearing else 0f
         val rawAccuracy = if (rawLocation.hasAccuracy()) rawLocation.accuracy else 5.0f
-        val timestamp = if (rawLocation.time > 0L) rawLocation.time else System.currentTimeMillis()
+        val wallTime = if (rawLocation.time > 0L) rawLocation.time else System.currentTimeMillis()
+        val located = Location(rawLocation).withElapsed()
+        // The smoothing filter measures dt on the monotonic clock (the RTC may be wrong or jump).
+        val timestamp = located.elapsedRealtimeNanos / 1_000_000L
         val isPrecise = isPreciseFix(rawLocation)
         val nowElapsed = android.os.SystemClock.elapsedRealtime()
         if (isPrecise) {
@@ -103,19 +116,26 @@ class DrivingTrackingService : Service(), LocationListener {
             isPrecise = isPrecise
         )
 
-        val filteredLocation = Location(rawLocation).apply {
+        val filteredLocation = Location(located).apply {
             latitude = filtered.latitude
             longitude = filtered.longitude
             bearing = filtered.bearing
             speed = filtered.speedKmh / 3.6f
             accuracy = filtered.accuracyMeters
-            time = filtered.timestamp
+            time = wallTime
         }
 
+        engine.distanceAccumulationPaused = gnssGate.isWeak(nowElapsed)
         if (::geofenceEngine.isInitialized) {
             geofenceEngine.processLocation(filteredLocation)
         }
         engine.processLocation(filteredLocation)
+    }
+
+    /** Platform fixes carry elapsedRealtimeNanos; synthetic ones (simulator, cached) get the receive time. */
+    private fun Location.withElapsed(): Location {
+        if (elapsedRealtimeNanos <= 0L) elapsedRealtimeNanos = android.os.SystemClock.elapsedRealtimeNanos()
+        return this
     }
 
     private val fusedCallback = object : LocationCallback() {
@@ -134,6 +154,9 @@ class DrivingTrackingService : Service(), LocationListener {
         private const val PRECISE_ACCURACY_METERS = 50f
         private const val NETWORK_FALLBACK_AFTER_MS = 30_000L
         private const val COARSE_STARTUP_GRACE_MS = 15_000L
+        private const val MAX_BUFFERED_FIXES = 30
+        private const val RESTORE_GATE_TIMEOUT_MS = 5_000L
+        private const val ACTIVE_TRIP_PERSIST_INTERVAL_MS = 30_000L
 
         fun start(context: Context) {
             val intent = Intent(context, DrivingTrackingService::class.java)
@@ -182,13 +205,18 @@ class DrivingTrackingService : Service(), LocationListener {
             lastRecordedDistanceMeters = 0.0
             return START_STICKY
         }
-        if (intent?.action == ACTION_MANUAL_START_TRIP && ::geofenceEngine.isInitialized) {
-            geofenceEngine.manualStartTrip(System.currentTimeMillis(), latestEmittedPoint)
-        } else if (intent?.action == ACTION_MANUAL_END_TRIP && ::geofenceEngine.isInitialized) {
-            if (geofenceEngine.isTripActive) {
-                geofenceEngine.manualEndTrip(System.currentTimeMillis(), latestEmittedPoint)
-            } else if (::engine.isInitialized && engine.currentTripId > 0L) {
-                engine.completeActiveTrip(System.currentTimeMillis())
+        val action = intent?.action
+        if ((action == ACTION_MANUAL_START_TRIP || action == ACTION_MANUAL_END_TRIP) && ::geofenceEngine.isInitialized) {
+            // Never act before the restored trip is in place, or a manual start would mint a second trip.
+            serviceScope.launch {
+                restoreDone.await()
+                if (action == ACTION_MANUAL_START_TRIP) {
+                    geofenceEngine.manualStartTrip(System.currentTimeMillis(), latestEmittedPoint)
+                } else if (geofenceEngine.isTripActive) {
+                    geofenceEngine.manualEndTrip(System.currentTimeMillis(), latestEmittedPoint)
+                } else if (::engine.isInitialized && engine.currentTripId > 0L) {
+                    engine.completeActiveTrip(System.currentTimeMillis())
+                }
             }
         }
         startLocationUpdates()
@@ -216,11 +244,8 @@ class DrivingTrackingService : Service(), LocationListener {
                 tripRepository.attachDeparturePoints(startTime, departurePoints)
                 tripRepository.updateTripOrigin(startTime, originName)
                 if (departureDistMeters > 0.0) {
-                    fuelRepository.consumeLiveFuel(
-                        deltaDistanceMeters = departureDistMeters,
-                        currentSpeedKmh = 15.0,
-                        deltaDurationMs = 1000L
-                    )
+                    // Buffered departure distance has no real per-second speed: learned-mileage path.
+                    fuelRepository.consumeBridgeFuel(departureDistMeters)
                 }
             },
             onTripActiveTelemetry = { _ -> },
@@ -235,7 +260,60 @@ class DrivingTrackingService : Service(), LocationListener {
             }
         )
 
+        acquireWakeLock()
+
+        createNotificationChannel()
+        startForegroundWithNotification()
+
+        engine = createEngine()
+        engine.monoClock = { android.os.SystemClock.elapsedRealtime() }
+        engine.isMonotonicDomain = true
+        engine.speedLimitProvider = {
+            speedLimitEngine.speedLimitInfo.value.takeIf { it.isApplicable }?.speedLimitKmh?.toDouble()
+        }
+        engine.driverScoringEnabled = { AppSettingsManager.settingsState.value.driverScoring }
+
+        // Restore runs first; fixes arriving meanwhile are buffered (see filterAndDispatchLocation).
         serviceScope.launch {
+            try {
+                restoreActiveTripFromDatabase()
+            } catch (e: Exception) {
+                android.util.Log.e("DrivingTrackingService", "Active trip restore failed: ${e.message}", e)
+            } finally {
+                releaseRestoreGate()
+            }
+            // Android sends no ACTION_POWER_CONNECTED at boot when power was already present, so a
+            // trip restored in TEMPORARY_STOP would otherwise stay "power cut" forever.
+            if (isExternalPowerPresent()) {
+                engine.onPowerConnected(android.os.SystemClock.elapsedRealtime())
+            }
+        }
+        serviceScope.launch {
+            delay(RESTORE_GATE_TIMEOUT_MS)
+            releaseRestoreGate()
+        }
+        registerGnssStatus()
+
+        onCreateContinued()
+    }
+
+    private fun releaseRestoreGate() {
+        if (restoreDone.isCompleted) return
+        restoreDone.complete(Unit)
+        val buffered = ArrayList(fixesBeforeRestore)
+        fixesBeforeRestore.clear()
+        for (loc in buffered) filterAndDispatchLocation(loc)
+    }
+
+    private fun isExternalPowerPresent(): Boolean = try {
+        val battery = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        (battery?.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, 0) ?: 0) != 0
+    } catch (_: Exception) {
+        false
+    }
+
+    private suspend fun restoreActiveTripFromDatabase() {
+        run {
             val db = database
             val activeTrip = db.tripDao().getActiveTrip()
             if (activeTrip != null && activeTrip.endTime <= 0L) {
@@ -290,19 +368,56 @@ class DrivingTrackingService : Service(), LocationListener {
                 }
             }
         }
+    }
 
-        acquireWakeLock()
+    /** GnssStatus: satellites used in fix feed the weak-GNSS distance gate (API 24+). */
+    @SuppressLint("MissingPermission")
+    private fun registerGnssStatus() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+        try {
+            val cb = object : android.location.GnssStatus.Callback() {
+                override fun onSatelliteStatusChanged(status: android.location.GnssStatus) {
+                    var used = 0
+                    for (i in 0 until status.satelliteCount) if (status.usedInFix(i)) used++
+                    gnssGate.onStatus(android.os.SystemClock.elapsedRealtime(), used)
+                }
+            }
+            locationManager.registerGnssStatusCallback(cb, android.os.Handler(Looper.getMainLooper()))
+            gnssCallback = cb
+        } catch (e: Exception) {
+            android.util.Log.w("DrivingTrackingService", "GnssStatus unavailable: ${e.message}")
+        }
+    }
 
-        createNotificationChannel()
-        startForegroundWithNotification()
+    private fun unregisterGnssStatus() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+        (gnssCallback as? android.location.GnssStatus.Callback)?.let {
+            try { locationManager.unregisterGnssStatusCallback(it) } catch (_: Exception) {}
+        }
+        gnssCallback = null
+    }
 
-        engine = TripDetectionEngine(
+    private fun saveLastKnownPosition(point: TripPoint?, force: Boolean) {
+        point ?: return
+        if (positionSaveThrottle.shouldSave(android.os.SystemClock.elapsedRealtime(), point.latitude, point.longitude, force)) {
+            com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(applicationContext, point.latitude, point.longitude)
+        }
+    }
+
+    private fun persistActiveTripNow() {
+        if (!::engine.isInitialized) return
+        engine.getCurrentTripSummary()?.let { tripRepository.persistActiveTrip(it) }
+        lastActiveTripPersistMono = android.os.SystemClock.elapsedRealtime()
+    }
+
+    private fun createEngine(): TripDetectionEngine =
+        TripDetectionEngine(
             onPointReceived = { point ->
-                lastPointTimestamp = System.currentTimeMillis()
+                lastPointTimestamp = android.os.SystemClock.elapsedRealtime()
                 latestEmittedPoint = point
-                com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(applicationContext, point.latitude, point.longitude)
+                saveLastKnownPosition(point, force = false)
                 tripRepository.onLocationReceived(point)
-                vehicleStateManager.onSpeedOrLocationUpdated(point.speedKmh, point.timestamp)
+                vehicleStateManager.onSpeedOrLocationUpdated(point.speedKmh, point.timestamp, engine.currentTripId.takeIf { it > 0L })
                 roadAnomalyManager.onLocation(point)
                 com.antigravity.copilot.core.fuel.station.FuelStationTracker.getInstance(applicationContext).onLocation(point)
             },
@@ -340,6 +455,8 @@ class DrivingTrackingService : Service(), LocationListener {
                 lastRecordedDistanceMeters = 0.0
             }
         )
+
+    private fun onCreateContinued() {
         // Dynamically sync geofence control state with geofenceManager
         serviceScope.launch {
             geofenceManager.geofences.collect { geofences ->
@@ -361,6 +478,7 @@ class DrivingTrackingService : Service(), LocationListener {
                 deltaDurationMs = dtMs
             )
         }
+        engine.onBridgeDistance = { meters -> fuelRepository.consumeBridgeFuel(meters) }
 
         // Automotive Vehicle Ignition / Power Off & System Shutdown Detector
         val filter = IntentFilter().apply {
@@ -375,12 +493,13 @@ class DrivingTrackingService : Service(), LocationListener {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 val now = System.currentTimeMillis()
+                val nowMono = android.os.SystemClock.elapsedRealtime()
                 when (intent?.action) {
                     Intent.ACTION_POWER_CONNECTED -> {
                         isPowerCut = false
                         roadAnomalyManager.start() // ACC on: (re)starts the 5 s sensor wake-up guard
                         vehicleStateManager.onHardwarePowerConnected(now)
-                        engine.onPowerConnected(now)
+                        engine.onPowerConnected(nowMono)
                         acquireWakeLock()
                         requestLocationUpdates()
                     }
@@ -391,18 +510,17 @@ class DrivingTrackingService : Service(), LocationListener {
                         if (::geofenceEngine.isInitialized) {
                             geofenceEngine.onPowerDisconnected(now)
                         }
-                        engine.onPowerDisconnected(now)
-                        vehicleStateManager.onHardwarePowerDisconnected(now)
+                        engine.onPowerDisconnected(nowMono)
+                        vehicleStateManager.onHardwarePowerDisconnected(now, engine.currentTripId.takeIf { it > 0L })
 
                         // Safely persist ongoing journey in TEMPORARY_STOP in Room SQLite
-                        engine.getCurrentTripSummary(now)?.let { summary ->
-                            tripRepository.persistActiveTrip(summary)
-                        }
+                        persistActiveTripNow()
+                        saveLastKnownPosition(latestEmittedPoint, force = true)
 
                         // Immediately reset speed display to zero upon engine cut
                         latestEmittedPoint?.let { pt ->
                             if (pt.speedKmh > 0f) {
-                                val zeroPoint = pt.copy(speedKmh = 0f, timestamp = now)
+                                val zeroPoint = pt.copy(speedKmh = 0f, timestamp = now, elapsedMs = nowMono)
                                 latestEmittedPoint = zeroPoint
                                 tripRepository.onLocationReceived(zeroPoint)
                             }
@@ -418,9 +536,11 @@ class DrivingTrackingService : Service(), LocationListener {
                         if (::geofenceEngine.isInitialized) {
                             geofenceEngine.onPowerDisconnected(now)
                         }
-                        // Conclude ongoing trip immediately at exact shutdown timestamp
+                        // Shutdown keeps the trip open for restore; persist its latest state now.
                         engine.forceCompleteOngoingTrip(now)
-                        vehicleStateManager.onSystemShutdown("SYSTEM_SHUTDOWN", now)
+                        persistActiveTripNow()
+                        saveLastKnownPosition(latestEmittedPoint, force = true)
+                        vehicleStateManager.onSystemShutdown("SYSTEM_SHUTDOWN", now, engine.currentTripId.takeIf { it > 0L })
                     }
                 }
             }
@@ -445,110 +565,62 @@ class DrivingTrackingService : Service(), LocationListener {
                     continue
                 }
                 val now = System.currentTimeMillis()
-                val elapsed = now - lastPointTimestamp
+                // Durations on the monotonic clock: the head-unit RTC may be wrong or jump at NTP sync.
+                val nowMono = android.os.SystemClock.elapsedRealtime()
+                val elapsed = nowMono - lastPointTimestamp
                 val lastPt = latestEmittedPoint
                 // Only synthesize zero-speed after full 10-second confirmed standstill
                 // Allows UI SpeedometerCluster to execute graceful deceleration curve
                 if (elapsed > 10000L && lastPt != null && lastPt.speedKmh > 0f) {
-                    val zeroPoint = lastPt.copy(speedKmh = 0f, timestamp = now)
+                    val zeroPoint = lastPt.copy(speedKmh = 0f, timestamp = now, elapsedMs = nowMono)
                     latestEmittedPoint = zeroPoint
                     tripRepository.onLocationReceived(zeroPoint)
                 }
-                engine.processStationaryWatchdog(now)
+                engine.processStationaryWatchdog(nowMono)
                 vehicleStateManager.onPeriodicTick(now)
+                // Periodic cheap UPDATE of the live trip row so a kill loses at most 30 s of summary.
+                if (engine.currentTripId > 0L && nowMono - lastActiveTripPersistMono >= ACTIVE_TRIP_PERSIST_INTERVAL_MS) {
+                    persistActiveTripNow()
+                }
 
-                // Background Fuel Station Stop Intelligence (> 30s):
-                // Strictly triggers only at confirmed Fuel Station POIs. Prevents false triggers at traffic lights or normal parking.
-                // Enforces 30-minute / 200-meter cooldown between prompts at the same station.
+                // Pump-stop prompt (pure state machine): station lookup after 3 s stopped, prompt after
+                // the dwell time at a confirmed fuel station, 30 min / 200 m cooldown per pump.
                 val currentPt = latestEmittedPoint
                 if (currentPt != null) {
                     val settings = com.antigravity.copilot.core.settings.AppSettingsManager.settingsState.value
-                    val isWatchdogEnabled = settings.stationStopWatchdog
-                    val dwellMs = (settings.stationPromptDwellSeconds * 1000L).coerceIn(15000L, 180000L)
-                    val stationaryThreshold = settings.stationarySpeedThresholdKmh
-
-                    if (isWatchdogEnabled && currentPt.speedKmh < stationaryThreshold) {
-                        if (stationaryStartTime == 0L) {
-                            stationaryStartTime = now
-                            hasCheckedStationThisStop = false
-                            detectedStationResult = null
-                        }
-                        val stoppedDurationMs = now - stationaryStartTime
-
-                        // When stopped for >= 3 seconds, resolve if current location is a fuel station POI
-                        if (stoppedDurationMs >= 3000L && !hasCheckedStationThisStop) {
-                            hasCheckedStationThisStop = true
-                            serviceScope.launch {
-                                val detection = detectFuelStationOfflineFirst(currentPt.latitude, currentPt.longitude)
-                                detectedStationResult = detection
-
-                                // Check visit cooldown (30 min or vehicle moved > 200m)
-                                val distanceMoved = FloatArray(1)
-                                android.location.Location.distanceBetween(
-                                    currentPt.latitude, currentPt.longitude,
-                                    lastPromptStationLat, lastPromptStationLon,
-                                    distanceMoved
-                                )
-                                val isCooldownActive = (System.currentTimeMillis() - lastPromptStationTime < 30 * 60 * 1000L) && (distanceMoved[0] < 200f)
-
-                                // Trigger prompt if continuously stationary >= configured dwell time at confirmed fuel station
-                                if (detection.isFuelStation && !isCooldownActive && (System.currentTimeMillis() - stationaryStartTime >= dwellMs) && !hasPromptedRefuelThisStop) {
-                                    hasPromptedRefuelThisStop = true
-                                    lastPromptStationTime = System.currentTimeMillis()
-                                    lastPromptStationLat = currentPt.latitude
-                                    lastPromptStationLon = currentPt.longitude
-                                    val currentOdo = fuelRepository.fuelState.value.odometerKm
-                                    fuelRepository.triggerRefuelPrompt(
-                                        locationName = detection.stationName,
-                                        lat = currentPt.latitude,
-                                        lon = currentPt.longitude,
-                                        odoKm = currentOdo
-                                    )
-                                }
-                            }
-                        }
-
-                        // If already stationary >= configured dwell time and station is confirmed:
-                        if (stoppedDurationMs >= dwellMs && !hasPromptedRefuelThisStop) {
-                            val station = detectedStationResult
-                            if (station != null && station.isFuelStation) {
-                                val distanceMoved = FloatArray(1)
-                                android.location.Location.distanceBetween(
-                                    currentPt.latitude, currentPt.longitude,
-                                    lastPromptStationLat, lastPromptStationLon,
-                                    distanceMoved
-                                )
-                                val isCooldownActive = (System.currentTimeMillis() - lastPromptStationTime < 30 * 60 * 1000L) && (distanceMoved[0] < 200f)
-
-                                if (!isCooldownActive) {
-                                    hasPromptedRefuelThisStop = true
-                                    lastPromptStationTime = System.currentTimeMillis()
-                                    lastPromptStationLat = currentPt.latitude
-                                    lastPromptStationLon = currentPt.longitude
-                                    serviceScope.launch {
-                                        val currentOdo = fuelRepository.fuelState.value.odometerKm
-                                        fuelRepository.triggerRefuelPrompt(
-                                            locationName = station.stationName,
-                                            lat = currentPt.latitude,
-                                            lon = currentPt.longitude,
-                                            odoKm = currentOdo
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    } else if (currentPt.speedKmh >= 10.0f) {
-                        // Reset when car moves again
-                        stationaryStartTime = 0L
-                        hasPromptedRefuelThisStop = false
-                        hasCheckedStationThisStop = false
-                        detectedStationResult = null
-                    }
+                    val action = pumpStop.onTick(
+                        nowMs = nowMono,
+                        speedKmh = currentPt.speedKmh.toDouble(),
+                        lat = currentPt.latitude,
+                        lon = currentPt.longitude,
+                        enabled = settings.stationStopWatchdog,
+                        dwellMs = (settings.stationPromptDwellSeconds * 1000L).coerceIn(15000L, 180000L),
+                        stationarySpeedKmh = settings.stationarySpeedThresholdKmh.toDouble()
+                    )
+                    handlePumpStopAction(action)
                 }
             }
         }
 
         // Location updates are started in onStartCommand
+    }
+
+    private fun handlePumpStopAction(action: PumpStopStateMachine.Action) {
+        when (action) {
+            is PumpStopStateMachine.Action.CheckStation -> serviceScope.launch {
+                val detection = detectFuelStationOfflineFirst(action.lat, action.lon)
+                handlePumpStopAction(
+                    pumpStop.onStationResult(android.os.SystemClock.elapsedRealtime(), detection.isFuelStation, detection.stationName)
+                )
+            }
+            is PumpStopStateMachine.Action.Prompt -> fuelRepository.triggerRefuelPrompt(
+                locationName = action.stationName,
+                lat = action.lat,
+                lon = action.lon,
+                odoKm = fuelRepository.fuelState.value.odometerKm
+            )
+            PumpStopStateMachine.Action.None -> Unit
+        }
     }
 
     private fun startForegroundWithNotification() {
@@ -647,8 +719,10 @@ class DrivingTrackingService : Service(), LocationListener {
             }
 
             // Request Fused Location updates (1 second, high accuracy)
-            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
-                .setMinUpdateIntervalMillis(500L)
+            // Safe mode (after a crash loop) lowers the GPS rate to cut CPU / power load.
+            val gpsIntervalMs = com.antigravity.copilot.core.recovery.SafeMode.gpsIntervalMs()
+            val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, gpsIntervalMs)
+                .setMinUpdateIntervalMillis(gpsIntervalMs / 2)
                 .setMinUpdateDistanceMeters(0.5f)
                 .build()
             fusedLocationClient.requestLocationUpdates(request, fusedCallback, Looper.getMainLooper())
@@ -657,7 +731,7 @@ class DrivingTrackingService : Service(), LocationListener {
             if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 locationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
-                    1000L,
+                    gpsIntervalMs,
                     1.0f,
                     this,
                     Looper.getMainLooper()
@@ -840,6 +914,14 @@ class DrivingTrackingService : Service(), LocationListener {
     }
 
     override fun onDestroy() {
+        // Persist the live trip summary and position before the scope dies (kill / stopService).
+        try {
+            persistActiveTripNow()
+            saveLastKnownPosition(latestEmittedPoint, force = true)
+        } catch (e: Exception) {
+            android.util.Log.w("DrivingTrackingService", "onDestroy persist failed: ${e.message}")
+        }
+        unregisterGnssStatus()
         super.onDestroy()
         debugSim?.stop()
         debugSimReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }

@@ -29,6 +29,16 @@ object StorageMigrationManager {
         val errorMessage: String? = null
     )
 
+    /**
+     * Cheap synchronous check (one prefs read): only a storage-version upgrade or a fresh install /
+     * clean reinstall (version 0, where the persistent mirror may need restoring before anything
+     * reads the database) has to block app start. Every other start runs [initializeAndMigrate]
+     * in the background.
+     */
+    fun needsBlockingInit(context: Context): Boolean =
+        context.applicationContext.getSharedPreferences(PREFS_STORAGE, Context.MODE_PRIVATE)
+            .getInt(KEY_STORAGE_VERSION, 0) < CURRENT_STORAGE_VERSION
+
     suspend fun initializeAndMigrate(context: Context): MigrationResult = withContext(Dispatchers.IO) {
         val appContext = context.applicationContext
         try {

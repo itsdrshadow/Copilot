@@ -153,6 +153,12 @@ object CrashGuardian {
                 .putLong(KEY_FIRST_CRASH_TIME, 0L)
                 .commit()
         }
+        // Safe mode covers the session it was chosen for; once that session is stable the next
+        // start runs normally (SafeMode keeps this session's state until the process ends).
+        if (prefs.getBoolean(KEY_SAFE_MODE, false)) {
+            Log.i(TAG, "Safe-mode session verified stable; next start will run in normal mode.")
+            prefs.edit().putBoolean(KEY_SAFE_MODE, false).commit()
+        }
     }
 
     /**
@@ -165,24 +171,13 @@ object CrashGuardian {
     }
 
     /**
-     * Applies safe mode settings to reduce resource usage:
-     * - Disables satellite/hybrid map layers (uses lightweight vector tiles only)
-     * - Reduces map tile cache size
-     * - Disables non-essential animations
-     * - Lowers GPS update frequency
+     * Applies safe mode to the running process via [SafeMode]: the tracking service lowers the GPS
+     * request rate to 5 s and the map caps rendering at 30 fps (see SafeMode's consumers).
      */
+    @Suppress("UNUSED_PARAMETER")
     fun applySafeModeSettings(context: Context, enabled: Boolean) {
-        val prefs = context.getSharedPreferences("driving_report_settings", Context.MODE_PRIVATE)
-        prefs.edit()
-            .putBoolean("safe_mode_satellite_disabled", enabled)
-            .putBoolean("safe_mode_animations_disabled", enabled)
-            .putInt("safe_mode_gps_interval_ms", if (enabled) 5000 else 1000)
-            .apply()
-
-        // Also notify OfflineMapManager to switch to lightweight mode
-        if (enabled) {
-            OfflineMapManager.setLightweightMode(true)
-        }
+        SafeMode.set(enabled)
+        OfflineMapManager.setLightweightMode(enabled)
 
         Log.i(TAG, "Safe mode ${if (enabled) "enabled" else "disabled"} - resource usage ${if (enabled) "reduced" else "restored"}")
     }

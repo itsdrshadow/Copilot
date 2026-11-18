@@ -41,8 +41,13 @@ class VehicleStateManager private constructor(context: Context) {
     private val prefs: SharedPreferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private var lastStateChangeTimestamp: Long = System.currentTimeMillis()
-    private var lastTickTimestamp: Long = System.currentTimeMillis()
-    private var lastPersistTimestamp: Long = 0L
+    /** Monotonic (elapsedRealtime) reference for duration buckets: the RTC may jump or be wrong. */
+    private var lastTickMono: Long = mono()
+    private var lastPersistMono: Long = Long.MIN_VALUE
+    /** Hysteresis + 10 s idle debounce so stop-and-go traffic does not flood the transition log. */
+    private val motionDebouncer = com.antigravity.copilot.core.logic.VehicleMotionDebouncer()
+
+    private fun mono(): Long = android.os.SystemClock.elapsedRealtime()
 
     private val _metrics = MutableStateFlow(
         VehicleStateMetrics(
@@ -108,8 +113,8 @@ class VehicleStateManager private constructor(context: Context) {
         }
 
         lastStateChangeTimestamp = now
-        lastTickTimestamp = now
-
+        lastTickMono = mono()
+        motionDebouncer.reset(false)
         _metrics.value = VehicleStateMetrics(
             currentState = VehicleState.IDLE,
             stateSinceTimestamp = now,
@@ -123,10 +128,23 @@ class VehicleStateManager private constructor(context: Context) {
         )
 
         persistState(isSynchronous = true)
+        pruneOldTransitionsAsync()
+    }
+
+    /** Transition log retention: rows older than [TRANSITION_RETENTION_MS] are deleted at startup. */
+    private fun pruneOldTransitionsAsync() {
+        scope.launch {
+            try {
+                vehicleStateDao.deleteTransitionsBefore(System.currentTimeMillis() - TRANSITION_RETENTION_MS)
+            } catch (e: Exception) {
+                android.util.Log.w("VehicleStateManager", "Transition prune failed: ${e.message}")
+            }
+        }
     }
 
     /**
      * Transition vehicle to a new operational state.
+     * [timestamp] is wall-clock and only stamps the state; durations use the monotonic clock.
      */
     @Synchronized
     fun transitionTo(
@@ -139,9 +157,10 @@ class VehicleStateManager private constructor(context: Context) {
         val currentState = _metrics.value.currentState
 
         // Accumulate elapsed time into current state bucket
-        val deltaMs = max(0L, timestamp - lastTickTimestamp)
+        val nowMono = mono()
+        val deltaMs = max(0L, nowMono - lastTickMono)
         accumulateTime(currentState, deltaMs)
-        lastTickTimestamp = timestamp
+        lastTickMono = nowMono
 
         if (newState == currentState) {
             persistState(isSynchronous = false)
@@ -181,9 +200,10 @@ class VehicleStateManager private constructor(context: Context) {
     fun onSpeedOrLocationUpdated(speedKmh: Float, timestamp: Long = System.currentTimeMillis(), tripId: Long? = null) {
         val currentState = _metrics.value.currentState
         val speedThreshold = com.antigravity.copilot.core.settings.AppSettingsManager.settingsState.value.stationarySpeedThresholdKmh
+        val moving = motionDebouncer.onSample(mono(), speedKmh.toDouble(), speedThreshold.toDouble())
         if (currentState == VehicleState.ENGINE_OFF) {
             // Only transition away from ENGINE_OFF if actual motion above threshold is detected!
-            if (speedKmh >= speedThreshold) {
+            if (moving) {
                 transitionTo(
                     newState = VehicleState.MOVING,
                     confidence = StateConfidence.INFERRED,
@@ -196,7 +216,7 @@ class VehicleStateManager private constructor(context: Context) {
             return
         }
 
-        if (speedKmh >= speedThreshold) {
+        if (moving) {
             transitionTo(
                 newState = VehicleState.MOVING,
                 confidence = StateConfidence.INFERRED,
@@ -220,6 +240,7 @@ class VehicleStateManager private constructor(context: Context) {
      * Reliable hardware evidence for ENGINE_OFF.
      */
     fun onHardwarePowerDisconnected(timestamp: Long = System.currentTimeMillis(), tripId: Long? = null) {
+        motionDebouncer.reset(false)
         transitionTo(
             newState = VehicleState.ENGINE_OFF,
             confidence = StateConfidence.CONFIRMED,
@@ -263,11 +284,12 @@ class VehicleStateManager private constructor(context: Context) {
     /**
      * Periodic watchdog tick to accumulate duration and periodically flush to disk.
      */
-    fun onPeriodicTick(now: Long = System.currentTimeMillis()) {
-        val deltaMs = max(0L, now - lastTickTimestamp)
+    fun onPeriodicTick(@Suppress("UNUSED_PARAMETER") now: Long = System.currentTimeMillis()) {
+        val nowMono = mono()
+        val deltaMs = max(0L, nowMono - lastTickMono)
         if (deltaMs >= 1000L) {
             accumulateTime(_metrics.value.currentState, deltaMs)
-            lastTickTimestamp = now
+            lastTickMono = nowMono
             persistState(isSynchronous = false)
         }
     }
@@ -290,10 +312,11 @@ class VehicleStateManager private constructor(context: Context) {
 
     internal fun persistState(isSynchronous: Boolean) {
         val now = System.currentTimeMillis()
-        if (!isSynchronous && (now - lastPersistTimestamp < PERSIST_DEBOUNCE_MS)) {
+        val nowMono = mono()
+        if (!isSynchronous && lastPersistMono != Long.MIN_VALUE && (nowMono - lastPersistMono < PERSIST_DEBOUNCE_MS)) {
             return
         }
-        lastPersistTimestamp = now
+        lastPersistMono = nowMono
 
         val m = _metrics.value
         val editor = prefs.edit()
@@ -357,22 +380,24 @@ class VehicleStateManager private constructor(context: Context) {
         private const val KEY_UNKNOWN_DURATION_MS = "unknown_duration_ms"
 
         const val MOVEMENT_SPEED_THRESHOLD_KMH = 3.0f
-        const val PERSIST_DEBOUNCE_MS = 1000L
+        /** Async prefs flush interval; engine-off / shutdown always write synchronously. */
+        const val PERSIST_DEBOUNCE_MS = 15_000L
+        const val TRANSITION_RETENTION_MS = 90L * 24 * 60 * 60 * 1000
 
         @Volatile
         private var INSTANCE: VehicleStateManager? = null
 
         fun getInstance(context: Context): VehicleStateManager {
             return INSTANCE ?: synchronized(this) {
-                val inst = VehicleStateManager(context.applicationContext)
-                INSTANCE = inst
-                inst
+                INSTANCE ?: VehicleStateManager(context.applicationContext).also { INSTANCE = it }
             }
         }
     }
 
     fun resetAllData() {
         prefs.edit().clear().apply()
+        motionDebouncer.reset(false)
+        lastTickMono = mono()
         _metrics.value = VehicleStateMetrics(
             currentState = VehicleState.IDLE,
             stateSinceTimestamp = System.currentTimeMillis()

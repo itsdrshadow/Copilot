@@ -21,7 +21,12 @@ data class TripPoint(
     val accuracy: Float = 0f,
     val timestamp: Long = System.currentTimeMillis(),
     /** Live driving-state label (IDLE / ACCELERATING / CRUISING / BRAKING); not persisted. */
-    val drivingState: String = ""
+    val drivingState: String = "",
+    /**
+     * Monotonic receive time (SystemClock.elapsedRealtime() domain, ms); not persisted. 0 = unknown.
+     * Use this, never [timestamp], for freshness / duration checks: the head-unit RTC can be wrong.
+     */
+    val elapsedMs: Long = 0L
 )
 
 data class TripSummary(

@@ -136,6 +136,9 @@ interface VehicleStateDao {
     @Query("DELETE FROM vehicle_state_transitions")
     suspend fun clearAll()
 
+    @Query("DELETE FROM vehicle_state_transitions WHERE timestamp < :cutoff")
+    suspend fun deleteTransitionsBefore(cutoff: Long): Int
+
     @Query("SELECT * FROM vehicle_state_transitions ORDER BY timestamp ASC")
     suspend fun getAllTransitions(): List<VehicleStateTransitionEntity>
 
@@ -545,6 +548,8 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
+                // Re-check inside the lock: two threads may both have seen null outside it.
+                INSTANCE?.let { return it }
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,

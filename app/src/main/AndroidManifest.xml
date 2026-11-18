@@ -52,7 +52,6 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:directBootAware="true"
             android:launchMode="singleTask"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true"
@@ -86,7 +85,6 @@
             android:name=".core.location.DrivingTrackingService"
             android:enabled="true"
             android:exported="false"
-            android:directBootAware="true"
             android:foregroundServiceType="location" />
 
         <!-- WorkManager Resumable Download Foreground Service -->

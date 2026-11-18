@@ -964,6 +964,19 @@ class FuelRepository private constructor(context: Context) {
         _fuelState.update { buildFuelState() }
     }
 
+    /**
+     * Distance bridged without per-second fixes (geofence departure buffer, reboot / restore
+     * bridge). It has no meaningful speed or duration, so it bypasses FuelAIEngine's teleport
+     * guard and is charged at the learned mileage.
+     */
+    fun consumeBridgeFuel(distanceMeters: Double) {
+        if (!distanceMeters.isFinite() || distanceMeters <= 0.0) return
+        val kmpl = FuelModel.mileage(model, System.currentTimeMillis()).kmpl.takeIf { it.isFinite() && it > 0.0 } ?: return
+        cumulativeTripConsumedLiters += (distanceMeters / 1000.0) / kmpl
+        persistValuesDebounced()
+        _fuelState.update { buildFuelState() }
+    }
+
     fun getFuelTelemetrySnapshot(): FuelTelemetrySnapshot {
         // Learned mileage from the pure fuel model drives the trip estimate.
         val effMileage = FuelModel.mileage(model, System.currentTimeMillis()).kmpl

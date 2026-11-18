@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.dashboard
 
+import android.os.SystemClock
 import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.components.TactileKeypadButton
@@ -119,18 +120,27 @@ fun SpeedometerCluster(
 
     var lastValidSpeedKmh by remember { mutableFloatStateOf(0f) }
     var lastValidSpeedTimeMs by remember { mutableLongStateOf(0L) }
-    var tickerTimeMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var tickerTimeMs by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
-    val now = System.currentTimeMillis()
+    // Freshness on the monotonic clock: GPS time vs the head-unit RTC is meaningless when the RTC
+    // is wrong. Points from the service carry elapsedMs; older producers fall back to receive time.
+    val pointElapsedMs = remember(latestPoint) {
+        latestPoint?.elapsedMs?.takeIf { it > 0L } ?: SystemClock.elapsedRealtime()
+    }
+    val now = SystemClock.elapsedRealtime()
     val isGpsPointFresh = latestPoint != null &&
             latestPoint.latitude != 0.0 &&
             latestPoint.longitude != 0.0 &&
             latestPoint.accuracy < 60f
 
-    // Continuously latch latest genuine speed reading
-    if (isGpsPointFresh && latestPoint != null && (now - latestPoint.timestamp) < 2000L && speedKmh >= 0f) {
-        lastValidSpeedKmh = speedKmh
-        lastValidSpeedTimeMs = latestPoint.timestamp
+    // Latch the latest genuine speed reading outside composition (no state writes while composing).
+    LaunchedEffect(latestPoint, speedKmh) {
+        val fresh = latestPoint != null && latestPoint.latitude != 0.0 && latestPoint.longitude != 0.0 &&
+            latestPoint.accuracy < 60f && SystemClock.elapsedRealtime() - pointElapsedMs < 2000L
+        if (fresh && speedKmh >= 0f) {
+            lastValidSpeedKmh = speedKmh
+            lastValidSpeedTimeMs = pointElapsedMs
+        }
     }
 
     val gapMs = if (lastValidSpeedTimeMs > 0L) (now - lastValidSpeedTimeMs).coerceAtLeast(0L) else 0L
@@ -143,7 +153,7 @@ fun SpeedometerCluster(
         if (gapMs > 2000L && rawSpeed > 0f) {
             while (true) {
                 kotlinx.coroutines.delay(100L)
-                tickerTimeMs = System.currentTimeMillis()
+                tickerTimeMs = SystemClock.elapsedRealtime()
                 val currentGap = (tickerTimeMs - lastValidSpeedTimeMs).coerceAtLeast(0L)
                 if (currentGap > 10000L) break
             }
@@ -179,8 +189,8 @@ fun SpeedometerCluster(
     var prevTimestamp by remember { mutableLongStateOf(0L) }
     var smoothedAccelMss by remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(latestPoint?.timestamp, rawSpeed) {
-        val currentTimestamp = latestPoint?.timestamp ?: now
+    LaunchedEffect(pointElapsedMs, rawSpeed) {
+        val currentTimestamp = pointElapsedMs
         if (prevTimestamp > 0L && currentTimestamp > prevTimestamp) {
             val dtSec = (currentTimestamp - prevTimestamp) / 1000f
             if (dtSec in 0.1f..3.0f) {
@@ -193,14 +203,17 @@ fun SpeedometerCluster(
         prevTimestamp = currentTimestamp
     }
 
-    if (!isGpsValid || rawSpeed < 1.0f) {
-        smoothedAccelMss = 0f
+    // Reset outside composition; reads below simply treat an invalid fix as zero acceleration.
+    val accelValid = isGpsValid && rawSpeed >= 1.0f
+    LaunchedEffect(accelValid) {
+        if (!accelValid) smoothedAccelMss = 0f
     }
+    val effectiveAccelMss = if (accelValid) smoothedAccelMss else 0f
 
-    val isAccelerating = smoothedAccelMss > 0.30f
-    val isDecelerating = smoothedAccelMss < -0.30f
+    val isAccelerating = effectiveAccelMss > 0.30f
+    val isDecelerating = effectiveAccelMss < -0.30f
     // Same 2.5 m/s² cut-off the trip charts count as a hard brake, so the chip and the trip agree.
-    val isHardBraking = smoothedAccelMss < -2.5f
+    val isHardBraking = effectiveAccelMss < -2.5f
 
     val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border

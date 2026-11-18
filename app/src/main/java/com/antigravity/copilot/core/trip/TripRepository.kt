@@ -97,6 +97,22 @@ class TripRepository private constructor(context: Context) {
     }
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob() + coroutineExceptionHandler)
 
+    /**
+     * Single writer for trip rows: a FIFO single-parallelism dispatcher plus a mutex keeps writes in
+     * submission order even across suspension points, so a late periodic flush can never overwrite
+     * a COMPLETED row back to ACTIVE (which the next boot would then resume).
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val writeScope = CoroutineScope(Dispatchers.IO.limitedParallelism(1) + SupervisorJob() + coroutineExceptionHandler)
+    private val writeMutex = kotlinx.coroutines.sync.Mutex()
+
+    private fun launchWrite(block: suspend CoroutineScope.() -> Unit): Job =
+        writeScope.launch { writeMutex.lock(); try { block() } finally { writeMutex.unlock() } }
+
+    /** A live (non-final) summary must never overwrite a row that is already COMPLETED. */
+    private fun isFinal(existing: TripEntity?): Boolean =
+        existing != null && existing.status == TripStatus.COMPLETED.name && existing.endTime > 0L
+
     @Volatile
     private var activeTripInsertionJob: Job? = null
 
@@ -377,10 +393,9 @@ class TripRepository private constructor(context: Context) {
         if (_currentTrip.value.id == tripId) {
             _currentTrip.value = _currentTrip.value.copy(startLocationName = originName)
         }
-        scope.launch {
+        launchWrite {
             try {
-                activeTripInsertionJob?.join()
-                val trip = tripDao.getTripById(tripId) ?: return@launch
+                val trip = tripDao.getTripById(tripId) ?: return@launchWrite
                 tripDao.updateTrip(trip.copy(startLocationName = originName))
             } catch (e: Exception) {
                 Log.e(TAG, "Failed updating trip origin in Room DB: ${e.message}", e)
@@ -393,10 +408,9 @@ class TripRepository private constructor(context: Context) {
         if (_currentTrip.value.id == tripId) {
             _currentTrip.value = _currentTrip.value.copy(endLocationName = destinationName)
         }
-        scope.launch {
+        launchWrite {
             try {
-                activeTripInsertionJob?.join()
-                val trip = tripDao.getTripById(tripId) ?: return@launch
+                val trip = tripDao.getTripById(tripId) ?: return@launchWrite
                 tripDao.updateTrip(trip.copy(endLocationName = destinationName))
             } catch (e: Exception) {
                 Log.e(TAG, "Failed updating trip destination in Room DB: ${e.message}", e)
@@ -432,11 +446,9 @@ class TripRepository private constructor(context: Context) {
             }
         }
 
-        return scope.launch {
+        return launchWrite {
             try {
-                // Strictly await parent TripEntity insertion in SQLite to prevent SQLiteConstraintException
-                activeTripInsertionJob?.join()
-
+                // Single writer: the parent insert (onTripStarted) was queued before this.
                 // Safety check: ensure parent trip row exists before inserting points
                 val tripExists = tripDao.getTripById(tripId) != null
                 if (!tripExists) {
@@ -538,7 +550,7 @@ class TripRepository private constructor(context: Context) {
         // Initialize flush timer to trip start time so point #1 does not flush immediately
         lastDbFlushTime = System.currentTimeMillis()
 
-        val job = scope.launch {
+        val job = launchWrite {
             try {
                 tripDao.insertTrip(
                     TripEntity(
@@ -603,11 +615,9 @@ class TripRepository private constructor(context: Context) {
             lastDbFlushTime = now
 
             if (toFlush.isNotEmpty()) {
-                scope.launch {
+                launchWrite {
                     try {
-                        // Strictly await parent TripEntity insertion before inserting child telemetry points
-                        activeTripInsertionJob?.join()
-
+                        // Single writer: the parent insert was queued before this flush.
                         // Safety verification: ensure parent trip row exists in SQLite
                         val tripExists = tripDao.getTripById(summary.id) != null
                         if (!tripExists) {
@@ -628,6 +638,7 @@ class TripRepository private constructor(context: Context) {
                         val effectiveEndName = summary.endLocationName.ifEmpty { existingTrip?.endLocationName ?: "" }
 
                         tripDao.insertPoints(toFlush)
+                        if (isFinal(existingTrip)) return@launchWrite
                         tripDao.updateTrip(
                             TripEntity(
                                 id = summary.id,
@@ -660,9 +671,8 @@ class TripRepository private constructor(context: Context) {
 
     fun persistActiveTrip(summary: TripSummary): Job {
         _currentTrip.value = summary
-        return scope.launch {
+        return launchWrite {
             try {
-                activeTripInsertionJob?.join()
                 val toFlush = mutableListOf<TripPointEntity>()
                 while (true) {
                     val pt = pendingPoints.poll() ?: break
@@ -689,6 +699,7 @@ class TripRepository private constructor(context: Context) {
                 val existingTrip = tripDao.getTripById(summary.id)
                 val effectiveStartName = summary.startLocationName.ifEmpty { existingTrip?.startLocationName?.ifEmpty { "Trip Origin" } ?: "Trip Origin" }
                 val effectiveEndName = summary.endLocationName.ifEmpty { existingTrip?.endLocationName ?: "" }
+                if (isFinal(existingTrip)) return@launchWrite
 
                 tripDao.updateTrip(
                     TripEntity(
@@ -731,11 +742,9 @@ class TripRepository private constructor(context: Context) {
         trailVersion++
         _tripTrail.value = emptyList() // Immediately clear active route trail line when trip ends
 
-        scope.launch {
+        launchWrite {
             try {
-                // Strictly await parent TripEntity insertion before flushing remaining points
-                activeTripInsertionJob?.join()
-
+                // Single writer: every earlier flush for this trip has already been applied.
                 val toFlush = mutableListOf<TripPointEntity>()
                 while (true) {
                     val pt = pendingPoints.poll() ?: break
@@ -803,7 +812,7 @@ class TripRepository private constructor(context: Context) {
         _tripTrail.value = emptyList()
         pendingPoints.clear()
 
-        scope.launch {
+        launchWrite {
             try {
                 // One transaction: a crash mid-delete must not leave orphaned points / transitions.
                 database.withTransaction {
@@ -818,7 +827,7 @@ class TripRepository private constructor(context: Context) {
     }
 
     fun deleteTrip(tripId: Long) {
-        scope.launch {
+        launchWrite {
             try {
                 // One transaction: a crash mid-delete must not leave orphaned points / transitions.
                 database.withTransaction {
@@ -878,9 +887,7 @@ class TripRepository private constructor(context: Context) {
 
         fun getInstance(context: Context): TripRepository {
             return INSTANCE ?: synchronized(this) {
-                val inst = TripRepository(context.applicationContext)
-                INSTANCE = inst
-                inst
+                INSTANCE ?: TripRepository(context.applicationContext).also { INSTANCE = it }
             }
         }
     }

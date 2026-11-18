@@ -16,6 +16,12 @@ class BootReceiver : BroadcastReceiver() {
                 "com.htc.intent.action.QUICKBOOT_POWERON"
             )
         ) {
+            if (!androidx.core.os.UserManagerCompat.isUserUnlocked(context)) {
+                // Room / prefs are in credential-encrypted storage: CopilotApp starts tracking on
+                // ACTION_USER_UNLOCKED and BOOT_COMPLETED follows to bring up the cockpit.
+                Log.i("BootReceiver", "Locked boot ($action): deferring start until the user unlocks")
+                return
+            }
             Log.i("BootReceiver", "Received boot trigger ($action). Starting telemetry engine & bringing up Cockpit.")
             com.antigravity.copilot.core.recovery.BootForegroundGuardian.onBootOrWake(context)
             DrivingTrackingService.start(context)

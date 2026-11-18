@@ -26,16 +26,48 @@ class CopilotApp : Application() {
         // 1. Initialize Automotive CrashGuardian first to capture any runtime/init errors
         CrashGuardian.init(this)
 
-        // 2. Execute safe version-controlled persistent storage migration & verification
-        try {
-            runBlocking(Dispatchers.IO) {
-                val migrationResult = StorageMigrationManager.initializeAndMigrate(this@CopilotApp)
-                if (!migrationResult.isSuccess) {
-                    Log.w(TAG, "Storage migration finished with warnings: ${migrationResult.errorMessage}")
+        // Direct boot: the boot receiver is directBootAware, so this process can start before the
+        // user unlocks. Prefs, Room and maps live in credential-encrypted storage, which throws until
+        // unlock, so everything else waits for ACTION_USER_UNLOCKED.
+        if (!androidx.core.os.UserManagerCompat.isUserUnlocked(this)) {
+            Log.i(TAG, "Locked boot: deferring storage, maps and tracking until the user unlocks")
+            registerReceiver(object : android.content.BroadcastReceiver() {
+                override fun onReceive(context: android.content.Context, intent: android.content.Intent) {
+                    try { unregisterReceiver(this) } catch (_: Exception) {}
+                    initAfterUnlock()
+                }
+            }, android.content.IntentFilter(android.content.Intent.ACTION_USER_UNLOCKED))
+            return
+        }
+        initAfterUnlock()
+    }
+
+    @Volatile
+    private var unlockedInitDone = false
+
+    private fun initAfterUnlock() {
+        if (unlockedInitDone) return
+        unlockedInitDone = true
+        com.antigravity.copilot.core.recovery.SafeMode.init(this)
+
+        // 2. Storage migration: block app start only for a version upgrade / fresh install (one prefs
+        // read decides); a normal start loads settings synchronously and verifies in the background.
+        if (StorageMigrationManager.needsBlockingInit(this)) {
+            try {
+                runBlocking(Dispatchers.IO) { runStorageInit() }
+            } catch (e: Exception) {
+                Log.e(TAG, "StorageMigrationManager initialization exception: ${e.message}", e)
+            }
+        } else {
+            com.antigravity.copilot.core.settings.AppSettingsManager.init(this)
+            com.antigravity.copilot.core.odometer.OdometerManager.init(this)
+            appScope.launch {
+                try {
+                    runStorageInit()
+                } catch (e: Exception) {
+                    Log.e(TAG, "StorageMigrationManager background init exception: ${e.message}", e)
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "StorageMigrationManager initialization exception: ${e.message}", e)
         }
 
         // 3. Initialize MapLibre Native & Offline Map Engine (32-bit armeabi-v7a)
@@ -58,6 +90,13 @@ class CopilotApp : Application() {
 
         // 5. Diagnostic database integrity scan, kept off the blocking startup path
         appScope.launch { StorageMigrationManager.verifyDatabaseIntegrity(this@CopilotApp) }
+    }
+
+    private suspend fun runStorageInit() {
+        val migrationResult = StorageMigrationManager.initializeAndMigrate(this@CopilotApp)
+        if (!migrationResult.isSuccess) {
+            Log.w(TAG, "Storage migration finished with warnings: ${migrationResult.errorMessage}")
+        }
     }
 }
 

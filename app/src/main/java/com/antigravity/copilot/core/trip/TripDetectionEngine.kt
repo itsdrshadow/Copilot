@@ -17,6 +17,30 @@ class TripDetectionEngine(
     var isGeofenceControlled: Boolean = true
     var fuelTelemetryProvider: (() -> FuelTelemetrySnapshot)? = null
     var onLiveMovement: ((deltaDistanceMeters: Double, speedKmh: Double, deltaDurationMs: Long) -> Unit)? = null
+    /** Distance added without per-second fixes (candidate buffer, reboot / restore bridge); charged at learned mileage. */
+    var onBridgeDistance: ((meters: Double) -> Unit)? = null
+
+    /**
+     * Monotonic clock (ms) for every DURATION in this engine. The service wires
+     * SystemClock.elapsedRealtime(); fixes are mapped onto the same domain via
+     * Location.elapsedRealtimeNanos. Wall-clock time is used only for trip IDs / display.
+     * Default (unit tests): wall clock, matching fixes that carry no elapsed time.
+     */
+    var monoClock: () -> Long = { System.currentTimeMillis() }
+    /**
+     * True once [monoClock] is a real monotonic clock (service: SystemClock.elapsedRealtime()).
+     * Persisted wall-clock anchors then cannot be mixed with it, so a restore re-anchors durations
+     * to the restore instant. False (JVM tests): fixes, watchdog and restore share one time base.
+     */
+    var isMonotonicDomain: Boolean = false
+    /** Current road speed limit (km/h) or null when unknown; overspeed falls back to [SPEED_LIMIT_KMH]. */
+    var speedLimitProvider: (() -> Double?)? = null
+    /** Settings "driver scoring" switch. */
+    var driverScoringEnabled: () -> Boolean = { true }
+    /** Weak GNSS (< 4 satellites used in fix): fixes still drive the UI but add no trip distance. */
+    var distanceAccumulationPaused: Boolean = false
+    /** Trips shorter than this are discarded in both auto and geofence modes. */
+    var minTripDistanceMeters: Double = MIN_SAVED_TRIP_DISTANCE_METERS
 
     var currentStatus: TripStatus = TripStatus.IDLE
         private set
@@ -67,17 +91,35 @@ class TripDetectionEngine(
         synchronized(longitudinalEstimator) { longitudinalEstimator.onSensor(ax.toDouble(), ay.toDouble(), az.toDouble()) }
     }
 
-    private fun seedOdometer(loc: Location?) {
+    /** [timeMs] must be in the monotonic domain of the fixes that follow. */
+    private fun seedOdometer(loc: Location?, timeMs: Long) {
         odometer.breakSegment()
         if (loc != null) {
             odometer.onFix(
-                com.antigravity.copilot.core.logic.GeoFix(
-                    loc.latitude, loc.longitude, 0.0,
-                    if (loc.time > 0L) loc.time else System.currentTimeMillis(), 0.0
-                )
+                com.antigravity.copilot.core.logic.GeoFix(loc.latitude, loc.longitude, 0.0, timeMs, 0.0)
             )
         }
     }
+
+    /** Monotonic time of a fix: elapsedRealtimeNanos when the platform set it, else its own time. */
+    private fun monoOf(location: Location): Long {
+        val nanos = try { location.elapsedRealtimeNanos } catch (_: Throwable) { 0L }
+        return when {
+            nanos > 0L -> nanos / 1_000_000L
+            location.time > 0L -> location.time
+            else -> monoClock()
+        }
+    }
+
+    private var lastFixMono: Long = Long.MIN_VALUE
+    private var lastFixWall: Long = 0L
+
+    /** Monotonic time the GPS came back after an outage while the tunnel bridge is still pending. */
+    private var outageRecoveredAtMs: Long = 0L
+
+    /** Maps a monotonic instant to wall-clock using the latest fix as the reference pair. */
+    private fun wallFor(mono: Long): Long =
+        if (lastFixMono != Long.MIN_VALUE) lastFixWall + (mono - lastFixMono) else System.currentTimeMillis()
     private var maxSpeedKmh: Double = 0.0
     private var speedSumKmh: Double = 0.0
     private var speedCount: Long = 0
@@ -89,10 +131,12 @@ class TripDetectionEngine(
     private var lastAcceptedLocation: Location? = null
     private var lastLocationTime: Long = 0
 
-    // Driving Behavior Tracking (100% Real events, zero mock)
-    private var harshBrakes: Int = 0
-    private var rapidAccels: Int = 0
-    private var overspeedInstances: Int = 0
+    // Driving behaviour: edge-triggered events on the smoothed, sensor-fused acceleration.
+    private val harshCounter = com.antigravity.copilot.core.logic.HarshEventCounter()
+    private val overspeed = com.antigravity.copilot.core.logic.OverspeedEventTracker()
+    private val harshBrakes: Int get() = harshCounter.harshBrakes
+    private val rapidAccels: Int get() = harshCounter.rapidAccels
+    private val overspeedInstances: Int get() = overspeed.events
     private var maxAccelMps2: Float = 0f
     private var maxDecelMps2: Float = 0f
 
@@ -126,6 +170,9 @@ class TripDetectionEngine(
         const val IDLE_TRIP_END_TIMEOUT_SECONDS = 300 // 5 minutes of continuous stationary idle ends trip
         const val MAX_VALID_ACCURACY_METERS = 50.0f
         const val SPEED_LIMIT_KMH = 80.0
+        const val MIN_SAVED_TRIP_DISTANCE_METERS = 200.0
+        const val OUTAGE_BRIDGE_ACCURACY_M = 25.0f
+        const val OUTAGE_BRIDGE_MAX_WAIT_MS = 60_000L
         const val BASE_MILEAGE_KMPL = 18.0
         const val FUEL_PRICE_PER_LITER = 96.5
 
@@ -166,12 +213,12 @@ class TripDetectionEngine(
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
-        harshBrakes = 0
-        rapidAccels = 0
-        overspeedInstances = 0
+        harshCounter.reset()
+        overspeed.reset()
         maxAccelMps2 = 0f
         maxDecelMps2 = 0f
         isGpsStabilized = false
+        outageRecoveredAtMs = 0L
         firstAccurateFixTimeMs = 0L
         tunnelEntryLocation = null
         tunnelEntryTimeMs = 0L
@@ -187,7 +234,7 @@ class TripDetectionEngine(
      * Triggered when vehicle engine ignition cuts 12V ACC / USB power.
      * Keeps ongoing trip safe in TEMPORARY_STOP and freezes duration accumulation.
      */
-    fun onPowerDisconnected(now: Long = System.currentTimeMillis()) {
+    fun onPowerDisconnected(@Suppress("UNUSED_PARAMETER") now: Long = monoClock()) {
         isPowerDisconnected = true
         if (currentStatus == TripStatus.ACTIVE_TRIP) {
             currentStatus = TripStatus.TEMPORARY_STOP
@@ -196,6 +243,7 @@ class TripDetectionEngine(
             temporaryStopStartTime = 0L
         }
         motion.markGap()
+        overspeed.markGap()
         tunnelEntryLocation = null
         tunnelEntryTimeMs = 0L
         isOutageBridgingPending = false
@@ -205,7 +253,8 @@ class TripDetectionEngine(
      * Triggered when vehicle engine ignition powers back on (12V ACC / USB re-engaged).
      * Resumes trip telemetry seamlessly without accumulating stationary time from deep sleep.
      */
-    fun onPowerConnected(now: Long = System.currentTimeMillis()) {
+    /** [now] is monotonic (SystemClock.elapsedRealtime() on device). */
+    fun onPowerConnected(now: Long = monoClock()) {
         isPowerDisconnected = false
         motion.markGap()
         if (currentStatus == TripStatus.TEMPORARY_STOP) {
@@ -272,7 +321,8 @@ class TripDetectionEngine(
     /**
      * Periodic watchdog tick to enforce trip completion when vehicle remains parked/idle for 5 minutes.
      */
-    fun processStationaryWatchdog(now: Long = System.currentTimeMillis()) {
+    /** [now] is monotonic (SystemClock.elapsedRealtime() on device). */
+    fun processStationaryWatchdog(now: Long = monoClock()) {
         if (isPowerDisconnected) return
 
         if (currentStatus == TripStatus.ACTIVE_TRIP) {
@@ -289,7 +339,7 @@ class TripDetectionEngine(
             val stoppedSec = (now - temporaryStopStartTime) / 1000
             // In geofence-controlled mode, standstills outside geofences NEVER terminate trips
             if (!isGeofenceControlled && stoppedSec >= stationaryCompletionThresholdSeconds) {
-                evaluateTripCompletion(now)
+                evaluateTripCompletion(wallFor(now))
             }
         }
     }
@@ -341,12 +391,17 @@ class TripDetectionEngine(
     }
 
     fun processLocation(location: Location) {
-        val now = if (location.time > 0L) location.time else System.currentTimeMillis()
+        // Durations use the monotonic domain; the wall clock only stamps points and trip IDs.
+        val now = monoOf(location)
+        val wallNow = wallNow(location)
         val accuracy = if (location.hasAccuracy()) location.accuracy else 5.0f
 
         // Gate 0: Filter out completely invalid (0, 0) coordinates or inaccurate garbage (> 100m)
         if (location.latitude == 0.0 && location.longitude == 0.0) return
         if (accuracy > 100.0f) return
+
+        lastFixMono = now
+        lastFixWall = wallNow
 
         val isAccurateFix = accuracy <= ACCURATE_GPS_THRESHOLD_METERS
 
@@ -393,7 +448,8 @@ class TripDetectionEngine(
                         speedKmh = 0f,
                         bearing = currentBearing,
                         accuracy = accuracy,
-                        timestamp = now
+                        timestamp = wallNow,
+                        elapsedMs = now
                     )
                     onPointReceived(warmUpPoint)
                     return
@@ -407,39 +463,28 @@ class TripDetectionEngine(
                         rebootAnchorLocation = null
                         if (currentStatus == TripStatus.ACTIVE_TRIP || currentStatus == TripStatus.TEMPORARY_STOP) {
                             val bridgeDist = computeGeodesicDistance(rebootAnchor.latitude, rebootAnchor.longitude, location.latitude, location.longitude)
-                            val timeDeltaSec = ((now - rebootAnchor.time) / 1000.0).coerceAtLeast(1.0)
+                            // Cross-boot: only the wall clocks of the two fixes are comparable here.
+                            val timeDeltaSec = ((wallNow - rebootAnchor.time) / 1000.0).coerceAtLeast(1.0)
                             val impliedSpeedKmh = (bridgeDist / timeDeltaSec) * 3.6
                             if (bridgeDist in 4.0..MAX_REBOOT_BRIDGE_DISTANCE_METERS && impliedSpeedKmh < 220.0) {
                                 totalDistanceMeters += bridgeDist
-                                onLiveMovement?.invoke(bridgeDist, impliedSpeedKmh, 1000L)
+                                onBridgeDistance?.invoke(bridgeDist)
                             }
                         }
                     }
 
-                    // 2. Check if recovering from a signal outage / tunnel while on an active trip
+                    // 2. Check if recovering from a signal outage / tunnel while on an active trip.
+                    // A coarse exit fix keeps the bridge pending (see tryBridgeOutage) instead of dropping it.
                     if (isOutageBridgingPending && tunnelEntryLocation != null) {
-                        val entryLoc = tunnelEntryLocation!!
-                        val recoveryLoc = location
-                        val bridgeDistMeters = computeGeodesicDistance(entryLoc.latitude, entryLoc.longitude, recoveryLoc.latitude, recoveryLoc.longitude)
-                        val outageDurationSec = ((now - tunnelEntryTimeMs) / 1000.0).coerceAtLeast(1.0)
-                        val impliedSpeedKmh = (bridgeDistMeters / outageDurationSec) * 3.6
-
-                        if (accuracy <= 25.0f && bridgeDistMeters >= 10.0 && impliedSpeedKmh in 2.5..220.0) {
-                            totalDistanceMeters += bridgeDistMeters
-                            val bridgeDurationMs = (outageDurationSec * 1000.0).toLong().coerceIn(1000L, 600000L)
-                            motion.addMoving(bridgeDurationMs)
-                            drivingDurationMs = motion.movingMs
-                            onLiveMovement?.invoke(bridgeDistMeters, impliedSpeedKmh, bridgeDurationMs)
-                        }
-
-                        tunnelEntryLocation = null
-                        tunnelEntryTimeMs = 0L
+                        outageRecoveredAtMs = now
+                        tryBridgeOutage(location, accuracy, now)
+                    } else {
                         isOutageBridgingPending = false
                     }
 
                     lastAcceptedLocation = location
                     lastLocationTime = now
-                    seedOdometer(location) // bridged distance already added; restart segments here
+                    seedOdometer(location, now) // bridged distance already added; restart segments here
                     currentAltitude = if (location.hasAltitude()) location.altitude else currentAltitude
                     currentBearing = if (location.hasBearing()) location.bearing else currentBearing
 
@@ -451,7 +496,8 @@ class TripDetectionEngine(
                         speedKmh = 0f,
                         bearing = currentBearing,
                         accuracy = accuracy,
-                        timestamp = now
+                        timestamp = wallNow,
+                        elapsedMs = now
                     )
                     onPointReceived(initialStablePoint)
                     return
@@ -506,8 +552,9 @@ class TripDetectionEngine(
             speedKmh = effectiveSpeedKmh,
             bearing = currentBearing,
             accuracy = accuracy,
-            timestamp = now,
-            drivingState = drivingClassifier.state.name
+            timestamp = wallNow,
+            drivingState = drivingClassifier.state.name,
+            elapsedMs = now
         )
         onPointReceived(currentPoint)
 
@@ -520,6 +567,21 @@ class TripDetectionEngine(
         if (lastAcceptedLocation != null && lastLocationTime > 0) {
             val wallDiffMs = now - lastLocationTime
             if (wallDiffMs < 350L) {
+                return
+            }
+        }
+
+        // Tunnel exit with a coarse first fix: keep waiting (max 60 s) for an accurate one before bridging.
+        if (isOutageBridgingPending) {
+            if (tunnelEntryLocation == null) {
+                isOutageBridgingPending = false
+            } else {
+                val bridged = tryBridgeOutage(location, accuracy, now)
+                if (effectiveSpeedKmh >= STOP_SPEED_THRESHOLD_KMH) lastMovementTime = now
+                lastAcceptedLocation = location
+                lastLocationTime = now
+                if (bridged) seedOdometer(location, now) else odometer.breakSegment()
+                motion.markGap() // the bridge attributes the whole outage window as moving time
                 return
             }
         }
@@ -547,7 +609,7 @@ class TripDetectionEngine(
                 } else if (candidateDurationSec >= CANDIDATE_CONFIRM_SECONDS || distFromStart >= CANDIDATE_MIN_DISTANCE_METERS) {
                     // Anchor start time to exact moment movement was initiated
                     val tripEffectiveStart = if (candidateStartTime > 0L) candidateStartTime else now
-                    startNewTrip(tripEffectiveStart, location, distFromStart.toDouble())
+                    startNewTrip(tripEffectiveStart, location, distFromStart.toDouble(), now)
                 }
             }
 
@@ -571,11 +633,17 @@ class TripDetectionEngine(
                     lastLocationTime = now
                     stationaryAnchorLocation = null
                     temporaryStopStartTime = 0L
+                    // Real movement proves the ignition is on (Android sends no POWER_CONNECTED at boot
+                    // when power was already present), so a restored power-cut flag must not linger.
+                    isPowerDisconnected = false
+                    // Drift collected during the stop must not become the first segment after it.
+                    seedOdometer(location, now)
+                    overspeed.markGap()
                 } else {
                     lastAcceptedLocation = location
                     lastLocationTime = now
                     if (!isGeofenceControlled && !isPowerDisconnected && temporaryStopStartTime > 0L && stoppedSec >= stationaryCompletionThresholdSeconds) {
-                        evaluateTripCompletion(now)
+                        evaluateTripCompletion(wallNow)
                     }
                 }
             }
@@ -604,11 +672,12 @@ class TripDetectionEngine(
         tripStartTime = startTime
         currentOriginName = originName
         currentDestinationName = ""
-        val fixTime = if (initialLocation.time > 0L) initialLocation.time else startTime
+        // Called from the geofence engine inside the current fix: the last fix is the time reference.
+        val fixTime = if (lastFixMono != Long.MIN_VALUE) lastFixMono else monoOf(initialLocation)
         lastMovementTime = fixTime
         lastLocationTime = fixTime
         lastAcceptedLocation = initialLocation
-        seedOdometer(initialLocation)
+        seedOdometer(initialLocation, fixTime)
         drivingClassifier.restoreCounts(0, 0)
         totalDistanceMeters = departureDistanceMeters
         drivingDurationMs = 0
@@ -618,9 +687,8 @@ class TripDetectionEngine(
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
-        harshBrakes = 0
-        rapidAccels = 0
-        overspeedInstances = 0
+        harshCounter.reset()
+        overspeed.reset()
         maxAccelMps2 = 0f
         maxDecelMps2 = 0f
         currentGForce = 0f
@@ -632,12 +700,14 @@ class TripDetectionEngine(
         onTripStarted(currentTripId)
     }
 
+    /** [now] is the wall-clock end time. */
     fun completeGeofenceTrip(now: Long = System.currentTimeMillis(), destinationName: String? = null) {
         if (currentTripId > 0L || currentStatus == TripStatus.ACTIVE_TRIP || currentStatus == TripStatus.TEMPORARY_STOP || currentStatus == TripStatus.STOP_CANDIDATE) {
             evaluateTripCompletion(now, destinationName)
         }
     }
 
+    /** [now] is the wall-clock end time. */
     fun completeActiveTrip(now: Long = System.currentTimeMillis(), destinationName: String? = null) {
         if (currentTripId > 0L || currentStatus == TripStatus.ACTIVE_TRIP || currentStatus == TripStatus.TEMPORARY_STOP || currentStatus == TripStatus.STOP_CANDIDATE) {
             evaluateTripCompletion(now, destinationName)
@@ -665,8 +735,11 @@ class TripDetectionEngine(
         tripStartTime = startTime
         currentOriginName = originName
         val effectiveAnchorTime = if (lastLocation != null && lastLocation.time > 0L) lastLocation.time else startTime
-        lastMovementTime = effectiveAnchorTime
-        lastLocationTime = effectiveAnchorTime
+        // Persisted anchors are wall-clock. On device durations run on the monotonic clock, so they
+        // re-anchor to the restore instant (the stop / idle clocks restart from here).
+        val durationAnchor = if (isMonotonicDomain) monoClock() else effectiveAnchorTime
+        lastMovementTime = durationAnchor
+        lastLocationTime = durationAnchor
         totalDistanceMeters = distanceMeters
         drivingDurationMs = drivingMs
         stationaryDurationMs = stationaryMs
@@ -690,25 +763,27 @@ class TripDetectionEngine(
                     val impliedSpeedKmh = (bridgeDist / timeDeltaSec) * 3.6
                     if (bridgeDist in 4.0..MAX_REBOOT_BRIDGE_DISTANCE_METERS && impliedSpeedKmh < 220.0) {
                         totalDistanceMeters += bridgeDist
-                        onLiveMovement?.invoke(bridgeDist, impliedSpeedKmh, 1000L)
+                        onBridgeDistance?.invoke(bridgeDist)
                     }
                 }
                 lastAcceptedLocation = curLoc ?: lastLocation
             }
         }
-        seedOdometer(lastAcceptedLocation)
+        seedOdometer(lastAcceptedLocation, if (lastFixMono != Long.MIN_VALUE) lastFixMono else durationAnchor)
     }
 
-    private fun startNewTrip(startTime: Long, initialLocation: Location, candidateDistMeters: Double = 0.0) {
+    private fun startNewTrip(startTime: Long, initialLocation: Location, candidateDistMeters: Double = 0.0, now: Long = startTime) {
         currentStatus = TripStatus.ACTIVE_TRIP
-        currentTripId = startTime
-        tripStartTime = startTime
+        // startTime is monotonic; the trip ID / start stamp is its wall-clock equivalent.
+        val startWall = wallFor(startTime)
+        currentTripId = startWall
+        tripStartTime = startWall
         currentOriginName = ""
         currentDestinationName = ""
         lastMovementTime = startTime
         lastLocationTime = startTime
         lastAcceptedLocation = initialLocation
-        seedOdometer(initialLocation)
+        seedOdometer(initialLocation, now)
         drivingClassifier.restoreCounts(0, 0)
         totalDistanceMeters = candidateDistMeters
         drivingDurationMs = 0
@@ -718,9 +793,8 @@ class TripDetectionEngine(
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
-        harshBrakes = 0
-        rapidAccels = 0
-        overspeedInstances = 0
+        harshCounter.reset()
+        overspeed.reset()
         maxAccelMps2 = 0f
         maxDecelMps2 = 0f
         currentGForce = 0f
@@ -730,7 +804,7 @@ class TripDetectionEngine(
         rebootAnchorLocation = null
 
         if (candidateDistMeters > 0.0) {
-            onLiveMovement?.invoke(candidateDistMeters, 15.0, 1000L)
+            onBridgeDistance?.invoke(candidateDistMeters)
         }
         onTripStarted(currentTripId)
     }
@@ -751,33 +825,36 @@ class TripDetectionEngine(
             val impliedSpeedKmh = (dist / timeDeltaSec) * 3.6
 
             // Odometer: filtered haversine segments (accuracy gate, stationary jitter, teleports).
-            stepDistanceMeters = odometer.onFix(
-                com.antigravity.copilot.core.logic.GeoFix(
-                    location.latitude, location.longitude,
-                    (if (location.hasAccuracy()) location.accuracy else 5.0f).toDouble(),
-                    now, speedKmh.toDouble()
+            stepDistanceMeters = if (distanceAccumulationPaused) {
+                odometer.breakSegment() // weak GNSS: positions are not trustworthy enough for distance
+                0.0
+            } else {
+                odometer.onFix(
+                    com.antigravity.copilot.core.logic.GeoFix(
+                        location.latitude, location.longitude,
+                        (if (location.hasAccuracy()) location.accuracy else 5.0f).toDouble(),
+                        now, speedKmh.toDouble()
+                    )
                 )
-            )
+            }
             totalDistanceMeters += stepDistanceMeters
             if (stepDistanceMeters > 0.0) {
                 val learned = fuelTelemetryProvider?.invoke()?.mileageKmpl?.takeIf { it > 0.0 } ?: BASE_MILEAGE_KMPL
                 tripFuel.onStep(stepDistanceMeters / 1000.0, speedKmh.toDouble(), drivingClassifier.accelMps2, learned)
             }
 
-            // Real Longitudinal G-Force and Acceleration
-            val prevSpeedMps = if (prevLoc.hasSpeed()) prevLoc.speed else 0f
-            val currSpeedMps = if (location.hasSpeed()) location.speed else (speedKmh / 3.6f)
-            val accelMps2 = (currSpeedMps - prevSpeedMps) / timeDeltaSec.toFloat()
+            // Longitudinal acceleration: the classifier's smoothed, sensor-fused value (raw Doppler
+            // differences are too noisy for event counting). Steps outside 0.5..2 s never count.
+            val accelMps2 = drivingClassifier.accelMps2.toFloat()
             currentGForce = accelMps2 / 9.80665f
-
-            if (timeDeltaSec in 0.1..3.0 && speedKmh >= 2.0f) {
+            val stepDtMs = if (lastLocationTime > 0L) now - lastLocationTime else 0L
+            if (stepDtMs in 500L..2000L && speedKmh >= 2.0f) {
                 if (accelMps2 > maxAccelMps2) maxAccelMps2 = accelMps2
                 if (accelMps2 < maxDecelMps2) maxDecelMps2 = accelMps2
             }
-
-            if (accelMps2 < -3.2f) harshBrakes++
-            if (accelMps2 > 3.0f) rapidAccels++
-            if (speedKmh > SPEED_LIMIT_KMH) overspeedInstances++
+            harshCounter.onSample(accelMps2.toDouble(), stepDtMs, speedKmh.toDouble())
+            val limit = speedLimitProvider?.invoke()?.takeIf { it > 0.0 } ?: SPEED_LIMIT_KMH
+            overspeed.onSample(now, speedKmh.toDouble(), limit)
         }
 
         if (speedKmh > maxSpeedKmh) {
@@ -871,12 +948,14 @@ class TripDetectionEngine(
             speedKmh = speedKmh,
             bearing = currentBearing,
             accuracy = location.accuracy,
-            timestamp = now
+            timestamp = wallNow(location),
+            elapsedMs = now
         )
 
         onTripUpdated(summary, tripPoint)
     }
 
+    /** [now] is the wall-clock end time (trip duration is wall-clock; moving time is monotonic). */
     private fun evaluateTripCompletion(now: Long, destinationName: String? = null) {
         val completedTripId = currentTripId
         val completedStartTime = tripStartTime
@@ -930,7 +1009,8 @@ class TripDetectionEngine(
             status = TripStatus.COMPLETED
         )
 
-        if (isGeofenceControlled || totalDistanceMeters >= 200.0) {
+        // Both modes: a GPS jump through a fence (or a parking shuffle) must not fill the history.
+        if (totalDistanceMeters >= minTripDistanceMeters) {
             currentStatus = TripStatus.COMPLETED
             onTripCompleted(summary)
         } else {
@@ -950,11 +1030,37 @@ class TripDetectionEngine(
         rebootAnchorLocation = null
     }
 
-    private fun calculateDriverScore(): Int {
-        var score = 100
-        score -= (harshBrakes * 3)
-        score -= (rapidAccels * 2)
-        score -= (overspeedInstances * 2)
-        return score.coerceIn(50, 100)
+    private fun calculateDriverScore(): Int =
+        com.antigravity.copilot.core.logic.DriverScoreCalculator.score(
+            harshBrakes, rapidAccels, overspeedInstances, totalDistanceMeters / 1000.0, driverScoringEnabled()
+        )
+
+    private fun wallNow(location: Location): Long = if (location.time > 0L) location.time else System.currentTimeMillis()
+
+    /**
+     * Bridges the distance from the outage entry to [location] once it is accurate (<= 25 m), or
+     * after [OUTAGE_BRIDGE_MAX_WAIT_MS] with any usable fix. Returns true when the pending bridge
+     * was resolved (applied or rejected as implausible), false while still waiting.
+     */
+    private fun tryBridgeOutage(location: Location, accuracy: Float, now: Long): Boolean {
+        val entryLoc = tunnelEntryLocation ?: run { isOutageBridgingPending = false; return true }
+        val waitedMs = if (outageRecoveredAtMs > 0L) now - outageRecoveredAtMs else 0L
+        val accurate = accuracy <= OUTAGE_BRIDGE_ACCURACY_M
+        if (!accurate && !(waitedMs >= OUTAGE_BRIDGE_MAX_WAIT_MS && accuracy <= MAX_VALID_ACCURACY_METERS)) return false
+        val bridgeDistMeters = computeGeodesicDistance(entryLoc.latitude, entryLoc.longitude, location.latitude, location.longitude)
+        val outageDurationSec = ((now - tunnelEntryTimeMs) / 1000.0).coerceAtLeast(1.0)
+        val impliedSpeedKmh = (bridgeDistMeters / outageDurationSec) * 3.6
+        if (bridgeDistMeters >= 10.0 && impliedSpeedKmh in 2.5..220.0) {
+            totalDistanceMeters += bridgeDistMeters
+            val bridgeDurationMs = (outageDurationSec * 1000.0).toLong().coerceIn(1000L, 600000L)
+            motion.addMoving(bridgeDurationMs)
+            drivingDurationMs = motion.movingMs
+            onLiveMovement?.invoke(bridgeDistMeters, impliedSpeedKmh, bridgeDurationMs)
+        }
+        tunnelEntryLocation = null
+        tunnelEntryTimeMs = 0L
+        isOutageBridgingPending = false
+        outageRecoveredAtMs = 0L
+        return true
     }
 }
