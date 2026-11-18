@@ -22,6 +22,13 @@ class TripFuelEstimator {
     private var windowKm = 0.0
     private var windowL = 0.0
 
+    /**
+     * Per-car calibration against refill truth (TripFuelCalibration): scales the fixed load-curve
+     * normaliser so trip estimates add up to what the pump actually refilled.
+     */
+    var calibration: Double = 1.0
+        set(value) { field = if (value.isFinite() && value > 0.0) value else 1.0 }
+
     fun restore(km: Double, litres: Double, bestKmpl: Double) {
         this.km = km; this.litres = litres; this.bestKmpl = bestKmpl
         windowKm = 0.0; windowL = 0.0
@@ -35,7 +42,7 @@ class TripFuelEstimator {
     /** @return litres attributed to this step. */
     fun onStep(stepKm: Double, speedKmh: Double, accelMps2: Double, learnedKmpl: Double): Double {
         if (stepKm <= 0.0 || speedKmh < Config.IDLE_SPEED_KMH || learnedKmpl <= 0.0) return 0.0
-        val l = stepKm / learnedKmpl * loadFactor(speedKmh, accelMps2)
+        val l = stepKm / learnedKmpl * loadFactor(speedKmh, accelMps2) * calibration
         litres += l
         km += stepKm
         windowKm += stepKm

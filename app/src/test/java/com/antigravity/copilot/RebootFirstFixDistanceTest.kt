@@ -49,7 +49,7 @@ class RebootFirstFixDistanceTest {
             onTripCompleted = {},
             onTripDiscarded = {}
         )
-        engine.onLiveMovement = { dist, _, _ -> liveMovementBridgeDist = dist }
+        engine.onBridgeDistance = { dist -> liveMovementBridgeDist = dist } // reboot bridges use the learned-mileage path (audit B3)
 
         // 1. Pre-reboot anchor: Vehicle was at (21.900000, 83.400000) with 5200m accumulated
         val preRebootLat = 21.900000
@@ -113,7 +113,7 @@ class RebootFirstFixDistanceTest {
             onTripCompleted = {},
             onTripDiscarded = {}
         )
-        engine.onLiveMovement = { dist, _, _ -> liveMovementBridgeDist = dist }
+        engine.onBridgeDistance = { dist -> liveMovementBridgeDist = dist } // reboot bridges use the learned-mileage path (audit B3)
 
         // Anchor at (21.900000, 83.400000)
         val preRebootLocation = TestLocation(21.900000, 83.400000, 100000L, acc = 8.0f)
@@ -148,7 +148,7 @@ class RebootFirstFixDistanceTest {
             onTripCompleted = {},
             onTripDiscarded = {}
         )
-        engine.onLiveMovement = { dist, _, _ -> liveMovementBridgeDist = dist }
+        engine.onBridgeDistance = { dist -> liveMovementBridgeDist = dist } // reboot bridges use the learned-mileage path (audit B3)
 
         // Pre-reboot location
         val preLoc = TestLocation(21.900000, 83.400000, 100000L, acc = 5.0f)
@@ -182,7 +182,7 @@ class RebootFirstFixDistanceTest {
             onTripCompleted = {},
             onTripDiscarded = {}
         )
-        engine.onLiveMovement = { dist, _, _ -> liveMovementBridgeDist = dist }
+        engine.onBridgeDistance = { dist -> liveMovementBridgeDist = dist } // reboot bridges use the learned-mileage path (audit B3)
 
         // Anchor at t = 100000L
         val preLoc = TestLocation(21.900000, 83.400000, 100000L, acc = 5.0f)

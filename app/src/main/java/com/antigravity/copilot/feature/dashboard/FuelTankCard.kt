@@ -94,7 +94,8 @@ fun FuelTankCard(
 
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(
-                text = NumberFormatUtils.formatFuelLiters(fuelState.remainingLiters, 1),
+                // Fresh install: no refill / gauge yet, so no fake "50 %" (audit E7).
+                text = if (fuelState.isTankUnknown) "--" else NumberFormatUtils.formatFuelLiters(fuelState.remainingLiters, 1),
                 style = CockpitTheme.typography.displayLarge.copy(fontSize = 60.sp, lineHeight = 62.sp, shadow = com.antigravity.copilot.core.designsystem.numberGlow(c.textPrimary)),
                 color = c.textPrimary,
                 maxLines = 1,
@@ -109,7 +110,7 @@ fun FuelTankCard(
             )
             Spacer(Modifier.weight(1f))
             Text(
-                text = "${tankPct.toInt()}%",
+                text = if (fuelState.isTankUnknown) "" else "${tankPct.toInt()}%",
                 style = CockpitTheme.typography.displayMedium.copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(fuelLevelTextColor(tankPct))),
                 color = fuelLevelTextColor(tankPct),
                 maxLines = 1
@@ -139,6 +140,11 @@ fun FuelTankCard(
         // RESERVE_OFFER_LITERS the low-fuel strip plus the "Reserve light ON" button (the lamp can
         // only be on that close to empty); otherwise just the low-fuel strip when low.
         when {
+            fuelState.isTankUnknown -> Text(
+                text = "Tank level unknown. Tap the gauge to set it, or add a refill.",
+                style = CockpitTheme.typography.bodyMedium,
+                color = c.warning
+            )
             reserveMarkerOdometer != null ->
                 ReserveLockedStrip(odometerKm = reserveMarkerOdometer, onUndo = onToggleReserveLight)
             fuelState.remainingLiters < RESERVE_OFFER_LITERS -> Row(

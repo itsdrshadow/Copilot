@@ -174,22 +174,12 @@ class MainViewModel @Inject constructor(
         longitude: Double,
         recordedLifetimeKm: Double
     ) {
-        // Station rating layer: same odometer the ledger uses (typed reading, else the app's).
-        val odo = if (odometerKm > 0.0) odometerKm else fuelRepository.getEffectiveOdometer()
+        // The station rating log is written by FuelRepository after the fuel_events row, linked
+        // to its id (same odometer: typed reading, else the app's), so edits / deletes reach it.
         val confirmedStation = _refuelDialogStation.value != null
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            fuelStationRepository.recordRefuel(
-                stationName = locationName,
-                lat = latitude,
-                lon = longitude,
-                liters = litersAdded,
-                rate = pricePerLiter,
-                mode = refuelMode,
-                odometerKm = odo,
-                confirmedStation = confirmedStation
-            )
-        }
         fuelRepository.recordRefuel(
+            refuelMode = refuelMode,
+            confirmedStation = confirmedStation,
             fullTank = refuelMode == RefuelMode.FULL_TANK,
             litersAdded = litersAdded,
             midBarObserved = midBarObserved,

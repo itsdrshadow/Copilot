@@ -172,7 +172,17 @@ fun FuelEntryDialog(
         ?: (currentPoints + dispensedLiters / tankCap * 10.0)).coerceIn(currentPoints, 10.0)
 
     val enteredOdo = refuelOdometerText.toDoubleOrNull() ?: 0.0
-    val isOdometerValid = !odometerEdited || refuelOdometerText.isEmpty() || enteredOdo > 0.0
+    // Typo guard (audit G4): > 1 km below the current reading is rejected; a > 2,000 km jump
+    // needs a second tap on Save.
+    val odoCheck = if (odometerEdited && enteredOdo > 0.0) {
+        com.antigravity.copilot.core.logic.OdometerReadingValidator.validate(
+            enteredOdo, fuelState.odometerKm, isFirstReading = fuelState.odometerKm <= 0.0
+        )
+    } else com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.OK
+    var confirmedOdoJump by remember { mutableStateOf<Double?>(null) }
+    val isOdometerValid = (!odometerEdited || refuelOdometerText.isEmpty() || enteredOdo > 0.0) &&
+        odoCheck != com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.TOO_LOW &&
+        odoCheck != com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.INVALID
     val odoTripDelta = if (odometerEdited && enteredOdo > currentBaselineOdometer && currentBaselineOdometer > 0) enteredOdo - currentBaselineOdometer else 0.0
 
     val isPriceValid = pricePerLiter > 0.0 && pricePerLiter <= MAX_PRICE_PER_LITER
@@ -182,6 +192,8 @@ fun FuelEntryDialog(
         (totalAmount > 0.0 || dispensedLiters > 0.0) && !isPriceValid -> "Enter a valid fuel rate (₹/L)"
         exceedsTankCapacity ->
             "${NumberFormatUtils.formatPrecision(dispensedLiters, 1)} L is more than the ${designCap.toInt()} L tank. Check the amount and rate."
+        odoCheck == com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.TOO_LOW ->
+            "Odometer is lower than the current ${NumberFormatUtils.formatOdometer(fuelState.odometerKm, 0)} km. Check for a typo."
         !isOdometerValid -> "Enter a valid odometer reading"
         else -> null
     }
@@ -424,6 +436,19 @@ fun FuelEntryDialog(
                     validationError?.let {
                         Text(it, style = CockpitTheme.typography.bodyLarge, color = c.criticalText)
                     }
+                    // Soft nudge (audit E9): repeated partial top-ups without a gauge reading leave
+                    // unlogged debt that is never reconciled.
+                    if (validationError == null && com.antigravity.copilot.core.logic.fuel.FuelDisplayPolicy.shouldNudgeGaugeAfter(
+                            fuelState.unloggedDebtLiters, isFullTank, gaugeAfterGiven = false
+                        )
+                    ) {
+                        Text(
+                            "≈${NumberFormatUtils.formatPrecision(fuelState.unloggedDebtLiters, 1)} L of driving is not matched to a refill yet. " +
+                                "After this refill, tap the fuel gauge on the home screen and set what the car shows.",
+                            style = CockpitTheme.typography.bodyMedium,
+                            color = c.warning
+                        )
+                    }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         RaahiButton(
@@ -437,6 +462,17 @@ fun FuelEntryDialog(
                             onClick = {
                                 if (!isFormValid) {
                                     Toast.makeText(context, validationError ?: "Enter the amount or litres", Toast.LENGTH_SHORT).show()
+                                    return@SaveFuelButton
+                                }
+                                if (odoCheck == com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.NEEDS_CONFIRMATION &&
+                                    confirmedOdoJump != enteredOdo
+                                ) {
+                                    confirmedOdoJump = enteredOdo
+                                    Toast.makeText(
+                                        context,
+                                        "That is ${NumberFormatUtils.formatOdometer(enteredOdo - fuelState.odometerKm, 0)} km more than expected. Tap Save again to confirm.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                     return@SaveFuelButton
                                 }
                                 onSaveRefuel(

@@ -54,7 +54,13 @@ data class FuelModelState(
     val mileageBias: Double = 1.0,
     /** Hybrid (refuel-cycle) lifetime km/L and the km behind it; 0 = none. Prior for [segments]. */
     val hybridKmpl: Double = 0.0,
-    val hybridKm: Double = 0.0
+    val hybridKm: Double = 0.0,
+    /**
+     * Fresh install: no refill or gauge reading yet, so the anchor litres are a placeholder (the
+     * UI shows "tank unknown" instead of a fake 50 %). Cleared by the first refill / gauge reading.
+     * Old persisted JSON lacks the field and loads as false (known), which is correct for them.
+     */
+    val tankUnknown: Boolean = false
 ) {
     /** Gson leaves missing fields null/zero; restore safe defaults after loading old JSON. */
     @Suppress("SENSELESS_COMPARISON", "USELESS_ELVIS")
@@ -177,9 +183,14 @@ object FuelModel {
         return s.anchorLitres - km / mileage(s, nowMs).kmpl
     }
 
-    fun estimate(s: FuelModelState, odoKm: Double, nowMs: Long): FuelEstimate {
-        val m = mileage(s, nowMs)
-        val c = curve(s)
+    /** [m] / [c] may be passed in from a per-model cache (they only depend on [s] and the minute). */
+    fun estimate(
+        s: FuelModelState,
+        odoKm: Double,
+        nowMs: Long,
+        m: MileageEstimate = mileage(s, nowMs),
+        c: GaugeCurve = curve(s)
+    ): FuelEstimate {
         val raw = s.anchorLitres - (odoKm - s.anchorOdoKm).coerceAtLeast(0.0) / m.kmpl
         val shown = raw.coerceIn(0.0, s.actualCapacityL)
         return FuelEstimate(
@@ -233,7 +244,8 @@ object FuelModel {
             anchorLitres = anchor,
             anchorOdoKm = odoKm,
             anchorTimeMs = nowMs,
-            lastGauge = GaugeAnchor(odoKm, gaugeL, 0.0)
+            lastGauge = GaugeAnchor(odoKm, gaugeL, 0.0),
+            tankUnknown = false
         )
     }
 
@@ -251,7 +263,7 @@ object FuelModel {
         var next = s.copy(maxRefillL = maxOf(s.maxRefillL, litres))
 
         // Learn the actual (usable) capacity on confident full fills.
-        if (input.fullTank && m.confidence >= 0.5 && rawBefore >= 0.0 && s.totalDebtL <= 0.0) {
+        if (input.fullTank && !s.tankUnknown && m.confidence >= 0.5 && rawBefore >= 0.0 && s.totalDebtL <= 0.0) {
             val candidate = (rawBefore + litres).coerceIn(
                 s.designCapacityL * Config.ACTUAL_CAPACITY_MIN_FACTOR,
                 s.designCapacityL * Config.ACTUAL_CAPACITY_MAX_FACTOR
@@ -308,7 +320,7 @@ object FuelModel {
             g != null -> GaugeAnchor(input.odoKm, after)
             else -> next.lastGauge
         }
-        return next.copy(anchorLitres = after, anchorOdoKm = input.odoKm, anchorTimeMs = now, lastGauge = gaugeAnchor)
+        return next.copy(anchorLitres = after, anchorOdoKm = input.odoKm, anchorTimeMs = now, lastGauge = gaugeAnchor, tankUnknown = false)
     }
 
     private fun addGaugeSegment(s: FuelModelState, odoKm: Double, litresNow: Double, nowMs: Long): FuelModelState {

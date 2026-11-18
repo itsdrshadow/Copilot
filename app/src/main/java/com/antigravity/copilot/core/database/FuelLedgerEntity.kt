@@ -37,7 +37,9 @@ data class FuelLedgerEntity(
     val estimatedMileageKmpl: Double = 18.0,
     val confidencePercent: Int = 50,
     val reasonNote: String = "",
-    val calculationMetadataJson: String = ""
+    val calculationMetadataJson: String = "",
+    /** fuel_events row this ledger entry mirrors (edits / deletes follow it); null for legacy rows. */
+    val sourceEventId: Long? = null
 ) {
     fun toDomainEvent(): FuelLedgerEvent {
         return FuelLedgerEvent(

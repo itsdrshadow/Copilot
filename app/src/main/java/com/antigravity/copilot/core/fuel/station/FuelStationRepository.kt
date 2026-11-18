@@ -77,7 +77,9 @@ class FuelStationRepository private constructor(context: Context) {
         rate: Double,
         mode: RefuelMode,
         odometerKm: Double,
-        confirmedStation: Boolean
+        confirmedStation: Boolean,
+        /** fuel_events id of the same refill (history edits / deletes follow it). */
+        fuelEventId: Long? = null
     ) = mutex.withLock {
         try {
             val stationId = resolveStationLocked(stationName, lat, lon, rate, confirmedStation)
@@ -87,7 +89,8 @@ class FuelStationRepository private constructor(context: Context) {
                     liters = liters,
                     rate = rate,
                     refuelMode = mode.name,
-                    odometerAtRefuel = odometerKm
+                    odometerAtRefuel = odometerKm,
+                    fuelEventId = fuelEventId
                 )
             )
             reevaluateLocked()
@@ -117,6 +120,38 @@ class FuelStationRepository private constructor(context: Context) {
         }
         reevaluateLocked()
         set
+    }
+
+    /** Log of a fuel_events refill: by link, else (legacy rows) same litres and odometer. */
+    private suspend fun logForFuelEventLocked(fuelEventId: Long, liters: Double, odometerKm: Double): RefuelLogEntity? =
+        logDao.getByFuelEventId(fuelEventId) ?: logDao.getAllChronological().firstOrNull {
+            it.fuelEventId == null && it.mode != RefuelMode.RESERVE_MARKER &&
+                kotlin.math.abs(it.liters - liters) < 0.01 && kotlin.math.abs(it.odometerAtRefuel - odometerKm) < 0.5
+        }
+
+    /** Fuel history edit (audit E1): the station log of the same refill gets the corrected values. */
+    suspend fun updateLogForFuelEvent(
+        fuelEventId: Long, oldLiters: Double, oldOdometerKm: Double,
+        liters: Double, rate: Double, odometerKm: Double
+    ) = mutex.withLock {
+        try {
+            val log = logForFuelEventLocked(fuelEventId, oldLiters, oldOdometerKm) ?: return@withLock
+            logDao.updateAll(listOf(log.copy(liters = liters, rate = rate, odometerAtRefuel = odometerKm, fuelEventId = fuelEventId)))
+            reevaluateLocked()
+        } catch (e: Exception) {
+            Log.w(TAG, "updateLogForFuelEvent: ${e.message}")
+        }
+    }
+
+    /** Fuel history delete (audit E1): the station log goes too and ratings are replayed. */
+    suspend fun deleteLogForFuelEvent(fuelEventId: Long, liters: Double, odometerKm: Double) = mutex.withLock {
+        try {
+            val log = logForFuelEventLocked(fuelEventId, liters, odometerKm) ?: return@withLock
+            logDao.deleteById(log.logId)
+            reevaluateLocked()
+        } catch (e: Exception) {
+            Log.w(TAG, "deleteLogForFuelEvent: ${e.message}")
+        }
     }
 
     private suspend fun resolveStationLocked(name: String, lat: Double, lon: Double, rate: Double, confirmed: Boolean): Long? {
@@ -162,26 +197,49 @@ class FuelStationRepository private constructor(context: Context) {
         }
         if (changedLogs.isNotEmpty()) logDao.updateAll(changedLogs)
 
-        val averages = HybridMileageEngine.stationAverages(result.cycles)
+        val lifetime = HybridMileageEngine.lifetime(result.cycles)
+        val averages = HybridMileageEngine.stationAverages(result.cycles, routeFactorFor(logs))
         val avgRates = logs.filter { it.stationId != null && it.rate > 0.0 && it.mode != RefuelMode.RESERVE_MARKER }
             .groupBy { it.stationId!! }
             .mapValues { (_, l) -> Math.round(l.map { it.rate }.average() * 100.0) / 100.0 }
         val changedStations = stationDao.getAll().mapNotNull { s ->
             val (avg, count) = averages[s.stationId] ?: (0.0 to 0)
-            val quality = HybridMileageEngine.rate(avg).name
+            // Against this car's own lifetime km/L (not a fixed 16.5), and only after 3 cycles.
+            val quality = HybridMileageEngine.rateStation(avg, count, lifetime?.first).name
             val avgRate = avgRates[s.stationId] ?: s.lastFuelRate
             if (avg == s.averageMileage && quality == s.qualityRating && count == s.ratedCycles && avgRate == s.avgFuelRate) null
             else s.copy(averageMileage = avg, qualityRating = quality, ratedCycles = count, avgFuelRate = avgRate)
         }
         if (changedStations.isNotEmpty()) stationDao.updateAll(changedStations)
 
-        val lifetime = HybridMileageEngine.lifetime(result.cycles)
         _engineState.value = EngineState(
             result.pendingReserveOdometer, result.openAnchorMode, result.trendKmpl,
             lifetimeKmpl = lifetime?.first, lifetimeKm = lifetime?.second ?: 0.0
         )
         // The tank / range / Fuel-card mileage is the lifetime figure: hand it to the fuel model.
         onLifetimeMileage?.invoke(lifetime?.first ?: 0.0, lifetime?.second ?: 0.0)
+    }
+
+    /**
+     * Route-mix factor per cycle (audit H2): average speed of the trips driven between the cycle's
+     * anchor and closing refill, against the car's overall average speed.
+     */
+    private suspend fun routeFactorFor(logs: List<RefuelLogEntity>): (HybridMileageEngine.Cycle) -> Double {
+        val trips = try { db.tripDao().getCompletedTripsForStats() } catch (_: Exception) { emptyList() }
+        if (trips.isEmpty()) return { 1.0 }
+        fun avgSpeed(list: List<com.antigravity.copilot.core.database.TripEntity>): Double? {
+            val km = list.sumOf { it.distanceMeters } / 1000.0
+            val h = list.sumOf { it.drivingDurationMs } / 3_600_000.0
+            return if (km > 1.0 && h > 0.01) km / h else null
+        }
+        val overall = avgSpeed(trips)
+        val timeById = logs.associate { it.logId to it.timestamp }
+        return { c ->
+            val start = timeById[c.anchorLogId]
+            val end = timeById[c.closeLogId]
+            if (start == null || end == null || end <= start) 1.0
+            else HybridMileageEngine.routeFactor(avgSpeed(trips.filter { it.startTime in start..end }), overall)
+        }
     }
 
     // ---- backup / reset ----

@@ -244,8 +244,9 @@ class DrivingTrackingService : Service(), LocationListener {
                 tripRepository.attachDeparturePoints(startTime, departurePoints)
                 tripRepository.updateTripOrigin(startTime, originName)
                 if (departureDistMeters > 0.0) {
-                    // Buffered departure distance has no real per-second speed: learned-mileage path.
-                    fuelRepository.consumeBridgeFuel(departureDistMeters)
+                    // Trip litres for it come from the engine's estimator (untracked km at learned
+                    // mileage); the lifetime odometer counts the distance here.
+                    com.antigravity.copilot.core.odometer.LifetimeOdometer.addMeters(departureDistMeters)
                 }
             },
             onTripActiveTelemetry = { _ -> },
@@ -293,8 +294,26 @@ class DrivingTrackingService : Service(), LocationListener {
             releaseRestoreGate()
         }
         registerGnssStatus()
+        seedLifetimeOdometer()
 
         onCreateContinued()
+    }
+
+    /** One-time seed of the service-owned odometer from the legacy source (qualifying + active trip). */
+    private fun seedLifetimeOdometer() {
+        val odo = com.antigravity.copilot.core.odometer.LifetimeOdometer
+        odo.init(applicationContext)
+        if (odo.isSeeded) return
+        serviceScope.launch(Dispatchers.IO) {
+            try {
+                val dao = database.tripDao()
+                val qualifyingM = dao.sumQualifyingDistanceMeters()
+                val activeM = dao.getActiveTrip()?.takeIf { it.endTime <= 0L }?.distanceMeters ?: 0.0
+                odo.seedIfNeeded((qualifyingM + activeM) / 1000.0)
+            } catch (e: Exception) {
+                android.util.Log.w("DrivingTrackingService", "Lifetime odometer seed failed: ${e.message}")
+            }
+        }
     }
 
     private fun releaseRestoreGate() {
@@ -436,6 +455,8 @@ class DrivingTrackingService : Service(), LocationListener {
             },
             onTripUpdated = { summary, point ->
                 tripRepository.onTripUpdated(summary, point)
+                // One trip-fuel number everywhere (dashboard = trip card): the engine's estimator.
+                fuelRepository.onTripFuelEstimate(summary.estimatedFuelConsumedLiters)
             },
             onTripCompleted = { summary ->
                 if (summary.endLocationName.isBlank()) {
@@ -472,13 +493,16 @@ class DrivingTrackingService : Service(), LocationListener {
             fuelRepository.getFuelTelemetrySnapshot()
         }
         engine.onLiveMovement = { stepDistMeters, speedKmh, dtMs ->
+            // Service-owned lifetime odometer (G1): every accepted segment, UI alive or not.
+            com.antigravity.copilot.core.odometer.LifetimeOdometer.addMeters(stepDistMeters)
             fuelRepository.consumeLiveFuel(
                 deltaDistanceMeters = stepDistMeters,
                 currentSpeedKmh = speedKmh,
                 deltaDurationMs = dtMs
             )
         }
-        engine.onBridgeDistance = { meters -> fuelRepository.consumeBridgeFuel(meters) }
+        // Bridged distance: trip litres come from the engine's estimator; the odometer counts it.
+        engine.onBridgeDistance = { meters -> com.antigravity.copilot.core.odometer.LifetimeOdometer.addMeters(meters) }
 
         // Automotive Vehicle Ignition / Power Off & System Shutdown Detector
         val filter = IntentFilter().apply {
@@ -516,6 +540,7 @@ class DrivingTrackingService : Service(), LocationListener {
                         // Safely persist ongoing journey in TEMPORARY_STOP in Room SQLite
                         persistActiveTripNow()
                         saveLastKnownPosition(latestEmittedPoint, force = true)
+                        com.antigravity.copilot.core.odometer.LifetimeOdometer.flush()
 
                         // Immediately reset speed display to zero upon engine cut
                         latestEmittedPoint?.let { pt ->
@@ -540,6 +565,7 @@ class DrivingTrackingService : Service(), LocationListener {
                         engine.forceCompleteOngoingTrip(now)
                         persistActiveTripNow()
                         saveLastKnownPosition(latestEmittedPoint, force = true)
+                        com.antigravity.copilot.core.odometer.LifetimeOdometer.flush()
                         vehicleStateManager.onSystemShutdown("SYSTEM_SHUTDOWN", now, engine.currentTripId.takeIf { it > 0L })
                     }
                 }
@@ -918,6 +944,7 @@ class DrivingTrackingService : Service(), LocationListener {
         try {
             persistActiveTripNow()
             saveLastKnownPosition(latestEmittedPoint, force = true)
+            com.antigravity.copilot.core.odometer.LifetimeOdometer.flush()
         } catch (e: Exception) {
             android.util.Log.w("DrivingTrackingService", "onDestroy persist failed: ${e.message}")
         }

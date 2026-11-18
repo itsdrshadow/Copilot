@@ -93,7 +93,11 @@ data class FuelEventEntity(
     val calculatedMileageKmpl: Double = 0.0,
     val locationName: String = "",
     val latitude: Double = 0.0,
-    val longitude: Double = 0.0
+    val longitude: Double = 0.0,
+    /** Refill "full tank" choice: 1 / 0, -1 = not recorded (legacy rows: inferred from the gauge). */
+    @androidx.room.ColumnInfo(defaultValue = "-1") val fullTank: Int = -1,
+    /** Exact gauge point (half points) of a refill / gauge reading; -1 = not recorded. */
+    @androidx.room.ColumnInfo(defaultValue = "-1.0") val gaugePoint: Double = -1.0
 )
 
 @Entity(

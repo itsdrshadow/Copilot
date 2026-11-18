@@ -270,13 +270,9 @@ class DebugDriveSimulator(
         val liters = Math.round(cfg.rupees / cfg.rate * 100.0) / 100.0
         val mode = if (atReserve) RefuelMode.AT_RESERVE else RefuelMode.TOP_UP
         val name = pumpName(e.index)
-        withContext(Dispatchers.IO) {
-            stationRepo.recordRefuel(
-                stationName = name, lat = la, lon = lo, liters = liters, rate = cfg.rate,
-                mode = mode, odometerKm = fuelRepository.getEffectiveOdometer(), confirmedStation = true
-            )
-        }
         fuelRepository.recordRefuel(
+            refuelMode = mode,
+            confirmedStation = true,
             fullTank = false,
             litersAdded = liters,
             midBarObserved = GAUGE_NOT_OBSERVED,

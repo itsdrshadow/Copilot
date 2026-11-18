@@ -471,6 +471,8 @@ internal fun SpeedometerOdometerCalibrationDialog(
 ) {
     var textValue by remember { mutableStateOf(String.format(Locale.US, "%.0f", currentOdometerKm)) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    /** A > 2,000 km jump needs a second tap (typo guard, audit G4). */
+    var confirmedJumpFor by remember { mutableStateOf<Double?>(null) }
 
     RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 960.dp) {
         Box(
@@ -649,10 +651,23 @@ internal fun SpeedometerOdometerCalibrationDialog(
                             Button(
                                 onClick = {
                                     val parsed = textValue.toDoubleOrNull()
-                                    if (parsed == null || parsed < 0.0 || parsed > 2_000_000.0) {
-                                        errorMessage = "Enter valid odometer (0 - 2,000,000 km)"
+                                    val check = if (parsed == null || parsed > 2_000_000.0) {
+                                        com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.INVALID
                                     } else {
-                                        onConfirmCalibration(parsed)
+                                        com.antigravity.copilot.core.logic.OdometerReadingValidator.validate(
+                                            parsed, currentOdometerKm, isFirstReading = lastSyncedKm <= 0.0
+                                        )
+                                    }
+                                    when {
+                                        parsed == null || check == com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.INVALID ->
+                                            errorMessage = "Enter valid odometer (0 - 2,000,000 km)"
+                                        check == com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.TOO_LOW ->
+                                            errorMessage = String.format(Locale.US, "Lower than the current %,.0f km. Check for a typo.", currentOdometerKm)
+                                        check == com.antigravity.copilot.core.logic.OdometerReadingValidator.Result.NEEDS_CONFIRMATION && confirmedJumpFor != parsed -> {
+                                            confirmedJumpFor = parsed
+                                            errorMessage = String.format(Locale.US, "That is %,.0f km more than expected. Tap Save again to confirm.", parsed - currentOdometerKm)
+                                        }
+                                        else -> onConfirmCalibration(parsed)
                                     }
                                 },
                                 modifier = Modifier

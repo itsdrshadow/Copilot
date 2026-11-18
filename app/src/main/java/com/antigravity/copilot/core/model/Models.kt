@@ -129,7 +129,9 @@ data class FuelState(
     /** Sum of provisional unlogged-consumption entries awaiting the next refill. */
     val unloggedDebtLiters: Double = 0.0,
     /** Quiet, non-blocking notice from the fuel model (null = none). */
-    val fuelNotice: String? = null
+    val fuelNotice: String? = null,
+    /** Fresh install: no refill / gauge reading yet, litres are a placeholder (show "tank unknown"). */
+    val isTankUnknown: Boolean = false
 )
 
 @androidx.compose.runtime.Immutable

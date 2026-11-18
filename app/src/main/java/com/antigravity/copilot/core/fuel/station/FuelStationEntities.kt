@@ -58,7 +58,9 @@ data class RefuelLogEntity(
     val status: String = RefuelLogStatus.PENDING_EVALUATION.name,
     /** km/L of the cycle this log anchored, once closed; null while open or when not evaluable. */
     val calculatedMileage: Double? = null,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    /** fuel_events row of the same refill, so history edits / deletes reach this log too. */
+    val fuelEventId: Long? = null
 ) {
     val mode: RefuelMode
         get() = runCatching { RefuelMode.valueOf(refuelMode) }.getOrDefault(RefuelMode.TOP_UP)
@@ -111,6 +113,9 @@ interface RefuelLogDao {
 
     @Query("DELETE FROM refuel_logs WHERE logId = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("SELECT * FROM refuel_logs WHERE fuelEventId = :fuelEventId LIMIT 1")
+    suspend fun getByFuelEventId(fuelEventId: Long): RefuelLogEntity?
 
     @Query("SELECT * FROM refuel_logs ORDER BY timestamp ASC, logId ASC")
     suspend fun getAllChronological(): List<RefuelLogEntity>

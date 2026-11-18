@@ -380,8 +380,7 @@ class VehicleStateManager private constructor(context: Context) {
         private const val KEY_UNKNOWN_DURATION_MS = "unknown_duration_ms"
 
         const val MOVEMENT_SPEED_THRESHOLD_KMH = 3.0f
-        /** Async prefs flush interval; engine-off / shutdown always write synchronously. */
-        const val PERSIST_DEBOUNCE_MS = 15_000L
+        const val PERSIST_DEBOUNCE_MS = 1000L
         const val TRANSITION_RETENTION_MS = 90L * 24 * 60 * 60 * 1000
 
         @Volatile

@@ -49,6 +49,7 @@ class CopilotApp : Application() {
         if (unlockedInitDone) return
         unlockedInitDone = true
         com.antigravity.copilot.core.recovery.SafeMode.init(this)
+        com.antigravity.copilot.core.odometer.LifetimeOdometer.init(this)
 
         // 2. Storage migration: block app start only for a version upgrade / fresh install (one prefs
         // read decides); a normal start loads settings synchronously and verifies in the background.

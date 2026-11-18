@@ -226,7 +226,7 @@ class Milestone1EmpiricalChallengeTest {
                 onTripCompleted = {},
                 onTripDiscarded = {}
             )
-            engine.onLiveMovement = { dist, _, _ -> bridgedMovement = dist }
+            engine.onBridgeDistance = { dist -> bridgedMovement = dist } // audit B3
 
             // Pre-reboot location
             val preLoc = SyntheticLocation(anchorLat, anchorLon, t0, acc = 5.0f)

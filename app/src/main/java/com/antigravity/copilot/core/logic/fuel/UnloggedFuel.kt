@@ -32,6 +32,8 @@ object UnloggedFuel {
         nowMs: Long
     ): Pair<FuelModelState, UnloggedEntry?> {
         if (tripKm <= 0.0) return s to null
+        // A placeholder anchor (tank never set) cannot prove the tank ran dry.
+        if (s.tankUnknown) return s to null
         val raw = FuelModel.rawLitres(s, odoKmAtEnd, nowMs)
         if (raw > 0.0) return s to null
         val kmpl = FuelModel.mileage(s, nowMs).kmpl
@@ -58,9 +60,10 @@ object UnloggedFuel {
             gaugeAfterLitres != null -> gaugeAfterLitres
             else -> null
         }
-        if (truthAfter == null) {
-            // No gauge reading and not full: nothing to reconcile against; keep provisional entries.
-            return RefillOutcome(FuelModel.applyRefill(s, input, null), litres, null, null)
+        if (truthAfter == null || s.tankUnknown) {
+            // No gauge reading and not full, or an unknown start level (tank never set): nothing to
+            // reconcile against; keep provisional entries and never invent unlogged fuel.
+            return RefillOutcome(FuelModel.applyRefill(s, input, if (s.tankUnknown) gaugeAfterLitres else null), litres, null, null)
         }
 
         val rawBefore = FuelModel.rawLitres(s, input.odoKm, now)

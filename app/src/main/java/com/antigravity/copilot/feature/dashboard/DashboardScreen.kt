@@ -55,10 +55,8 @@ fun DashboardScreen(
     isCovered: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val activeTripDistanceKm = if (currentTrip.isActive()) currentTrip.distanceKm else 0.0
-    val totalLifetimeKm = remember(allTrips, activeTripDistanceKm) {
-        allTrips.sumOf { it.distanceMeters } / 1000.0 + activeTripDistanceKm
-    }
+    // Service-owned lifetime distance (never moves backwards when trips are deleted).
+    val totalLifetimeKm by com.antigravity.copilot.core.odometer.LifetimeOdometer.totalKm.collectAsState()
     val fallbackMileage = when {
         fuelState.currentMileageKmpl > 0.0 -> fuelState.currentMileageKmpl
         fuelState.expectedMileageKmpl > 0.0 -> fuelState.expectedMileageKmpl

@@ -118,8 +118,12 @@ class TripDetectionEngine(
     private var outageRecoveredAtMs: Long = 0L
 
     /** Maps a monotonic instant to wall-clock using the latest fix as the reference pair. */
-    private fun wallFor(mono: Long): Long =
-        if (lastFixMono != Long.MIN_VALUE) lastFixWall + (mono - lastFixMono) else System.currentTimeMillis()
+    private fun wallFor(mono: Long): Long = when {
+        lastFixMono != Long.MIN_VALUE -> lastFixWall + (mono - lastFixMono)
+        // No fix yet: without a real monotonic clock both share one time base.
+        !isMonotonicDomain -> mono
+        else -> System.currentTimeMillis()
+    }
     private var maxSpeedKmh: Double = 0.0
     private var speedSumKmh: Double = 0.0
     private var speedCount: Long = 0
@@ -839,7 +843,9 @@ class TripDetectionEngine(
             }
             totalDistanceMeters += stepDistanceMeters
             if (stepDistanceMeters > 0.0) {
-                val learned = fuelTelemetryProvider?.invoke()?.mileageKmpl?.takeIf { it > 0.0 } ?: BASE_MILEAGE_KMPL
+                val snapshot = fuelTelemetryProvider?.invoke()
+                val learned = snapshot?.mileageKmpl?.takeIf { it > 0.0 } ?: BASE_MILEAGE_KMPL
+                tripFuel.calibration = snapshot?.tripFuelCalibration ?: 1.0
                 tripFuel.onStep(stepDistanceMeters / 1000.0, speedKmh.toDouble(), drivingClassifier.accelMps2, learned)
             }
 

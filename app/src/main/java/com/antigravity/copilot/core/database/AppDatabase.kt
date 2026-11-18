@@ -51,6 +51,14 @@ interface TripDao {
     @Query("SELECT * FROM trips ORDER BY startTime ASC")
     suspend fun getAllTrips(): List<TripEntity>
 
+    /** Completed trips for route-mix statistics (station rating normalisation). */
+    @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND endTime > 0 ORDER BY startTime ASC")
+    suspend fun getCompletedTripsForStats(): List<TripEntity>
+
+    /** Legacy lifetime-odometer source (qualifying completed trips), used once to seed LifetimeOdometer. */
+    @Query("SELECT COALESCE(SUM(distanceMeters), 0.0) FROM trips WHERE status = 'COMPLETED' AND isQualifying = 1")
+    suspend fun sumQualifyingDistanceMeters(): Double
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTrips(trips: List<TripEntity>)
 
@@ -105,6 +113,15 @@ interface FuelLedgerDao {
 
     @Query("SELECT * FROM fuel_ledger_events WHERE id = :id LIMIT 1")
     suspend fun getEventById(id: Long): FuelLedgerEntity?
+
+    @Query("SELECT * FROM fuel_ledger_events WHERE sourceEventId = :sourceEventId")
+    suspend fun getBySourceEventId(sourceEventId: Long): List<FuelLedgerEntity>
+
+    @Query("DELETE FROM fuel_ledger_events WHERE sourceEventId = :sourceEventId")
+    suspend fun deleteBySourceEventId(sourceEventId: Long): Int
+
+    @androidx.room.Update
+    suspend fun updateEvent(event: FuelLedgerEntity)
 
     @Query("SELECT * FROM fuel_ledger_events WHERE eventType = 'INFERRED_REFUEL' AND confidence = 'PROVISIONAL' ORDER BY timestamp DESC")
     fun getProvisionalInferredEventsFlow(): Flow<List<FuelLedgerEntity>>
@@ -250,7 +267,7 @@ interface RoadSegmentStatsDao {
         com.antigravity.copilot.core.fuel.station.RefuelLogEntity::class,
         com.antigravity.copilot.core.osm.OsmPlaceNoteEntity::class
     ],
-    version = 16,
+    version = AppDatabase.DB_VERSION,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -526,7 +543,23 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        const val DATABASE_SCHEMA_VERSION = 14
+        /** Single source for the Room version and the backup manifest's schema version. */
+        const val DB_VERSION = 17
+        const val DATABASE_SCHEMA_VERSION = DB_VERSION
+
+        /**
+         * Fuel replay inputs + cross-table links (audit E1/E2/E10): exact refill full-tank flag and
+         * gauge point on fuel_events, the mirrored fuel_events id on ledger rows and refuel logs.
+         * Additive only: every existing row keeps its data (new columns default to "unknown").
+         */
+        val MIGRATION_16_17 = object : androidx.room.migration.Migration(16, 17) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `fuel_events` ADD COLUMN `fullTank` INTEGER NOT NULL DEFAULT -1")
+                db.execSQL("ALTER TABLE `fuel_events` ADD COLUMN `gaugePoint` REAL NOT NULL DEFAULT -1.0")
+                db.execSQL("ALTER TABLE `fuel_ledger_events` ADD COLUMN `sourceEventId` INTEGER")
+                db.execSQL("ALTER TABLE `refuel_logs` ADD COLUMN `fuelEventId` INTEGER")
+            }
+        }
 
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
@@ -543,7 +576,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_12_13,
             MIGRATION_13_14,
             MIGRATION_14_15,
-            MIGRATION_15_16
+            MIGRATION_15_16,
+            MIGRATION_16_17
         )
 
         fun getInstance(context: Context): AppDatabase {

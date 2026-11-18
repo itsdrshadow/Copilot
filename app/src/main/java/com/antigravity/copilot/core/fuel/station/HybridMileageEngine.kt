@@ -40,7 +40,9 @@ object HybridMileageEngine {
         val mileage: Double,
         val rule: Char,
         val distanceKm: Double = 0.0,
-        val fuelL: Double = 0.0
+        val fuelL: Double = 0.0,
+        /** Log that closed the cycle (its time bounds the cycle's trips for route-mix normalisation). */
+        val closeLogId: Long = -1L
     )
 
     data class Result(
@@ -71,13 +73,13 @@ object HybridMileageEngine {
             topUps.clear()
         }
 
-        fun close(a: Anchor, distance: Double, fuel: Double, rule: Char): Boolean {
+        fun close(a: Anchor, distance: Double, fuel: Double, rule: Char, closeId: Long): Boolean {
             val kmpl = if (fuel > 0.0 && distance > 0.0) distance / fuel else 0.0
             val valid = kmpl in MIN_VALID_KMPL..MAX_VALID_KMPL
             outcomes[a.entry.id] = Outcome(RefuelLogStatus.COMPLETED, if (valid) kmpl else null)
             topUps.forEach { outcomes[it.id] = Outcome(RefuelLogStatus.COMPLETED, null) }
             topUps.clear()
-            if (valid) cycles += Cycle(a.entry.id, a.entry.stationId, kmpl, rule, distance, fuel)
+            if (valid) cycles += Cycle(a.entry.id, a.entry.stationId, kmpl, rule, distance, fuel, closeId)
             return valid
         }
 
@@ -104,7 +106,7 @@ object HybridMileageEngine {
                 RefuelMode.FULL_TANK -> {
                     val a = anchor
                     if (a != null && a.entry.mode == RefuelMode.FULL_TANK) {
-                        closed = close(a, e.odometer - a.refOdometer, e.liters + topUps.sumOf { it.liters }, 'A')
+                        closed = close(a, e.odometer - a.refOdometer, e.liters + topUps.sumOf { it.liters }, 'A', e.id)
                     } else {
                         closeWithout(a)
                     }
@@ -114,7 +116,7 @@ object HybridMileageEngine {
                 RefuelMode.AT_RESERVE -> {
                     val a = anchor
                     if (a != null && a.entry.mode == RefuelMode.AT_RESERVE) {
-                        closed = close(a, reserveOdo - a.refOdometer, a.entry.liters + topUps.sumOf { it.liters }, 'B')
+                        closed = close(a, reserveOdo - a.refOdometer, a.entry.liters + topUps.sumOf { it.liters }, 'B', e.id)
                     } else {
                         closeWithout(a)
                     }
@@ -148,11 +150,40 @@ object HybridMileageEngine {
         return (km / l).takeIf { it in MIN_VALID_KMPL..MAX_VALID_KMPL }?.let { it to km }
     }
 
-    /** Rolling station average (mean of the last [STATION_WINDOW] cycles) and cycle count. */
-    fun stationAverages(cycles: List<Cycle>): Map<Long, Pair<Double, Int>> =
+    /**
+     * Rolling station average (mean of the last [STATION_WINDOW] cycles) and cycle count.
+     * [routeFactor] (audit H2) is the cycle's expected km/L relative to this car's usual driving
+     * mix (> 1 = easier route, e.g. mostly highway); dividing by it keeps one highway trip from
+     * branding a pump EXCELLENT.
+     */
+    fun stationAverages(cycles: List<Cycle>, routeFactor: (Cycle) -> Double = { 1.0 }): Map<Long, Pair<Double, Int>> =
         cycles.filter { it.stationId != null }
             .groupBy { it.stationId!! }
-            .mapValues { (_, list) -> list.takeLast(STATION_WINDOW).map { it.mileage }.average() to list.size }
+            .mapValues { (_, list) ->
+                list.takeLast(STATION_WINDOW).map { c ->
+                    val f = routeFactor(c).takeIf { it.isFinite() && it > 0.0 } ?: 1.0
+                    c.mileage / f
+                }.average() to list.size
+            }
+
+    /** A station is only rated once it has this many clean cycles (one cycle is mostly noise). */
+    const val MIN_RATED_CYCLES = 3
+
+    /** Rating against this car's own lifetime km/L (audit H1), only after [MIN_RATED_CYCLES]. */
+    fun rateStation(averageKmpl: Double, cycles: Int, lifetimeKmpl: Double?): StationQuality =
+        if (cycles < MIN_RATED_CYCLES) StationQuality.NOT_AVAILABLE
+        else rate(averageKmpl, lifetimeKmpl?.takeIf { it > 0.0 } ?: BASELINE_KMPL)
+
+    /**
+     * Expected relative km/L of a cycle driven at [cycleAvgSpeedKmh] versus the car's usual
+     * [overallAvgSpeedKmh], from the trip estimator's load curve (lower load = more km/L).
+     */
+    fun routeFactor(cycleAvgSpeedKmh: Double?, overallAvgSpeedKmh: Double?): Double {
+        if (cycleAvgSpeedKmh == null || overallAvgSpeedKmh == null || cycleAvgSpeedKmh <= 0.0 || overallAvgSpeedKmh <= 0.0) return 1.0
+        val cycleLoad = com.antigravity.copilot.core.logic.TripFuelEstimator.loadFactor(cycleAvgSpeedKmh, 0.0)
+        val usualLoad = com.antigravity.copilot.core.logic.TripFuelEstimator.loadFactor(overallAvgSpeedKmh, 0.0)
+        return (usualLoad / cycleLoad).coerceIn(0.7, 1.4)
+    }
 
     /**
      * ≥ +5 % over baseline → EXCELLENT, below −8 % → POOR, otherwise AVERAGE (the −8 %…−5 % band

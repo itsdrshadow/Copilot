@@ -405,19 +405,9 @@ private fun MainAppScreen(
         }
     }
 
-    // Historical total only changes when the trip list does; don't re-sum it on every GPS tick.
-    val historicalKm = remember(qualifyingTrips) { qualifyingTrips.sumOf { it.distanceMeters } / 1000.0 }
-    val recordedDistanceKm = remember(historicalKm, currentTrip.distanceKm, currentTrip.status) {
-        val isTripActive = currentTrip.status == com.antigravity.copilot.core.model.TripStatus.ACTIVE_TRIP ||
-            currentTrip.status == com.antigravity.copilot.core.model.TripStatus.MOVEMENT_CANDIDATE ||
-            currentTrip.status == com.antigravity.copilot.core.model.TripStatus.TEMPORARY_STOP
-        val activeKm = if (isTripActive) currentTrip.distanceKm else 0.0
-        historicalKm + activeKm
-    }
-
-    LaunchedEffect(recordedDistanceKm) {
-        viewModel.syncOdometer(recordedDistanceKm)
-    }
+    // Lifetime distance is owned and persisted by the tracking service (LifetimeOdometer); the UI
+    // only observes it, so the odometer and tank keep moving while another app is in front.
+    val recordedDistanceKm by com.antigravity.copilot.core.odometer.LifetimeOdometer.totalKm.collectAsStateWithLifecycle()
 
     // Raahi left rail. Drive / Trips / Fuel / Maps are the existing tabs (0 / 2 / 3 / 1); Apps and
     // Settings open the existing full-screen overlays. Any rail tap closes an open overlay first.

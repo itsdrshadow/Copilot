@@ -18,12 +18,27 @@ class FuelAIEngine(context: Context) {
 
     private val prefs: SharedPreferences = context.getSharedPreferences("fuel_ai_model_prefs", Context.MODE_PRIVATE)
 
-    // Learned parameters
+    // Learned parameters: the base is the fuel model's learned km/L (pushed by FuelRepository on
+    // every live slice), the aggressiveness index is 1 / the per-car trip-estimate calibration
+    // (refill truth ÷ predicted), so the live HUD and the trip estimate share one model.
     var learnedBaseMileageKmpl: Double = prefs.getFloat("learned_base_mileage", 18.0f).toDouble()
         private set
 
     var driverAggressivenessIndex: Double = prefs.getFloat("driver_aggressiveness", 1.0f).toDouble()
-        private set // 0.70 (aggressive) to 1.25 (hyper-miler)
+        private set // 0.62 (heavy) to 1.67 (light), from TripFuelCalibration bounds
+
+    /** Base km/L from the learned fuel model and the refill-calibrated load factor (F2). */
+    fun updateLearnedBase(learnedKmpl: Double, tripCalibration: Double) {
+        if (learnedKmpl.isFinite() && learnedKmpl in MIN_VALID_MILEAGE..MAX_VALID_MILEAGE && learnedKmpl != learnedBaseMileageKmpl) {
+            learnedBaseMileageKmpl = learnedKmpl
+            prefs.edit().putFloat("learned_base_mileage", learnedKmpl.toFloat()).apply()
+        }
+        val index = if (tripCalibration.isFinite() && tripCalibration > 0.0) (1.0 / tripCalibration).coerceIn(0.62, 1.67) else 1.0
+        if (index != driverAggressivenessIndex) {
+            driverAggressivenessIndex = index
+            prefs.edit().putFloat("driver_aggressiveness", index.toFloat()).apply()
+        }
+    }
 
     // Runtime live tracking state
     private var lastEmittedSpeedKmh: Double = 0.0
@@ -105,36 +120,30 @@ class FuelAIEngine(context: Context) {
         }
 
         // ==================== 2. KINEMATIC ACCELERATION ESTIMATION ====================
-        val now = System.currentTimeMillis()
-        val accelerationMps2 = if (lastSpeedTimestamp > 0 && now > lastSpeedTimestamp) {
+        // dt is the slice's own duration (fix-time based); the wall clock of the call is irrelevant
+        // and jumps with RTC / NTP corrections.
+        val accelerationMps2 = if (lastSpeedTimestamp > 0L) {
             val deltaV_mps = ((safeSpeed - lastEmittedSpeedKmh) * 1000.0) / 3600.0
-            val deltaT_s = ((now - lastSpeedTimestamp) / 1000.0).coerceAtLeast(0.2)
-            (deltaV_mps / deltaT_s).coerceIn(-8.0, 8.0) // ±8 m/s² = extreme but possible
+            (deltaV_mps / deltaSeconds.coerceAtLeast(0.2)).coerceIn(-8.0, 8.0) // ±8 m/s² = extreme but possible
         } else {
             0.0
         }
         lastEmittedSpeedKmh = safeSpeed
-        lastSpeedTimestamp = now
+        lastSpeedTimestamp = 1L
 
-        // ==================== 3. SPEED-DEPENDENT BSFC THERMAL EFFICIENCY CURVE ====================
-        // Continuous polynomial approximation instead of discrete when-blocks.
-        // Peak efficiency at ~62 km/h, quadratic aerodynamic drag drop at high speeds.
-        val speedFactor = computeSpeedConsumptionFactor(safeSpeed)
-
-        // ==================== 4. ACCELERATION / ENGINE LOAD PENALTY ====================
-        // Continuous model instead of discrete steps to avoid cliff effects
-        val accelModifier = when {
-            accelerationMps2 > 2.0 -> 0.45  // Very heavy throttle / launch
-            accelerationMps2 > 1.2 -> 0.55  // Heavy throttle acceleration (fuel enrichment)
-            accelerationMps2 > 0.4 -> 0.75 + (1.2 - accelerationMps2) * 0.25 / 0.8  // Smooth interpolation
-            accelerationMps2 >= -0.3 -> 1.00 // Steady state cruise
-            accelerationMps2 >= -0.6 -> 1.10 + (-0.3 - accelerationMps2) * 2.0 / 0.3 // Light coasting to strong coast
-            accelerationMps2 >= -1.5 -> 3.50  // Deceleration / Fuel cut-off coasting (very high km/L!)
-            else -> 4.50 // Hard engine braking — almost zero fuel consumed
+        // ==================== 3. LOAD CURVE (shared with the trip estimator) ====================
+        // Same speed / acceleration load as TripFuelEstimator, so the live km/L and the trip litres
+        // agree (the old curves pulled in opposite directions on the highway). Coasting / engine
+        // braking keeps a fuel-cut bonus for the HUD.
+        val load = com.antigravity.copilot.core.logic.TripFuelEstimator.loadFactor(safeSpeed, accelerationMps2)
+        val coastBonus = when {
+            accelerationMps2 >= -0.6 -> 1.0
+            accelerationMps2 >= -1.5 -> 3.5 // fuel cut-off coasting
+            else -> 4.5 // hard engine braking
         }
 
         // Dynamic Instantaneous Mileage (km/L)
-        val rawInstantMileage = (learnedBaseMileageKmpl * speedFactor * accelModifier * driverAggressivenessIndex)
+        val rawInstantMileage = learnedBaseMileageKmpl / load * coastBonus * driverAggressivenessIndex
 
         // Guard against NaN/Infinity from edge case multiplications
         val safeInstantMileage = if (rawInstantMileage.isFinite()) {
@@ -189,24 +198,6 @@ class FuelAIEngine(context: Context) {
     }
 
     // ==================== PRIVATE HELPER FUNCTIONS ====================
-
-    /**
-     * Continuous speed-based fuel consumption factor for real-time calculations.
-     * Returns a multiplier where higher = more fuel efficient at that speed.
-     * Models ICE thermal efficiency + aerodynamic drag quadratic increase.
-     */
-    private fun computeSpeedConsumptionFactor(speedKmh: Double): Double {
-        return when {
-            speedKmh <= 5.0 -> 0.50  // Crawling / parking lot
-            speedKmh <= 20.0 -> 0.55 + (speedKmh - 5.0) / 15.0 * 0.25 // 0.55 → 0.80
-            speedKmh <= 45.0 -> 0.80 + (speedKmh - 20.0) / 25.0 * 0.25 // 0.80 → 1.05
-            speedKmh <= 62.0 -> 1.05 + (speedKmh - 45.0) / 17.0 * 0.10 // 1.05 → 1.15 (peak)
-            speedKmh <= 80.0 -> 1.15 - (speedKmh - 62.0) / 18.0 * 0.10 // 1.15 → 1.05
-            speedKmh <= 100.0 -> 1.05 - (speedKmh - 80.0) / 20.0 * 0.17 // 1.05 → 0.88
-            speedKmh <= 120.0 -> 0.88 - (speedKmh - 100.0) / 20.0 * 0.18 // 0.88 → 0.70
-            else -> (0.70 - (speedKmh - 120.0) / 40.0 * 0.10).coerceAtLeast(0.50) // 0.70 → 0.60 → 0.50 floor
-        }
-    }
 
     /**
      * Safe rounding to 1 decimal place with NaN/Infinity protection.
