@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 17,
-    "identityHash": "31cc1867acbc7af67911eced30d9ec02",
+    "identityHash": "f48d229aad622bc6e5bea29b3d5e2c54",
     "entities": [
       {
         "tableName": "vehicles",
@@ -66,7 +66,7 @@
       },
       {
         "tableName": "trips",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `vehicleId` INTEGER NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER NOT NULL, `distanceMeters` REAL NOT NULL, `drivingDurationMs` INTEGER NOT NULL, `stationaryDurationMs` INTEGER NOT NULL, `avgSpeedKmh` REAL NOT NULL, `maxSpeedKmh` REAL NOT NULL, `estimatedFuelLiters` REAL NOT NULL, `calculatedMileageKmpl` REAL NOT NULL, `driverScore` INTEGER NOT NULL, `startLocationName` TEXT NOT NULL, `endLocationName` TEXT NOT NULL, `status` TEXT NOT NULL, `isQualifying` INTEGER NOT NULL, `brakeCount` INTEGER NOT NULL, `accelCount` INTEGER NOT NULL, `bestMileageKmpl` REAL NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `vehicleId` INTEGER NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER NOT NULL, `distanceMeters` REAL NOT NULL, `drivingDurationMs` INTEGER NOT NULL, `stationaryDurationMs` INTEGER NOT NULL, `avgSpeedKmh` REAL NOT NULL, `maxSpeedKmh` REAL NOT NULL, `estimatedFuelLiters` REAL NOT NULL, `calculatedMileageKmpl` REAL NOT NULL, `driverScore` INTEGER NOT NULL, `startLocationName` TEXT NOT NULL, `endLocationName` TEXT NOT NULL, `status` TEXT NOT NULL, `isQualifying` INTEGER NOT NULL, `brakeCount` INTEGER NOT NULL, `accelCount` INTEGER NOT NULL, `bestMileageKmpl` REAL NOT NULL, `tag` TEXT NOT NULL DEFAULT '')",
         "fields": [
           {
             "fieldPath": "id",
@@ -181,6 +181,13 @@
             "columnName": "bestMileageKmpl",
             "affinity": "REAL",
             "notNull": true
+          },
+          {
+            "fieldPath": "tag",
+            "columnName": "tag",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           }
         ],
         "primaryKey": {
@@ -962,7 +969,7 @@
       },
       {
         "tableName": "road_anomalies",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `maxZForce` REAL NOT NULL, `severity` TEXT NOT NULL, `confidenceScore` INTEGER NOT NULL, `lastUpdated` INTEGER NOT NULL, `headingDeg` REAL NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `maxZForce` REAL NOT NULL, `severity` TEXT NOT NULL, `confidenceScore` INTEGER NOT NULL, `lastUpdated` INTEGER NOT NULL, `headingDeg` REAL NOT NULL, `kind` TEXT NOT NULL DEFAULT 'UNKNOWN')",
         "fields": [
           {
             "fieldPath": "id",
@@ -1011,6 +1018,13 @@
             "columnName": "headingDeg",
             "affinity": "REAL",
             "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'UNKNOWN'"
           }
         ],
         "primaryKey": {
@@ -1286,11 +1300,41 @@
             "id"
           ]
         }
+      },
+      {
+        "tableName": "geo_lookup_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cellKey` TEXT NOT NULL, `value` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`cellKey`))",
+        "fields": [
+          {
+            "fieldPath": "cellKey",
+            "columnName": "cellKey",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "value",
+            "columnName": "value",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "cellKey"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '31cc1867acbc7af67911eced30d9ec02')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f48d229aad622bc6e5bea29b3d5e2c54')"
     ]
   }
 }

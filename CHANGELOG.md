@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.32.0] - 2026-11-19
+
+Full audit pass (77 items, batches 1-4).
+
+### Added
+- Offline road intelligence from the PMTiles file (pure-Kotlin PMTiles v3 + MVT decoder): speed limit, road class and POIs work while the map is hidden; school-zone / speed-camera ahead alert; low-fuel nearest / best-rated pump suggestion.
+- Trip auto-tags (City / Highway / Mixed / Commute), trip rename, merge with the next trip, GPX export.
+- Full ZIP auto-backups (daily + trip end, app-private folder, keep 3) with startup restore into an empty database.
+- Diagnostics bundle export (logs + settings, no location history); "Online place and pump lookups" switch with a Room geo cache and a shared rate limiter.
+- Service-owned persistent lifetime odometer (`LifetimeOdometer`); odometer typo guard (reject > 1 km lower, confirm > 2,000 km jump).
+- Room DB v17 (additive): fuel replay columns, ledger / station-log links, anomaly kind, trip tag, geo cache; exported schemas + MigrationTestHelper test.
+
+### Changed
+- All durations (trip engine, watchdog, vehicle state, speedometer) use the monotonic clock; wall time only stamps data.
+- Fuel history edits / deletes replay the fuel model from fuel_events and update linked ledger rows and station logs; one trip-fuel number (engine estimator) calibrated against full-to-full refills.
+- Driver score from edge-triggered harsh events and 5 s overspeed events against the road limit, normalised per 100 km.
+- Geofence arrival needs a slow fix or 20 s dwell (pass-through no longer splits trips); unknown position starts a trip after sustained driving.
+- Station rating uses the car's lifetime km/L, needs 3 cycles and normalises route mix; low-fuel / efficiency thresholds are relative.
+- Pothole alerts need a second-pass confirmation or a severe hit; dedup is direction-aware; speed breaker vs pothole classified.
+- Factory reset: typed "RESET" + 3 s hold (no password in the APK); reset / restore pause tracking first.
+- Safe mode lowers GPS rate and caps the map at 30 fps; locked boot defers storage until unlock.
+
+### Fixed
+- Restored power-cut flag never cleared; restore vs first-fix race; trip summary lost on service kill; completed trips revived by a late write; singleton races.
+- Tunnel bridge lost on a coarse exit fix; resume drift; reboot / departure fuel dropped; junk trips in geofence mode.
+- Wrong ledger row deleted on fuel delete; old-entry edit overwrote the fuel price; broken persist debounce; per-step fuel rounding; fresh-install fake 50 % tank.
+- Media position 7.2 s scaled to 2 h; invented place names; incomplete map downloads replacing the map; migrations swallowing errors.
+
 ## [2.31.0] - 2026-11-19
 
 ### Added

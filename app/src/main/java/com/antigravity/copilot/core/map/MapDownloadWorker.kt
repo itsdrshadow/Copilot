@@ -32,6 +32,8 @@ class MapDownloadWorker(
         const val KEY_DEST_PATH = "dest_path"
         const val KEY_PACKAGE_ID = "package_id"
         const val KEY_ESTIMATED_BYTES = "estimated_bytes"
+        /** Optional expected SHA-256 (hex) of the finished file. */
+        const val KEY_SHA256 = "sha256"
 
         const val PROGRESS_KEY = "progress"
         const val SPEED_KEY = "speed_mbs"
@@ -80,6 +82,20 @@ class MapDownloadWorker(
             if (responseCode == 416) {
                 // Range Not Satisfiable: File may already be fully downloaded
                 Log.i(TAG, "HTTP 416 Range Not Satisfiable - checking if file complete")
+                // Nothing left to fetch: never write the 416 error body into the archive.
+                response.close()
+                val problem = DownloadIntegrity.verify(tempDownloadFile, 0L, inputData.getString(KEY_SHA256))
+                if (problem != null) {
+                    tempDownloadFile.delete()
+                    OfflineMapManager.notifyDownloadError(packageId, "Map file is damaged ($problem); please download again")
+                    return@withContext Result.failure()
+                }
+                java.nio.file.Files.move(
+                    tempDownloadFile.toPath(), targetFile.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE
+                )
+                OfflineMapManager.notifyDownloadComplete(packageId)
+                return@withContext Result.success()
             } else if (!response.isSuccessful && responseCode != 206) {
                 Log.e(TAG, "Download failed with HTTP $responseCode")
                 val errorDetail = when (responseCode) {
@@ -167,11 +183,27 @@ class MapDownloadWorker(
             outputRaf.close()
             outputRaf = null
 
-            // File download complete: move the .pmtiles into place
-            if (targetFile.exists()) {
-                targetFile.delete()
+            // Verify before it replaces the working map (audit J2): byte count, PMTiles sections,
+            // SHA-256 (input or a "<url>.sha256" sidecar when the server has one).
+            val expectedSha = inputData.getString(KEY_SHA256) ?: fetchSidecarSha256(downloadUrl)
+            val problem = DownloadIntegrity.verify(tempDownloadFile, if (totalBytes > 0) totalBytes else 0L, expectedSha)
+            if (problem != null) {
+                Log.e(TAG, "Downloaded map rejected: $problem")
+                if (problem.startsWith("incomplete")) {
+                    // Keep the partial file: the next attempt resumes with a Range request.
+                    OfflineMapManager.notifyDownloadError(packageId, "Download interrupted ($problem); retrying")
+                    return@withContext if (runAttemptCount < 5) Result.retry() else Result.failure()
+                }
+                tempDownloadFile.delete()
+                OfflineMapManager.notifyDownloadError(packageId, "Map file is damaged ($problem); please download again")
+                return@withContext Result.failure()
             }
-            tempDownloadFile.renameTo(targetFile)
+
+            // Atomic replace: the old map stays usable until the verified file takes its place.
+            java.nio.file.Files.move(
+                tempDownloadFile.toPath(), targetFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE
+            )
             Log.i(TAG, "Vector map file moved to ${targetFile.absolutePath}")
 
             OfflineMapManager.notifyDownloadComplete(packageId)
@@ -187,6 +219,14 @@ class MapDownloadWorker(
             OfflineMapManager.notifyDownloadError(packageId, friendlyError)
             if (isStopped) Result.success() else if (runAttemptCount < 2) Result.retry() else Result.failure()
         }
+    }
+
+    private fun fetchSidecarSha256(url: String): String? = try {
+        okHttpClient.newCall(Request.Builder().url("$url.sha256").build()).execute().use { r ->
+            if (r.isSuccessful) r.body?.string()?.let { DownloadIntegrity.parseSha256Sidecar(it) } else null
+        }
+    } catch (_: Exception) {
+        null
     }
 
     private fun createForegroundInfo(packageId: String, percent: Int, speedMbs: Double): ForegroundInfo {

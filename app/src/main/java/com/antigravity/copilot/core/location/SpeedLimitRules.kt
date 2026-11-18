@@ -14,6 +14,47 @@ import kotlin.math.roundToInt
  */
 object SpeedLimitRules {
 
+    /** An Overpass way with an explicit maxspeed and its geometry (lat, lon). */
+    class WayCandidate(val limitKmh: Int, val points: List<Pair<Double, Double>>, val oneway: Boolean)
+
+    const val WAY_MAX_DISTANCE_M = 25.0
+    const val WAY_MAX_HEADING_DIFF_DEG = 35.0
+
+    /**
+     * Audit I2: the nearest way whose direction matches the heading (axis-agnostic for two-way
+     * roads, direction-aware for one-ways). Without a heading, the nearest way wins.
+     */
+    fun bestWay(lat: Double, lon: Double, headingDeg: Double, ways: List<WayCandidate>): WayCandidate? {
+        val kx = 111_320.0 * Math.cos(Math.toRadians(lat))
+        val ky = 110_540.0
+        var best: WayCandidate? = null
+        var bestDist = Double.MAX_VALUE
+        for (w in ways) {
+            for (i in 0 until w.points.size - 1) {
+                val (aLat, aLon) = w.points[i]
+                val (bLat, bLon) = w.points[i + 1]
+                val ax = (aLon - lon) * kx; val ay = (aLat - lat) * ky
+                val bx = (bLon - lon) * kx; val by = (bLat - lat) * ky
+                val dx = bx - ax; val dy = by - ay
+                val len2 = dx * dx + dy * dy
+                if (len2 < 1e-6) continue
+                val t = (-(ax * dx + ay * dy) / len2).coerceIn(0.0, 1.0)
+                val px = ax + t * dx; val py = ay + t * dy
+                val d = Math.hypot(px, py)
+                if (d > WAY_MAX_DISTANCE_M || d >= bestDist) continue
+                if (headingDeg.isFinite()) {
+                    val segBearing = (Math.toDegrees(Math.atan2(dx, dy)) + 360.0) % 360.0
+                    var diff = Math.abs(((segBearing - headingDeg) % 360.0 + 540.0) % 360.0 - 180.0)
+                    if (!w.oneway) diff = minOf(diff, 180.0 - diff)
+                    if (diff > WAY_MAX_HEADING_DIFF_DEG) continue
+                }
+                best = w
+                bestDist = d
+            }
+        }
+        return best
+    }
+
     private const val MPH_TO_KMH = 1.609344
     private val NUMBER_WITH_UNIT = Regex("""^(\d+(?:\.\d+)?)\s*(km/h|kmh|kph|mph|knots)?$""")
 

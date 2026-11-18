@@ -848,7 +848,13 @@ class TripRepository private constructor(context: Context) {
                     startLocationName = effectiveStartName,
                     endLocationName = effectiveEndName,
                     status = TripStatus.COMPLETED.name,
-                    isQualifying = summary.distanceMeters >= 1000.0
+                    isQualifying = summary.distanceMeters >= 1000.0,
+                    // Auto tag (B8): speed bands from the engine + repeated route = commute.
+                    tag = com.antigravity.copilot.core.logic.TripTagger.tag(
+                        summary.speedTag, effectiveStartName, effectiveEndName,
+                        if (TripNaming.isPlaceholder(effectiveStartName) || TripNaming.isPlaceholder(effectiveEndName)) 0
+                        else tripDao.countCompletedTripsOnRoute(effectiveStartName, effectiveEndName, summary.id)
+                    )
                 )
                 tripDao.updateTrip(completedTrip)
                 try {
@@ -899,6 +905,43 @@ class TripRepository private constructor(context: Context) {
                 Log.e(TAG, "Failed discarding trip in Room DB: ${e.message}", e)
             }
         }
+    }
+
+    /** Rename a trip's start / end (audit D6). Blank keeps the current value. */
+    fun renameTrip(tripId: Long, startName: String, endName: String) {
+        launchWrite {
+            val t = tripDao.getTripById(tripId) ?: return@launchWrite
+            tripDao.updateTrip(
+                t.copy(
+                    startLocationName = startName.trim().ifBlank { t.startLocationName },
+                    endLocationName = endName.trim().ifBlank { t.endLocationName }
+                )
+            )
+            if (_lastCompletedTrip.value?.id == tripId) _lastCompletedTrip.value = tripDao.getTripById(tripId)
+        }
+    }
+
+    /**
+     * Merge a trip with the next completed one (audit D6), e.g. a journey split by a fence it
+     * passed through: one transaction re-parents the second trip's points / transitions, writes
+     * the combined summary and deletes the second row. Returns false when there is no next trip.
+     */
+    suspend fun mergeWithNext(tripId: Long): Boolean {
+        var merged = false
+        launchWrite {
+            val a = tripDao.getTripById(tripId) ?: return@launchWrite
+            val b = tripDao.getNextCompletedTrip(a.startTime) ?: return@launchWrite
+            database.withTransaction {
+                tripDao.reparentPoints(b.id, a.id)
+                tripDao.reparentTransitions(b.id, a.id)
+                tripDao.updateTrip(TripMerge.merge(a, b))
+                tripDao.deleteTrip(b.id)
+            }
+            if (getLastCompletedTripId() == b.id) setLastCompletedTripId(a.id)
+            merged = true
+        }.join()
+        if (merged) PersistentDataManager.backupAsync(appContext, force = true)
+        return merged
     }
 
     fun deleteTrip(tripId: Long) {

@@ -195,7 +195,7 @@ class RoadAnomalyLogicTest {
 
     @Test fun nearestInConeWins() {
         val tracker = AheadAlertTracker()
-        val a = tracker.update(0, baseLat, baseLon, 0.0, 50f, listOf(anomaly(1, 195.0), anomaly(2, 160.0, sev = AnomalySeverity.YELLOW)))
+        val a = tracker.update(0, baseLat, baseLon, 0.0, 50f, listOf(anomaly(1, 195.0), anomaly(2, 160.0, sev = AnomalySeverity.YELLOW).copy(confidenceScore = 3))) // YELLOW needs a 2nd-pass confirmation (audit K1)
         assertEquals(2L, a?.anomalyId)
         assertEquals(AnomalySeverity.YELLOW, a?.severity)
     }

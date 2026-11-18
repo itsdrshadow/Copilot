@@ -432,6 +432,8 @@ class CarMapController(
      * vertex-capped ([com.antigravity.copilot.core.logic.Config.TRAIL_MAX_RENDER_POINTS]).
      * All per-point work (including the snapshot copy) runs off the main thread and is throttled.
      */
+    private val trailRunCache = com.antigravity.copilot.core.logic.TrailRunCache()
+
     fun updateTrail(points: List<TripPoint>) {
         trailRef = points
         val now = SystemClock.elapsedRealtime()
@@ -458,7 +460,8 @@ class CarMapController(
             } catch (_: IndexOutOfBoundsException) {
                 return@launch // trip ended while copying; the next emission resets the trail
             }
-            val runs = com.antigravity.copilot.core.logic.TrailOverlap.runs(snapshot)
+            // Incremental: unchanged runs reuse their simplification (audit D5).
+            val runs = trailRunCache.runs(snapshot)
             val features = runs.map { run ->
                 Feature.fromGeometry(LineString.fromLngLats(run.points.map { Point.fromLngLat(it.lon, it.lat) })).apply {
                     addNumberProperty("passes", run.passes)

@@ -43,8 +43,18 @@ enum class FencePhase { UNKNOWN, INSIDE_FENCE, EXIT_PENDING, IN_TRIP, ENTRY_PEND
 class GeofenceTripDetector(
     private val debounceFixes: Int = Config.GEOFENCE_DEBOUNCE_FIXES,
     private val maxAccuracyM: Double = Config.GEOFENCE_MAX_ACCURACY_M,
-    private val exitHysteresisM: Double = Config.GEOFENCE_EXIT_HYSTERESIS_M
+    private val exitHysteresisM: Double = Config.GEOFENCE_EXIT_HYSTERESIS_M,
+    /** Arrival needs a slow fix or a dwell: driving through a fence must not end the trip (C1). */
+    private val arrivalMaxSpeedKmh: Double = ARRIVAL_MAX_SPEED_KMH,
+    private val arrivalDwellMs: Long = ARRIVAL_DWELL_MS,
+    /** Unknown position: sustained driving away starts a trip anyway (C2). */
+    private val unknownStartSpeedKmh: Double = UNKNOWN_START_SPEED_KMH,
+    private val unknownStartMs: Long = UNKNOWN_START_MS,
+    private val unknownStartDistanceM: Double = UNKNOWN_START_DISTANCE_M
 ) {
+    private var unknownRunStartMs = Long.MIN_VALUE
+    private var unknownRunLat = 0.0
+    private var unknownRunLon = 0.0
     var inTrip: Boolean = false
         private set
 
@@ -73,6 +83,7 @@ class GeofenceTripDetector(
         this.inTrip = inTrip
         this.currentFence = if (inTrip) null else currentFence
         resetRun()
+        resetUnknownRun()
     }
 
     fun reset() = restore(false, null)
@@ -108,12 +119,13 @@ class GeofenceTripDetector(
         val parkedIn = currentFence?.let { cf -> fences.firstOrNull { it.id == cf.id } ?: cf }
         if (parkedIn == null) {
             // Unknown position (e.g. fresh install / after manual end outside): lock onto a fence once
-            // we are confidently inside one. Never start a trip from an unknown position.
+            // we are confidently inside one; sustained driving away from here starts a trip anyway.
             val inside = nearestContaining(fix, fences, 0.0)
             if (inside == null) {
                 resetRun()
-                return null
+                return unknownPositionStart(fix)
             }
+            resetUnknownRun()
             if (advanceRun(inside, fix)) {
                 currentFence = inside
                 resetRun()
@@ -149,7 +161,11 @@ class GeofenceTripDetector(
             resetRun()
             return null
         }
-        if (advanceRun(inside, fix)) {
+        // Debounced AND (slow, or dwelling long enough): a 60 km/h pass through a 75 m fence
+        // collects several inside fixes but never stops, so it no longer splits the trip.
+        if (advanceRun(inside, fix) &&
+            (fix.speedKmh < arrivalMaxSpeedKmh || fix.timeMs - runFirstTimeMs >= arrivalDwellMs)
+        ) {
             val end = runFirstTimeMs
             inTrip = false
             currentFence = inside
@@ -176,7 +192,40 @@ class GeofenceTripDetector(
         runFirstTimeMs = 0L
     }
 
+    private fun resetUnknownRun() {
+        unknownRunStartMs = Long.MIN_VALUE
+    }
+
+    /** C2: outside every fence with no known parking fence: >= 15 km/h for 60 s and >= 300 m away. */
+    private fun unknownPositionStart(fix: GeoFix): GeofenceEvent? {
+        if (fix.speedKmh < unknownStartSpeedKmh) {
+            resetUnknownRun()
+            return null
+        }
+        if (unknownRunStartMs == Long.MIN_VALUE) {
+            unknownRunStartMs = fix.timeMs
+            unknownRunLat = fix.lat
+            unknownRunLon = fix.lon
+            return null
+        }
+        val far = GeoMath.haversineM(unknownRunLat, unknownRunLon, fix.lat, fix.lon) >= unknownStartDistanceM
+        if (fix.timeMs - unknownRunStartMs >= unknownStartMs && far) {
+            val start = unknownRunStartMs
+            inTrip = true
+            currentFence = null
+            resetRun()
+            resetUnknownRun()
+            return GeofenceEvent.TripStarted(null, start)
+        }
+        return null
+    }
+
     companion object {
+        const val ARRIVAL_MAX_SPEED_KMH = 15.0
+        const val ARRIVAL_DWELL_MS = 20_000L
+        const val UNKNOWN_START_SPEED_KMH = 15.0
+        const val UNKNOWN_START_MS = 60_000L
+        const val UNKNOWN_START_DISTANCE_M = 300.0
         /** Fence whose centre is closest among those containing the fix (radius + extra). */
         fun nearestContaining(fix: GeoFix, fences: List<Fence>, extraM: Double): Fence? {
             var best: Fence? = null

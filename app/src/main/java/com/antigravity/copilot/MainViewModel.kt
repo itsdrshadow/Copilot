@@ -100,13 +100,8 @@ class MainViewModel @Inject constructor(
     val installedApps: StateFlow<List<AppDrawerItem>> = _installedApps.asStateFlow()
 
     init {
-        // Observe latest location point for real-time speed limit updates
-        viewModelScope.launch {
-            // Speed-limit engine needs every fix: read the unthrottled repository stream.
-            tripRepository.latestPoint.collect { point ->
-                speedLimitEngine.updateTelemetry(point)
-            }
-        }
+        // The speed-limit engine is fed by DrivingTrackingService on every fix (audit I1), so it
+        // keeps working when this screen is not alive; feeding it here too would double-count.
         loadInstalledApps()
     }
 

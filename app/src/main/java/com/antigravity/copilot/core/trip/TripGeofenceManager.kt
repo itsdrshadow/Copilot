@@ -116,7 +116,14 @@ class TripGeofenceManager private constructor(context: Context) : GeofenceProvid
         return TripDetectionEngine.computeGeodesicDistance(lat, lon, geofence.latitude, geofence.longitude).toFloat()
     }
 
-    override fun enabledGeofences(): List<TripGeofenceEntity> = _geofences.value.filter { it.isEnabled }
+    @Volatile private var enabledCache: Pair<List<TripGeofenceEntity>, List<TripGeofenceEntity>>? = null
+
+    /** Same list instance until the fences change (C5: called on every GPS fix). */
+    override fun enabledGeofences(): List<TripGeofenceEntity> {
+        val all = _geofences.value
+        enabledCache?.let { (src, enabled) -> if (src === all) return enabled }
+        return all.filter { it.isEnabled }.also { enabledCache = all to it }
+    }
 
     override fun findGeofenceContaining(lat: Double, lon: Double, onlyEnabled: Boolean): TripGeofenceEntity? {
         val candidateList = if (onlyEnabled) {

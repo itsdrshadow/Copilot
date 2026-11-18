@@ -36,6 +36,16 @@ interface TripDao {
     @Query("SELECT * FROM trip_points WHERE tripId = :tripId ORDER BY timestamp DESC LIMIT 1")
     suspend fun getLastPointForTrip(tripId: Long): TripPointEntity?
 
+    /** Next completed trip after [afterStartTime] (merge with next, audit D6). */
+    @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND startTime > :afterStartTime ORDER BY startTime ASC LIMIT 1")
+    suspend fun getNextCompletedTrip(afterStartTime: Long): TripEntity?
+
+    @Query("UPDATE trip_points SET tripId = :toTripId WHERE tripId = :fromTripId")
+    suspend fun reparentPoints(fromTripId: Long, toTripId: Long): Int
+
+    @Query("UPDATE vehicle_state_transitions SET tripId = :toTripId WHERE tripId = :fromTripId")
+    suspend fun reparentTransitions(fromTripId: Long, toTripId: Long): Int
+
     @Query("DELETE FROM trip_points WHERE tripId = :tripId")
     suspend fun deletePointsForTrip(tripId: Long)
 
@@ -65,6 +75,9 @@ interface TripDao {
 
     @Query("SELECT * FROM trip_points WHERE tripId = :tripId ORDER BY timestamp ASC LIMIT 1")
     suspend fun getFirstPointForTrip(tripId: Long): TripPointEntity?
+
+    @Query("SELECT COUNT(*) FROM trips WHERE status = 'COMPLETED' AND startLocationName = :start AND endLocationName = :end AND id != :excludeId")
+    suspend fun countCompletedTripsOnRoute(start: String, end: String, excludeId: Long): Int
 
     /** Completed trips that ended in (from, to] — retention works through them once (audit M3). */
     @Query("SELECT * FROM trips WHERE status = 'COMPLETED' AND endTime > :fromExclusive AND endTime <= :toInclusive ORDER BY endTime ASC")
@@ -287,7 +300,8 @@ interface RoadSegmentStatsDao {
         com.antigravity.copilot.core.road.RoadAnomalyEntity::class,
         com.antigravity.copilot.core.fuel.station.FuelStationEntity::class,
         com.antigravity.copilot.core.fuel.station.RefuelLogEntity::class,
-        com.antigravity.copilot.core.osm.OsmPlaceNoteEntity::class
+        com.antigravity.copilot.core.osm.OsmPlaceNoteEntity::class,
+        GeoLookupCacheEntity::class
     ],
     version = AppDatabase.DB_VERSION,
     // Schemas are exported to app/schemas for MigrationTestHelper tests (androidTest).
@@ -307,6 +321,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun fuelStationDao(): com.antigravity.copilot.core.fuel.station.FuelStationDao
     abstract fun refuelLogDao(): com.antigravity.copilot.core.fuel.station.RefuelLogDao
     abstract fun osmPlaceNoteDao(): com.antigravity.copilot.core.osm.OsmPlaceNoteDao
+    abstract fun geoLookupCacheDao(): GeoLookupCacheDao
 
     companion object {
         @Volatile
@@ -579,6 +594,12 @@ abstract class AppDatabase : RoomDatabase() {
                 addColumnIfMissing(db, "fuel_events", "gaugePoint", "REAL NOT NULL DEFAULT -1.0")
                 addColumnIfMissing(db, "fuel_ledger_events", "sourceEventId", "INTEGER")
                 addColumnIfMissing(db, "refuel_logs", "fuelEventId", "INTEGER")
+                addColumnIfMissing(db, "road_anomalies", "kind", "TEXT NOT NULL DEFAULT 'UNKNOWN'")
+                addColumnIfMissing(db, "trips", "tag", "TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `geo_lookup_cache` (`cellKey` TEXT NOT NULL, `value` TEXT NOT NULL, " +
+                        "`updatedAt` INTEGER NOT NULL, PRIMARY KEY(`cellKey`))"
+                )
             }
         }
 

@@ -57,7 +57,9 @@ data class TripSummary(
     val bestMileageKmpl: Double = 0.0,
     val startLocationName: String = "",
     val endLocationName: String = "",
-    val status: TripStatus = TripStatus.IDLE
+    val status: TripStatus = TripStatus.IDLE,
+    /** Speed-band tag from the engine (City / Highway / Mixed), audit B8. */
+    val speedTag: String = ""
 ) {
     val distanceKm: Double get() = distanceMeters / 1000.0
     val drivingMinutes: Long get() = drivingDurationMs / 60000

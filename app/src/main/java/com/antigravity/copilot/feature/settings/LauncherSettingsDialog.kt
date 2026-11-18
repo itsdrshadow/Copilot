@@ -642,6 +642,14 @@ private fun GeneralSettingsContent(
     // TRIP & FUEL-STOP DETECTION
     SettingsCard(title = "Trips and petrol pumps", icon = Icons.Default.Place) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            SettingsToggleRow(
+                title = "Online place and pump lookups",
+                description = if (state.onlineLookups) "Uses OpenStreetMap services when online (cached)"
+                else "Offline only: no location is sent anywhere",
+                checked = state.onlineLookups,
+                onToggle = { AppSettingsManager.updateOnlineLookups(ctx, !state.onlineLookups) }
+            )
             SettingsToggleRow(
                 title = "Ask to add fuel at a petrol pump",
                 description = if (state.stationStopWatchdog) "Asks after you stop at a petrol pump"
@@ -1109,7 +1117,21 @@ private fun AboutSettingsContent() {
     SettingsCard(title = "Copilot", icon = Icons.Default.Info) {
         val appVersionName = com.antigravity.copilot.BuildConfig.VERSION_NAME
         val appVersionCode = com.antigravity.copilot.BuildConfig.VERSION_CODE
+        // Diagnostics bundle for bug reports (audit O3): logs + settings, no location history.
+        val diagContext = androidx.compose.ui.platform.LocalContext.current
+        val diagScope = rememberCoroutineScope()
+        val diagLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/zip")
+        ) { uri ->
+            if (uri != null) diagScope.launch {
+                val ok = com.antigravity.copilot.core.recovery.DiagnosticsExporter.export(diagContext, uri)
+                Toast.makeText(diagContext, if (ok) "Diagnostics saved" else "Could not save diagnostics", Toast.LENGTH_SHORT).show()
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            TextButton(onClick = { diagLauncher.launch(com.antigravity.copilot.core.recovery.DiagnosticsExporter.fileName()) }) {
+                Text("Export diagnostics for a bug report", style = CockpitTheme.typography.labelLarge, color = CockpitTheme.colors.accentText)
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

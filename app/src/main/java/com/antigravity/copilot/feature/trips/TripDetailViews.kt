@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -61,6 +62,27 @@ internal fun TripDetailContainer(
     modifier: Modifier = Modifier
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showRename by remember { mutableStateOf(false) }
+    var showMergeConfirm by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val actionScope = rememberCoroutineScope()
+    // GPX export through the system file picker (audit J3).
+    val gpxLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/gpx+xml")
+    ) { uri ->
+        val t = trip
+        if (uri != null && t != null) {
+            val text = com.antigravity.copilot.core.trip.GpxWriter.write(t, points)
+            actionScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val ok = runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } != null
+                }.getOrDefault(false)
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, if (ok) "GPX saved" else "Could not save GPX", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -101,8 +123,41 @@ internal fun TripDetailContainer(
                     trip = trip,
                     selectedTab = selectedTab,
                     onSelectTab = onSelectTab,
-                    onDelete = if (onDeleteTrip != null) ({ showDeleteConfirm = true }) else null
+                    onDelete = if (onDeleteTrip != null) ({ showDeleteConfirm = true }) else null,
+                    onRename = { showRename = true },
+                    onMergeNext = { showMergeConfirm = true },
+                    onExportGpx = if (points.isNotEmpty()) ({ gpxLauncher.launch(com.antigravity.copilot.core.trip.GpxWriter.fileName(trip)) }) else null
                 )
+
+                if (showRename) {
+                    TripRenameDialog(
+                        start = trip.startLocationName,
+                        end = trip.endLocationName,
+                        onDismiss = { showRename = false },
+                        onSave = { s, e ->
+                            showRename = false
+                            com.antigravity.copilot.core.trip.TripRepository.getInstance(context).renameTrip(trip.id, s, e)
+                        }
+                    )
+                }
+
+                if (showMergeConfirm) {
+                    com.antigravity.copilot.core.designsystem.components.RaahiConfirmDialog(
+                        title = "Merge with the next trip?",
+                        message = "The next trip's route and totals are added to this one, and it ends where the next trip ended.",
+                        confirmText = "Merge",
+                        destructive = false,
+                        icon = Icons.Default.Route,
+                        onConfirm = {
+                            showMergeConfirm = false
+                            actionScope.launch {
+                                val ok = com.antigravity.copilot.core.trip.TripRepository.getInstance(context).mergeWithNext(trip.id)
+                                android.widget.Toast.makeText(context, if (ok) "Trips merged" else "No later trip to merge", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onDismiss = { showMergeConfirm = false }
+                    )
+                }
 
                 if (showDeleteConfirm) {
                     com.antigravity.copilot.core.designsystem.components.RaahiConfirmDialog(
@@ -181,7 +236,10 @@ private fun TripDetailHeader(
     trip: TripEntity,
     selectedTab: TripDetailTab,
     onSelectTab: (TripDetailTab) -> Unit,
-    onDelete: (() -> Unit)?
+    onDelete: (() -> Unit)?,
+    onRename: (() -> Unit)? = null,
+    onMergeNext: (() -> Unit)? = null,
+    onExportGpx: (() -> Unit)? = null
 ) {
     val c = CockpitTheme.colors
     val title = tripTitle(trip, LocalTripViaNames.current[trip.id])
@@ -246,6 +304,22 @@ private fun TripDetailHeader(
             )
         }
 
+        // Trip edits (audit D6) and GPX export (audit J3).
+        onRename?.let {
+            IconButton(onClick = it, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.Edit, contentDescription = "Rename trip", tint = c.textSecondary, modifier = Modifier.size(22.dp))
+            }
+        }
+        onMergeNext?.let {
+            IconButton(onClick = it, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.Link, contentDescription = "Merge with next trip", tint = c.textSecondary, modifier = Modifier.size(22.dp))
+            }
+        }
+        onExportGpx?.let {
+            IconButton(onClick = it, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Default.Download, contentDescription = "Export GPX", tint = c.textSecondary, modifier = Modifier.size(22.dp))
+            }
+        }
         if (onDelete != null) {
             IconButton(
                 onClick = onDelete,
@@ -481,4 +555,24 @@ internal fun TripMapReplayView(
       }
       }
     }
+}
+
+/** Edit a trip's start / end names (audit D6). */
+@Composable
+private fun TripRenameDialog(start: String, end: String, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
+    var s by remember { mutableStateOf(if (com.antigravity.copilot.core.trip.TripNaming.isPlaceholder(start)) "" else start) }
+    var e by remember { mutableStateOf(if (com.antigravity.copilot.core.trip.TripNaming.isPlaceholder(end)) "" else end) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CockpitTheme.colors.cardElevated,
+        title = { Text("Rename trip", style = CockpitTheme.typography.headlineMedium, color = CockpitTheme.colors.textPrimary) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                androidx.compose.material3.OutlinedTextField(value = s, onValueChange = { s = it }, singleLine = true, label = { Text("From") })
+                androidx.compose.material3.OutlinedTextField(value = e, onValueChange = { e = it }, singleLine = true, label = { Text("To") })
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { onSave(s, e) }) { Text("Save") } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }

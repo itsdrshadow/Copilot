@@ -89,8 +89,8 @@ class GeofenceTripDetectorTest {
             m += 50.0
             t += 3000
         }
-        // Park at the office centre.
-        repeat(3) { (d.onFix(north(office, 0.0, t), fences) as? GeofenceEvent.TripEnded)?.let { ended = it }; t += 1000 }
+        // Park at the office centre (stopped: arrival needs a slow fix or a dwell, audit C1).
+        repeat(3) { (d.onFix(north(office, 0.0, t).copy(speedKmh = 0.0), fences) as? GeofenceEvent.TripEnded)?.let { ended = it }; t += 1000 }
         assertNotNull(started)
         assertEquals(home.id, started!!.fence?.id)
         assertNotNull(ended)
@@ -112,7 +112,7 @@ class GeofenceTripDetectorTest {
             m += 50.0
             t += 3000
         }
-        repeat(3) { d.onFix(north(home, 0.0, t), fences)?.let { events += it }; t += 1000 }
+        repeat(3) { d.onFix(north(home, 0.0, t).copy(speedKmh = 0.0), fences)?.let { events += it }; t += 1000 }
         assertEquals(2, events.size)
         assertEquals(office.id, (events[0] as GeofenceEvent.TripStarted).fence?.id)
         assertEquals(home.id, (events[1] as GeofenceEvent.TripEnded).fence?.id)
@@ -124,7 +124,7 @@ class GeofenceTripDetectorTest {
         var t = 10_000L
         repeat(3) { d.onFix(north(home, 300.0, t), fences); t += 1000 }
         assertTrue(d.inTrip)
-        val evs = (0 until 3).mapNotNull { d.onFix(north(home, 10.0, t + it * 1000), fences) }
+        val evs = (0 until 3).mapNotNull { d.onFix(north(home, 10.0, t + it * 1000).copy(speedKmh = 0.0), fences) }
         assertEquals(1, evs.size)
         assertEquals(home.id, (evs[0] as GeofenceEvent.TripEnded).fence?.id)
     }

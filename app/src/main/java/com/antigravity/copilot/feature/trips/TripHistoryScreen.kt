@@ -825,7 +825,9 @@ internal fun TripCardItem(
                 ) {
                     Icon(Icons.Default.Schedule, contentDescription = null, tint = CockpitTheme.colors.textSecondary, modifier = Modifier.size(18.dp))
                     Text(
-                        text = "$durationText  ·  ${NumberFormatUtils.formatSpeed(trip.avgSpeedKmh)} km/h avg",
+                        // Auto tag (City / Highway / Mixed / Commute), audit B8.
+                        text = "$durationText  ·  ${NumberFormatUtils.formatSpeed(trip.avgSpeedKmh)} km/h avg" +
+                            (if (trip.tag.isNotBlank()) "  ·  ${trip.tag}" else ""),
                         style = CockpitTheme.typography.bodyMedium,
                         color = CockpitTheme.colors.textSecondary,
                         maxLines = 1,

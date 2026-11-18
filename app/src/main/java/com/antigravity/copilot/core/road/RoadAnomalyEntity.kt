@@ -32,7 +32,9 @@ data class RoadAnomalyEntity(
     val confidenceScore: Int = RoadAnomalyConfig.INITIAL_CONFIDENCE,
     val lastUpdated: Long = System.currentTimeMillis(),
     /** Travel heading when first recorded (0..360), or -1 if unknown. Gates smooth-pass decay. */
-    val headingDeg: Float = -1f
+    val headingDeg: Float = -1f,
+    /** [AnomalyKind] name: breaker (axle pair) vs pothole, from the hit pattern (audit K2). */
+    @androidx.room.ColumnInfo(defaultValue = "UNKNOWN") val kind: String = AnomalyKind.UNKNOWN.name
 ) {
     val severityEnum: AnomalySeverity
         get() = if (severity == AnomalySeverity.RED.name) AnomalySeverity.RED else AnomalySeverity.YELLOW

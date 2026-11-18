@@ -302,6 +302,8 @@ class AheadAlertTracker {
         var bestD = Double.MAX_VALUE
         for (a in nearby) {
             if (recentlyAlerted.containsKey(a.id)) continue
+            // One jolt is not enough (audit K1): confirmed on another pass, or severe.
+            if (!RoadAnomalyPattern.isAlertWorthy(a.confidenceScore, a.severityEnum)) continue
             val d = RoadAnomalyMath.distanceM(lat, lon, a.latitude, a.longitude)
             if (d < RoadAnomalyConfig.ALERT_MIN_M || d > RoadAnomalyConfig.ALERT_MAX_M || d >= bestD) continue
             val rel = RoadAnomalyMath.angleDiff(headingDeg, RoadAnomalyMath.bearingDeg(lat, lon, a.latitude, a.longitude))
@@ -316,4 +318,39 @@ class AheadAlertTracker {
     }
 
     fun reset() { targetId = null; minDistance = Double.MAX_VALUE }
+}
+
+/** Speed breaker vs pothole (audit K2). */
+enum class AnomalyKind { UNKNOWN, SPEED_BREAKER, POTHOLE }
+
+/**
+ * Pattern rules for road anomalies (audit K1 / K2), pure and unit-tested.
+ * - A speed breaker is felt twice per pass (front then rear axle) with similar peaks a fraction
+ *   of a second apart; a pothole is a single dominant spike (or two very different ones).
+ * - One jolt is not enough to warn other passes: an alert needs a re-confirmation on a separate
+ *   pass (confidence above the initial value) or a severe (RED) hit.
+ * - Repeat hits merge into an anomaly only when travelling in a compatible direction, so the
+ *   opposite carriageway keeps its own record.
+ */
+object RoadAnomalyPattern {
+    const val AXLE_PAIR_MIN_MS = 80L
+    const val AXLE_PAIR_MAX_MS = 900L
+    const val AXLE_PAIR_PEAK_RATIO = 0.6f
+    const val SEPARATE_PASS_MS = RoadAnomalyConfig.PASS_COOLDOWN_MS
+
+    fun classifyPair(firstPeak: Float, secondPeak: Float, gapMs: Long): AnomalyKind {
+        if (gapMs !in AXLE_PAIR_MIN_MS..AXLE_PAIR_MAX_MS || firstPeak <= 0f || secondPeak <= 0f) return AnomalyKind.POTHOLE
+        val ratio = minOf(firstPeak, secondPeak) / maxOf(firstPeak, secondPeak)
+        return if (ratio >= AXLE_PAIR_PEAK_RATIO) AnomalyKind.SPEED_BREAKER else AnomalyKind.POTHOLE
+    }
+
+    /** True when a new hit belongs to a different pass than the previous hit on the same anomaly. */
+    fun isSeparatePass(previousHitElapsedMs: Long?, hitElapsedMs: Long): Boolean =
+        previousHitElapsedMs == null || hitElapsedMs - previousHitElapsedMs >= SEPARATE_PASS_MS
+
+    fun isAlertWorthy(confidence: Int, severity: AnomalySeverity): Boolean =
+        severity == AnomalySeverity.RED || confidence > RoadAnomalyConfig.INITIAL_CONFIDENCE
+
+    fun canMerge(anomalyHeadingDeg: Float, hitHeadingDeg: Float): Boolean =
+        hitHeadingDeg < 0f || RoadAnomalyMath.headingCompatible(anomalyHeadingDeg, hitHeadingDeg.toDouble())
 }

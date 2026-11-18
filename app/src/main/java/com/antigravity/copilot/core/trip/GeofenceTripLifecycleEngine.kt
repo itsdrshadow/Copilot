@@ -123,6 +123,18 @@ class GeofenceTripLifecycleEngine(
 
     private fun TripGeofenceEntity.toFence() = Fence(id, name, latitude, longitude, radiusMeters.toDouble())
 
+    /** C5: fences change rarely; reuse the mapped list until the provider hands out a new one. */
+    private var fenceCacheSource: List<TripGeofenceEntity>? = null
+    private var fenceCache: List<Fence> = emptyList()
+
+    private fun fencesFor(enabled: List<TripGeofenceEntity>): List<Fence> {
+        if (enabled !== fenceCacheSource) {
+            fenceCacheSource = enabled
+            fenceCache = enabled.map { it.toFence() }
+        }
+        return fenceCache
+    }
+
     private fun entityFor(fence: Fence?, all: List<TripGeofenceEntity>): TripGeofenceEntity? =
         fence?.let { f -> all.firstOrNull { it.id == f.id } }
 
@@ -149,7 +161,7 @@ class GeofenceTripLifecycleEngine(
         }
 
         val enabled = geofenceManager.enabledGeofences()
-        val fences = enabled.map { it.toFence() }
+        val fences = fencesFor(enabled)
         val wasInTrip = detector.inTrip
 
         if (wasInTrip) {
@@ -179,7 +191,14 @@ class GeofenceTripLifecycleEngine(
                     accuracy = accuracy,
                     reason = "${Config.GEOFENCE_DEBOUNCE_FIXES} consecutive fixes beyond radius+${Config.GEOFENCE_EXIT_HYSTERESIS_M.toInt()} m"
                 )
-                if (origin != null) confirmDeparture(event.timeMs, origin)
+                if (origin != null) {
+                    confirmDeparture(event.timeMs, origin.name)
+                } else if (event.fence == null && !event.manual) {
+                    // C2: started from an unknown position (no parking fence known). The origin is
+                    // the first buffered point; its coordinates stand in until it is reverse-geocoded.
+                    val first = preTripBuffer.firstOrNull() ?: currentPoint
+                    confirmDeparture(event.timeMs, TripNaming.coordinateName(first.latitude, first.longitude))
+                }
                 return
             }
             is GeofenceEvent.TripEnded -> {
@@ -317,7 +336,7 @@ class GeofenceTripLifecycleEngine(
         }
     }
 
-    private fun confirmDeparture(now: Long, originGf: TripGeofenceEntity) {
+    private fun confirmDeparture(now: Long, originName: String) {
         val departurePoints = mutableListOf<TripPoint>()
 
         val anchorTime = departureAnchorPoint?.timestamp ?: preTripBuffer.firstOrNull()?.timestamp ?: (now - 30000L)
@@ -356,19 +375,22 @@ class GeofenceTripLifecycleEngine(
             if (it.tripId == effectiveStartTime) it else it.copy(tripId = effectiveStartTime)
         }
 
-        // Calculate total distance traveled inside the geofence from departure origin to boundary
+        // Distance from the departure origin to the boundary, through the same odometer filter as
+        // the trip itself (accuracy gate, stationary jitter, teleports), so parked GPS wander inside
+        // the fence is not counted (C4).
+        val departureOdometer = com.antigravity.copilot.core.logic.OdometerAccumulator()
         var departureDistanceMeters = 0.0
-        for (i in 0 until (finalDeparturePoints.size - 1)) {
-            val p1 = finalDeparturePoints[i]
-            val p2 = finalDeparturePoints[i + 1]
-            departureDistanceMeters += TripDetectionEngine.computeGeodesicDistance(p1.latitude, p1.longitude, p2.latitude, p2.longitude)
+        for (p in finalDeparturePoints.sortedBy { it.timestamp }) {
+            departureDistanceMeters += departureOdometer.onFix(
+                GeoFix(p.latitude, p.longitude, p.accuracy.toDouble(), p.timestamp, p.speedKmh.toDouble())
+            )
         }
 
         transitionTo(TripLifecycleState.TRIP_ACTIVE)
 
         onTripStartConfirmed(
             effectiveStartTime,
-            originGf.name,
+            originName,
             finalDeparturePoints,
             departureDistanceMeters
         )

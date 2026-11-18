@@ -398,6 +398,9 @@ class GeofenceTripLifecycleTest {
             onTripDiscarded = {}
         )
         tripEngine.isGeofenceControlled = true
+        // This test checks the lifecycle wiring; the synthetic jump to the office carries no
+        // odometer distance, so the B5 minimum-trip-distance filter is disabled here.
+        tripEngine.minTripDistanceMeters = 0.0
 
         val lifecycleEngine = GeofenceTripLifecycleEngine(
             geofenceManager = provider,

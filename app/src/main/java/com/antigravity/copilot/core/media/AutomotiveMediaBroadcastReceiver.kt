@@ -136,7 +136,7 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
 
             // 6. Extract Duration and Position with automatic seconds-to-millis scaling
             val durationMs = extractDuration(intent)
-            val positionMs = extractPosition(intent)
+            val positionMs = extractPosition(intent, durationSecondsUnit(intent))
 
             val packageName = intent.getStringExtra("package") ?: intent.component?.packageName
 
@@ -310,8 +310,9 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
             val mediaMetadata = bundle.getParcelable<MediaMetadata>("android.bluetooth.avrcp-controller.profile.extra.METADATA")
                 ?: bundle.getParcelable<MediaMetadata>("android.media.MediaMetadata")
             if (mediaMetadata != null) {
+                // MediaMetadata durations are milliseconds by contract: never rescale them.
                 val d = mediaMetadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
-                if (d > 0L) return normalizeToMillis(d)
+                if (d > 0L) return d
             }
         } catch (_: Exception) {}
 
@@ -325,13 +326,32 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
                     is String -> raw.toLongOrNull() ?: -1L
                     else -> -1L
                 }
-                if (num > 0L) return normalizeToMillis(num)
+                if (num > 0L) return MediaTimeUnits.durationToMillis(num, key)
             }
         }
         return null
     }
 
-    fun extractPosition(intent: Intent): Long? {
+    /**
+     * Unit of the duration in this broadcast: true = seconds, false = milliseconds, null = no
+     * duration. The position in the same broadcast uses the same unit (audit Q1).
+     */
+    private fun durationSecondsUnit(intent: Intent): Boolean? {
+        val bundle = intent.extras ?: return null
+        val keys = listOf("duration", "total_time", "totaltime", "max_time", "duration_ms", "time", "length")
+        for (key in keys) {
+            if (!bundle.containsKey(key)) continue
+            val num = when (val raw = bundle.get(key)) {
+                is Number -> raw.toLong()
+                is String -> raw.toLongOrNull() ?: -1L
+                else -> -1L
+            }
+            if (num > 0L) return MediaTimeUnits.isSecondsDuration(num, key)
+        }
+        return if (extractDuration(intent) != null) false else null
+    }
+
+    fun extractPosition(intent: Intent, durationInSeconds: Boolean? = null): Long? {
         val bundle = intent.extras ?: return null
 
         val keys = listOf("position", "current_time", "currenttime", "cur_time", "position_ms", "progress")
@@ -343,7 +363,7 @@ class AutomotiveMediaBroadcastReceiver : BroadcastReceiver() {
                     is String -> raw.toLongOrNull() ?: -1L
                     else -> -1L
                 }
-                if (num >= 0L) return normalizeToMillis(num)
+                if (num >= 0L) return MediaTimeUnits.positionToMillis(num, key, durationInSeconds)
             }
         }
         return null

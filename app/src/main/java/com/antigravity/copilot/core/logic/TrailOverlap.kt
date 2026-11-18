@@ -179,3 +179,57 @@ object TripPointRetention {
         return keep.toList()
     }
 }
+
+/**
+ * Incremental trail rendering (audit D5): the trail is append-only, so a run with the same
+ * bounds and pass count as last time has the same simplification. Only new / changed runs (the
+ * growing tail, or runs whose pass count changed after a revisit) are simplified again.
+ */
+class TrailRunCache(
+    private val gridM: Double = Config.OVERLAP_GRID_M,
+    private val toleranceM: Double = Config.TRAIL_SIMPLIFY_TOLERANCE_M,
+    private val maxPoints: Int = Config.TRAIL_MAX_RENDER_POINTS
+) {
+    private data class Key(val start: Int, val end: Int, val passes: Int)
+    private var cache = HashMap<Key, List<LatLon>>()
+    private var first: LatLon? = null
+    private var lastSize = 0
+    var simplifiedRuns = 0
+        private set
+
+    @Synchronized
+    fun runs(points: List<LatLon>): List<TrailRun> {
+        if (points.size < 2) { reset(); return emptyList() }
+        // Very long trails are decimated (indices shift): no cache, same output as before.
+        if (points.size > maxPoints * 4) { reset(); return TrailOverlap.runs(points, gridM, toleranceM, maxPoints) }
+        if (points.first() != first || points.size < lastSize) reset()
+        first = points.first()
+        lastSize = points.size
+        val passes = TrailOverlap.passCounts(points, gridM)
+        val next = HashMap<Key, List<LatLon>>()
+        val result = ArrayList<TrailRun>()
+        var start = 0
+        for (i in 1..points.size) {
+            if (i == points.size || passes[i] != passes[start]) {
+                val end = minOf(i, points.lastIndex)
+                if (end - start >= 1) {
+                    val key = Key(start, end, passes[start])
+                    val kept = cache[key] ?: run {
+                        simplifiedRuns++
+                        val slice = points.subList(start, end + 1)
+                        TrailOverlap.simplify(slice, toleranceM).map { slice[it] }
+                    }
+                    next[key] = kept
+                    result += TrailRun(kept, passes[start])
+                }
+                start = i
+            }
+        }
+        cache = next
+        return result
+    }
+
+    fun reset() {
+        cache = HashMap(); first = null; lastSize = 0
+    }
+}

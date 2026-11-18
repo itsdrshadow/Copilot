@@ -85,6 +85,11 @@ class SpeedLimitEngine private constructor() {
     private var lastOnlineLon = 0.0
     private var lastLat = 0.0
     private var lastLon = 0.0
+    private var lastBearing = Double.NaN
+
+    /** elapsedRealtime of the last road match from the rendered map (null-safe: 0 = never). */
+    @Volatile var lastUiMapRoadElapsedMs: Long = 0L
+        private set
 
     // Driving-pattern fallback
     private var highSpeedSamples = 0
@@ -102,6 +107,7 @@ class SpeedLimitEngine private constructor() {
         if (context != null && appContext == null) appContext = context.applicationContext
         if (point == null) return
         lastSpeedKmh = point.speedKmh
+        if (point.speedKmh >= MOVING_ON_KMH) lastBearing = point.bearing.toDouble()
         isMoving = if (isMoving) point.speedKmh >= MOVING_OFF_KMH else point.speedKmh >= MOVING_ON_KMH
         if (point.latitude != 0.0 || point.longitude != 0.0) {
             lastLat = point.latitude
@@ -117,9 +123,13 @@ class SpeedLimitEngine private constructor() {
         publish(newReading = true)
     }
 
-    /** Road under the vehicle from the offline map (null = no road matched this evaluation). */
+    /**
+     * Road under the vehicle (null = no road matched this evaluation). [fromTiles] = the service's
+     * direct PMTiles lookup (J1), used while the rendered map is not providing matches.
+     */
     @Synchronized
-    fun onMapRoad(observation: MapRoadObservation?) {
+    fun onMapRoad(observation: MapRoadObservation?, fromTiles: Boolean = false) {
+        if (!fromTiles) lastUiMapRoadElapsedMs = SystemClock.elapsedRealtime()
         if (observation != null) {
             mapRoad = observation
             mapRoadLat = lastLat
@@ -194,14 +204,17 @@ class SpeedLimitEngine private constructor() {
         val now = SystemClock.elapsedRealtime()
         if (onlineJob?.isActive == true || now - lastOnlineQueryMs < ONLINE_MIN_INTERVAL_MS) return
         if (lastOnlineQueryMs != 0L && distanceM(lastOnlineLat, lastOnlineLon, lastLat, lastLon) < ONLINE_MIN_DISTANCE_M) return
-        if (!isNetworkConnected()) return
+        val ctx = appContext ?: return
+        // Online lookups switch + shared rate limiter (audit R1).
+        if (!NetworkLookupGate.isAllowed(ctx)) return
         lastOnlineQueryMs = now
         lastOnlineLat = lastLat
         lastOnlineLon = lastLon
         val lat = lastLat
         val lon = lastLon
+        val heading = lastBearing
         onlineJob = scope.launch {
-            val limit = try { queryOverpassMaxspeed(lat, lon, cls) } catch (e: Exception) {
+            val limit = try { queryOverpassMaxspeed(lat, lon, cls, heading) } catch (e: Exception) {
                 Log.d(TAG, "Overpass unavailable: ${e.message}")
                 return@launch
             }
@@ -212,28 +225,29 @@ class SpeedLimitEngine private constructor() {
         }
     }
 
-    /** Explicit maxspeed of a way within 25 m whose highway tag matches the map's road class. */
-    private fun queryOverpassMaxspeed(lat: Double, lon: Double, omtClass: String): Int? {
-        val query = "[out:json][timeout:4];way(around:25,$lat,$lon)[highway][maxspeed];out tags;"
-        val url = URL("https://overpass-api.de/api/interpreter?data=" + URLEncoder.encode(query, "UTF-8"))
-        val conn = (url.openConnection() as HttpURLConnection).apply {
-            connectTimeout = 4_000
-            readTimeout = 4_000
-            setRequestProperty("User-Agent", "Copilot-Cockpit/1.0")
+    /**
+     * Explicit maxspeed of the way the car is on (audit I2): ways within 25 m of the road class,
+     * with geometry, filtered by bearing against the heading and ranked by distance, so a parallel
+     * service road or flyover no longer donates its limit.
+     */
+    private suspend fun queryOverpassMaxspeed(lat: Double, lon: Double, omtClass: String, headingDeg: Double): Int? {
+        val query = "[out:json][timeout:4];way(around:25,$lat,$lon)[highway][maxspeed];out tags geom;"
+        val body = NetworkLookupGate.httpGet(
+            "https://overpass-api.de/api/interpreter?data=" + URLEncoder.encode(query, "UTF-8"),
+            "Copilot-Cockpit/1.0"
+        ) ?: return null
+        val elements = JSONObject(body).optJSONArray("elements") ?: return null
+        val ways = ArrayList<SpeedLimitRules.WayCandidate>()
+        for (i in 0 until elements.length()) {
+            val el = elements.getJSONObject(i)
+            val tags = el.optJSONObject("tags") ?: continue
+            if (omtClassOf(tags.optString("highway")) != omtClass) continue
+            val limit = SpeedLimitRules.parseMaxspeed(tags.optString("maxspeed")) ?: continue
+            val geom = el.optJSONArray("geometry") ?: continue
+            val pts = (0 until geom.length()).map { geom.getJSONObject(it).let { p -> p.optDouble("lat") to p.optDouble("lon") } }
+            ways += SpeedLimitRules.WayCandidate(limit, pts, tags.optString("oneway") == "yes")
         }
-        try {
-            if (conn.responseCode != 200) return null
-            val body = conn.inputStream.bufferedReader().use { it.readText() }
-            val elements = JSONObject(body).optJSONArray("elements") ?: return null
-            for (i in 0 until elements.length()) {
-                val tags = elements.getJSONObject(i).optJSONObject("tags") ?: continue
-                if (omtClassOf(tags.optString("highway")) != omtClass) continue
-                SpeedLimitRules.parseMaxspeed(tags.optString("maxspeed"))?.let { return it }
-            }
-            return null
-        } finally {
-            conn.disconnect()
-        }
+        return SpeedLimitRules.bestWay(lat, lon, headingDeg, ways)?.limitKmh
     }
 
     private fun omtClassOf(highway: String): String? = when (highway.removeSuffix("_link")) {

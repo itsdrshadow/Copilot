@@ -6,11 +6,11 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
+import com.antigravity.copilot.core.database.AppDatabase
+import com.antigravity.copilot.core.database.GeoLookupCacheEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import java.net.URLEncoder
 import java.util.Locale
 
@@ -20,8 +20,22 @@ data class FuelStationDetectionResult(
     val brand: String? = null
 )
 
+/**
+ * Place / pump lookups. Network calls go through [NetworkLookupGate] (setting, rate limit,
+ * disconnect) and results are cached per grid cell in Room (audit R1 / H4).
+ */
 object LocationNameResolver {
     private const val TAG = "LocationNameResolver"
+    private const val UA = "Copilot-Cockpit/1.0"
+
+    /** Same 40–60 m strictness as the offline pump check (audit H3). */
+    const val FUEL_RADIUS_M = 50
+    const val FUEL_MAX_MATCH_M = 60.0
+    private const val FUEL_CELL_M = 50.0
+    private const val PLACE_CELL_M = 200.0
+    private const val POSITIVE_TTL_MS = 30L * 24 * 60 * 60 * 1000
+    private const val PLACE_TTL_MS = 180L * 24 * 60 * 60 * 1000
+    private const val NEGATIVE_TTL_MS = 24L * 60 * 60 * 1000
 
     fun isNetworkConnected(context: Context): Boolean {
         return try {
@@ -39,135 +53,88 @@ object LocationNameResolver {
         }
     }
 
-    /**
-     * Specifically detects if coordinates are at or near a Fuel Station (Petrol Pump / CNG / Diesel).
-     * Interrogates Overpass API (amenity=fuel within 180m), Nominatim, and Android Geocoder.
-     */
-    suspend fun detectNearbyFuelStation(context: Context, lat: Double, lon: Double): FuelStationDetectionResult {
-        if (lat == 0.0 && lon == 0.0) return FuelStationDetectionResult(false, "")
+    private suspend fun cacheGet(context: Context, key: String, ttlMs: Long): String? = try {
+        AppDatabase.getInstance(context).geoLookupCacheDao().get(key)
+            ?.takeIf { GeoCell.isFresh(it.updatedAt, System.currentTimeMillis(), ttlMs) }?.value
+    } catch (_: Exception) { null }
 
-        return withContext(Dispatchers.IO) {
-            val hasNetwork = isNetworkConnected(context)
+    private suspend fun cachePut(context: Context, key: String, value: String) {
+        try {
+            AppDatabase.getInstance(context).geoLookupCacheDao().put(GeoLookupCacheEntity(key, value, System.currentTimeMillis()))
+        } catch (_: Exception) {}
+    }
 
-            // 1. Check Overpass API for explicit amenity=fuel within 180 meters (only if online)
-            if (hasNetwork) {
-                try {
-                    val query = "[out:json][timeout:2];(node(around:180,$lat,$lon)[amenity=fuel];way(around:180,$lat,$lon)[amenity=fuel];node(around:180,$lat,$lon)[\"fuel:cng\"=yes];);out center tags 1;"
-                    val encodedQuery = URLEncoder.encode(query, "UTF-8")
-                    val overpassUrl = URL("https://overpass-api.de/api/interpreter?data=$encodedQuery")
-                    val conn = (overpassUrl.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 1200
-                        readTimeout = 1200
-                        setRequestProperty("User-Agent", "Copilot-Cockpit/1.0 (Fuel Station Check)")
-                    }
-                    if (conn.responseCode == 200) {
-                        val body = conn.inputStream.bufferedReader().use { it.readText() }
-                        val root = JSONObject(body)
-                        val elements = root.optJSONArray("elements")
-                        if (elements != null && elements.length() > 0) {
-                            val elem = elements.getJSONObject(0)
-                            val tags = elem.optJSONObject("tags")
-                            val name = tags?.optString("name", "") ?: ""
-                            val brand = tags?.optString("brand", "") ?: tags?.optString("operator", "") ?: ""
-                            val fuelTitle = when {
-                                name.isNotBlank() -> name
-                                brand.isNotBlank() -> "$brand Fuel Plaza"
-                                else -> "Petrol Pump / Fuel Station"
-                            }
-                            return@withContext FuelStationDetectionResult(
-                                isFuelStation = true,
-                                stationName = fuelTitle,
-                                brand = brand.ifBlank { null }
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Overpass fuel station check: ${e.message}")
-                }
-
-                // 2. Check OpenStreetMap Nominatim reverse geocode (zoom 18)
-                try {
-                    val url = URL("https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1")
-                    val conn = (url.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 1200
-                        readTimeout = 1200
-                        setRequestProperty("User-Agent", "Copilot-Cockpit/1.0 (Fuel Station Check)")
-                    }
-                    if (conn.responseCode == 200) {
-                        val resp = conn.inputStream.bufferedReader().use { it.readText() }
-                        val json = JSONObject(resp)
-                        val category = json.optString("category", "")
-                        val type = json.optString("type", "")
-                        val name = json.optString("name", "")
-                        val displayName = json.optString("display_name", "")
-                        val address = json.optJSONObject("address")
-                        val amenity = address?.optString("amenity", "") ?: ""
-                        val fuel = address?.optString("fuel", "") ?: ""
-
-                        val isFuelAmenity = amenity.equals("fuel", ignoreCase = true) ||
-                                           fuel.isNotBlank() ||
-                                           type.equals("fuel", ignoreCase = true) ||
-                                           (category.equals("amenity", ignoreCase = true) && type.contains("fuel", ignoreCase = true))
-
-                        val hasFuelKeywords = listOf(
-                            "petrol", "fuel", "diesel", "gas station", "filling station",
-                            "indianoil", "iocl", "bpcl", "hpcl", "nayara", "reliance petroleum", "cng"
-                        ).any {
-                            displayName.contains(it, ignoreCase = true) || name.contains(it, ignoreCase = true)
-                        }
-
-                        if (isFuelAmenity || hasFuelKeywords) {
-                            val stationTitle = when {
-                                name.isNotBlank() -> name
-                                fuel.isNotBlank() -> "$fuel Station"
-                                amenity.isNotBlank() -> "Fuel Station"
-                                else -> "Petrol Pump"
-                            }
-                            return@withContext FuelStationDetectionResult(
-                                isFuelStation = true,
-                                stationName = stationTitle
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Nominatim fuel check error: ${e.message}")
-                }
-            }
-
-            // 3. Android Geocoder fallback
-            try {
-                if (Geocoder.isPresent()) {
-                    val geocoder = Geocoder(context, Locale.getDefault())
-                    @Suppress("DEPRECATION")
-                    val addresses = geocoder.getFromLocation(lat, lon, 2)
-                    if (!addresses.isNullOrEmpty()) {
-                        for (addr in addresses) {
-                            val feature = addr.featureName ?: ""
-                            val thoroughfare = addr.thoroughfare ?: ""
-                            val subLoc = addr.subLocality ?: ""
-                            val text = "$feature $thoroughfare $subLoc".lowercase(Locale.ROOT)
-                            if (listOf("petrol", "fuel", "pump", "diesel", "indianoil", "iocl", "bpcl", "hpcl", "nayara", "cng").any { text.contains(it) }) {
-                                val name = feature.ifBlank { thoroughfare.ifBlank { "Fuel Station" } }
-                                return@withContext FuelStationDetectionResult(
-                                    isFuelStation = true,
-                                    stationName = name
-                                )
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Geocoder fuel check error: ${e.message}")
-            }
-
-            FuelStationDetectionResult(isFuelStation = false, stationName = "")
-        }
+    private fun distanceM(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = FloatArray(1)
+        android.location.Location.distanceBetween(lat1, lon1, lat2, lon2, r)
+        return r[0].toDouble()
     }
 
     /**
-     * Resolves human-readable station name or address from coordinates.
-     * Prioritizes Fuel Station / Amenity naming, then road/suburb/city.
+     * Is the car at a fuel station? Online only (offline checks — saved stations and map POIs —
+     * run before this): Overpass amenity=fuel within [FUEL_RADIUS_M], then a Nominatim object that
+     * is itself tagged as fuel and lies within [FUEL_MAX_MATCH_M]. No keyword guessing.
      */
+    suspend fun detectNearbyFuelStation(context: Context, lat: Double, lon: Double): FuelStationDetectionResult {
+        if (lat == 0.0 && lon == 0.0) return FuelStationDetectionResult(false, "")
+        return withContext(Dispatchers.IO) {
+            val key = GeoCell.key("fuel", lat, lon, FUEL_CELL_M)
+            cacheGet(context, key, POSITIVE_TTL_MS)?.let { cached ->
+                val parts = cached.split('|', limit = 2)
+                if (parts[0] == "1") return@withContext FuelStationDetectionResult(true, parts.getOrElse(1) { "Fuel Station" })
+                if (cacheGet(context, key, NEGATIVE_TTL_MS) != null) return@withContext FuelStationDetectionResult(false, "")
+            }
+            if (!NetworkLookupGate.isAllowed(context)) return@withContext FuelStationDetectionResult(false, "")
+
+            var result: FuelStationDetectionResult? = null
+            try {
+                val query = "[out:json][timeout:3];(node(around:$FUEL_RADIUS_M,$lat,$lon)[amenity=fuel];way(around:$FUEL_RADIUS_M,$lat,$lon)[amenity=fuel];);out center tags 1;"
+                NetworkLookupGate.httpGet("https://overpass-api.de/api/interpreter?data=" + URLEncoder.encode(query, "UTF-8"), "$UA (Fuel Station Check)")?.let { body ->
+                    val elements = JSONObject(body).optJSONArray("elements")
+                    if (elements != null && elements.length() > 0) {
+                        val tags = elements.getJSONObject(0).optJSONObject("tags")
+                        val name = tags?.optString("name", "") ?: ""
+                        val brand = tags?.optString("brand", "")?.ifBlank { tags.optString("operator", "") } ?: ""
+                        result = FuelStationDetectionResult(
+                            true,
+                            when {
+                                name.isNotBlank() -> name
+                                brand.isNotBlank() -> "$brand Fuel Station"
+                                else -> "Fuel Station"
+                            },
+                            brand.ifBlank { null }
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Overpass fuel station check: ${e.message}")
+            }
+
+            if (result == null) try {
+                NetworkLookupGate.httpGet(
+                    "https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1",
+                    "$UA (Fuel Station Check)"
+                )?.let { resp ->
+                    val json = JSONObject(resp)
+                    val isFuel = json.optString("type").equals("fuel", true) ||
+                        (json.optString("category").equals("amenity", true) && json.optString("type").contains("fuel", true))
+                    val oLat = json.optString("lat").toDoubleOrNull()
+                    val oLon = json.optString("lon").toDoubleOrNull()
+                    if (isFuel && oLat != null && oLon != null && distanceM(lat, lon, oLat, oLon) <= FUEL_MAX_MATCH_M) {
+                        result = FuelStationDetectionResult(true, json.optString("name").ifBlank { "Fuel Station" })
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Nominatim fuel check error: ${e.message}")
+            }
+
+            val final = result ?: FuelStationDetectionResult(false, "")
+            cachePut(context, key, if (final.isFuelStation) "1|${final.stationName}" else "0|")
+            final
+        }
+    }
+
+    /** Station or address label for the refill dialog. */
     suspend fun resolveStationOrAddress(context: Context, lat: Double, lon: Double): String {
         if (lat == 0.0 && lon == 0.0) {
             val defaultRoad = SpeedLimitEngine.getInstance().speedLimitInfo.value.roadName
@@ -175,7 +142,7 @@ object LocationNameResolver {
         }
 
         return withContext(Dispatchers.IO) {
-            // 1. Try local Android Geocoder first
+            // 1. Local Android Geocoder first
             try {
                 if (Geocoder.isPresent()) {
                     val geocoder = Geocoder(context, Locale.getDefault())
@@ -184,114 +151,85 @@ object LocationNameResolver {
                     if (!addresses.isNullOrEmpty()) {
                         val addr = addresses[0]
                         val feature = addr.featureName
-                        val road = addr.thoroughfare
-                        val subLocality = addr.subLocality
-                        val locality = addr.locality
-
-                        // Filter out raw house numbers, "HN", "PO", plus codes
                         val cleanFeature = if (feature != null && (
                             feature.startsWith("HN", ignoreCase = true) ||
-                            feature.contains("PO", ignoreCase = true) ||
-                            feature.contains("+") ||
-                            feature.all { it.isDigit() || it == '-' || it == '/' || it == '#' }
-                        )) null else feature
-
-                        val candidates = listOfNotNull(cleanFeature, road, subLocality, locality).filter {
+                                feature.contains("PO", ignoreCase = true) ||
+                                feature.contains("+") ||
+                                feature.all { it.isDigit() || it == '-' || it == '/' || it == '#' }
+                            )) null else feature
+                        val candidates = listOfNotNull(cleanFeature, addr.thoroughfare, addr.subLocality, addr.locality).filter {
                             it.isNotBlank() && !it.all { char -> char.isDigit() }
                         }
-                        if (candidates.isNotEmpty()) {
-                            val combined = candidates.distinct().take(3).joinToString(", ")
-                            if (combined.isNotBlank()) {
-                                return@withContext combined
-                            }
-                        }
+                        if (candidates.isNotEmpty()) return@withContext candidates.distinct().take(3).joinToString(", ")
                     }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Geocoder error: ${e.message}")
             }
 
-            // 2. Try OpenStreetMap Nominatim reverse geocoder (only if online)
-            if (isNetworkConnected(context)) {
+            // 2. Nominatim (setting + network + rate limit)
+            val key = GeoCell.key("addr", lat, lon, FUEL_CELL_M)
+            cacheGet(context, key, PLACE_TTL_MS)?.let { return@withContext it }
+            if (NetworkLookupGate.isAllowed(context)) {
                 try {
-                    val url = URL("https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1")
-                    val conn = (url.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 1200
-                        readTimeout = 1200
-                        setRequestProperty("User-Agent", "Copilot-Cockpit/1.0 (Automotive Fuel Station Finder)")
+                    NetworkLookupGate.httpGet(
+                        "https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1",
+                        "$UA (Automotive Fuel Station Finder)"
+                    )?.let { resp ->
+                        val json = JSONObject(resp)
+                        val name = json.optString("name", "")
+                        val address = json.optJSONObject("address")
+                        val amenity = address?.optString("amenity", "") ?: ""
+                        val fuel = address?.optString("fuel", "") ?: ""
+                        val road = address?.optString("road", "") ?: ""
+                        val suburb = address?.optString("suburb", "") ?: ""
+                        val city = address?.optString("city", "")?.ifBlank { address.optString("town", "") } ?: ""
+                        val stationTitle = when {
+                            name.isNotBlank() -> name
+                            fuel.isNotBlank() -> "$fuel Fuel Station"
+                            amenity.contains("fuel", ignoreCase = true) -> "Fuel Station"
+                            else -> ""
+                        }
+                        val area = when {
+                            road.isNotBlank() && suburb.isNotBlank() -> "$road, $suburb"
+                            road.isNotBlank() -> road
+                            suburb.isNotBlank() -> suburb
+                            else -> city
+                        }
+                        val result = when {
+                            stationTitle.isNotBlank() && area.isNotBlank() -> "$stationTitle, $area"
+                            stationTitle.isNotBlank() -> stationTitle
+                            area.isNotBlank() -> "Near $area"
+                            else -> ""
+                        }
+                        if (result.isNotBlank()) {
+                            cachePut(context, key, result)
+                            return@withContext result
+                        }
                     }
-
-                if (conn.responseCode == 200) {
-                    val resp = conn.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(resp)
-                    val name = json.optString("name", "")
-                    val address = json.optJSONObject("address")
-                    val amenity = address?.optString("amenity", "") ?: ""
-                    val fuel = address?.optString("fuel", "") ?: ""
-                    val road = address?.optString("road", "") ?: ""
-                    val suburb = address?.optString("suburb", "") ?: ""
-                    val city = address?.optString("city", "") ?: address?.optString("town", "") ?: ""
-
-                    val stationTitle = when {
-                        name.isNotBlank() -> name
-                        fuel.isNotBlank() -> "$fuel Fuel Station"
-                        amenity.isNotBlank() && amenity.contains("fuel", ignoreCase = true) -> "Fuel Station"
-                        else -> ""
-                    }
-
-                    val locationArea = when {
-                        road.isNotBlank() && suburb.isNotBlank() -> "$road, $suburb"
-                        road.isNotBlank() -> road
-                        suburb.isNotBlank() -> suburb
-                        city.isNotBlank() -> city
-                        else -> ""
-                    }
-
-                    val result = if (stationTitle.isNotBlank() && locationArea.isNotBlank()) {
-                        "$stationTitle, $locationArea"
-                    } else if (stationTitle.isNotBlank()) {
-                        stationTitle
-                    } else if (locationArea.isNotBlank()) {
-                        "Near $locationArea"
-                    } else {
-                        ""
-                    }
-
-                    if (result.isNotBlank()) {
-                        return@withContext result
-                    }
-                }
                 } catch (e: Exception) {
                     Log.w(TAG, "Nominatim error: ${e.message}")
                 }
             }
 
-            // Fallback to active road name from SpeedLimitEngine
             val currentRoad = SpeedLimitEngine.getInstance().speedLimitInfo.value.roadName
-            if (currentRoad.isNotBlank() && currentRoad != "Navigating") {
-                "Near $currentRoad"
-            } else {
-                "City Fuel Station"
-            }
+            if (currentRoad.isNotBlank() && currentRoad != "Navigating") "Near $currentRoad" else "City Fuel Station"
         }
     }
 
     /**
-     * Resolves human-readable place name (Road, Village, Area, City) for Trip Origin & Destination.
+     * Place name for a trip origin / destination. A failed lookup returns the coordinates (never
+     * an invented place, audit D3); those are retried later by the trip repository.
      */
     suspend fun resolveTripLocation(context: Context, lat: Double, lon: Double): String {
-        if (lat == 0.0 && lon == 0.0) return "Raigarh"
-        return resolvePlaceNameOrNull(context, lat, lon) ?: "Pusaur, Raigarh"
+        if (lat == 0.0 && lon == 0.0) return ""
+        return resolvePlaceNameOrNull(context, lat, lon) ?: com.antigravity.copilot.core.trip.TripNaming.coordinateName(lat, lon)
     }
 
-    /**
-     * Same lookup as [resolveTripLocation] (Geocoder, then Nominatim when online) but returns null
-     * when nothing resolves, so callers can retry later instead of storing a placeholder.
-     */
+    /** Geocoder, then cached / online Nominatim; null when nothing resolves. */
     suspend fun resolvePlaceNameOrNull(context: Context, lat: Double, lon: Double): String? {
         if (lat == 0.0 && lon == 0.0) return null
         return withContext(Dispatchers.IO) {
-            // 1. Try Android Geocoder first
             try {
                 if (Geocoder.isPresent()) {
                     val geocoder = Geocoder(context, Locale.getDefault())
@@ -299,46 +237,39 @@ object LocationNameResolver {
                     val addresses = geocoder.getFromLocation(lat, lon, 1)
                     if (!addresses.isNullOrEmpty()) {
                         val addr = addresses[0]
-                        val road = addr.thoroughfare
-                        val subLoc = addr.subLocality
-                        val locality = addr.locality ?: addr.subAdminArea
-                        val parts = listOfNotNull(road, subLoc, locality).filter { it.isNotBlank() && !it.all { c -> c.isDigit() } }
-                        if (parts.isNotEmpty()) {
-                            return@withContext parts.distinct().take(2).joinToString(", ")
-                        }
+                        val parts = listOfNotNull(addr.thoroughfare, addr.subLocality, addr.locality ?: addr.subAdminArea)
+                            .filter { it.isNotBlank() && !it.all { c -> c.isDigit() } }
+                        if (parts.isNotEmpty()) return@withContext parts.distinct().take(2).joinToString(", ")
                     }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Trip Geocoder error: ${e.message}")
             }
 
-            // 2. OpenStreetMap Reverse Geocoder (only if online)
-            if (isNetworkConnected(context)) {
-                try {
-                    val url = URL("https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1")
-                    val conn = (url.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 1200
-                        readTimeout = 1200
-                        setRequestProperty("User-Agent", "Copilot/1.0 (Automotive)")
+            val key = GeoCell.key("place", lat, lon, PLACE_CELL_M)
+            cacheGet(context, key, PLACE_TTL_MS)?.let { return@withContext it }
+            if (!NetworkLookupGate.isAllowed(context)) return@withContext null
+            try {
+                NetworkLookupGate.httpGet(
+                    "https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1",
+                    "$UA (Automotive)"
+                )?.let { resp ->
+                    val address = JSONObject(resp).optJSONObject("address")
+                    val road = address?.optString("road", "") ?: ""
+                    val village = address?.optString("village", "") ?: ""
+                    val county = address?.optString("county", "") ?: ""
+                    val city = address?.optString("city", "")?.ifBlank { address.optString("town", "") }
+                        ?.ifBlank { address.optString("state_district", "") } ?: ""
+                    val parts = listOf(road, village, county, city).filter { it.isNotBlank() }
+                    if (parts.isNotEmpty()) {
+                        val name = parts.distinct().take(2).joinToString(", ")
+                        cachePut(context, key, name)
+                        return@withContext name
                     }
-                    if (conn.responseCode == 200) {
-                        val resp = conn.inputStream.bufferedReader().use { it.readText() }
-                        val json = JSONObject(resp)
-                        val address = json.optJSONObject("address")
-                        val road = address?.optString("road", "") ?: ""
-                        val village = address?.optString("village", "") ?: ""
-                        val county = address?.optString("county", "") ?: ""
-                        val city = address?.optString("city", "") ?: address?.optString("town", "") ?: address?.optString("state_district", "") ?: "Raigarh"
-                        val parts = listOf(road, village, county, city).filter { it.isNotBlank() }
-                        if (parts.isNotEmpty()) {
-                            return@withContext parts.distinct().take(2).joinToString(", ")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Trip Nominatim error: ${e.message}")
                 }
+            } catch (e: Exception) {
+                Log.w(TAG, "Trip Nominatim error: ${e.message}")
             }
-
             null
         }
     }

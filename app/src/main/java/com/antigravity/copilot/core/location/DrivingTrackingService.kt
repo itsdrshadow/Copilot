@@ -77,6 +77,7 @@ class DrivingTrackingService : Service(), LocationListener, TrackingMaintenance.
     private val gnssGate = GnssQualityGate()
     private var gnssCallback: Any? = null
     private var lastActiveTripPersistMono: Long = 0L
+    private var roadIntelFeed: com.antigravity.copilot.core.map.intel.RoadIntelFeed? = null
     /** Factory reset / backup restore in progress: no fixes, no persistence (TrackingMaintenance). */
     @Volatile private var maintenancePaused: Boolean = false
 
@@ -266,6 +267,16 @@ class DrivingTrackingService : Service(), LocationListener, TrackingMaintenance.
                 lastRecordedDistanceMeters = departureDistMeters
                 tripRepository.attachDeparturePoints(startTime, departurePoints)
                 tripRepository.updateTripOrigin(startTime, originName)
+                // Started from an unknown position (no fence): reverse-geocode the real origin.
+                if (com.antigravity.copilot.core.trip.TripNaming.isCoordinateName(originName)) {
+                    departurePoints.firstOrNull()?.let { first ->
+                        serviceScope.launch {
+                            com.antigravity.copilot.core.trip.TripNaming.acceptResolved(
+                                LocationNameResolver.resolveTripLocation(applicationContext, first.latitude, first.longitude)
+                            )?.let { tripRepository.updateTripOrigin(startTime, it) }
+                        }
+                    }
+                }
                 if (departureDistMeters > 0.0) {
                     // Trip litres for it come from the engine's estimator (untracked km at learned
                     // mileage); the lifetime odometer counts the distance here.
@@ -318,6 +329,7 @@ class DrivingTrackingService : Service(), LocationListener, TrackingMaintenance.
         }
         registerGnssStatus()
         seedLifetimeOdometer()
+        roadIntelFeed = com.antigravity.copilot.core.map.intel.RoadIntelFeed(applicationContext, serviceScope, speedLimitEngine, fuelRepository)
         TrackingMaintenance.handler = this
 
         onCreateContinued()
@@ -460,6 +472,9 @@ class DrivingTrackingService : Service(), LocationListener, TrackingMaintenance.
                 latestEmittedPoint = point
                 saveLastKnownPosition(point, force = false)
                 tripRepository.onLocationReceived(point)
+                // Speed limit + offline road intel are fed here, UI alive or not (audit I1 / J1).
+                speedLimitEngine.updateTelemetry(point, applicationContext)
+                roadIntelFeed?.onPoint(point)
                 vehicleStateManager.onSpeedOrLocationUpdated(point.speedKmh, point.timestamp, engine.currentTripId.takeIf { it > 0L })
                 roadAnomalyManager.onLocation(point)
                 com.antigravity.copilot.core.fuel.station.FuelStationTracker.getInstance(applicationContext).onLocation(point)
@@ -974,6 +989,7 @@ class DrivingTrackingService : Service(), LocationListener, TrackingMaintenance.
             android.util.Log.w("DrivingTrackingService", "onDestroy persist failed: ${e.message}")
         }
         unregisterGnssStatus()
+        roadIntelFeed?.close()
         super.onDestroy()
         debugSim?.stop()
         debugSimReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }

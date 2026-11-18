@@ -349,13 +349,25 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Restartable scope for the live dashboard: only it recomposes on trip / speed-limit updates (Q3). */
+@Composable
+private fun LiveDashboardHost(
+    currentTripState: State<com.antigravity.copilot.core.model.TripSummary>,
+    speedLimitState: State<com.antigravity.copilot.core.location.SpeedLimitInfo>,
+    content: @Composable (com.antigravity.copilot.core.model.TripSummary, com.antigravity.copilot.core.location.SpeedLimitInfo) -> Unit
+) {
+    content(currentTripState.value, speedLimitState.value)
+}
+
 private enum class RailDest { DRIVE, TRIPS, FUEL, MAPS, APPS, SETTINGS }
 
 @Composable
 private fun MainAppScreen(
     viewModel: MainViewModel
 ) {
-    val currentTrip by viewModel.currentTrip.collectAsStateWithLifecycle()
+    // Q3: per-fix streams are held as State and read only by the dashboard host below, so the
+    // whole MainAppScreen root no longer recomposes on every GPS fix.
+    val currentTripState = viewModel.currentTrip.collectAsStateWithLifecycle()
     // Held as State (not `by`): reading .value here would recompose this whole root on every
     // GPS tick. Only the leaves that display location read it, via the providers below.
     val latestPointState = viewModel.latestPoint.collectAsStateWithLifecycle()
@@ -366,7 +378,7 @@ private fun MainAppScreen(
     val lastThreeTrips by viewModel.lastThreeTrips.collectAsStateWithLifecycle(initialValue = emptyList())
     val fuelState by viewModel.fuelState.collectAsStateWithLifecycle()
     val tripVisualState by viewModel.tripVisualState.collectAsStateWithLifecycle()
-    val speedLimitInfo by viewModel.speedLimitInfo.collectAsStateWithLifecycle()
+    val speedLimitState = viewModel.speedLimitInfo.collectAsStateWithLifecycle()
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
     val isAppDrawerOpen by viewModel.isAppDrawerOpen.collectAsStateWithLifecycle()
     val isFuelDialogOpen by viewModel.isFuelDialogOpen.collectAsStateWithLifecycle()
@@ -407,7 +419,7 @@ private fun MainAppScreen(
 
     // Lifetime distance is owned and persisted by the tracking service (LifetimeOdometer); the UI
     // only observes it, so the odometer and tank keep moving while another app is in front.
-    val recordedDistanceKm by com.antigravity.copilot.core.odometer.LifetimeOdometer.totalKm.collectAsStateWithLifecycle()
+    val recordedDistanceState = com.antigravity.copilot.core.odometer.LifetimeOdometer.totalKm.collectAsStateWithLifecycle()
 
     // Raahi left rail. Drive / Trips / Fuel / Maps are the existing tabs (0 / 2 / 3 / 1); Apps and
     // Settings open the existing full-screen overlays. Any rail tap closes an open overlay first.
@@ -509,6 +521,7 @@ private fun MainAppScreen(
         val isDashboardCovered = tabOverlayState.fullyShown() || drawerState.fullyShown() || settingsState.fullyShown()
         val reserveMarkerOdo by viewModel.reserveMarkerOdometer.collectAsStateWithLifecycle()
 
+        LiveDashboardHost(currentTripState, speedLimitState) { currentTrip, speedLimitInfo ->
         DashboardScreen(
             currentTrip = currentTrip,
             latestPoint = latestPointProvider,
@@ -538,6 +551,7 @@ private fun MainAppScreen(
                 alpha = if (isDashboardCovered || !isSplashExiting) 0f else 1f
             }
         )
+        }
 
         androidx.compose.animation.AnimatedVisibility(
             visibleState = tabOverlayState,
@@ -611,7 +625,7 @@ private fun MainAppScreen(
                 initialStationName = promptStation,
                 reserveMarkerPending = reserveOdo != null,
                 fuelState = fuelState,
-                recordedLifetimeKm = recordedDistanceKm,
+                recordedLifetimeKm = recordedDistanceState.value,
                 currentLocationPoint = latestPointState.value,
                 onDismiss = { viewModel.setFuelDialogOpen(false) },
                 onSaveRefuel = { liters, midBar, price, cost, odo, locationName, lat, lon, refuelMode ->
@@ -625,7 +639,7 @@ private fun MainAppScreen(
                         locationName = locationName,
                         latitude = lat,
                         longitude = lon,
-                        recordedLifetimeKm = recordedDistanceKm
+                        recordedLifetimeKm = recordedDistanceState.value
                     )
                 }
             )
@@ -744,6 +758,27 @@ private fun MainAppScreen(
             alert = roadAlert,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp).zIndex(50f)
         )
+        // School zone / speed camera ahead (offline map POIs, audit I3); hidden while a pothole
+        // alert owns the slot.
+        val hazard by com.antigravity.copilot.core.map.intel.RoadIntelState.hazard.collectAsStateWithLifecycle()
+        val shownHazard = hazard
+        if (shownHazard != null && roadAlert == null) {
+            val label = when (shownHazard.kind) {
+                com.antigravity.copilot.core.map.intel.HazardKind.SCHOOL_ZONE -> "School zone ahead"
+                com.antigravity.copilot.core.map.intel.HazardKind.SPEED_CAMERA -> "Speed camera ahead"
+            }
+            androidx.compose.material3.Text(
+                text = "$label · ${shownHazard.distanceM.toInt()} m",
+                style = com.antigravity.copilot.core.designsystem.CockpitTheme.typography.titleMedium,
+                color = com.antigravity.copilot.core.designsystem.CockpitTheme.colors.textPrimary,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 14.dp)
+                    .zIndex(49f)
+                    .background(com.antigravity.copilot.core.designsystem.CockpitTheme.colors.warning.copy(alpha = 0.85f), androidx.compose.foundation.shape.RoundedCornerShape(50))
+                    .padding(horizontal = 18.dp, vertical = 8.dp)
+            )
+        }
       }
       }
 

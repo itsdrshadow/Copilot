@@ -74,6 +74,8 @@ class TripDetectionEngine(
     private val odometer = com.antigravity.copilot.core.logic.OdometerAccumulator()
     /** Current-trip fuel estimate (speed / accel / learned mileage; idle excluded; never feeds the tank). */
     private val tripFuel = com.antigravity.copilot.core.logic.TripFuelEstimator()
+    /** Moving time per speed band, for the trip auto-tag (B8). */
+    private val speedHistogram = com.antigravity.copilot.core.logic.TripTagger.SpeedHistogram()
 
     /** Distance not stepped through the estimator (departure buffer, tunnel/reboot bridges) uses plain mileage. */
     private fun tripFuelLitres(mileage: Double): Double {
@@ -214,6 +216,7 @@ class TripDetectionEngine(
         stationaryDurationMs = 0
         motion.reset()
         tripFuel.reset()
+        speedHistogram.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -688,6 +691,7 @@ class TripDetectionEngine(
         stationaryDurationMs = 0
         motion.reset()
         tripFuel.reset()
+        speedHistogram.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -794,6 +798,7 @@ class TripDetectionEngine(
         stationaryDurationMs = 0
         motion.reset()
         tripFuel.reset()
+        speedHistogram.reset()
         maxSpeedKmh = 0.0
         speedSumKmh = 0.0
         speedCount = 0
@@ -878,6 +883,7 @@ class TripDetectionEngine(
             0L
         }
         motion.onSample(now, speedKmh.toDouble())
+        speedHistogram.add(speedKmh.toDouble(), dt)
         drivingDurationMs = motion.movingMs
         stationaryDurationMs = motion.idleMs
         if (speedKmh >= STOP_SPEED_THRESHOLD_KMH) {
@@ -1012,7 +1018,8 @@ class TripDetectionEngine(
             overspeedCount = overspeedInstances,
             startLocationName = currentOriginName,
             endLocationName = effectiveDestName,
-            status = TripStatus.COMPLETED
+            status = TripStatus.COMPLETED,
+            speedTag = com.antigravity.copilot.core.logic.TripTagger.speedTag(speedHistogram)
         )
 
         // Both modes: a GPS jump through a fence (or a parking shuffle) must not fill the history.

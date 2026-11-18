@@ -47,7 +47,9 @@ data class TripEntity(
     val brakeCount: Int = 0,
     val accelCount: Int = 0,
     /** Best rolling km/L (0.5 km windows) of the trip estimate. */
-    val bestMileageKmpl: Double = 0.0
+    val bestMileageKmpl: Double = 0.0,
+    /** Auto tag (City / Highway / Mixed, optionally Commute), audit B8. */
+    @androidx.room.ColumnInfo(defaultValue = "") val tag: String = ""
 )
 
 @Entity(

@@ -62,6 +62,7 @@ object AppSettingsManager {
     const val KEY_MAP_BUILDING_FOOTPRINTS = "map_building_footprints"
     const val KEY_AUTO_DAY_NIGHT_SOLAR = "auto_day_night_solar"
     const val KEY_MEDIA_PILL_ENABLED = "media_pill_enabled"
+    const val KEY_ONLINE_LOOKUPS = "online_lookups_enabled"
     const val KEY_AUTO_FOREGROUND_ON_BOOT = "auto_foreground_on_boot"
     const val KEY_MAP_RENDER_FPS = "map_render_fps"
 
@@ -93,6 +94,8 @@ object AppSettingsManager {
         val mapBuildingFootprints: Boolean = true,
         val autoDayNightSolar: Boolean = true,
         val mediaPillEnabled: Boolean = true,
+        /** Overpass / Nominatim place, pump and speed-limit lookups (audit R1). */
+        val onlineLookups: Boolean = true,
         val autoForegroundOnBoot: Boolean = true,
         val mapRenderFps: String = MapRenderFps.DEFAULT.id
     ) {
@@ -183,6 +186,7 @@ object AppSettingsManager {
             mapBuildingFootprints = prefs.getBoolean(KEY_MAP_BUILDING_FOOTPRINTS, true),
             autoDayNightSolar = prefs.getBoolean(KEY_AUTO_DAY_NIGHT_SOLAR, true),
             mediaPillEnabled = prefs.getBoolean(KEY_MEDIA_PILL_ENABLED, true),
+            onlineLookups = prefs.getBoolean(KEY_ONLINE_LOOKUPS, true),
             autoForegroundOnBoot = prefs.getBoolean(KEY_AUTO_FOREGROUND_ON_BOOT, true),
             mapRenderFps = MapRenderFps.fromId(prefs.getString(KEY_MAP_RENDER_FPS, null)).id
         )
@@ -325,6 +329,14 @@ object AppSettingsManager {
         _settingsState.value = _settingsState.value.copy(stationStopWatchdog = enabled)
         scope.launch {
             context.appDataStore.edit { it[SettingsDataStore.KEY_STATION_STOP_WATCHDOG] = enabled }
+        }
+    }
+
+    fun updateOnlineLookups(context: Context, enabled: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_ONLINE_LOOKUPS, enabled).apply()
+        _settingsState.value = _settingsState.value.copy(onlineLookups = enabled)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_ONLINE_LOOKUPS] = enabled }
         }
     }
 

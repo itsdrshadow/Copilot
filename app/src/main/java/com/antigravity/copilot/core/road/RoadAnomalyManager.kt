@@ -83,25 +83,38 @@ class RoadAnomalyManager private constructor(context: Context) {
         }
     }
 
+    /** Last hit (elapsed ms, peak) per anomaly id: separates passes and pairs axle hits. */
+    private val lastHit = HashMap<Long, Pair<Long, Float>>()
+
     private suspend fun record(hit: JerkHit) = rowLock.withLock {
         try {
             val box = RoadAnomalyMath.boundingBox(hit.latitude, hit.longitude, RoadAnomalyConfig.DEDUP_RADIUS_M)
             val existing = dao.inBox(box.minLat, box.maxLat, box.minLon, box.maxLon)
+                // Direction-aware dedup (K2): the opposite carriageway keeps its own record.
+                .filter { RoadAnomalyPattern.canMerge(it.headingDeg, hit.headingDeg) }
                 .map { it to RoadAnomalyMath.distanceM(hit.latitude, hit.longitude, it.latitude, it.longitude) }
                 .filter { it.second <= RoadAnomalyConfig.DEDUP_RADIUS_M }
                 .minByOrNull { it.second }?.first
             if (existing != null) {
                 val maxZ = maxOf(existing.maxZForce, hit.peakMss)
+                val previous = lastHit[existing.id]
+                // Same pass (e.g. the rear axle a moment after the front one) is not a confirmation.
+                val separatePass = RoadAnomalyPattern.isSeparatePass(previous?.first, hit.elapsedMs)
+                val kind = if (previous != null && hit.elapsedMs - previous.first <= RoadAnomalyPattern.AXLE_PAIR_MAX_MS) {
+                    RoadAnomalyPattern.classifyPair(previous.second, hit.peakMss, hit.elapsedMs - previous.first).name
+                } else existing.kind
                 dao.update(
                     existing.copy(
                         latitude = RoadAnomalyMath.smooth(existing.latitude, hit.latitude),
                         longitude = RoadAnomalyMath.smooth(existing.longitude, hit.longitude),
                         maxZForce = maxZ,
                         severity = (RoadAnomalyMath.classify(maxZ) ?: existing.severityEnum).name,
-                        confidenceScore = (existing.confidenceScore + 1).coerceAtMost(RoadAnomalyConfig.MAX_CONFIDENCE),
-                        lastUpdated = System.currentTimeMillis()
+                        confidenceScore = if (separatePass) (existing.confidenceScore + 1).coerceAtMost(RoadAnomalyConfig.MAX_CONFIDENCE) else existing.confidenceScore,
+                        lastUpdated = System.currentTimeMillis(),
+                        kind = kind
                     )
                 )
+                lastHit[existing.id] = hit.elapsedMs to hit.peakMss
                 passTracker.onJerk(existing.id, hit.elapsedMs)
                 Log.i(TAG, "Re-confirmed anomaly ${existing.id} (${hit.severity}, ${"%.1f".format(hit.peakMss)} m/s²)")
             } else {
@@ -114,6 +127,7 @@ class RoadAnomalyManager private constructor(context: Context) {
                         headingDeg = hit.headingDeg
                     )
                 )
+                lastHit[id] = hit.elapsedMs to hit.peakMss
                 passTracker.onJerk(id, hit.elapsedMs)
                 Log.i(TAG, "New anomaly $id (${hit.severity}, ${"%.1f".format(hit.peakMss)} m/s²)")
             }

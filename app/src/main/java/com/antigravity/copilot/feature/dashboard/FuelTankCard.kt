@@ -158,6 +158,19 @@ fun FuelTankCard(
             }
             tankPct < LOW_FUEL_PERCENT -> LowFuelStrip(rangeKm = fuelState.remainingRangeKm)
         }
+        // Low fuel: nearest / best-rated pump from saved stations and offline map POIs (audit H6).
+        val pump by com.antigravity.copilot.core.map.intel.RoadIntelState.pump.collectAsState()
+        val shownPump = pump
+        if (fuelState.isLowFuelWarning && shownPump != null) {
+            val km = shownPump.distanceM / 1000.0
+            val rating = shownPump.rating?.takeIf { it == "EXCELLENT" || it == "AVERAGE" }?.let { " · ${it.lowercase().replaceFirstChar { c -> c.uppercase() }}" } ?: ""
+            Text(
+                text = "Pump: ${shownPump.name} · ${"%.1f".format(km)} km${if (shownPump.ahead) "" else " behind"}$rating",
+                style = CockpitTheme.typography.bodyMedium,
+                color = c.textSecondary,
+                maxLines = 1
+            )
+        }
 
         Spacer(Modifier.weight(0.55f))
 
