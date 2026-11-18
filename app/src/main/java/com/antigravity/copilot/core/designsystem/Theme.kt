@@ -6,7 +6,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -20,14 +19,13 @@ import com.antigravity.copilot.core.designsystem.colors.LocalCockpitColors as Co
 import com.antigravity.copilot.core.designsystem.colors.LocalCockpitThemeMode as ThemeModeLocal
 import com.antigravity.copilot.core.designsystem.colors.LocalMapPalette as MapPaletteLocal
 import com.antigravity.copilot.core.designsystem.colors.MapPalette
-import com.antigravity.copilot.core.designsystem.colors.cockpitColorsFor
+import com.antigravity.copilot.core.designsystem.colors.RaahiNightColors
 import com.antigravity.copilot.core.designsystem.colors.mapPaletteFor
 import com.antigravity.copilot.core.designsystem.typography.LocalCockpitTypography
 
 // Re-export colour types for call sites that import them from this package.
 typealias CockpitColors = com.antigravity.copilot.core.designsystem.colors.CockpitColors
 typealias CockpitThemeMode = com.antigravity.copilot.core.designsystem.colors.CockpitThemeMode
-typealias ThemeAppearanceMode = com.antigravity.copilot.core.designsystem.colors.ThemeAppearanceMode
 
 val ApexCockpitColors = com.antigravity.copilot.core.designsystem.colors.RaahiNightColors
 val PremiumCockpitColors = ApexCockpitColors
@@ -81,20 +79,17 @@ private fun animated(target: Color, label: String): Color =
     animateColorAsState(targetValue = target, animationSpec = tween(durationMillis = 300), label = label).value
 
 /**
- * Raahi theme provider. [appearanceMode] is the Settings choice (Auto / Night / Day); Auto is
- * resolved by [rememberIsDay]. Colours cross-fade on a switch; the activity is never recreated, so
+ * Raahi theme provider (dark only). Accent changes cross-fade; the activity is never recreated, so
  * the MapView survives.
  */
 @Composable
 fun CopilotTheme(
     themeMode: CockpitThemeMode = CockpitThemeMode.RAAHI,
-    appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.AUTO,
     accentOption: com.antigravity.copilot.core.designsystem.colors.AccentOption = com.antigravity.copilot.core.designsystem.colors.AccentOption.CYAN,
     @Suppress("UNUSED_PARAMETER") isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val isDay = rememberIsDay(appearanceMode)
-    val base = cockpitColorsFor(isDay)
+    val base = RaahiNightColors
 
     val bg = animated(base.bg, "bg")
     val rail = animated(base.rail, "rail")
@@ -104,8 +99,8 @@ fun CopilotTheme(
     val textPrimary = animated(base.textPrimary, "textPrimary")
     val textSecondary = animated(base.textSecondary, "textSecondary")
     val textDisabled = animated(base.textDisabled, "textDisabled")
-    val accent = animated(if (isDay) accentOption.day else accentOption.night, "accent")
-    val accentText = animated(if (isDay) accentOption.dayText else accentOption.night, "accentText")
+    val accent = animated(accentOption.night, "accent")
+    val accentText = animated(accentOption.night, "accentText")
     val warning = animated(base.warning, "warning")
     val critical = animated(base.critical, "critical")
     val positive = animated(base.positive, "positive")
@@ -153,20 +148,7 @@ fun CopilotTheme(
         dockActionBrush = solidRaised
     )
 
-    val materialColors = if (isDay) {
-        lightColorScheme(
-            primary = accent, onPrimary = base.onAccent,
-            primaryContainer = cardRaised, onPrimaryContainer = textPrimary,
-            secondary = accent, onSecondary = base.onAccent,
-            background = bg, onBackground = textPrimary,
-            surface = card, onSurface = textPrimary,
-            surfaceVariant = cardRaised, onSurfaceVariant = textSecondary,
-            surfaceContainerHigh = card, surfaceContainer = card,
-            outline = border, outlineVariant = border,
-            error = critical, onError = Color.White
-        )
-    } else {
-        darkColorScheme(
+    val materialColors = darkColorScheme(
             primary = accent, onPrimary = base.onAccent,
             primaryContainer = cardRaised, onPrimaryContainer = textPrimary,
             secondary = accent, onSecondary = base.onAccent,
@@ -177,12 +159,11 @@ fun CopilotTheme(
             outline = border, outlineVariant = border,
             error = critical, onError = base.onAccent
         )
-    }
 
     // System bars are hidden (immersive); tint them for the swipe-to-reveal transient state.
     val view = LocalView.current
     if (!view.isInEditMode) {
-        LaunchedEffect(isDay) {
+        LaunchedEffect(Unit) {
             val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
             val barColor = base.bg.toArgb()
             @Suppress("DEPRECATION")
@@ -190,8 +171,8 @@ fun CopilotTheme(
             @Suppress("DEPRECATION")
             window.navigationBarColor = barColor
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = isDay
-                isAppearanceLightNavigationBars = isDay
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
             }
         }
     }
@@ -199,16 +180,16 @@ fun CopilotTheme(
     androidx.compose.runtime.SideEffect {
         // Target (non-animated) accent so non-composable readers of StaticPalette follow the choice too.
         com.antigravity.copilot.core.designsystem.tokens.ThemeColorsSnapshot.colors = base.copy(
-            accent = if (isDay) accentOption.day else accentOption.night,
-            accentSoft = (if (isDay) accentOption.day else accentOption.night).copy(alpha = base.accentSoft.alpha),
-            accentText = if (isDay) accentOption.dayText else accentOption.night
+            accent = accentOption.night,
+            accentSoft = (accentOption.night).copy(alpha = base.accentSoft.alpha),
+            accentText = accentOption.night
         )
     }
 
     CompositionLocalProvider(
         ColorsLocal provides colors,
         ThemeModeLocal provides themeMode,
-        MapPaletteLocal provides mapPaletteFor(isDay, accentOption),
+        MapPaletteLocal provides mapPaletteFor(accentOption),
         LocalAutomotiveTokens provides AutomotiveDesignTokens,
         LocalCockpitTypography provides CockpitTypography
     ) {

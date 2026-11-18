@@ -4,15 +4,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import com.antigravity.copilot.core.designsystem.*
-import com.antigravity.copilot.core.designsystem.colors.RaahiDayColors
 import com.antigravity.copilot.core.designsystem.colors.RaahiNightColors
-import com.antigravity.copilot.core.designsystem.colors.cockpitColorsFor
 import com.antigravity.copilot.core.settings.AppSettingsManager
 import org.junit.Assert.*
 import org.junit.Test
-import java.util.Calendar
 
-/** Raahi theme contract: palette values, legacy-id fallback, day/night policy, type scale. */
+/** Raahi theme contract: palette values, legacy-id fallback, type scale. */
 class CockpitThemeSystemTest {
 
     private fun contrast(a: Color, b: Color): Double {
@@ -27,15 +24,6 @@ class CockpitThemeSystemTest {
             .forEach { assertEquals(CockpitThemeMode.RAAHI, CockpitThemeMode.fromId(it)) }
         assertEquals(CockpitThemeMode.RAAHI, CockpitThemeMode.APEX)
         assertEquals("Raahi", CockpitThemeMode.RAAHI.displayName)
-    }
-
-    @Test
-    fun appearanceModeFromIdAndDefaultIsAuto() {
-        assertEquals(ThemeAppearanceMode.NIGHT, ThemeAppearanceMode.fromId("night"))
-        assertEquals(ThemeAppearanceMode.DAY, ThemeAppearanceMode.fromId("day"))
-        assertEquals(ThemeAppearanceMode.AUTO, ThemeAppearanceMode.fromId("auto"))
-        assertEquals(ThemeAppearanceMode.AUTO, ThemeAppearanceMode.fromId("garbage"))
-        assertEquals(ThemeAppearanceMode.AUTO, AppSettingsManager.SettingsState().appearanceMode)
     }
 
     @Test
@@ -58,25 +46,8 @@ class CockpitThemeSystemTest {
     }
 
     @Test
-    fun raahiDayPaletteMatchesSpec() {
-        val c = RaahiDayColors
-        assertEquals(Color(0xFFF4F7FB), c.bg)
-        assertEquals(Color(0xFFFFFFFF), c.card)
-        assertEquals(Color(0xFFD5DEEB), c.border)
-        assertEquals(Color(0xFF0B1220), c.textPrimary)
-        assertEquals(Color(0xFF4A5B75), c.textSecondary)
-        assertEquals(Color(0xFF0A9CC4), c.accent)
-        assertEquals(Color(0xFFC27A00), c.warning)
-        assertEquals(Color(0xFF0F9F6E), c.positive)
-        assertEquals(Color(0xFFD93A3A), c.critical)
-        assertFalse(c.isDark)
-        assertSame(RaahiDayColors, cockpitColorsFor(isDay = true))
-        assertSame(RaahiNightColors, cockpitColorsFor(isDay = false))
-    }
-
-    @Test
     fun textContrastIsAtLeast4_5InBothThemes() {
-        for (c in listOf(RaahiNightColors, RaahiDayColors)) {
+        for (c in listOf(RaahiNightColors)) {
             for (surface in listOf(c.bg, c.card, c.cardElevated)) {
                 assertTrue(contrast(c.textPrimary, surface) >= 4.5)
                 assertTrue(contrast(c.textSecondary, surface) >= 4.5)
@@ -86,28 +57,12 @@ class CockpitThemeSystemTest {
             assertTrue(contrast(c.onAccent, c.accent) >= 4.5)
         }
         // Status colours used as text (accentText etc.) are readable on every surface.
-        for (c in listOf(RaahiNightColors, RaahiDayColors)) {
+        for (c in listOf(RaahiNightColors)) {
             for (surface in listOf(c.bg, c.card, c.cardElevated)) {
                 listOf(c.accentText, c.warningText, c.positiveText, c.criticalText)
                     .forEach { assertTrue(contrast(it, surface) >= 4.5) }
             }
         }
-    }
-
-    @Test
-    fun dayNightClockAndLuxHysteresis() {
-        fun at(h: Int, m: Int) = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, h); set(Calendar.MINUTE, m) }
-        assertTrue(DayNightPolicy.isDayByClock(at(12, 0)))
-        assertTrue(DayNightPolicy.isDayByClock(at(6, 30)))
-        assertFalse(DayNightPolicy.isDayByClock(at(6, 29)))
-        assertFalse(DayNightPolicy.isDayByClock(at(18, 30)))
-        assertFalse(DayNightPolicy.isDayByClock(at(23, 0)))
-
-        assertTrue(DayNightPolicy.nextFromLux(current = false, lux = 5000f))
-        assertFalse(DayNightPolicy.nextFromLux(current = true, lux = 10f))
-        // Inside the band the current appearance is kept.
-        assertTrue(DayNightPolicy.nextFromLux(current = true, lux = 150f))
-        assertFalse(DayNightPolicy.nextFromLux(current = false, lux = 150f))
     }
 
     @Test

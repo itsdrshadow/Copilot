@@ -113,7 +113,6 @@ class PersistentStorageAndMigrationTest {
         assertNotNull(SettingsDataStore.KEY_TANK_CAPACITY.name)
         assertNotNull(SettingsDataStore.KEY_EXPECTED_MILEAGE.name)
         assertNotNull(SettingsDataStore.KEY_COCKPIT_THEME.name)
-        assertNotNull(SettingsDataStore.KEY_THEME_APPEARANCE_MODE.name)
         assertNotNull(SettingsDataStore.KEY_SCREEN_ALWAYS_ON.name)
         assertNotNull(SettingsDataStore.KEY_AUTO_TRIP_DETECTION.name)
         assertNotNull(SettingsDataStore.KEY_STORAGE_SCHEMA_VERSION.name)
