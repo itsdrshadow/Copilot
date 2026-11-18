@@ -46,7 +46,7 @@ class FrameTimingBenchmark(private val journey: Journey) {
     }
 
     companion object {
-        private const val ITERATIONS = 3
+        private const val ITERATIONS = 2
 
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")

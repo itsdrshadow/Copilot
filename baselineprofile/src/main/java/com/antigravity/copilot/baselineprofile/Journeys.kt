@@ -120,7 +120,16 @@ private fun UiDevice.fullScreenMap() {
 private fun UiDevice.apps() {
     rail("Apps")
     awaitText("All Applications") ?: return
-    repeat(2) { scrollArea(x = 670, top = 150, bottom = 700) }
+    // The drawer is a horizontal pager (6x5 grid per page): page forward, then back.
+    val y = sy(450)
+    repeat(2) {
+        swipe(sx(1100), y, sx(250), y, PAGE_STEPS)
+        waitForIdle()
+    }
+    repeat(2) {
+        swipe(sx(250), y, sx(1100), y, PAGE_STEPS)
+        waitForIdle()
+    }
 }
 
 private fun UiDevice.logFuel() {
@@ -297,4 +306,5 @@ private const val SHORT_MS = 400L
 private const val TILE_SETTLE_MS = 1_500L
 private const val PAN_STEPS = 25
 private const val SCROLL_STEPS = 15
+private const val PAGE_STEPS = 12
 private const val PINCH_SPEED = 2_500

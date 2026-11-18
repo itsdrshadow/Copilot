@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.15.5] - 2026-11-18
+
+### Changed
+- Frame-timing benchmark: Apps journey pages the drawer horizontally (it is a pager, not a list); 2 iterations per journey.
+
 ## [2.15.4] - 2026-11-18
 
 ### Added
