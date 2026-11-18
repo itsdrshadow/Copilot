@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.15.1] - 2026-11-18
+
+### Changed
+- Softened home-screen number glow (halo opacity 35% → 20%).
+
 ## [2.15.0] - 2026-11-18
 
 ### Added
