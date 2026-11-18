@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.11.1] - 2026-11-18
+
+### Changed
+- **Smoother launch, tab switches and scrolling on the head unit.** The app now ships a baseline profile, so its startup and screen code is compiled ahead of time instead of being interpreted on first use. On the RK head unit (Android 11, 32-bit), the slowest frame on launch dropped from about 2000 ms to 150 ms, and tab-switch hold-ups dropped from 300–900 ms to 150–350 ms.
+  - The new `:baselineprofile` module walks the app: launch, every rail tab, and a scroll on each. Regenerate the profile on a connected device with `./gradlew :app:generateReleaseBaselineProfile`. On Android 9–12 the device must be rooted; on Android 13 and later any device works.
+- **Less overdraw.** The full-screen background is now a solid colour instead of a single-colour gradient shader. The splash window background is no longer painted under the app after the first frame. Settings scrolling went from about 20 ms to 13 ms per frame (median).
+
 ## [2.8.0] - 2026-11-18
 
 ### Added

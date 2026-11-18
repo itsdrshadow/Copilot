@@ -59,10 +59,10 @@ fun Modifier.cockpitSurface(
     borderWidth: Dp = 1.dp
 ): Modifier = this.clip(shape).background(background).border(borderWidth, border, shape)
 
-/** Full-screen backdrop painted with the active theme's background brush. */
+/** Full-screen backdrop painted with the active theme's solid background colour (no shader: cheaper on head-unit GPUs). */
 @Composable
 @ReadOnlyComposable
-fun Modifier.cockpitBackground(): Modifier = this.background(LocalCockpitColors.current.backgroundBrush)
+fun Modifier.cockpitBackground(): Modifier = this.background(LocalCockpitColors.current.background)
 
 /** Visual presets for [TintedBadge]. */
 enum class BadgeSize(

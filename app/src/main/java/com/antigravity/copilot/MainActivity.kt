@@ -163,6 +163,15 @@ class MainActivity : ComponentActivity() {
 
             // Head-unit display stays awake while Copilot is in front (Settings › Display toggle).
             val keepScreenOn = settings.screenAlwaysOn
+
+            // The splash window background (colour + logo layer-list) would otherwise be painted under
+            // the opaque Compose root on every frame — pure overdraw on the head-unit GPU. Drop it once
+            // Compose has drawn its first frame.
+            LaunchedEffect(Unit) {
+                withFrameNanos { }
+                window.setBackgroundDrawable(null)
+            }
+
             LaunchedEffect(keepScreenOn) {
                 if (keepScreenOn) {
                     window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

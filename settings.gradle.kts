@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Copilot"
 include(":app")
+include(":baselineprofile")
