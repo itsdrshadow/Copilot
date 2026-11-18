@@ -220,7 +220,13 @@ fun StatCell(
         RaahiLabel(label)
         Spacer(Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(value, style = valueStyle, color = valueColor, maxLines = 1, softWrap = false)
+            Text(
+                value,
+                style = valueStyle.copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(valueColor)),
+                color = valueColor,
+                maxLines = 1,
+                softWrap = false,
+            )
             if (unit != null) {
                 Spacer(Modifier.width(5.dp))
                 Text(

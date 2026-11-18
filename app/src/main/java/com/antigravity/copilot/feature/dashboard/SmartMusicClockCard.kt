@@ -178,7 +178,7 @@ private fun ClockOnlyState(
             ) {
                 Text(
                     text = timeString,
-                    style = AutomotiveTypographyTokens.NumericClock,
+                    style = AutomotiveTypographyTokens.NumericClock.copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(CockpitTheme.colors.textPrimary)),
                     color = CockpitTheme.colors.textPrimary,
                     modifier = Modifier.offset(y = (-4).dp)
                 )

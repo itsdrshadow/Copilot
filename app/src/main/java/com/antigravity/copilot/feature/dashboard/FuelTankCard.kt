@@ -91,7 +91,7 @@ fun FuelTankCard(
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(
                 text = NumberFormatUtils.formatFuelLiters(fuelState.remainingLiters, 1),
-                style = CockpitTheme.typography.displayMedium,
+                style = CockpitTheme.typography.displayMedium.copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(c.textPrimary)),
                 color = c.textPrimary,
                 maxLines = 1,
                 softWrap = false
@@ -106,7 +106,7 @@ fun FuelTankCard(
             Spacer(Modifier.weight(1f))
             Text(
                 text = "${tankPct.toInt()}%",
-                style = CockpitTheme.typography.displaySmall,
+                style = CockpitTheme.typography.displaySmall.copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(fuelLevelTextColor(tankPct))),
                 color = fuelLevelTextColor(tankPct),
                 maxLines = 1
             )

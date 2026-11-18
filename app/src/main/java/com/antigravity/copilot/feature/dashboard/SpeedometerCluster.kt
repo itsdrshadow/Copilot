@@ -331,7 +331,8 @@ fun SpeedometerCluster(
                 ) {
                     Text(
                         text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
-                        style = if (compactDial) CockpitTheme.typography.displayMedium else CockpitTheme.typography.displayLarge,
+                        style = (if (compactDial) CockpitTheme.typography.displayMedium else CockpitTheme.typography.displayLarge)
+                            .copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(textPrimary)),
                         color = textPrimary,
                         maxLines = 1
                     )

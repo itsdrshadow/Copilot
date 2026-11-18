@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.15.0] - 2026-11-18
+
+### Added
+- Soft colour-matched glow on home-screen numbers (speedometer, fuel litres/percent, clock, trip hero value and timer, stat cells such as range and mileage); skipped for dark text in light theme.
+
 ## [2.14.0] - 2026-11-18
 
 ### Added

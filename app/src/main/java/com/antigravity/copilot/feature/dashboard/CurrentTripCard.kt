@@ -545,7 +545,8 @@ fun CurrentTripCard(
                         text = liveTripTimerText,
                         style = CockpitTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum"
+                            fontFeatureSettings = "tnum",
+                            shadow = com.antigravity.copilot.core.designsystem.numberGlow(timerTextColor)
                         ),
                         maxLines = 1,
                         softWrap = false,
@@ -584,7 +585,8 @@ fun CurrentTripCard(
                         text = movingText,
                         style = CockpitTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum"
+                            fontFeatureSettings = "tnum",
+                            shadow = com.antigravity.copilot.core.designsystem.numberGlow(if (isTripActive) positiveAccent else cyanAccent)
                         ),
                         maxLines = 1,
                         softWrap = false,

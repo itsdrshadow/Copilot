@@ -7,7 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
@@ -22,6 +25,14 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+
+/**
+ * Soft halo in the number's own colour so figures read as lit on the dark cockpit surface.
+ * Skipped for dark ink (light theme) where a blur would only look like a smudge.
+ */
+fun numberGlow(color: Color): Shadow? =
+    if (color.luminance() < 0.2f) null
+    else Shadow(color = color.copy(alpha = 0.35f), offset = Offset.Zero, blurRadius = 14f)
 
 /**
  * Composite Adaptive Metric Text (Value + Unit):
@@ -74,6 +85,7 @@ fun AdaptiveMetricValueText(
                     SpanStyle(
                         fontSize = valSizeSp.sp,
                         color = valueColor,
+                        shadow = numberGlow(valueColor),
                         fontWeight = fontWeight,
                         fontFamily = fontFamily ?: AutomotiveDesignTokens.NumericTypography.fontFamily,
                         letterSpacing = letterSpacing
