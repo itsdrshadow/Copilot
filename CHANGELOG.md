@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.26.0] - 2026-11-18
+
+### Added
+- Fuel stations & refuel logs (DB v14): a station is saved on the first refuel at a confirmed pump (saved station or map fuel POI within 40 m, or the stop prompt); manual entries elsewhere still join the mileage chain.
+- `HybridMileageEngine`: deterministic dual-anchor replay of the full refuel history (FULL_TANK→FULL_TANK, AT_RESERVE→AT_RESERVE, pattern switch closes the anchor without a rating; 3-log rolling trend for display), feeding a per-station rolling mileage and quality rating.
+- "Reserve light ON" one-tap odometer marker on the Fuel card for reserve-to-reserve mileage, with undo.
+- Map fuel-station bubble: the single closest saved station within 300 m and ±60° ahead, positioned per camera frame.
+- Refuel dialog: amount / rate / litres auto-sync (the two most recently typed fields drive the third).
+- Fuel stations and refuel logs are included in backup/restore and cleared by factory reset.
+
 ## [2.25.0] - 2026-11-18
 
 ### Added

@@ -23,7 +23,16 @@ class FuelEntryViewModel @Inject constructor(
         fuelRepository.gaugeCalibration.getBarForLiters(liters).coerceIn(0, 10)
 
     suspend fun lookupStation(lat: Double, lon: Double): StationLookup {
-        val name = LocationNameResolver.resolveStationOrAddress(context, lat, lon)
+        // Offline first: a saved station (with its last rate), then a map fuel POI, within 40 m.
+        val stations = com.antigravity.copilot.core.fuel.station.FuelStationRepository.getInstance(context)
+        stations.findStationNear(lat, lon)?.let { s ->
+            return StationLookup(s.name, s.lastFuelRate.takeIf { it > 0.0 }
+                ?: StationPriceManager.getRememberedPrice(context, lat, lon, s.name)?.takeIf { it > 0.0 })
+        }
+        val poiName = com.antigravity.copilot.core.fuel.station.FuelPoiCache
+            .nearest(lat, lon, com.antigravity.copilot.core.fuel.station.FuelStationRepository.STATION_MATCH_RADIUS_M)
+            ?.name?.takeIf { it.isNotBlank() }
+        val name = poiName ?: LocationNameResolver.resolveStationOrAddress(context, lat, lon)
         val price = StationPriceManager.getRememberedPrice(context, lat, lon, name)?.takeIf { it > 0.0 }
         return StationLookup(name, price)
     }

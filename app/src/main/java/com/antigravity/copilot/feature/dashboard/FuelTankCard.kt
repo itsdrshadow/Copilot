@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -70,6 +71,8 @@ fun FuelTankCard(
     onClick: () -> Unit,
     onCalibrateGauge: (Double) -> Unit = {},
     onDismissNotice: () -> Unit = {},
+    reserveMarkerOdometer: Double? = null,
+    onToggleReserveLight: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val c = CockpitTheme.colors
@@ -132,8 +135,21 @@ fun FuelTankCard(
         }
 
         // Low fuel: say it in words with the range, not only a red number.
-        if (tankPct < LOW_FUEL_PERCENT) {
-            LowFuelStrip(rangeKm = fuelState.remainingRangeKm)
+        // Reserve-light slot (the header has no room left): locked reading, low-fuel strip with a
+        // compact reserve button, or a quiet "Reserve light ON" row.
+        when {
+            reserveMarkerOdometer != null ->
+                ReserveLockedStrip(odometerKm = reserveMarkerOdometer, onUndo = onToggleReserveLight)
+            tankPct < LOW_FUEL_PERCENT -> Row(
+                // Button matches the strip's height so the card's stat row never gets pushed out.
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.weight(1f)) { LowFuelStrip(rangeKm = fuelState.remainingRangeKm) }
+                ReserveLightButton(onClick = onToggleReserveLight)
+            }
+            else -> ReserveLightRow(onClick = onToggleReserveLight)
         }
 
         Spacer(Modifier.weight(0.55f))
@@ -403,6 +419,79 @@ private fun LowFuelStrip(rangeKm: Double) {
             style = CockpitTheme.typography.titleSmall,
             color = c.textPrimary,
             maxLines = 1
+        )
+    }
+}
+
+/**
+ * One-tap "Reserve light ON": locks the odometer the moment the low-fuel lamp comes on, for
+ * reserve-to-reserve mileage. Compact form, used beside the low-fuel strip.
+ */
+@Composable
+private fun ReserveLightButton(onClick: () -> Unit) {
+    val c = CockpitTheme.colors
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(52.dp)
+            .clip(Raahi.InnerShape)
+            .background(c.warning.copy(alpha = 0.12f))
+            .border(1.dp, c.warning.copy(alpha = 0.6f), Raahi.InnerShape)
+            .clickable(role = Role.Button, onClickLabel = "Reserve light is on", onClick = onClick)
+            .semantics { contentDescription = "Reserve light ON" },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = c.warning, modifier = Modifier.size(24.dp))
+    }
+}
+
+/** Full-width quiet variant when fuel is not (yet) estimated low. */
+@Composable
+private fun ReserveLightRow(onClick: () -> Unit) {
+    val c = CockpitTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Raahi.InnerShape)
+            .border(1.dp, c.border, Raahi.InnerShape)
+            .clickable(role = Role.Button, onClickLabel = "Reserve light is on", onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(22.dp))
+        Text(
+            "Reserve light ON",
+            style = CockpitTheme.typography.titleSmall,
+            color = c.textSecondary,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** Shown while a reserve-light odometer is locked; tap to undo a mistaken tap. */
+@Composable
+private fun ReserveLockedStrip(odometerKm: Double, onUndo: () -> Unit) {
+    val c = CockpitTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Raahi.InnerShape)
+            .background(c.warning.copy(alpha = 0.14f))
+            .border(1.dp, c.warning.copy(alpha = 0.5f), Raahi.InnerShape)
+            .clickable(role = Role.Button, onClickLabel = "Undo reserve light", onClick = onUndo)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = c.warning, modifier = Modifier.size(22.dp))
+        Text(
+            text = "Reserve @ ${NumberFormatUtils.formatOdometer(odometerKm, 0)} km",
+            style = CockpitTheme.typography.titleSmall,
+            color = c.textPrimary,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }

@@ -159,6 +159,8 @@ object FullBackupManager {
             val fuelModelState = db.fuelModelDao().get()
             val roadCells = db.roadCellDao().getAll()
             val roadAnomalies = db.roadAnomalyDao().getAll()
+            val fuelStations = db.fuelStationDao().getAll()
+            val refuelLogs = db.refuelLogDao().getAllChronological()
 
             fun encodePrefs(spName: String): Map<String, TypedPrefEntry> {
                 val sp = context.getSharedPreferences(spName, Context.MODE_PRIVATE)
@@ -239,6 +241,8 @@ object FullBackupManager {
             if (fuelModelState != null) writeZipStringEntry("fuel_model_state.json", gson.toJson(fuelModelState))
             writeZipStringEntry("road_cells.json", gson.toJson(roadCells))
             writeZipStringEntry("road_anomalies.json", gson.toJson(roadAnomalies))
+            writeZipStringEntry("fuel_stations.json", gson.toJson(fuelStations))
+            writeZipStringEntry("refuel_logs.json", gson.toJson(refuelLogs))
 
             // 3. SharedPreferences
             writeZipStringEntry("preferences.json", gson.toJson(prefsData))
@@ -364,6 +368,8 @@ object FullBackupManager {
             val fuelModelJson = readEntryString("fuel_model_state.json")
             val roadCellsJson = readEntryString("road_cells.json")
             val roadAnomaliesJson = readEntryString("road_anomalies.json")
+            val fuelStationsJson = readEntryString("fuel_stations.json")
+            val refuelLogsJson = readEntryString("refuel_logs.json")
 
             val prefsJson = readEntryString("preferences.json")
             val mapManifestJson = readEntryString("maps/india_offline_manifest.json")
@@ -460,6 +466,15 @@ object FullBackupManager {
                         db.roadAnomalyDao().clearAll()
                         db.roadAnomalyDao().insertAll(rows)
                     }
+                }
+                if (!fuelStationsJson.isNullOrBlank() || !refuelLogsJson.isNullOrBlank()) {
+                    val stationType = object : TypeToken<List<com.antigravity.copilot.core.fuel.station.FuelStationEntity>>() {}.type
+                    val logType = object : TypeToken<List<com.antigravity.copilot.core.fuel.station.RefuelLogEntity>>() {}.type
+                    val stations: List<com.antigravity.copilot.core.fuel.station.FuelStationEntity>? =
+                        fuelStationsJson?.takeIf { it.isNotBlank() }?.let { gson.fromJson(it, stationType) }
+                    val logs: List<com.antigravity.copilot.core.fuel.station.RefuelLogEntity>? =
+                        refuelLogsJson?.takeIf { it.isNotBlank() }?.let { gson.fromJson(it, logType) }
+                    com.antigravity.copilot.core.fuel.station.FuelStationRepository.getInstance(context).restore(stations, logs)
                 }
             }
 

@@ -15,8 +15,8 @@ import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.TaskAlt
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material.icons.outlined.Edit
+import com.antigravity.copilot.core.fuel.station.RefuelMode
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -56,7 +56,15 @@ const val GAUGE_NOT_OBSERVED = -1
 enum class ActiveFuelField {
     AMOUNT,
     RATE,
+    LITRES,
     ODOMETER
+}
+
+private fun ActiveFuelField.syncField(): SyncField? = when (this) {
+    ActiveFuelField.AMOUNT -> SyncField.AMOUNT
+    ActiveFuelField.RATE -> SyncField.RATE
+    ActiveFuelField.LITRES -> SyncField.LITRES
+    ActiveFuelField.ODOMETER -> null
 }
 
 /**
@@ -74,7 +82,11 @@ fun FuelEntryDialog(
     recordedLifetimeKm: Double,
     currentLocationPoint: TripPoint?,
     onDismiss: () -> Unit,
-    onSaveRefuel: (liters: Double, midBar: Int, pricePerLiter: Double, totalCost: Double, odometerKm: Double, locationName: String, lat: Double, lon: Double, fullTank: Boolean) -> Unit,
+    onSaveRefuel: (liters: Double, midBar: Int, pricePerLiter: Double, totalCost: Double, odometerKm: Double, locationName: String, lat: Double, lon: Double, refuelMode: RefuelMode) -> Unit,
+    /** Station from the pump-stop prompt; the header then reads "Refueling here?". */
+    initialStationName: String? = null,
+    /** "Reserve light ON" was tapped since the last refuel: preselect At Reserve. */
+    reserveMarkerPending: Boolean = false,
     viewModel: FuelEntryViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -88,15 +100,17 @@ fun FuelEntryDialog(
     // True once the driver types into the odometer field: only then is it a real reading.
     var odometerEdited by remember { mutableStateOf(false) }
     var totalAmountText by remember { mutableStateOf("") }
-    // L4: the first field can take litres instead of rupees (the bill is then litres x price).
-    var byLitres by remember { mutableStateOf(false) }
     var litresText by remember { mutableStateOf("") }
+    // Amount / Rate / Litres: the two most recently typed are inputs, the third is derived.
+    var typedOrder by remember { mutableStateOf(listOf(SyncField.RATE, SyncField.AMOUNT)) }
+    val derivedField = RefuelInputSync.derivedField(typedOrder)
     var pricePerLiterText by remember {
         mutableStateOf(
             if (fuelState.fuelPricePerLiter > 0) NumberFormatUtils.formatPrecision(fuelState.fuelPricePerLiter, 2) else "96.50"
         )
     }
-    var locationNameText by remember { mutableStateOf(STATION_LOOKUP_PLACEHOLDER) }
+    var locationNameText by remember { mutableStateOf(initialStationName?.takeIf { it.isNotBlank() } ?: STATION_LOOKUP_PLACEHOLDER) }
+    var nameEdited by remember { mutableStateOf(false) }
     var isRememberedStationPrice by remember { mutableStateOf(false) }
 
     // Resolve the fuel station once per dialog (and once more when a GPS fix first arrives).
@@ -106,8 +120,9 @@ fun FuelEntryDialog(
             lat = currentLocationPoint?.latitude ?: 0.0,
             lon = currentLocationPoint?.longitude ?: 0.0
         )
-        locationNameText = lookup.name
-        lookup.rememberedPricePerLiter?.let { rate ->
+        // Never overwrite what the driver typed or the name the stop prompt already found.
+        if (!nameEdited && initialStationName.isNullOrBlank()) locationNameText = lookup.name
+        lookup.rememberedPricePerLiter?.takeIf { derivedField != SyncField.RATE }?.let { rate ->
             pricePerLiterText = NumberFormatUtils.formatPrecision(rate, 2)
             isRememberedStationPrice = true
         }
@@ -117,10 +132,15 @@ fun FuelEntryDialog(
 
     // ---- Calculations ----
     // An empty / zero rate is invalid; never silently substitute a default price.
-    val pricePerLiter = pricePerLiterText.toDoubleOrNull() ?: 0.0
-    val dispensedLiters = if (byLitres) (litresText.toDoubleOrNull() ?: 0.0)
-        else if (pricePerLiter > 0.0) (totalAmountText.toDoubleOrNull() ?: 0.0) / pricePerLiter else 0.0
-    val totalAmount = if (byLitres) dispensedLiters * pricePerLiter else (totalAmountText.toDoubleOrNull() ?: 0.0)
+    val synced = RefuelInputSync.resolve(
+        amount = totalAmountText.toDoubleOrNull() ?: 0.0,
+        rate = pricePerLiterText.toDoubleOrNull() ?: 0.0,
+        litres = litresText.toDoubleOrNull() ?: 0.0,
+        derived = derivedField
+    )
+    val pricePerLiter = synced.rate
+    val dispensedLiters = synced.litres
+    val totalAmount = synced.amount
 
     val designCap = fuelState.designCapacityLiters.coerceAtLeast(30.0)
     // The tank the fuel model really uses (learned usable capacity), the same one the home card's
@@ -132,10 +152,16 @@ fun FuelEntryDialog(
     val clampedFinalTank = predictedFinalTank.coerceAtMost(maxOf(tankCap, dispensedLiters))
     val effectiveMileage = if (fuelState.currentMileageKmpl > 0.0) fuelState.currentMileageKmpl else 18.0
 
-    // Full-tank flag: defaults on when the refuel is projected to fill the tank; the driver decides.
+    // Refuel mode: At Reserve after a reserve-light tap, Full Tank when the fill is projected to
+    // top the tank, else Top-up. The driver's chip choice always wins.
     val projectedFull = dispensedLiters > 0.0 && predictedFinalTank >= tankCap * 0.98
-    var fullTankOverride by remember { mutableStateOf<Boolean?>(null) }
-    val isFullTank = fullTankOverride ?: projectedFull
+    var modeOverride by remember { mutableStateOf<RefuelMode?>(null) }
+    val refuelMode = modeOverride ?: when {
+        reserveMarkerPending -> RefuelMode.AT_RESERVE
+        projectedFull -> RefuelMode.FULL_TANK
+        else -> RefuelMode.TOP_UP
+    }
+    val isFullTank = refuelMode == RefuelMode.FULL_TANK
 
     // Indicator only: current fill from the home gauge, plus this refuel's share of the tank.
     val currentPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0)
@@ -162,9 +188,20 @@ fun FuelEntryDialog(
     val isFormValid = totalAmount > 0.0 && dispensedLiters > 0.0 && validationError == null
 
     fun edit(field: ActiveFuelField, f: (String) -> String) {
+        field.syncField()?.let { sf ->
+            // Typing into the derived field starts it fresh (it was showing a computed value).
+            val wasDerived = sf == derivedField
+            typedOrder = RefuelInputSync.touch(typedOrder, sf)
+            val apply: (String) -> String = { if (wasDerived) f("") else f(it) }
+            when (sf) {
+                SyncField.AMOUNT -> totalAmountText = apply(totalAmountText)
+                SyncField.RATE -> { pricePerLiterText = apply(pricePerLiterText); isRememberedStationPrice = false }
+                SyncField.LITRES -> litresText = apply(litresText)
+            }
+            return
+        }
         when (field) {
-            ActiveFuelField.AMOUNT -> if (byLitres) litresText = f(litresText) else totalAmountText = f(totalAmountText)
-            ActiveFuelField.RATE -> pricePerLiterText = f(pricePerLiterText)
+            ActiveFuelField.AMOUNT, ActiveFuelField.RATE, ActiveFuelField.LITRES -> Unit
             ActiveFuelField.ODOMETER -> {
                 // First key replaces the pre-filled hint rather than appending to it.
                 val base = if (odometerEdited) refuelOdometerText else ""
@@ -186,13 +223,15 @@ fun FuelEntryDialog(
     fun nextField() {
         activeField = when (activeField) {
             ActiveFuelField.AMOUNT -> ActiveFuelField.RATE
-            ActiveFuelField.RATE -> ActiveFuelField.ODOMETER
+            ActiveFuelField.RATE -> ActiveFuelField.LITRES
+            ActiveFuelField.LITRES -> ActiveFuelField.ODOMETER
             ActiveFuelField.ODOMETER -> ActiveFuelField.AMOUNT
         }
     }
 
     val amountColor = c.accent
     val rateColor = c.accent
+    val litresColor = c.accent
     val odoColor = c.accent
 
     RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 1160.dp) {
@@ -217,7 +256,7 @@ fun FuelEntryDialog(
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "Add fuel",
+                        if (!initialStationName.isNullOrBlank()) "Refueling here?" else "Add fuel",
                         style = CockpitTheme.typography.titleLarge.copy(fontSize = 26.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold),
                         color = c.textPrimary
                     )
@@ -235,13 +274,34 @@ fun FuelEntryDialog(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(Icons.Outlined.Place, contentDescription = null, tint = c.accent, modifier = Modifier.size(18.dp))
-                        Text(
-                            cleanAddress,
-                            style = CockpitTheme.typography.labelLarge,
-                            color = c.textPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        // Editable station name; kept permanently with the station on save.
+                        val lookingUp = locationNameText == STATION_LOOKUP_PLACEHOLDER
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = when {
+                                lookingUp -> ""
+                                nameEdited -> locationNameText
+                                else -> cleanAddress
+                            },
+                            onValueChange = { nameEdited = true; locationNameText = it.take(60) },
+                            singleLine = true,
+                            textStyle = CockpitTheme.typography.labelLarge.copy(color = c.textPrimary),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(c.accent),
+                            modifier = Modifier.widthIn(min = 160.dp, max = 420.dp),
+                            decorationBox = { inner ->
+                                Box {
+                                    if (lookingUp || (nameEdited && locationNameText.isEmpty())) {
+                                        Text(
+                                            if (lookingUp) STATION_LOOKUP_PLACEHOLDER else "Station name",
+                                            style = CockpitTheme.typography.labelLarge,
+                                            color = c.textSecondary,
+                                            maxLines = 1
+                                        )
+                                    }
+                                    inner()
+                                }
+                            }
                         )
+                        Icon(Icons.Outlined.Edit, contentDescription = "Edit station name", tint = c.textSecondary, modifier = Modifier.size(16.dp))
                     }
                 }
                 Box(
@@ -262,25 +322,41 @@ fun FuelEntryDialog(
                 Column(modifier = Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         FuelField(
-                            label = if (byLitres) "Litres filled" else "Amount paid",
-                            icon = if (byLitres) Icons.Outlined.LocalGasStation else Icons.Outlined.Payments,
+                            label = if (derivedField == SyncField.AMOUNT) "Amount · auto" else "Amount paid",
+                            icon = Icons.Outlined.Payments,
                             accent = amountColor,
-                            prefix = if (byLitres) null else "₹",
-                            suffix = if (byLitres) "L" else null,
-                            value = (if (byLitres) litresText else totalAmountText).ifEmpty { "0" },
+                            prefix = "₹",
+                            value = if (derivedField == SyncField.AMOUNT) NumberFormatUtils.formatPrecision(totalAmount, 0) else totalAmountText.ifEmpty { "0" },
+                            dimValue = derivedField == SyncField.AMOUNT,
                             active = activeField == ActiveFuelField.AMOUNT,
                             onClick = { activeField = ActiveFuelField.AMOUNT },
                             modifier = Modifier.weight(1.1f)
                         )
                         FuelField(
-                            label = if (isRememberedStationPrice) "Price / L (saved)" else "Price / L",
+                            label = when {
+                                derivedField == SyncField.RATE -> "Price / L · auto"
+                                isRememberedStationPrice -> "Price / L (saved)"
+                                else -> "Price / L"
+                            },
                             icon = Icons.Outlined.Sell,
                             accent = rateColor,
                             prefix = "₹",
-                            value = pricePerLiterText.ifEmpty { "0" },
+                            value = if (derivedField == SyncField.RATE) NumberFormatUtils.formatPrecision(pricePerLiter, 2) else pricePerLiterText.ifEmpty { "0" },
+                            dimValue = derivedField == SyncField.RATE,
                             active = activeField == ActiveFuelField.RATE,
                             onClick = { activeField = ActiveFuelField.RATE },
-                            modifier = Modifier.weight(0.9f)
+                            modifier = Modifier.weight(0.95f)
+                        )
+                        FuelField(
+                            label = if (derivedField == SyncField.LITRES) "Litres · auto" else "Litres filled",
+                            icon = Icons.Outlined.LocalGasStation,
+                            accent = litresColor,
+                            suffix = "L",
+                            value = if (derivedField == SyncField.LITRES) NumberFormatUtils.formatPrecision(dispensedLiters, 2) else litresText.ifEmpty { "0" },
+                            dimValue = derivedField == SyncField.LITRES,
+                            active = activeField == ActiveFuelField.LITRES,
+                            onClick = { activeField = ActiveFuelField.LITRES },
+                            modifier = Modifier.weight(0.95f)
                         )
                     }
                     FuelField(
@@ -304,22 +380,14 @@ fun FuelEntryDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        com.antigravity.copilot.core.designsystem.components.SegmentedToggle(
-                            options = listOf(false to "₹ Amount", true to "Litres"),
-                            selected = byLitres,
-                            onSelect = {
-                                byLitres = it
-                                activeField = ActiveFuelField.AMOUNT
-                            }
-                        )
                         // L-N1: one-tap amounts.
                         listOf(500, 1000, 2000).forEach { amt ->
                             com.antigravity.copilot.core.designsystem.components.RaahiPill(
                                 text = "₹$amt",
                                 color = c.accent,
                                 onClick = {
-                                    byLitres = false
                                     totalAmountText = "$amt"
+                                    typedOrder = RefuelInputSync.touch(typedOrder, SyncField.AMOUNT)
                                     activeField = ActiveFuelField.AMOUNT
                                 }
                             )
@@ -328,10 +396,10 @@ fun FuelEntryDialog(
                             text = "Full tank",
                             color = c.positive,
                             onClick = {
-                                byLitres = true
                                 litresText = NumberFormatUtils.formatPrecision((tankCap - currentFuelLiters).coerceAtLeast(0.0), 1)
-                                fullTankOverride = true
-                                activeField = ActiveFuelField.AMOUNT
+                                typedOrder = RefuelInputSync.touch(typedOrder, SyncField.LITRES)
+                                modeOverride = RefuelMode.FULL_TANK
+                                activeField = ActiveFuelField.LITRES
                             }
                         )
                     }
@@ -350,11 +418,8 @@ fun FuelEntryDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Full-to-full intervals are the most reliable mileage source.
-                    FullTankToggle(
-                        checked = isFullTank,
-                        onToggle = { fullTankOverride = !isFullTank }
-                    )
+                    // Full Tank / At Reserve / Top-up: drives the station mileage cycles.
+                    RefuelModeSelector(selected = refuelMode, onSelect = { modeOverride = it })
 
                     validationError?.let {
                         Text(it, style = CockpitTheme.typography.bodyLarge, color = c.criticalText)
@@ -381,10 +446,10 @@ fun FuelEntryDialog(
                                     totalAmount,
                                     if (odometerEdited && enteredOdo > 0.0) enteredOdo else 0.0,
                                     // Never persist the lookup placeholder as a station name.
-                                    locationNameText.takeUnless { it == STATION_LOOKUP_PLACEHOLDER }.orEmpty(),
+                                    locationNameText.takeUnless { it == STATION_LOOKUP_PLACEHOLDER }.orEmpty().trim(),
                                     currentLocationPoint?.latitude ?: 0.0,
                                     currentLocationPoint?.longitude ?: 0.0,
-                                    isFullTank
+                                    refuelMode
                                 )
                                 onDismiss()
                             },
@@ -397,6 +462,7 @@ fun FuelEntryDialog(
                 val keyAccent = when (activeField) {
                     ActiveFuelField.AMOUNT -> amountColor
                     ActiveFuelField.RATE -> rateColor
+                    ActiveFuelField.LITRES -> litresColor
                     ActiveFuelField.ODOMETER -> odoColor
                 }
                 Column(
@@ -521,64 +587,48 @@ private fun FuelField(
 }
 
 /**
- * "Full tank fill" toggle (was "Filled to full"): a tappable card with a switch. Green when on.
- * Full-to-full intervals give the most accurate mileage, so the subtitle says why it matters.
+ * Refuel mode chips. Full Tank -> full-to-full cycles, At Reserve -> reserve-to-reserve cycles,
+ * Top-up -> added into whichever cycle is open. Full Tank also drives the fuel model's full flag.
  */
 @Composable
-private fun FullTankToggle(checked: Boolean, onToggle: () -> Unit) {
+private fun RefuelModeSelector(selected: RefuelMode, onSelect: (RefuelMode) -> Unit) {
     val c = CockpitTheme.colors
-    val tint = if (checked) c.positive else c.textSecondary
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 68.dp)
-            .clip(Raahi.InnerShape)
-            .background(if (checked) c.positive.copy(alpha = 0.14f) else c.cardElevated)
-            .border(if (checked) 2.dp else 1.dp, if (checked) c.positive else c.border, Raahi.InnerShape)
-            .clickable(role = Role.Switch, onClick = onToggle)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(42.dp)
-                .clip(Raahi.InnerShape)
-                .background(tint.copy(alpha = 0.18f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                if (checked) Icons.Outlined.TaskAlt else Icons.Outlined.LocalGasStation,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(24.dp)
-            )
+    val options = listOf(
+        Triple(RefuelMode.FULL_TANK, "Full Tank", "Pump clicked off"),
+        Triple(RefuelMode.AT_RESERVE, "At Reserve", "Reserve light was on"),
+        Triple(RefuelMode.TOP_UP, "Top-up", "Partial fill")
+    )
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { (mode, title, hint) ->
+            val on = mode == selected
+            val tint = when (mode) {
+                RefuelMode.FULL_TANK -> c.positive
+                RefuelMode.AT_RESERVE -> c.warning
+                else -> c.accent
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 64.dp)
+                    .clip(Raahi.InnerShape)
+                    .background(if (on) tint.copy(alpha = 0.16f) else c.cardElevated)
+                    .border(if (on) 2.dp else 1.dp, if (on) tint else c.border, Raahi.InnerShape)
+                    .clickable(role = Role.RadioButton, onClick = { onSelect(mode) })
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (on) Icon(Icons.Outlined.TaskAlt, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+                    Text(
+                        title,
+                        style = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = c.textPrimary,
+                        maxLines = 1
+                    )
+                }
+                Text(hint, style = CockpitTheme.typography.bodyMedium, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "Full tank fill",
-                style = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = c.textPrimary
-            )
-            Text(
-                "Pump stopped on its own: best for accurate mileage",
-                style = CockpitTheme.typography.bodyMedium,
-                color = c.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = { onToggle() },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = c.positive,
-                uncheckedThumbColor = c.textSecondary,
-                uncheckedTrackColor = c.card,
-                uncheckedBorderColor = c.border
-            )
-        )
     }
 }
 

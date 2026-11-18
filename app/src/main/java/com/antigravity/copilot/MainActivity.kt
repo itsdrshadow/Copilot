@@ -505,6 +505,7 @@ private fun MainAppScreen(
         // one starts sliding out, so the map is already live when it becomes visible again.
         fun MutableTransitionState<Boolean>.fullyShown() = isIdle && currentState && targetState
         val isDashboardCovered = tabOverlayState.fullyShown() || drawerState.fullyShown() || settingsState.fullyShown()
+        val reserveMarkerOdo by viewModel.reserveMarkerOdometer.collectAsStateWithLifecycle()
 
         DashboardScreen(
             currentTrip = currentTrip,
@@ -518,6 +519,8 @@ private fun MainAppScreen(
             speedLimitInfo = speedLimitInfo,
             onNavItemSelected = { index -> viewModel.selectTab(index) },
             onOpenFuelDialog = { viewModel.setFuelDialogOpen(true) },
+            reserveMarkerOdometer = reserveMarkerOdo,
+            onToggleReserveLight = { viewModel.toggleReserveLight() },
             onOpenFuelHistory = { viewModel.selectTab(3) },
             onOpenAppDrawer = { viewModel.setAppDrawerOpen(true) },
             onLaunchNavi = { viewModel.launchNavigation() },
@@ -592,10 +595,7 @@ private fun MainAppScreen(
         refuelPromptData?.let { prompt ->
             RefuelStationPromptDialog(
                 promptData = prompt,
-                onAcceptRefuel = {
-                    viewModel.dismissRefuelPrompt()
-                    viewModel.setFuelDialogOpen(true)
-                },
+                onAcceptRefuel = { viewModel.acceptRefuelPrompt() },
                 onDismiss = {
                     viewModel.dismissRefuelPrompt()
                 }
@@ -603,14 +603,18 @@ private fun MainAppScreen(
         }
 
         if (isFuelDialogOpen) {
+            val promptStation by viewModel.refuelDialogStation.collectAsStateWithLifecycle()
+            val reserveOdo by viewModel.reserveMarkerOdometer.collectAsStateWithLifecycle()
             FuelEntryDialog(
+                initialStationName = promptStation,
+                reserveMarkerPending = reserveOdo != null,
                 fuelState = fuelState,
                 recordedLifetimeKm = recordedDistanceKm,
                 currentLocationPoint = latestPointState.value,
                 onDismiss = { viewModel.setFuelDialogOpen(false) },
-                onSaveRefuel = { liters, midBar, price, cost, odo, locationName, lat, lon, fullTank ->
+                onSaveRefuel = { liters, midBar, price, cost, odo, locationName, lat, lon, refuelMode ->
                     viewModel.recordRefuel(
-                        fullTank = fullTank,
+                        refuelMode = refuelMode,
                         litersAdded = liters,
                         midBarObserved = midBar,
                         pricePerLiter = price,

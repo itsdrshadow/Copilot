@@ -74,6 +74,11 @@ class CarMapController(
         private const val ANOMALY_LAYER_ID = "copilot_road_anomaly_layer"
         private const val ANOMALY_COLOR_YELLOW = "#FACC15"
         private const val ANOMALY_COLOR_RED = "#EF4444"
+        private const val STATION_SOURCE_ID = "copilot_fuel_station_source"
+        private const val STATION_LAYER_ID = "copilot_fuel_station_layer"
+        private const val POI_SCAN_INTERVAL_MS = 5_000L
+        private const val POI_SCAN_MOVE_M = 150.0
+        private const val POI_SCAN_MIN_ZOOM = 14.0
 
         private const val DEFAULT_DRIVING_TILT = 45.0
 
@@ -324,6 +329,7 @@ class CarMapController(
                 setupRoadMileageLayer(style)
                 setupTrailLayers(style)
                 setupAnomalyLayer(style)
+                setupStationLayer(style)
                 setupVehicleLayer(style)
                 roadIntel.onStyleLoaded(style)
                 isStyleLoaded = true
@@ -583,6 +589,114 @@ class CarMapController(
         }
     }
 
+    // ---------------- Fuel stations: PMTiles POI scan, pins, bubble anchor ----------------
+    private var lastPoiScanMs = 0L
+    private var lastPoiScanLat = Double.NaN
+    private var lastPoiScanLon = Double.NaN
+
+    /**
+     * Reads fuel POIs (OpenMapTiles `poi`, class = fuel) from the loaded offline tiles into
+     * [com.antigravity.copilot.core.fuel.station.FuelPoiCache]. querySourceFeatures is used rather
+     * than queryRenderedFeatures because the POI label is hidden below z15, so nothing would be
+     * "rendered" at z14. Throttled to once per 5 s and 150 m, only at zoom ≥ 14.
+     */
+    private fun maybeScanFuelPois(lat: Double, lon: Double, nowMs: Long) {
+        if (!isStyleLoaded || !renderingActive || nowMs - lastPoiScanMs < POI_SCAN_INTERVAL_MS) return
+        if (!lastPoiScanLat.isNaN() &&
+            com.antigravity.copilot.core.logic.GeoMath.haversineM(lat, lon, lastPoiScanLat, lastPoiScanLon) < POI_SCAN_MOVE_M) return
+        val map = mapboxMap ?: return
+        if (map.cameraPosition.zoom < POI_SCAN_MIN_ZOOM) return
+        lastPoiScanMs = nowMs
+        lastPoiScanLat = lat; lastPoiScanLon = lon
+        try {
+            val source = map.style?.getSourceAs<org.maplibre.android.style.sources.VectorSource>("openmaptiles") ?: return
+            val features = source.querySourceFeatures(arrayOf("poi"), Expression.eq(Expression.get("class"), Expression.literal("fuel")))
+            val pois = features.mapNotNull { f ->
+                val p = f.geometry() as? Point ?: return@mapNotNull null
+                val name = listOf("name:en", "name_en", "name:latin", "name")
+                    .firstNotNullOfOrNull { k -> f.getStringProperty(k)?.takeIf { it.isNotBlank() } }.orEmpty()
+                com.antigravity.copilot.core.fuel.station.FuelPoiCache.Poi(name, p.latitude(), p.longitude())
+            }
+            if (pois.isNotEmpty()) com.antigravity.copilot.core.fuel.station.FuelPoiCache.addAll(pois)
+        } catch (e: Exception) {
+            Log.w(TAG, "Fuel POI scan: ${e.message}")
+        }
+    }
+
+    @Volatile private var stationCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())
+
+    /** Saved stations as pins coloured by quality rating (green / yellow / red / grey). */
+    fun updateFuelStations(rows: List<com.antigravity.copilot.core.fuel.station.FuelStationEntity>) {
+        coroutineScope.launch(Dispatchers.Default) {
+            val fc = FeatureCollection.fromFeatures(rows.map { s ->
+                Feature.fromGeometry(Point.fromLngLat(s.longitude, s.latitude)).apply { addStringProperty("q", s.qualityRating) }
+            })
+            withContext(Dispatchers.Main) {
+                stationCollection = fc
+                mapboxMap?.style?.getSourceAs<GeoJsonSource>(STATION_SOURCE_ID)?.setGeoJson(fc)
+            }
+        }
+    }
+
+    private fun setupStationLayer(style: Style) {
+        try {
+            if (style.getSource(STATION_SOURCE_ID) == null) style.addSource(GeoJsonSource(STATION_SOURCE_ID, stationCollection))
+            if (style.getLayer(STATION_LAYER_ID) == null) {
+                style.addLayer(
+                    CircleLayer(STATION_LAYER_ID, STATION_SOURCE_ID).apply {
+                        setProperties(
+                            circleColor(
+                                Expression.match(
+                                    Expression.get("q"), Expression.color(Color.parseColor("#94A3B8")),
+                                    Expression.stop("EXCELLENT", Expression.color(Color.parseColor("#22C55E"))),
+                                    Expression.stop("AVERAGE", Expression.color(Color.parseColor("#FACC15"))),
+                                    Expression.stop("POOR", Expression.color(Color.parseColor("#EF4444")))
+                                )
+                            ),
+                            circleRadius(7.5f),
+                            circleStrokeColor(Color.WHITE),
+                            circleStrokeWidth(2.5f),
+                            circlePitchAlignment(Property.CIRCLE_PITCH_ALIGNMENT_MAP)
+                        )
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error setting up fuel station layer: ${e.message}")
+        }
+    }
+
+    private var stationAnchorListener: CalloutAnchorListener? = null
+    @Volatile private var stationAnchorLat = Double.NaN
+    @Volatile private var stationAnchorLon = Double.NaN
+    private val stationIn = DoubleArray(2)
+    private val stationOut = DoubleArray(2)
+
+    fun setStationAnchorListener(listener: CalloutAnchorListener?) {
+        stationAnchorListener = listener
+        updateStationAnchor()
+    }
+
+    /** Station the bubble points at, or NaN to stop projecting. */
+    fun setStationAnchorTarget(lat: Double, lon: Double) {
+        stationAnchorLat = lat
+        stationAnchorLon = lon
+        updateStationAnchor()
+    }
+
+    /** Same per-frame path as the road callout: one JNI projection into reused arrays. */
+    private fun updateStationAnchor() {
+        val listener = stationAnchorListener ?: return
+        if (stationAnchorLat.isNaN() || !renderingActive) return
+        val map = mapboxMap
+        if (map == null || !isStyleLoaded) { listener.onAnchor(Float.NaN, Float.NaN); return }
+        stationIn[0] = stationAnchorLat
+        stationIn[1] = stationAnchorLon
+        map.projection.toScreenLocations(stationIn, stationOut)
+        // Tail tip just above the 7.5 dp pin.
+        listener.onAnchor(stationOut[0].toFloat(), stationOut[1].toFloat() - 10f * density)
+    }
+
     // ---------------- Pothole / speed-breaker dots ----------------
     @Volatile private var anomalyCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())
 
@@ -704,6 +818,7 @@ class CarMapController(
         val bearing = if (bearing.isFinite()) bearing else lastBearing.toFloat()
 
         val now = SystemClock.elapsedRealtime()
+        maybeScanFuelPois(lat, lon, now)
         val dtMs = if (lastFixElapsedMs == 0L) 1_000L else (now - lastFixElapsedMs).coerceIn(100L, 5_000L)
         lastFixElapsedMs = now
         fixIntervalMs += FIX_INTERVAL_ALPHA * (dtMs.coerceAtMost(MAX_EASE_MS) - fixIntervalMs)
@@ -897,6 +1012,7 @@ class CarMapController(
      * the puck so the bubble never covers the vehicle.
      */
     private fun updateCalloutAnchor() {
+        updateStationAnchor()
         val listener = calloutListener ?: return
         if (!calloutTracking || !renderingActive) return
         val map = mapboxMap

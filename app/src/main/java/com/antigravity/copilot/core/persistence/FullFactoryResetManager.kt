@@ -46,6 +46,8 @@ object FullFactoryResetManager {
         db.fuelModelDao().clear()
         db.roadCellDao().clearAll()
         db.roadAnomalyDao().clearAll()
+        com.antigravity.copilot.core.fuel.station.FuelStationRepository.getInstance(appContext).clearAll()
+        com.antigravity.copilot.core.fuel.station.FuelPoiCache.clear()
         com.antigravity.copilot.core.map.intel.RoadSegmentRepository.getInstance(appContext).clearAll()
 
         // 3. Clear Internal Backup Cache & App Cache Directory

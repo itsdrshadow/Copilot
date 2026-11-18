@@ -304,6 +304,11 @@ fun LiveMapPanel(
         com.antigravity.copilot.core.road.RoadAnomalyManager.getInstance(context.applicationContext)
             .anomalies.collect { mapController.updateAnomalies(it) }
     }
+    // Saved fuel stations as rating-coloured pins.
+    LaunchedEffect(mapController) {
+        com.antigravity.copilot.core.fuel.station.FuelStationRepository.getInstance(context.applicationContext)
+            .stations.collect { mapController.updateFuelStations(it) }
+    }
 
     // Live trail with overlap colouring (throttled + computed off the main thread)
     LaunchedEffect(mapController) {
@@ -507,6 +512,29 @@ fun LiveMapPanel(
         RoadCalloutBubble(
             callout = roadCallout,
             anchor = calloutAnchor,
+            modifier = Modifier.matchParentSize().zIndex(4f)
+        )
+
+        // Single closest saved fuel station ahead (≤ 300 m, ±60°): glass bubble over its pin.
+        val stationBubble by remember { com.antigravity.copilot.core.fuel.station.FuelStationTracker.getInstance(context.applicationContext).bubble }
+            .collectAsStateWithLifecycle()
+        val stationAnchor = remember { CalloutAnchorState() }
+        DisposableEffect(mapController, stationAnchor) {
+            mapController.setStationAnchorListener(stationAnchor)
+            onDispose { mapController.setStationAnchorListener(null) }
+        }
+        LaunchedEffect(mapController, stationBubble?.stationId) {
+            val b = stationBubble
+            if (b == null) {
+                kotlinx.coroutines.delay(500) // keep projecting through the fade-out
+                mapController.setStationAnchorTarget(Double.NaN, Double.NaN)
+            } else {
+                mapController.setStationAnchorTarget(b.latitude, b.longitude)
+            }
+        }
+        FuelStationBubble(
+            bubble = stationBubble,
+            anchor = stationAnchor,
             modifier = Modifier.matchParentSize().zIndex(4f)
         )
 

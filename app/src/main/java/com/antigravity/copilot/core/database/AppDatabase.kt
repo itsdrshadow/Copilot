@@ -242,9 +242,11 @@ interface RoadSegmentStatsDao {
         FuelModelStateEntity::class,
         RoadCellEntity::class,
         RoadSegmentStatsEntity::class,
-        com.antigravity.copilot.core.road.RoadAnomalyEntity::class
+        com.antigravity.copilot.core.road.RoadAnomalyEntity::class,
+        com.antigravity.copilot.core.fuel.station.FuelStationEntity::class,
+        com.antigravity.copilot.core.fuel.station.RefuelLogEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -258,6 +260,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun roadCellDao(): RoadCellDao
     abstract fun roadSegmentStatsDao(): RoadSegmentStatsDao
     abstract fun roadAnomalyDao(): com.antigravity.copilot.core.road.RoadAnomalyDao
+    abstract fun fuelStationDao(): com.antigravity.copilot.core.fuel.station.FuelStationDao
+    abstract fun refuelLogDao(): com.antigravity.copilot.core.fuel.station.RefuelLogDao
 
     companion object {
         @Volatile
@@ -477,7 +481,28 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        const val DATABASE_SCHEMA_VERSION = 13
+        /** Fuel station quality ratings + hybrid mileage refuel logs. */
+        val MIGRATION_13_14 = object : androidx.room.migration.Migration(13, 14) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `fuel_stations` (`stationId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, " +
+                        "`lastFuelRate` REAL NOT NULL, `averageMileage` REAL NOT NULL, `qualityRating` TEXT NOT NULL, " +
+                        "`visitCount` INTEGER NOT NULL, `ratedCycles` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_fuel_stations_latitude_longitude` ON `fuel_stations` (`latitude`, `longitude`)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `refuel_logs` (`logId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`stationId` INTEGER, `liters` REAL NOT NULL, `rate` REAL NOT NULL, `refuelMode` TEXT NOT NULL, " +
+                        "`odometerAtRefuel` REAL NOT NULL, `status` TEXT NOT NULL, `calculatedMileage` REAL, " +
+                        "`timestamp` INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_refuel_logs_timestamp` ON `refuel_logs` (`timestamp`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_refuel_logs_stationId` ON `refuel_logs` (`stationId`)")
+            }
+        }
+
+        const val DATABASE_SCHEMA_VERSION = 14
 
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
@@ -491,7 +516,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_9_10,
             MIGRATION_10_11,
             MIGRATION_11_12,
-            MIGRATION_12_13
+            MIGRATION_12_13,
+            MIGRATION_13_14
         )
 
         fun getInstance(context: Context): AppDatabase {

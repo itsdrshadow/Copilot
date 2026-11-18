@@ -49,6 +49,8 @@ fun DashboardScreen(
     onToggleFullMap: () -> Unit,
     onCalibrateMidBar: (Double) -> Unit = {},
     onDismissFuelNotice: () -> Unit = {},
+    reserveMarkerOdometer: Double? = null,
+    onToggleReserveLight: () -> Unit = {},
     isMapFullScreen: Boolean = false,
     isCovered: Boolean = false,
     modifier: Modifier = Modifier
@@ -124,6 +126,8 @@ fun DashboardScreen(
                             onClick = onOpenFuelDialog,
                             onCalibrateGauge = onCalibrateMidBar,
                             onDismissNotice = onDismissFuelNotice,
+                            reserveMarkerOdometer = reserveMarkerOdometer,
+                            onToggleReserveLight = onToggleReserveLight,
                             modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }

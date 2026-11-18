@@ -10,6 +10,8 @@ import com.antigravity.copilot.core.database.FuelEventEntity
 import com.antigravity.copilot.core.database.FuelLedgerEntity
 import com.antigravity.copilot.core.database.TripEntity
 import com.antigravity.copilot.core.fuel.FuelRepository
+import com.antigravity.copilot.core.fuel.station.FuelStationRepository
+import com.antigravity.copilot.core.fuel.station.RefuelMode
 import com.antigravity.copilot.core.fuel.intelligence.MissedRefuelDetectionResult
 import com.antigravity.copilot.core.location.SpeedLimitEngine
 import com.antigravity.copilot.core.location.SpeedLimitInfo
@@ -42,8 +44,18 @@ class MainViewModel @Inject constructor(
     private val fuelRepository: FuelRepository,
     private val speedLimitEngine: SpeedLimitEngine,
     private val launcherManager: LauncherManager,
-    roadAnomalyManager: com.antigravity.copilot.core.road.RoadAnomalyManager
+    roadAnomalyManager: com.antigravity.copilot.core.road.RoadAnomalyManager,
+    private val fuelStationRepository: FuelStationRepository
 ) : ViewModel() {
+
+    /** Odometer locked by the dashboard "Reserve light ON" tap, until the next refuel. */
+    val reserveMarkerOdometer: StateFlow<Double?> = fuelStationRepository.engineState
+        .map { it.pendingReserveOdometer }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Station name handed from the pump-stop prompt to the Add Fuel dialog (null = manual open). */
+    private val _refuelDialogStation = MutableStateFlow<String?>(null)
+    val refuelDialogStation: StateFlow<String?> = _refuelDialogStation.asStateFlow()
 
     /** 150–200 m ahead pothole / breaker alert for the flash card. */
     val roadAnomalyAlert: StateFlow<com.antigravity.copilot.core.road.AnomalyAlert?> = roadAnomalyManager.aheadAlert
@@ -110,7 +122,22 @@ class MainViewModel @Inject constructor(
     }
 
     fun setFuelDialogOpen(isOpen: Boolean) {
+        if (!isOpen) _refuelDialogStation.value = null
         _isFuelDialogOpen.value = isOpen
+    }
+
+    /** Pump-stop prompt accepted: open Add Fuel pre-filled with the detected station. */
+    fun acceptRefuelPrompt() {
+        _refuelDialogStation.value = refuelPromptEvent.value?.locationName?.takeIf { it.isNotBlank() }
+        fuelRepository.dismissRefuelPrompt()
+        _isFuelDialogOpen.value = true
+    }
+
+    /** Dashboard "Reserve light ON": lock the odometer now (tap again to undo). */
+    fun toggleReserveLight() {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            fuelStationRepository.toggleReserveLight(fuelRepository.getEffectiveOdometer())
+        }
     }
 
     fun setSettingsDialogOpen(isOpen: Boolean) {
@@ -136,7 +163,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun recordRefuel(
-        fullTank: Boolean,
+        refuelMode: RefuelMode,
         litersAdded: Double,
         midBarObserved: Int,
         pricePerLiter: Double,
@@ -147,8 +174,23 @@ class MainViewModel @Inject constructor(
         longitude: Double,
         recordedLifetimeKm: Double
     ) {
+        // Station rating layer: same odometer the ledger uses (typed reading, else the app's).
+        val odo = if (odometerKm > 0.0) odometerKm else fuelRepository.getEffectiveOdometer()
+        val confirmedStation = _refuelDialogStation.value != null
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            fuelStationRepository.recordRefuel(
+                stationName = locationName,
+                lat = latitude,
+                lon = longitude,
+                liters = litersAdded,
+                rate = pricePerLiter,
+                mode = refuelMode,
+                odometerKm = odo,
+                confirmedStation = confirmedStation
+            )
+        }
         fuelRepository.recordRefuel(
-            fullTank = fullTank,
+            fullTank = refuelMode == RefuelMode.FULL_TANK,
             litersAdded = litersAdded,
             midBarObserved = midBarObserved,
             pricePerLiter = pricePerLiter,

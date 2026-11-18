@@ -303,6 +303,7 @@ class DrivingTrackingService : Service(), LocationListener {
                 tripRepository.onLocationReceived(point)
                 vehicleStateManager.onSpeedOrLocationUpdated(point.speedKmh, point.timestamp)
                 roadAnomalyManager.onLocation(point)
+                com.antigravity.copilot.core.fuel.station.FuelStationTracker.getInstance(applicationContext).onLocation(point)
             },
             onTripStarted = { tripId ->
                 lastRecordedDistanceMeters = 0.0
@@ -476,11 +477,7 @@ class DrivingTrackingService : Service(), LocationListener {
                         if (stoppedDurationMs >= 3000L && !hasCheckedStationThisStop) {
                             hasCheckedStationThisStop = true
                             serviceScope.launch {
-                                val detection = LocationNameResolver.detectNearbyFuelStation(
-                                    applicationContext,
-                                    currentPt.latitude,
-                                    currentPt.longitude
-                                )
+                                val detection = detectFuelStationOfflineFirst(currentPt.latitude, currentPt.longitude)
                                 detectedStationResult = detection
 
                                 // Check visit cooldown (30 min or vehicle moved > 200m)
@@ -766,6 +763,20 @@ class DrivingTrackingService : Service(), LocationListener {
     }
 
     private var linearAccelListener: android.hardware.SensorEventListener? = null
+
+    /**
+     * Pump-stop station check: a saved station (Room) or a PMTiles fuel POI within 40 m first —
+     * both work offline and cost no network — then the existing online lookup as a fallback.
+     */
+    private suspend fun detectFuelStationOfflineFirst(lat: Double, lon: Double): FuelStationDetectionResult {
+        val radius = com.antigravity.copilot.core.fuel.station.FuelStationRepository.STATION_MATCH_RADIUS_M
+        com.antigravity.copilot.core.fuel.station.FuelStationRepository.getInstance(applicationContext)
+            .findStationNear(lat, lon, radius)?.let { return FuelStationDetectionResult(true, it.name) }
+        com.antigravity.copilot.core.fuel.station.FuelPoiCache.nearest(lat, lon, radius)?.let {
+            return FuelStationDetectionResult(true, it.name.ifBlank { "Fuel Station" })
+        }
+        return LocationNameResolver.detectNearbyFuelStation(applicationContext, lat, lon)
+    }
 
     /** Linear-acceleration sensor (gravity removed) for the driving-state label; optional. */
     private fun registerLinearAccelerationSensor() {
