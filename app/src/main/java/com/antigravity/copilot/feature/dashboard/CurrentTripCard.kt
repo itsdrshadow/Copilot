@@ -392,9 +392,10 @@ fun CurrentTripCard(
                             modifier = Modifier.size(17.dp)
                         )
                         Text(
-                            text = target.title,
+                            text = target.title.uppercase(),
                             style = CockpitTheme.typography.labelMedium.copy(
-                                letterSpacing = 0.8.sp
+                                fontWeight = FontWeight.Medium,
+                                letterSpacing = 1.04.sp
                             ),
                             color = textSecondary,
                             maxLines = 1,
@@ -468,7 +469,7 @@ fun CurrentTripCard(
             val dockBorderColor = when {
                 isFlashingGreen -> positiveAccent.copy(alpha = flashPulseAlpha)
                 isFlashingRed -> dangerAccent.copy(alpha = flashPulseAlpha)
-                else -> CockpitTheme.colors.border
+                else -> Color.Transparent
             }
             val dockBorderWidth = if (isFlashingGreen || isFlashingRed) 1.8.dp else 1.dp
 
@@ -496,7 +497,7 @@ fun CurrentTripCard(
             val dockBackgroundModifier = if (isFlashingGreen || isFlashingRed) {
                 Modifier.background(dockBg)
             } else {
-                Modifier.background(CockpitTheme.colors.dockActionBrush)
+                Modifier.dashedTopDivider()
             }
 
             Row(
@@ -515,7 +516,7 @@ fun CurrentTripCard(
                     Text(
                         text = liveTripTimerText,
                         style = CockpitTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.SemiBold,
                             fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,
@@ -554,7 +555,7 @@ fun CurrentTripCard(
                     Text(
                         text = movingText,
                         style = CockpitTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Black,
+                            fontWeight = FontWeight.SemiBold,
                             fontFeatureSettings = "tnum"
                         ),
                         maxLines = 1,

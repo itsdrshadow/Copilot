@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.13.0] - 2026-11-18
+
+### Changed
+- Home (Drive) screen redesigned in Bento style: flat cards with hairline borders, eyebrow headers (small icon + UPPERCASE caption), dashed-divider stat strips, semi-bold hero numbers.
+- Speedometer is the featured solid-blue card with white readout; Fuel gets a percent chip and tick-style segment bar; Trip and Clock follow the same anatomy.
+
+---
+
 ## [2.12.1] - 2026-11-18
 
 ### Removed

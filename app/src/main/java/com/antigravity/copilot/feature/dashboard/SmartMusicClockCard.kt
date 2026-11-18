@@ -178,7 +178,7 @@ private fun ClockOnlyState(
             ) {
                 Text(
                     text = timeString,
-                    style = AutomotiveTypographyTokens.NumericClock,
+                    style = AutomotiveTypographyTokens.NumericClock.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
                     color = CockpitTheme.colors.textPrimary,
                     modifier = Modifier.offset(y = (-4).dp)
                 )

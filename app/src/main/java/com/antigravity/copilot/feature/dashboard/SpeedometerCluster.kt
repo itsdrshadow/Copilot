@@ -182,9 +182,9 @@ fun SpeedometerCluster(
     // Dynamic Multi-Stage Speed Status Colors
     val statusColor by animateColorAsState(
         targetValue = when {
-            speedLimit > 0 && rawSpeed > speedLimit * 1.05f -> CockpitTheme.colors.critical
+            speedLimit > 0 && rawSpeed > speedLimit * 1.05f -> Color(0xFFFFB4B4)
             speedLimit > 0 && rawSpeed > speedLimit * 0.92f -> CockpitTheme.colors.warning
-            else -> CockpitTheme.colors.accent
+            else -> Color.White
         },
         animationSpec = tween(350),
         label = "PremiumSpeedStatusColor"
@@ -218,17 +218,19 @@ fun SpeedometerCluster(
 
     val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
-    val cyanAccent = CockpitTheme.colors.accent
-    val criticalColor = CockpitTheme.colors.critical
-    val textPrimary = CockpitTheme.colors.textPrimary
-    val textSecondary = CockpitTheme.colors.textSecondary
+    // Featured (solid accent) card: content is white on blue.
+    val cyanAccent = Color.White
+    val criticalColor = Color(0xFFFFB4B4)
+    val textPrimary = Color.White
+    val textSecondary = Color.White.copy(alpha = 0.80f)
 
     // ==================== SPEEDOMETER CARD (240° dial) ====================
     Box(
         modifier = modifier
-            .dashCardSurface()
+            .dashCardSurface(featured = true)
             .padding(DashCard.Padding)
     ) {
+        FeaturedColors {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween,
@@ -262,7 +264,7 @@ fun SpeedometerCluster(
 
                     // 1. Background Arc Track
                     drawArc(
-                        color = Color.White.copy(alpha = 0.08f),
+                        color = Color.White.copy(alpha = 0.22f),
                         startAngle = startAngle,
                         sweepAngle = sweepRange,
                         useCenter = false,
@@ -331,15 +333,15 @@ fun SpeedometerCluster(
                 ) {
                     Text(
                         text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
-                        style = if (compactDial) CockpitTheme.typography.displayMedium else CockpitTheme.typography.displayLarge,
+                        style = (if (compactDial) CockpitTheme.typography.displayMedium else CockpitTheme.typography.displayLarge).copy(fontWeight = FontWeight.SemiBold),
                         color = textPrimary,
                         maxLines = 1
                     )
                     Text(
                         text = "KM/H",
                         style = CockpitTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.0.sp
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 1.04.sp
                         ),
                         color = statusColor
                     )
@@ -434,6 +436,7 @@ fun SpeedometerCluster(
                         .padding(horizontal = 10.dp)
                 )
             }
+        }
         }
     }
 

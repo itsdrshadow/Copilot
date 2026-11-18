@@ -94,7 +94,7 @@ fun FuelTankCard(
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(
                 text = NumberFormatUtils.formatFuelLiters(fuelState.remainingLiters, 1),
-                style = CockpitTheme.typography.displayMedium,
+                style = CockpitTheme.typography.displayMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = c.textPrimary,
                 maxLines = 1,
                 softWrap = false
@@ -109,9 +109,14 @@ fun FuelTankCard(
             Spacer(Modifier.weight(1f))
             Text(
                 text = "${tankPct.toInt()}%",
-                style = CockpitTheme.typography.displaySmall,
+                style = CockpitTheme.typography.headlineSmall,
                 color = fuelLevelTextColor(tankPct),
-                maxLines = 1
+                maxLines = 1,
+                modifier = Modifier
+                    .padding(bottom = 4.dp)
+                    .clip(CopilotShapes.R8)
+                    .background(fuelLevelColor(tankPct).copy(alpha = 0.14f))
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
             )
         }
 
@@ -129,7 +134,7 @@ fun FuelTankCard(
             SegmentBar(
                 fillPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0),
                 color = fuelLevelColor(tankPct),
-                height = 22.dp,
+                height = 34.dp,
                 segmentColor = { bar ->
                     when {
                         bar <= 2 -> c.critical

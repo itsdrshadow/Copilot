@@ -187,10 +187,10 @@ fun SegmentBar(
     val trackBorder = CockpitTheme.colors.border
     Row(
         modifier = modifier.fillMaxWidth().height(height),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         val fill = fillPoints.coerceIn(0.0, segments.toDouble())
-        val shape = RoundedCornerShape(6.dp)
+        val shape = RoundedCornerShape(50)
         for (i in 1..segments) {
             val seg = (fill - (i - 1)).coerceIn(0.0, 1.0).toFloat()
             val segColor = segmentColor?.invoke(i) ?: color
@@ -200,8 +200,7 @@ fun SegmentBar(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(shape)
-                        .background(if (segmentColor != null) segColor.copy(alpha = 0.16f) else track)
-                        .border(Raahi.Border, if (segmentColor != null) segColor.copy(alpha = 0.35f) else trackBorder, shape),
+                        .background(if (segmentColor != null) segColor.copy(alpha = 0.18f) else track),
             ) {
                 if (seg > 0f) {
                     Box(Modifier.fillMaxHeight().fillMaxWidth(seg).clip(shape).background(segColor))
