@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.24.1] - 2026-11-18
+
+### Fixed
+- Startup: the permanent-backup restore check counts rows in the database first and only reads/parses the JSON mirror when the database is empty (it used to parse the whole file on every launch, on the blocking startup path).
+- Backup: the JSON mirror is serialized once per backup instead of twice.
+
 ## [2.24.0] - 2026-11-18
 
 ### Added

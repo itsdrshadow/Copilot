@@ -92,15 +92,18 @@ object PersistentDataManager {
             val db = AppDatabase.getInstance(context)
             val fuelPrefs = context.getSharedPreferences("driving_report_fuel_prefs", Context.MODE_PRIVATE)
 
+            // Check if Room database is empty (reinstall situation) BEFORE reading the backup:
+            // this runs on the blocking startup path, and parsing the whole JSON mirror on every
+            // launch cost ~1 s once history grew, only to be thrown away when the DB has data.
+            val tripCount = db.openHelper.readableDatabase.compileStatement("SELECT COUNT(*) FROM trips").simpleQueryForLong()
+            val fuelEventCount = db.openHelper.readableDatabase.compileStatement("SELECT COUNT(*) FROM fuel_events").simpleQueryForLong()
+            if (tripCount != 0L || fuelEventCount != 0L) return
+
             val jsonStr = validFile.readText()
             if (jsonStr.isBlank()) return
             val root = JSONObject(jsonStr)
 
-            // Check if Room database is empty (reinstall situation)
-            val tripCount = db.openHelper.readableDatabase.compileStatement("SELECT COUNT(*) FROM trips").simpleQueryForLong()
-            val fuelEventCount = db.openHelper.readableDatabase.compileStatement("SELECT COUNT(*) FROM fuel_events").simpleQueryForLong()
-
-            if (tripCount == 0L && fuelEventCount == 0L) {
+            run {
                 Log.i(TAG, "Reinstall detected with empty DB. Restoring permanent backup from: ${validFile.absolutePath}")
 
                 // 1. Restore SharedPreferences
@@ -535,14 +538,16 @@ object PersistentDataManager {
 
                 // Skip the disk write entirely when nothing changed since the last backup
                 // (the 30 s cadence while driving used to rewrite identical data every time).
+                // Serialize once (the timestamp is added after hashing as the last key) instead
+                // of building the full multi-MB string twice.
                 val stamp = root.remove("backupTimestamp")
-                val contentHash = root.toString().hashCode()
-                root.put("backupTimestamp", stamp)
+                val body = root.toString()
+                val contentHash = body.hashCode()
                 if (!force && contentHash == lastWrittenContentHash) {
                     Log.d(TAG, "Backup unchanged; skipping write")
                     return@launch
                 }
-                val jsonContent = root.toString()
+                val jsonContent = body.dropLast(1) + ",\"backupTimestamp\":" + JSONObject.numberToString(stamp as Number) + "}"
                 val targetFiles = getBackupFiles(appContext).filter { it.absolutePath !in deniedTargets }
                 for (target in targetFiles) {
                     try {
