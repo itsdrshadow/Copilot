@@ -45,11 +45,8 @@ import java.util.Locale
 
 /** Text colour for a fuel percent (same thresholds as [fuelLevelColor], contrast-safe in Day). */
 @Composable
-fun fuelLevelTextColor(percent: Double): Color = when {
-    percent < 15.0 -> CockpitTheme.colors.criticalText
-    percent <= 40.0 -> CockpitTheme.colors.warningText
-    else -> CockpitTheme.colors.positiveText
-}
+fun fuelLevelTextColor(percent: Double): Color =
+    animatedHealthColor(MetricHealth.fuelPercentScore(percent))
 
 /** Learned (confirmed) or estimated km/L as shown everywhere, with its label. */
 fun displayMileage(fuelState: FuelState): Pair<Double, String> {
@@ -156,6 +153,9 @@ fun FuelTankCard(
                 value = String.format(Locale.US, "%.1f", kmpl),
                 unit = "km/L",
                 valueStyle = CockpitTheme.typography.headlineMedium,
+                valueColor = animatedHealthColor(
+                    MetricHealth.mileageScore(kmpl, fuelState.expectedMileageKmpl.takeIf { it > 0.0 } ?: 18.0)
+                ),
                 modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
                 horizontalAlignment = Alignment.End
             )

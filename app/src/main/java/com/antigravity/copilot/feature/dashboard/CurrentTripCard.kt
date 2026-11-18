@@ -44,7 +44,9 @@ data class PremiumRotatingMetric(
     val unit: String,
     val subtitle: String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val accentColor: Color
+    val accentColor: Color,
+    /** 0f (bad/red) to 1f (good/green); null = plain accent colouring. */
+    val healthScore: Float? = null
 )
 
 /**
@@ -100,9 +102,19 @@ internal fun rememberTripMetrics(currentTrip: TripSummary, baselineMileage: Doub
                     "--"
                 },
                 unit = "KM/L",
-                subtitle = if (hasTripMoved) "Estimated efficiency for this trip" else "Available once trip starts",
+                subtitle = if (hasTripMoved) {
+                    val eff = if (currentTrip.calculatedMileageKmpl > 0.0) currentTrip.calculatedMileageKmpl else baselineMileage
+                    if (baselineMileage > 0.0 && eff > 0.0) {
+                        val pct = ((eff / baselineMileage - 1.0) * 100).toInt()
+                        (if (pct >= 0) "\u25B2 +$pct%" else "\u25BC $pct%") + " vs your average"
+                    } else "Estimated efficiency for this trip"
+                } else "Available once trip starts",
                 icon = Icons.Default.Eco,
-                accentColor = positiveAccent
+                accentColor = positiveAccent,
+                healthScore = if (hasTripMoved) {
+                    val eff = if (currentTrip.calculatedMileageKmpl > 0.0) currentTrip.calculatedMileageKmpl else baselineMileage
+                    MetricHealth.mileageScore(eff, baselineMileage)
+                } else null
             ),
             PremiumRotatingMetric(
                 id = "fuel_consumed",
@@ -147,7 +159,8 @@ internal fun rememberTripMetrics(currentTrip: TripSummary, baselineMileage: Doub
                     "Driving safety & smoothness"
                 },
                 icon = Icons.Default.Security,
-                accentColor = if (currentTrip.driverScore >= 85) positiveAccent else if (currentTrip.driverScore >= 70) warningAccent else dangerAccent
+                accentColor = if (currentTrip.driverScore >= 85) positiveAccent else if (currentTrip.driverScore >= 70) warningAccent else dangerAccent,
+                healthScore = if (hasTripMoved) MetricHealth.driveScore(currentTrip.driverScore) else null
             ),
             PremiumRotatingMetric(
                 id = "peak_braking",
@@ -156,7 +169,8 @@ internal fun rememberTripMetrics(currentTrip: TripSummary, baselineMileage: Doub
                 unit = "M/S²",
                 subtitle = "Maximum deceleration force",
                 icon = Icons.Default.Warning,
-                accentColor = if (currentTrip.maxDecelMss < -4.5f) dangerAccent else warningAccent
+                accentColor = if (currentTrip.maxDecelMss < -4.5f) dangerAccent else warningAccent,
+                healthScore = if (currentTrip.maxDecelMss < -0.1f) MetricHealth.brakingScore(currentTrip.maxDecelMss) else null
             )
         )
     }
@@ -376,8 +390,18 @@ fun CurrentTripCard(
                     .padding(vertical = 2.dp)
             ) { targetIndex ->
                 val target = metrics.getOrElse(targetIndex) { metrics[0] }
+                val healthColor = target.healthScore?.let { animatedHealthColor(it) }
+                val heroAccent = healthColor ?: target.accentColor
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(
+                            if (healthColor != null) Modifier.background(
+                                androidx.compose.ui.graphics.Brush.radialGradient(
+                                    listOf(healthColor.copy(alpha = 0.16f), Color.Transparent)
+                                )
+                            ) else Modifier
+                        ),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -388,7 +412,7 @@ fun CurrentTripCard(
                         Icon(
                             imageVector = target.icon,
                             contentDescription = null,
-                            tint = target.accentColor,
+                            tint = heroAccent,
                             modifier = Modifier.size(17.dp)
                         )
                         Text(
@@ -409,17 +433,22 @@ fun CurrentTripCard(
                         unit = target.unit,
                         preferredFontSize = CockpitTheme.typography.displaySmall.fontSize,
                         minFontSize = 24.sp,
-                        valueColor = textPrimary,
-                        unitColor = target.accentColor,
+                        valueColor = healthColor ?: textPrimary,
+                        unitColor = heroAccent,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    target.healthScore?.let { score ->
+                        Spacer(Modifier.height(4.dp))
+                        HealthMeterBar(score, modifier = Modifier.fillMaxWidth(0.7f))
+                    }
 
                     Spacer(Modifier.height(2.dp))
 
                     Text(
                         text = target.subtitle,
                         style = CockpitTheme.typography.bodySmall,
-                        color = textSecondary.copy(alpha = 0.8f),
+                        color = healthColor ?: textSecondary.copy(alpha = 0.8f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

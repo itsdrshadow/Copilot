@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.14.0] - 2026-11-18
+
+### Added
+- Health colouring: Trip Economy, Est./Learned km/L, Drive Score, Peak Braking and fuel level now blend smoothly red to yellow to green and glide between values instead of jumping.
+- Trip Economy shows a red-yellow-green meter bar, a soft glow and a "vs your average" percentage.
+
 ## [2.13.3] - 2026-11-18
 
 ### Changed

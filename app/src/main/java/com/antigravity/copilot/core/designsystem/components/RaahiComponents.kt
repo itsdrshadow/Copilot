@@ -76,11 +76,9 @@ object Raahi {
 /** Fuel level colour by percent: > 40 % green, 15–40 % amber, < 15 % red. */
 @Composable
 fun fuelLevelColor(percent: Double): Color =
-    when {
-        percent < 15.0 -> CockpitTheme.colors.critical
-        percent <= 40.0 -> CockpitTheme.colors.warning
-        else -> CockpitTheme.colors.positive
-    }
+    com.antigravity.copilot.feature.dashboard.animatedHealthColor(
+        com.antigravity.copilot.feature.dashboard.MetricHealth.fuelPercentScore(percent)
+    )
 
 /** Flat solid card surface: 20 dp radius, 1 dp border, no blur, no gradient. */
 @Composable
