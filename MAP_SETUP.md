@@ -92,6 +92,18 @@ Pick one:
    lines (the map makes no HTTP requests at all). A debug build crashes on any map request, so you
    cannot miss one. `adb logcat -s MapPerf MapMemoryGuard` shows FPS, native heap and style load time.
 
+## Road intelligence (pill, speed limit, sharp turns)
+
+`OfflineRoadIntelligenceManager` adds two invisible query layers on `transportation` and
+`transportation_name` (opacity **0.01**, not 0: MapLibre ignores opacity-0 layers in
+`queryRenderedFeatures`). Stock Planetiler OpenMapTiles output has **no `maxspeed`** on roads, so
+limits are MoRTH estimates by road class (shown as "est."); a tile build that adds `maxspeed` to
+`transportation` is picked up automatically.
+
+Test on a parked unit (debug build): pan the map so it stops following, then inject fixes, e.g.
+`adb shell am broadcast -a com.antigravity.copilot.DEBUG_MAP_FIX --ef x 420 --ef y 300 --ef speed 50`
+(map-view pixels; or `--ef lat … --ef lon …`). Watch `adb logcat -s RoadIntel`.
+
 ## Labels (optional, not bundled)
 
 The style has no text layers today, so it needs no glyphs. To add street names:

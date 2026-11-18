@@ -182,8 +182,9 @@ fun SpeedometerCluster(
     // Dynamic Multi-Stage Speed Status Colors
     val statusColor by animateColorAsState(
         targetValue = when {
-            speedLimit > 0 && rawSpeed > speedLimit * 1.05f -> CockpitTheme.colors.critical
-            speedLimit > 0 && rawSpeed > speedLimit * 0.92f -> CockpitTheme.colors.warning
+            // Debounced by SpeedLimitEngine: red only after 2 readings above limit + 3 km/h.
+            speedLimitInfo.isOverspeed -> CockpitTheme.colors.critical
+            speedLimitInfo.isNearLimit -> CockpitTheme.colors.warning
             else -> CockpitTheme.colors.accent
         },
         animationSpec = tween(350),

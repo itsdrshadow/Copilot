@@ -1,9 +1,12 @@
 package com.antigravity.copilot.core.location
 
 import android.content.Context
+import android.os.SystemClock
+import android.util.Log
 import com.antigravity.copilot.core.model.TripPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,30 +16,38 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
-import java.util.Locale
 import kotlin.math.roundToInt
 
 data class SpeedLimitInfo(
     val speedLimitKmh: Int = 50,
     val roadName: String = "City Street",
     val zoneType: String = "Urban Zone",
+    /** Debounced (see [SpeedLimitRules.OverspeedDebouncer]): 2 readings above limit + 3 km/h. */
     val isOverspeed: Boolean = false,
-    val isNearLimit: Boolean = false
+    val isNearLimit: Boolean = false,
+    /** True when the limit is inferred (road class / driving pattern), false for a tagged maxspeed. */
+    val isEstimated: Boolean = true
+)
+
+/** The road the offline map matched under the vehicle (from OfflineRoadIntelligenceManager). */
+data class MapRoadObservation(
+    val roadClass: String?,
+    val ref: String?,
+    val name: String?,
+    val maxspeedRaw: String?,
+    val isRamp: Boolean,
+    val isExpressway: Boolean,
+    val label: String?
 )
 
 /**
- * High-Precision Automotive Speed Limit Engine.
- * Grounded in:
- *  1. OpenStreetMap (OSM) explicit maxspeed tags & OpenStreetMapSpeeds
- *  2. Valhalla / Overpass road attributes (highway, ref, lanes, surface)
- *  3. Government of India / MoRTH (Ministry of Road Transport and Highways) statutory regulations:
- *     - Expressways (Controlled Access / NE): 120 km/h
- *     - 4-Lane+ Divided National Highways (NH): 100 km/h
- *     - State Highways & 2-lane divided corridors (SH): 80 km/h
- *     - Major District Roads (MDR) & Arterials: 60-70 km/h
- *     - Urban Municipal City Limits: 50 km/h
- *     - Residential / Service / Commercial Collectors: 40 km/h
- *     - School / Hospital / Living Streets: 25-30 km/h
+ * Speed limit for the current road. Sources, best first:
+ * 1. the offline map's road match: explicit `maxspeed` if the tiles carry it, otherwise the MoRTH
+ *    limit for its road class / ref (marked estimated);
+ * 2. online bonus: an explicit OSM `maxspeed` from Overpass for the same road class, fetched only
+ *    with a network, throttled (≥ 150 m and ≥ 15 s apart) and cached per 150 m cell;
+ * 3. no map match for [MAP_MATCH_STALE_MS]: a driving-pattern estimate.
+ * Overspeed / near-limit flags are debounced so GPS spikes never flash the red state.
  */
 class SpeedLimitEngine private constructor() {
 
@@ -47,348 +58,196 @@ class SpeedLimitEngine private constructor() {
     private val _speedLimitInfo = MutableStateFlow(SpeedLimitInfo())
     val speedLimitInfo: StateFlow<SpeedLimitInfo> = _speedLimitInfo.asStateFlow()
 
-    private var lastQueriedLat: Double = 0.0
-    private var lastQueriedLon: Double = 0.0
-    private var lastQueryTimestamp: Long = 0
-    private val spatialCache = mutableMapOf<String, SpeedLimitInfo>()
+    private val debouncer = SpeedLimitRules.OverspeedDebouncer()
+    private var lastSpeedKmh = 0f
 
-    // Sustained automotive cruise telemetry tracking
-    private var highSpeedSampleCount = 0
-    private var mediumSpeedSampleCount = 0
-    private var lowSpeedSampleCount = 0
+    // Offline map match
+    private var mapRoad: MapRoadObservation? = null
+    private var mapRoadLat = 0.0
+    private var mapRoadLon = 0.0
+
+    // Online bonus (Overpass), keyed by 150 m cell + road class
+    private val onlineCache = object : LinkedHashMap<String, Int?>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Int?>?) = size > 256
+    }
+    private var onlineJob: Job? = null
+    private var lastOnlineQueryMs = 0L
+    private var lastOnlineLat = 0.0
+    private var lastOnlineLon = 0.0
+    private var lastLat = 0.0
+    private var lastLon = 0.0
+
+    // Driving-pattern fallback
+    private var highSpeedSamples = 0
+    private var mediumSpeedSamples = 0
+    private var lowSpeedSamples = 0
 
     fun isNetworkConnected(context: Context? = appContext): Boolean {
         val ctx = context ?: appContext ?: return false
         return LocationNameResolver.isNetworkConnected(ctx)
     }
 
+    /** Every GPS fix. */
+    @Synchronized
     fun updateTelemetry(point: TripPoint?, context: Context? = null) {
-        if (context != null && appContext == null) {
-            appContext = context.applicationContext
-        }
+        if (context != null && appContext == null) appContext = context.applicationContext
         if (point == null) return
-        val currentSpeed = point.speedKmh
-        val currentLimit = _speedLimitInfo.value.speedLimitKmh
-
-        val isOver = currentSpeed > currentLimit
-        val isNear = currentSpeed >= (currentLimit * 0.88f) && !isOver
-
-        // Immediate 60 FPS alert state evaluation
-        if (_speedLimitInfo.value.isOverspeed != isOver || _speedLimitInfo.value.isNearLimit != isNear) {
-            _speedLimitInfo.value = _speedLimitInfo.value.copy(
-                isOverspeed = isOver,
-                isNearLimit = isNear
-            )
-        }
-
-        // Kinematic cruise pattern profiling
-        if (currentSpeed >= 85f) {
-            highSpeedSampleCount++
-            mediumSpeedSampleCount = 0
-            lowSpeedSampleCount = 0
-        } else if (currentSpeed >= 58f) {
-            mediumSpeedSampleCount++
-            highSpeedSampleCount = 0
-            lowSpeedSampleCount = 0
-        } else if (currentSpeed in 8f..38f) {
-            lowSpeedSampleCount++
-            highSpeedSampleCount = 0
-            mediumSpeedSampleCount = 0
-        }
-
-        // Intelligent spatial grid rate-limiting: Only query if vehicle moved > 120m or 10s elapsed
-        val now = System.currentTimeMillis()
-        val distMovedMeters = calculateDistance(lastQueriedLat, lastQueriedLon, point.latitude, point.longitude)
-
-        if ((now - lastQueryTimestamp > 10000L || distMovedMeters > 120.0) && point.latitude != 0.0) {
-            lastQueriedLat = point.latitude
-            lastQueriedLon = point.longitude
-            lastQueryTimestamp = now
-
-            // 150-meter spatial bucket cache key
-            val gridLat = (point.latitude * 500).roundToInt()
-            val gridLon = (point.longitude * 500).roundToInt()
-            val cacheKey = "${gridLat}_${gridLon}"
-
-            spatialCache[cacheKey]?.let { cached ->
-                _speedLimitInfo.value = cached.copy(
-                    isOverspeed = currentSpeed > cached.speedLimitKmh,
-                    isNearLimit = currentSpeed >= (cached.speedLimitKmh * 0.88f) && currentSpeed <= cached.speedLimitKmh
-                )
-                return
-            }
-
-            scope.launch {
-                resolveSpeedLimitFromOsmAndMorth(point.latitude, point.longitude, currentSpeed, cacheKey)
-            }
-        } else if (spatialCache.isEmpty()) {
-            // Contextual fallback according to MoRTH speed guidelines
-            val fallbackLimit = when {
-                highSpeedSampleCount >= 5 -> SpeedLimitInfo(
-                    speedLimitKmh = 100,
-                    roadName = "National Highway",
-                    zoneType = "NH (MoRTH)",
-                    isOverspeed = isOver,
-                    isNearLimit = isNear
-                )
-                mediumSpeedSampleCount >= 5 -> SpeedLimitInfo(
-                    speedLimitKmh = 70,
-                    roadName = "State Arterial",
-                    zoneType = "State Corridor",
-                    isOverspeed = isOver,
-                    isNearLimit = isNear
-                )
-                lowSpeedSampleCount >= 8 -> SpeedLimitInfo(
-                    speedLimitKmh = 40,
-                    roadName = "Residential / Collector",
-                    zoneType = "Residential",
-                    isOverspeed = isOver,
-                    isNearLimit = isNear
-                )
-                else -> SpeedLimitInfo(
-                    speedLimitKmh = 50,
-                    roadName = "City Avenue",
-                    zoneType = "Urban Zone",
-                    isOverspeed = isOver,
-                    isNearLimit = isNear
-                )
-            }
-            if (_speedLimitInfo.value.speedLimitKmh != fallbackLimit.speedLimitKmh) {
-                _speedLimitInfo.value = fallbackLimit
+        lastSpeedKmh = point.speedKmh
+        if (point.latitude != 0.0 || point.longitude != 0.0) {
+            lastLat = point.latitude
+            lastLon = point.longitude
+            // A match that arrived before the first fix is anchored here.
+            if (mapRoad != null && mapRoadLat == 0.0 && mapRoadLon == 0.0) {
+                mapRoadLat = lastLat
+                mapRoadLon = lastLon
             }
         }
+        trackPattern(point.speedKmh)
+        maybeQueryOnline()
+        publish(newReading = true)
     }
 
-    /**
-     * Resolves the speed limit by interrogating:
-     * 1. Overpass API / OpenStreetMap maxspeed & highway attributes
-     * 2. Nominatim detailed address & road hierarchy fallback
-     * 3. Government of India / MoRTH statutory speed limits for India
-     */
-    private fun resolveSpeedLimitFromOsmAndMorth(lat: Double, lon: Double, speed: Float, cacheKey: String) {
-        var resolvedLimit: Int? = null
-        var resolvedRoadName: String? = null
-        var resolvedZone: String? = null
-
-        val hasNetwork = isNetworkConnected(appContext)
-
-        // Try to get cached speed limit first (works offline)
-        val cachedInfo = spatialCache[cacheKey]
-        val hasCachedLimit = cachedInfo != null && cachedInfo.speedLimitKmh > 0
-
-        if (hasNetwork) {
-            // ------------------ TIER 1: Overpass API (Exact OSM Way Tags & maxspeed) ------------------
-            try {
-                val query = "[out:json][timeout:3];way(around:40,$lat,$lon)[highway];out tags 1;"
-                val encodedQuery = URLEncoder.encode(query, "UTF-8")
-                val overpassUrl = URL("https://overpass-api.de/api/interpreter?data=$encodedQuery")
-
-                val conn = (overpassUrl.openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 3200
-                    readTimeout = 3200
-                    setRequestProperty("User-Agent", "Copilot-Cockpit/1.0 (MoRTH Automotive Telemetry)")
-                }
-
-                if (conn.responseCode == 200) {
-                    val body = conn.inputStream.bufferedReader().use { it.readText() }
-                    val root = JSONObject(body)
-                    val elements = root.optJSONArray("elements")
-                    if (elements != null && elements.length() > 0) {
-                        val way = elements.getJSONObject(0)
-                        val tags = way.optJSONObject("tags")
-                        if (tags != null) {
-                            val maxspeedRaw = tags.optString("maxspeed", "")
-                            val highway = tags.optString("highway", "")
-                            val ref = tags.optString("ref", "")
-                            val name = tags.optString("name", "")
-                            val lanes = tags.optInt("lanes", 2)
-
-                            // 1. Check explicit OSM maxspeed
-                            val parsedExplicit = parseExplicitMaxspeed(maxspeedRaw)
-                            if (parsedExplicit != null && parsedExplicit > 0) {
-                                resolvedLimit = parsedExplicit
-                                resolvedZone = "OSM Tagged ($parsedExplicit km/h)"
-                            } else {
-                                // 2. Map Highway Type & Ref to MoRTH India Guidelines
-                                val morth = evaluateMorthLimit(highway, ref, name, lanes)
-                                resolvedLimit = morth.first
-                                resolvedZone = morth.second
-                            }
-
-                            resolvedRoadName = when {
-                                name.isNotBlank() && ref.isNotBlank() -> "$name ($ref)"
-                                name.isNotBlank() -> name
-                                ref.isNotBlank() -> ref
-                                else -> highway.replace("_", " ").replaceFirstChar { it.uppercase() }
-                            }
-                        }
-                    }
-                }
-            } catch (_: Exception) {
-                // Overpass unavailable or timeout, fallback seamlessly to Tier 2
-            }
-
-            // ------------------ TIER 2: Nominatim OSM Reverse Geocoder ------------------
-            if (resolvedLimit == null || resolvedRoadName == null) {
-                try {
-                    val nominatimUrl = URL("https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon&zoom=18&addressdetails=1")
-                    val conn = (nominatimUrl.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 3000
-                        readTimeout = 3000
-                        setRequestProperty("User-Agent", "Copilot-Cockpit/1.0 (Automotive Telemetry)")
-                    }
-
-                    if (conn.responseCode == 200) {
-                        val body = conn.inputStream.bufferedReader().use { it.readText() }
-                        val json = JSONObject(body)
-                        val address = json.optJSONObject("address")
-                        val road = address?.optString("road", "") ?: ""
-                        val suburb = address?.optString("suburb", "") ?: ""
-                        val roadType = address?.optString("type", "") ?: ""
-
-                        val morth = evaluateMorthLimit(roadType, "", road, 2)
-                        resolvedLimit = morth.first
-                        resolvedZone = morth.second
-
-                        resolvedRoadName = when {
-                            road.isNotBlank() -> road
-                            suburb.isNotBlank() -> suburb
-                            else -> "City Sector"
-                        }
-                    }
-                } catch (_: Exception) {
-                    // Secondary fallback
-                }
-            }
+    /** Road under the vehicle from the offline map (null = no road matched this evaluation). */
+    @Synchronized
+    fun onMapRoad(observation: MapRoadObservation?) {
+        if (observation != null) {
+            mapRoad = observation
+            mapRoadLat = lastLat
+            mapRoadLon = lastLon
         }
-
-        // ------------------ TIER 3: Cached / Kinematic Fallback ------------------
-        val finalLimit = resolvedLimit ?: (if (!hasNetwork && hasCachedLimit) {
-            cachedInfo!!.speedLimitKmh
-        } else {
-            when {
-                speed >= 85f -> 100
-                speed >= 60f -> 80
-                speed in 10f..38f -> 40
-                else -> 50
-            }
-        })
-        val finalRoadName = resolvedRoadName ?: (if (!hasNetwork && hasCachedLimit) cachedInfo!!.roadName else "City Road")
-        val finalZone = resolvedZone ?: (if (!hasNetwork && hasCachedLimit) cachedInfo!!.zoneType else "Urban Sector")
-
-        val info = SpeedLimitInfo(
-            speedLimitKmh = finalLimit,
-            roadName = finalRoadName,
-            zoneType = finalZone,
-            isOverspeed = speed > finalLimit,
-            isNearLimit = speed >= (finalLimit * 0.88f) && speed <= finalLimit
-        )
-
-        spatialCache[cacheKey] = info
-        _speedLimitInfo.value = info
+        publish(newReading = false)
     }
 
-    /**
-     * Parses explicit OSM maxspeed values such as:
-     * "120", "100 km/h", "80", "50", "IN:expressway", "IN:urban", "IN:rural"
-     */
-    private fun parseExplicitMaxspeed(raw: String): Int? {
-        if (raw.isBlank()) return null
-        val clean = raw.trim().lowercase(Locale.US)
-        when (clean) {
-            "in:expressway" -> return 120
-            "in:rural", "in:highway" -> return 100
-            "in:urban", "in:city" -> return 50
-            "walk" -> return 15
-        }
-        // Extract numeric digits
-        val digits = clean.filter { it.isDigit() }
-        val parsed = digits.toIntOrNull()
-        return if (parsed != null && parsed in 15..160) parsed else null
+    /** Only real GPS readings ([newReading]) count towards confirming overspeed. */
+    private fun publish(newReading: Boolean) {
+        val base = resolve()
+        if (newReading) debouncer.update(lastSpeedKmh, base.speedLimitKmh)
+        else debouncer.onLimitChanged(lastSpeedKmh, base.speedLimitKmh)
+        val info = base.copy(isOverspeed = debouncer.isOverspeed, isNearLimit = debouncer.isNearLimit)
+        if (info != _speedLimitInfo.value) _speedLimitInfo.value = info
     }
 
-    /**
-     * Government of India / MoRTH Statutory Speed Limit Evaluation
-     * Official Notification S.O. 1522(E) for M1 Category (Passenger Motor Cars):
-     *  - Expressways: 120 km/h
-     *  - National Highways (4-lane and above divided carriageway): 100 km/h
-     *  - State Highways & 2-lane divided corridors: 80 km/h
-     *  - Major District Roads (MDR) / Secondary: 60-70 km/h
-     *  - Urban Municipal / City Roads: 50 km/h
-     *  - Residential / Collector Streets: 40 km/h
-     *  - School / Hospital / Living Streets: 25-30 km/h
-     */
-    private fun evaluateMorthLimit(highway: String, ref: String, roadName: String, lanes: Int): Pair<Int, String> {
-        val h = highway.lowercase(Locale.US)
-        val r = ref.uppercase(Locale.US)
-        val n = roadName.lowercase(Locale.US)
-
+    private fun resolve(): SpeedLimitInfo {
+        val road = freshMapRoad()
+        if (road != null) {
+            val label = road.label ?: "Road"
+            SpeedLimitRules.parseMaxspeed(road.maxspeedRaw)?.let {
+                return SpeedLimitInfo(it, label, "Signed limit (map)", isEstimated = false)
+            }
+            onlineCache[onlineKey(lastLat, lastLon, road.roadClass)]?.let {
+                return SpeedLimitInfo(it, label, "Signed limit (OSM online)", isEstimated = false)
+            }
+            val est = SpeedLimitRules.estimateForRoad(road.roadClass, road.ref, road.isRamp, road.isExpressway)
+            return SpeedLimitInfo(est.limitKmh, label, "${est.zone} (MoRTH est.)", isEstimated = true)
+        }
         return when {
-            // MoRTH Expressways (120 km/h)
-            h in listOf("motorway", "motorway_link") ||
-            r.startsWith("NE") ||
-            n.contains("expressway") ||
-            n.contains("express highway") ||
-            n.contains("mahamarg") -> {
-                Pair(120, "Expressway (MoRTH)")
-            }
-
-            // MoRTH National Highways (100 km/h)
-            h in listOf("trunk", "trunk_link") ||
-            r.startsWith("NH") ||
-            (lanes >= 4 && h == "primary") ||
-            n.contains("national highway") ||
-            n.contains("bypass") -> {
-                Pair(100, "National Highway (MoRTH)")
-            }
-
-            // MoRTH State Highways (80 km/h)
-            h in listOf("primary", "primary_link") ||
-            r.startsWith("SH") ||
-            n.contains("state highway") ||
-            n.contains("ring road") -> {
-                Pair(80, "State Highway (MoRTH)")
-            }
-
-            // Major District Roads / Arterials (60-70 km/h)
-            h in listOf("secondary", "secondary_link") -> {
-                Pair(70, "District Arterial (MoRTH)")
-            }
-
-            // Urban Collector / Tertiary Roads (50 km/h)
-            h in listOf("tertiary", "tertiary_link", "unclassified") -> {
-                Pair(50, "Urban Municipal (MoRTH)")
-            }
-
-            // Residential / Service (40 km/h)
-            h in listOf("residential", "service", "road") -> {
-                Pair(40, "Residential Street")
-            }
-
-            // School / Hospital / Pedestrian Living Streets (25-30 km/h)
-            h in listOf("living_street", "pedestrian") ||
-            n.contains("school") ||
-            n.contains("hospital") -> {
-                Pair(25, "School / Hospital Zone (MoRTH)")
-            }
-
-            else -> Pair(50, "Urban Road (MoRTH)")
+            highSpeedSamples >= 5 -> SpeedLimitInfo(100, "Highway", "Estimated from speed")
+            mediumSpeedSamples >= 5 -> SpeedLimitInfo(70, "Arterial road", "Estimated from speed")
+            lowSpeedSamples >= 8 -> SpeedLimitInfo(40, "Residential street", "Estimated from speed")
+            else -> SpeedLimitInfo(50, "City road", "Urban default")
         }
     }
 
-    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        if (lat1 == 0.0 && lon1 == 0.0) return 999.0
-        val earthRadius = 6371000.0 // meters
+    /** The map match, unless the car has since driven [MAP_MATCH_STALE_M] without a new one. */
+    private fun freshMapRoad(): MapRoadObservation? = mapRoad?.takeIf {
+        distanceM(mapRoadLat, mapRoadLon, lastLat, lastLon) <= MAP_MATCH_STALE_M
+    }
+
+    private fun trackPattern(speed: Float) {
+        when {
+            speed >= 85f -> { highSpeedSamples++; mediumSpeedSamples = 0; lowSpeedSamples = 0 }
+            speed >= 58f -> { mediumSpeedSamples++; highSpeedSamples = 0; lowSpeedSamples = 0 }
+            speed in 8f..38f -> { lowSpeedSamples++; highSpeedSamples = 0; mediumSpeedSamples = 0 }
+        }
+    }
+
+    // ---------------- Online bonus (Overpass) ----------------
+
+    private fun maybeQueryOnline() {
+        val road = freshMapRoad() ?: return
+        if (SpeedLimitRules.parseMaxspeed(road.maxspeedRaw) != null) return
+        val cls = road.roadClass ?: return
+        if (cls == "service" || cls == "track") return
+        if (lastLat == 0.0 && lastLon == 0.0) return
+        val key = onlineKey(lastLat, lastLon, cls)
+        if (onlineCache.containsKey(key)) return
+        val now = SystemClock.elapsedRealtime()
+        if (onlineJob?.isActive == true || now - lastOnlineQueryMs < ONLINE_MIN_INTERVAL_MS) return
+        if (lastOnlineQueryMs != 0L && distanceM(lastOnlineLat, lastOnlineLon, lastLat, lastLon) < ONLINE_MIN_DISTANCE_M) return
+        if (!isNetworkConnected()) return
+        lastOnlineQueryMs = now
+        lastOnlineLat = lastLat
+        lastOnlineLon = lastLon
+        val lat = lastLat
+        val lon = lastLon
+        onlineJob = scope.launch {
+            val limit = try { queryOverpassMaxspeed(lat, lon, cls) } catch (e: Exception) {
+                Log.d(TAG, "Overpass unavailable: ${e.message}")
+                return@launch
+            }
+            synchronized(this@SpeedLimitEngine) {
+                onlineCache[key] = limit
+                publish(newReading = false)
+            }
+        }
+    }
+
+    /** Explicit maxspeed of a way within 25 m whose highway tag matches the map's road class. */
+    private fun queryOverpassMaxspeed(lat: Double, lon: Double, omtClass: String): Int? {
+        val query = "[out:json][timeout:4];way(around:25,$lat,$lon)[highway][maxspeed];out tags;"
+        val url = URL("https://overpass-api.de/api/interpreter?data=" + URLEncoder.encode(query, "UTF-8"))
+        val conn = (url.openConnection() as HttpURLConnection).apply {
+            connectTimeout = 4_000
+            readTimeout = 4_000
+            setRequestProperty("User-Agent", "Copilot-Cockpit/1.0")
+        }
+        try {
+            if (conn.responseCode != 200) return null
+            val body = conn.inputStream.bufferedReader().use { it.readText() }
+            val elements = JSONObject(body).optJSONArray("elements") ?: return null
+            for (i in 0 until elements.length()) {
+                val tags = elements.getJSONObject(i).optJSONObject("tags") ?: continue
+                if (omtClassOf(tags.optString("highway")) != omtClass) continue
+                SpeedLimitRules.parseMaxspeed(tags.optString("maxspeed"))?.let { return it }
+            }
+            return null
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun omtClassOf(highway: String): String? = when (highway.removeSuffix("_link")) {
+        "motorway" -> "motorway"
+        "trunk" -> "trunk"
+        "primary" -> "primary"
+        "secondary" -> "secondary"
+        "tertiary" -> "tertiary"
+        "residential", "unclassified", "living_street", "road" -> "minor"
+        "service" -> "service"
+        else -> null
+    }
+
+    private fun onlineKey(lat: Double, lon: Double, cls: String?) =
+        "${(lat * 666).roundToInt()}_${(lon * 666).roundToInt()}_$cls"
+
+    private fun distanceM(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)
         val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2)
-        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        return earthRadius * c
+            Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        return 6_371_000.0 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
     }
 
     companion object {
+        private const val TAG = "SpeedLimitEngine"
+        /**
+         * Without a map match for this far (map hidden, off-road, no tiles) fall back to the
+         * pattern estimate. Distance, not time: a parked car gets no new fixes or matches.
+         */
+        const val MAP_MATCH_STALE_M = 150.0
+        private const val ONLINE_MIN_INTERVAL_MS = 15_000L
+        private const val ONLINE_MIN_DISTANCE_M = 150.0
+
         @Volatile
         private var INSTANCE: SpeedLimitEngine? = null
 

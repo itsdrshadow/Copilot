@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.19.0] - 2026-11-18
+
+### Added
+- **Offline road intelligence** (`OfflineRoadIntelligenceManager`), read from the local PMTiles vector tiles with `queryRenderedFeatures`; no network:
+  - Location pill at the top of the map: `NH-49 • Near Kharsia` (ref over name over road class; nearest town/village/suburb). Debounced so it never flickers at tile edges or junctions; text cross-fades.
+  - **Sharp turn ahead** badge (left/right arrow + distance) when the road ahead bends ≥ 50° within 120 m, looking 80–150 m ahead (scaled by speed) above 35 km/h. Counts down per GPS fix; dismissed once passed or below 25 km/h.
+  - Throttled to one evaluation per 1.5 s (or 25 m), never while the map is hidden; queries are small screen boxes on the main thread, geometry math on a background thread.
+- `PlaceMemory`: offline gazetteer of places seen in the tiles (max 2,000, saved at most once a minute), so "Near X" still works at driving zoom and after a restart.
+- Debug builds: `adb shell am broadcast -a com.antigravity.copilot.DEBUG_MAP_FIX` injects fake fixes (lat/lon or map pixel) for testing on a parked head unit.
+
+### Changed
+- **Speed limits** now come from the road matched on the offline map: a 24 dp tolerance box at the puck, filtered by heading (±35°) so overpasses, crossing streets and parallel service roads are ignored. Limit is the tagged `maxspeed` when present (`60`, `60 km/h`, `40 mph`, `IN:urban`, `60;40`), otherwise the MoRTH limit for the road class / NH-SH-NE ref, shown with an **"est."** caption under the sign.
+- Overspeed warning is debounced: red only after 2 consecutive readings above limit + 3 km/h; clears at the limit. The speedometer uses the engine's debounced state instead of its own raw comparison.
+- Overpass is kept as an online bonus only: explicit `maxspeed` for the same road class, at most every 15 s / 150 m, cached per 150 m cell.
+
+### Removed
+- Nominatim lookups from the speed-limit engine (they only returned a road type; the offline map gives a better one).
+
 ## [2.18.0] - 2026-11-18
 
 ### Added

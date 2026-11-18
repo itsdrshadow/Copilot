@@ -6,7 +6,9 @@ import android.graphics.Color
 import android.os.SystemClock
 import android.util.Log
 import android.view.animation.LinearInterpolator
+import com.antigravity.copilot.core.location.SpeedLimitEngine
 import com.antigravity.copilot.core.logic.LatLon
+import com.antigravity.copilot.core.map.intel.OfflineRoadIntelligenceManager
 import com.antigravity.copilot.core.model.TripPoint
 import org.maplibre.android.gestures.MoveGestureDetector
 import org.maplibre.android.gestures.RotateGestureDetector
@@ -121,6 +123,14 @@ class CarMapController(
 
     private var mapboxMap: MapLibreMap? = null
     private var isStyleLoaded = false
+
+    /** Location pill, map-based speed limit and sharp-turn alerts from the offline vector tiles. */
+    val roadIntel = OfflineRoadIntelligenceManager(
+        scope = coroutineScope,
+        density = context.resources.displayMetrics.density,
+        placeStore = java.io.File(context.filesDir, "road_intel_places.tsv"),
+        onRoadObserved = { SpeedLimitEngine.getInstance(context).onMapRoad(it) }
+    )
     /** Map id baked into the loaded style (null = background-only style). */
     private var loadedMap: ActiveMapFile.Map? = null
     private var styleJob: Job? = null
@@ -202,6 +212,7 @@ class CarMapController(
         map.addOnMoveListener(moveListener)
         map.addOnRotateListener(rotateListener)
         this.mapboxMap = map
+        roadIntel.attach(map)
         // Start where the car last was (not a hard-coded city) so the first fix needs no camera pan.
         if (!hasFix) {
             val (savedLat, savedLon) = OfflineMapManager.getLastKnownPosition(context)
@@ -231,6 +242,7 @@ class CarMapController(
             map.removeOnMoveListener(moveListener)
             map.removeOnRotateListener(rotateListener)
         }
+        roadIntel.detach()
         mapboxMap = null
         isStyleLoaded = false
         loadedMap = null
@@ -277,12 +289,14 @@ class CarMapController(
             val json = withContext(Dispatchers.Default) { buildStyleJson(resolved.map?.url) } ?: return@launch
             if (mapboxMap !== map) return@launch
             isStyleLoaded = false
+            roadIntel.onStyleUnloaded()
             map.setStyle(Style.Builder().fromJson(json)) { style ->
                 if (mapboxMap !== map) return@setStyle
                 setupGeofenceLayers(style)
                 setupRoadMileageLayer(style)
                 setupTrailLayers(style)
                 setupVehicleLayer(style)
+                roadIntel.onStyleLoaded(style)
                 isStyleLoaded = true
                 loadedMap = resolved.map
                 _firstStyleLoaded.value = true
@@ -641,6 +655,9 @@ class CarMapController(
             reloadStyleIfMapChanged()
         }
 
+        // Throttled internally (1.5 s / 25 m); skips while the map is hidden.
+        roadIntel.onFix(lat, lon, bearing.toDouble(), speed, renderingActive)
+
         val map = mapboxMap ?: return
         if (!renderingActive) {
             // Hidden under an overlay (GL thread paused): don't run 60 Hz puck/camera animations
@@ -769,6 +786,7 @@ class CarMapController(
     fun setRenderingActive(active: Boolean) {
         if (renderingActive == active) return
         renderingActive = active
+        if (active) roadIntel.warmUp()
         if (!active || !needsResync) return
         needsResync = false
         val map = mapboxMap ?: return
@@ -779,6 +797,11 @@ class CarMapController(
             map.moveCamera(CameraUpdateFactory.newCameraPosition(followCameraPosition(zoom)))
         }
     }
+
+    /** Debug fix injection: map-view pixel → coordinate (null before the map is attached). */
+    fun debugScreenToLonLat(x: Float, y: Float): com.antigravity.copilot.core.map.intel.LonLat? =
+        mapboxMap?.projection?.fromScreenLocation(android.graphics.PointF(x, y))
+            ?.let { com.antigravity.copilot.core.map.intel.LonLat(it.longitude, it.latitude) }
 
     private fun suspendFollow() {
         if (_isFollowing.value) _isFollowing.value = false

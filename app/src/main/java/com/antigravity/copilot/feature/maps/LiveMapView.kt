@@ -477,9 +477,21 @@ fun LiveMapPanel(
         if (speedLimitInfo.speedLimitKmh > 0) {
             SpeedLimitSign(
                 limitKmh = speedLimitInfo.speedLimitKmh,
+                estimated = speedLimitInfo.isEstimated,
                 modifier = Modifier.align(Alignment.TopStart).padding(14.dp)
             )
         }
+
+        DebugMapFixInjector(mapController)
+
+        // Top-centre: offline "NH-49 • Near Kharsia" pill and the sharp-turn badge.
+        val roadPill by mapController.roadIntel.pillText.collectAsStateWithLifecycle()
+        val sharpTurn by mapController.roadIntel.sharpTurn.collectAsStateWithLifecycle()
+        RoadIntelOverlay(
+            pillText = roadPill,
+            sharpTurn = sharpTurn,
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 14.dp).zIndex(10f)
+        )
 
         // Top-right: rotating trip stat, plus the mileage scale while that overlay is on.
         // On a narrow map (small phones) it sits under the limit sign, clear of the map controls.
@@ -643,9 +655,34 @@ private fun MapMenuItem(
 
 /** Regulatory speed-limit sign (white disc, red ring); the sign colours are fixed by law, not theme. */
 @Composable
-fun SpeedLimitSign(limitKmh: Int, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 58.dp) {
+fun SpeedLimitSign(
+    limitKmh: Int,
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 58.dp,
+    /** Inferred from road class (no signed maxspeed): captioned "est." under the sign. */
+    estimated: Boolean = false
+) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        SpeedLimitDisc(limitKmh, size)
+        if (estimated) {
+            Text(
+                text = "est.",
+                style = CockpitTheme.typography.labelSmall,
+                color = CockpitTheme.colors.textSecondary,
+                modifier = Modifier
+                    .padding(top = 3.dp)
+                    .clip(Raahi.PillShape)
+                    .background(CockpitTheme.colors.card)
+                    .padding(horizontal = 6.dp, vertical = 1.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpeedLimitDisc(limitKmh: Int, size: androidx.compose.ui.unit.Dp) {
     Box(
-        modifier = modifier
+        modifier = Modifier
             .size(size)
             .clip(CircleShape)
             .background(SignWhite)
