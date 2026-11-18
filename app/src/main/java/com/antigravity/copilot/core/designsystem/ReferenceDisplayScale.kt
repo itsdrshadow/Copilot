@@ -30,8 +30,40 @@ fun ScaleToReferenceDisplay(content: @Composable () -> Unit) {
             val pxPerDp = minOf(widthPx / ReferenceWidthDp, heightPx / ReferenceHeightDp)
             if (pxPerDp.isFinite() && pxPerDp > 0f) Density(pxPerDp, base.fontScale) else base
         }
-        CompositionLocalProvider(LocalDensity provides scaled, content = content)
+        val boost = remember(scaled) { popupBoostFor(scaled.density) }
+        CompositionLocalProvider(LocalDensity provides scaled, LocalPopupBoost provides boost, content = content)
     }
+}
+
+/**
+ * Readability boost for compact popups (dialogs, map bubbles, alert cards). The 1280 x 800 rule
+ * keeps the cockpit layout identical everywhere, but on a small dense screen (a 6" phone) one dp
+ * becomes about half its head-unit size and 12-14 sp popup text ends up ~1 mm tall. Popups are
+ * free-floating, so they can grow without changing the layout: the boost restores at least
+ * [POPUP_MIN_PHYSICAL] of the device's native dp size, capped at [POPUP_MAX_BOOST].
+ * Head units and tablets (reference scale >= native) get 1.0, i.e. unchanged.
+ */
+val LocalPopupBoost = androidx.compose.runtime.staticCompositionLocalOf { 1f }
+
+private const val POPUP_MIN_PHYSICAL = 0.72f
+private const val POPUP_MAX_BOOST = 1.45f
+
+fun popupBoostFor(scaledDensity: Float): Float {
+    val native = android.content.res.Resources.getSystem().displayMetrics.density
+    if (scaledDensity <= 0f || native <= 0f) return 1f
+    return (native * POPUP_MIN_PHYSICAL / scaledDensity).coerceIn(1f, POPUP_MAX_BOOST)
+}
+
+/** Draws [content] at the popup readability scale ([LocalPopupBoost]); no-op when it is 1. */
+@Composable
+fun PopupScaled(enabled: Boolean = true, content: @Composable () -> Unit) {
+    val boost = if (enabled) LocalPopupBoost.current else 1f
+    if (boost <= 1.01f) {
+        content()
+        return
+    }
+    val d = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(d.density * boost, d.fontScale), content = content)
 }
 
 private const val ReferenceWidthDp = 1280f

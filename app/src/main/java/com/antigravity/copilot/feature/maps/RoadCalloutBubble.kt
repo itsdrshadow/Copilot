@@ -107,7 +107,7 @@ fun RoadCalloutBubble(callout: RoadCallout?, anchor: CalloutAnchorState, modifie
                     }
                 }
         ) {
-            (callout ?: last[0])?.let { CalloutCard(it) }
+            (callout ?: last[0])?.let { com.antigravity.copilot.core.designsystem.PopupScaled { CalloutCard(it) } }
         }
     }
 }
@@ -133,21 +133,19 @@ private fun CalloutBody(c: RoadCallout) {
     val speedText = "Avg ${c.avgSpeedKmh} km/h"
     val kmpl = "${c.mileageTenths / 10}.${c.mileageTenths % 10} km/l"
     val mileageText = if (c.calibrated) kmpl else "~$kmpl"
+    // Accent "message bubble": the road's own stats read at a glance against the dark map.
+    val bg = colors.accent
+    val fg = colors.onAccent
     Column(
         modifier = Modifier
-            .background(colors.card.copy(alpha = 0.88f), shape)
-            .border(1.dp, colors.border.copy(alpha = 0.7f), shape)
+            .background(bg.copy(alpha = 0.94f), shape)
+            .border(1.dp, Color.White.copy(alpha = 0.28f), shape)
             .padding(start = 10.dp, end = 12.dp, top = 7.dp, bottom = 7.dp + TAIL_HEIGHT)
             .semantics { contentDescription = "Road average $speedText, mileage $mileageText" },
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        CalloutLine(Icons.Outlined.Speed, colors.accent, speedText, colors.textPrimary)
-        CalloutLine(
-            Icons.Outlined.LocalGasStation,
-            if (c.calibrated) colors.positive else colors.textSecondary,
-            mileageText,
-            if (c.calibrated) colors.textPrimary else colors.textSecondary
-        )
+        CalloutLine(Icons.Outlined.Speed, fg, speedText, fg)
+        CalloutLine(Icons.Outlined.LocalGasStation, fg, mileageText, if (c.calibrated) fg else fg.copy(alpha = 0.8f))
     }
 }
 

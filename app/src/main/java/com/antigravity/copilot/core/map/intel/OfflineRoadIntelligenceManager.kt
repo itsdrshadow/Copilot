@@ -244,6 +244,34 @@ class OfflineRoadIntelligenceManager(
         }
     }
 
+    /**
+     * Main thread, on demand (the road callout's placement, a few times a minute): the road
+     * ahead of [car] as a polyline up to [lengthM], following the last matched road through its
+     * joins (straightest continuation). Empty when there is no match or the map isn't ready.
+     */
+    fun pathAhead(car: LonLat, headingDeg: Double, lengthM: Double): List<LonLat> {
+        val map = map ?: return emptyList()
+        val road = previousRoad ?: return emptyList()
+        if (!queryLayersReady || !headingDeg.isFinite()) return emptyList()
+        return try {
+            val projection = map.projection
+            val p = projection.toScreenLocation(LatLng(car.lat, car.lon))
+            val ahead = RoadGeometry.offset(car, headingDeg, lengthM + 40.0)
+            val a = projection.toScreenLocation(LatLng(ahead.lat, ahead.lon))
+            val pad = CORRIDOR_PAD_DP * 3 * density
+            val others = map.queryRenderedFeatures(
+                RectF(min(p.x, a.x) - pad, min(p.y, a.y) - pad, max(p.x, a.x) + pad, max(p.y, a.y) + pad),
+                Q_ROAD
+            ).flatMap(::toRoadLines)
+            val match = RoadGeometry.matchRoad(car, headingDeg, 50.0, listOf(road) + others, road, maxDistanceM = 40.0)
+                ?: return emptyList()
+            RoadGeometry.forwardPath(car, headingDeg, match, others, lengthM, maxHops = 16)
+        } catch (e: Exception) {
+            Log.w(TAG, "pathAhead: ${e.message}")
+            emptyList()
+        }
+    }
+
     // ---------------- Main thread: queries ----------------
 
     private fun query(map: MapLibreMap, car: LonLat, heading: Double, speed: Double, now: Long): Snapshot? {

@@ -79,7 +79,7 @@ fun FuelStationBubble(bubble: StationBubble?, anchor: CalloutAnchorState, modifi
                     }
                 }
         ) {
-            (bubble ?: last[0])?.let { BubbleCard(it) }
+            (bubble ?: last[0])?.let { com.antigravity.copilot.core.designsystem.PopupScaled { BubbleCard(it) } }
         }
     }
 }

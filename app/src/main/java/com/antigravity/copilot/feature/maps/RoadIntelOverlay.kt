@@ -64,7 +64,7 @@ fun RoadIntelOverlay(pillText: String?, sharpTurn: SharpTurnAlert?, modifier: Mo
             enter = fadeIn(tween(200)) + slideInVertically(tween(200)) { -it / 2 },
             exit = fadeOut(tween(300)) + slideOutVertically(tween(300)) { -it / 2 }
         ) {
-            (sharpTurn ?: lastTurn[0])?.let { SharpTurnBadge(it) }
+            (sharpTurn ?: lastTurn[0])?.let { com.antigravity.copilot.core.designsystem.PopupScaled { SharpTurnBadge(it) } }
         }
     }
 }

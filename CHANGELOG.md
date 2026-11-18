@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.31.0] - 2026-11-19
+
+### Added
+- "Add place to OSM" (map menu): name a place the offline map does not know at the current position (name, type, details). Saved offline at once (`osm_place_notes`, DB v16) and sent to OpenStreetMap as a public note by a WorkManager job when a network is available (no account needed); recent entries show Waiting / Sent (note #) / Not accepted. Cleared by factory reset.
+- Popup readability boost (`PopupScaled`): on small dense screens compact popups (dialog hosts up to 960 dp, pump prompt, Edit fill-up, map bubbles, pothole card, sharp-turn badge) are drawn up to 1.45x larger, restoring ≥ 72 % of the device's native dp size; head units and tablets unchanged. Large working dialogs (Add Fuel) keep the cockpit scale.
+
+### Changed
+- Road avg-speed / mileage bubble: accent-coloured message bubble placed Google-Maps style on the road about a third of the map ahead (120–450 m, from the road geometry ahead), fixed there while the car approaches and passes; re-placed on a new segment or once passed; when the road does not continue ahead it is placed on the road just driven, behind the car.
+- The bubble no longer blinks off during short road-match gaps (junctions, tile edges): last values are held for up to 20 s while moving.
+
+### Fixed
+- Edit fill-up: litres, price and total show and accept at most 2 decimals; an odometer edit containing a thousands separator ("11,667") was silently ignored.
+
 ## [2.30.0] - 2026-11-18
 
 ### Added

@@ -82,7 +82,9 @@ fun RoadAnomalyAlertCard(alert: AnomalyAlert?, modifier: Modifier = Modifier) {
                 delay(250)
             }
         }
-        GlassAlertBody(severity = a.severity, distanceText = formatAlertDistance(distance))
+        com.antigravity.copilot.core.designsystem.PopupScaled {
+            GlassAlertBody(severity = a.severity, distanceText = formatAlertDistance(distance))
+        }
     }
 }
 

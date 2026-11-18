@@ -244,9 +244,10 @@ interface RoadSegmentStatsDao {
         RoadSegmentStatsEntity::class,
         com.antigravity.copilot.core.road.RoadAnomalyEntity::class,
         com.antigravity.copilot.core.fuel.station.FuelStationEntity::class,
-        com.antigravity.copilot.core.fuel.station.RefuelLogEntity::class
+        com.antigravity.copilot.core.fuel.station.RefuelLogEntity::class,
+        com.antigravity.copilot.core.osm.OsmPlaceNoteEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -262,6 +263,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun roadAnomalyDao(): com.antigravity.copilot.core.road.RoadAnomalyDao
     abstract fun fuelStationDao(): com.antigravity.copilot.core.fuel.station.FuelStationDao
     abstract fun refuelLogDao(): com.antigravity.copilot.core.fuel.station.RefuelLogDao
+    abstract fun osmPlaceNoteDao(): com.antigravity.copilot.core.osm.OsmPlaceNoteDao
 
     companion object {
         @Volatile
@@ -481,6 +483,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Offline queue of "add place details for OSM" notes. */
+        val MIGRATION_15_16 = object : androidx.room.migration.Migration(15, 16) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `osm_place_notes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `name` TEXT NOT NULL, `category` TEXT NOT NULL, " +
+                        "`details` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `status` TEXT NOT NULL, `osmNoteId` INTEGER, " +
+                        "`lastError` TEXT, `attempts` INTEGER NOT NULL)"
+                )
+            }
+        }
+
         /** Average fuel price per station (shown in the map bubble). */
         val MIGRATION_14_15 = object : androidx.room.migration.Migration(14, 15) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
@@ -525,7 +539,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_11_12,
             MIGRATION_12_13,
             MIGRATION_13_14,
-            MIGRATION_14_15
+            MIGRATION_14_15,
+            MIGRATION_15_16
         )
 
         fun getInstance(context: Context): AppDatabase {

@@ -53,6 +53,8 @@ class CopilotApp : Application() {
 
         // Debug builds: adb-triggered fake trips / fuel history for UI testing
         if (BuildConfig.DEBUG) com.antigravity.copilot.core.debug.DebugDemoDataSeeder.register(this)
+        // Send any "add place to OSM" notes queued while offline (runs only with a network).
+        com.antigravity.copilot.core.osm.OsmPlaceNotes.scheduleSync(this)
 
         // 5. Diagnostic database integrity scan, kept off the blocking startup path
         appScope.launch { StorageMigrationManager.verifyDatabaseIntegrity(this@CopilotApp) }

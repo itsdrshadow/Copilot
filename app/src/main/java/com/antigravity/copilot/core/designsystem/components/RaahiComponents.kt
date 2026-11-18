@@ -416,12 +416,15 @@ fun RowScope.VDivider(height: Dp = 28.dp) {
 fun RaahiDialogHost(
     onDismissRequest: () -> Unit,
     maxWidth: Dp = 880.dp,
+    /** Readability boost on small dense screens; off for the large working dialogs (> 960 dp). */
+    scaleUp: Boolean = maxWidth <= 960.dp,
     content: @Composable BoxScope.() -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+      com.antigravity.copilot.core.designsystem.PopupScaled(enabled = scaleUp) {
         BoxWithConstraints(
             modifier =
                 Modifier
@@ -449,6 +452,7 @@ fun RaahiDialogHost(
                 content = content,
             )
         }
+    }
     }
 }
 

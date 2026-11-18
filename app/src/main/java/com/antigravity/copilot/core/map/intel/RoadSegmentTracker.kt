@@ -45,6 +45,11 @@ class RoadSegmentTracker(
         const val CALIBRATED_MIN_KM = 0.5
         /** Re-check visibility this often: a parked car's GNSS goes quiet, so no fix may come. */
         const val TICK_MS = 5_000L
+        /**
+         * Keep showing the last callout this long while the road match briefly drops out
+         * (junctions, tile edges, a missed query): the bubble no longer blinks off and on.
+         */
+        const val GAP_HOLD_MS = 20_000L
     }
 
     private val _callout = MutableStateFlow<RoadCallout?>(null)
@@ -57,6 +62,7 @@ class RoadSegmentTracker(
     private val roadClassSticky = StickyValue<String>(confirm = 2, dropAfterMisses = 2)
     private var roadName: String? = null
     private var lastRoadMs = 0L
+    private var lastShownMs = 0L
 
     private var gridLat = Int.MIN_VALUE
     private var gridLon = Int.MIN_VALUE
@@ -234,8 +240,13 @@ class RoadSegmentTracker(
         // Slow fixes, or no fixes at all (parked: GNSS de-duplicates / stops reporting).
         val stationaryTooLong = (stationarySinceMs != 0L && now - stationarySinceMs > STATIONARY_HIDE_MS) ||
             (hasPrev && now - prevMs > STATIONARY_HIDE_MS)
-        if (!attached || k == null || roadClass == null || stationaryTooLong) {
+        if (!attached || stationaryTooLong) {
             _callout.value = null
+            return
+        }
+        if (k == null || roadClass == null) {
+            // Match gap while moving: hold the last values for a while instead of blinking off.
+            if (now - lastShownMs > GAP_HOLD_MS) _callout.value = null
             return
         }
         val cal = repo.calibration.value
@@ -257,6 +268,7 @@ class RoadSegmentTracker(
         } else {
             null
         }
+        if (next != null) lastShownMs = now
         _callout.value = next
     }
 }

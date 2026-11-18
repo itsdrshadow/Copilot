@@ -223,6 +223,7 @@ fun LiveMapPanel(
     val coroutineScope = rememberCoroutineScope()
 
     var showOfflineManagerDialog by remember { mutableStateOf(false) }
+    var showOsmPlaceDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     // H7: the menu closes by itself after a few seconds, when the map is covered (tab change)
     // and when switching between the Drive map and full screen.
@@ -602,6 +603,12 @@ fun LiveMapPanel(
                         onClick = { mapController.toggleRoadMileage(); menuExpanded = false }
                     )
                     MapMenuItem(
+                        icon = Icons.Outlined.AddLocationAlt,
+                        label = "Add place to OSM",
+                        isActive = false,
+                        onClick = { showOsmPlaceDialog = true; menuExpanded = false }
+                    )
+                    MapMenuItem(
                         icon = Icons.Outlined.CloudDownload,
                         label = "Offline maps",
                         isActive = false,
@@ -663,6 +670,10 @@ fun LiveMapPanel(
             onConfirm = { mapController.clearSelectedRoadCell() },
             onDismiss = { mapController.clearSelectedRoadCell() }
         )
+    }
+
+    if (showOsmPlaceDialog) {
+        OsmAddPlaceDialog(position = latestPoint(), onDismiss = { showOsmPlaceDialog = false })
     }
 
     if (showOfflineManagerDialog) {

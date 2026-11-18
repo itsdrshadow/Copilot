@@ -55,7 +55,7 @@ fun RefuelStationPromptDialog(
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
+    ) { com.antigravity.copilot.core.designsystem.PopupScaled {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -239,6 +239,7 @@ fun RefuelStationPromptDialog(
             }
         }
     }
+}
 }
 
 private const val AUTO_DISMISS_SECONDS = 45

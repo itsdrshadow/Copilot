@@ -704,16 +704,17 @@ private fun EditFuelEventDialog(
     onDismiss: () -> Unit,
     onSave: (FuelEventEntity) -> Unit
 ) {
-    var litersText by remember { mutableStateOf(event.liters.toString()) }
-    var priceText by remember { mutableStateOf(event.pricePerLiter.toString()) }
-    var costText by remember { mutableStateOf(event.totalCost.toString()) }
+    // Money and litres: never more than 2 decimals, neither shown nor typed.
+    var litersText by remember { mutableStateOf(NumberFormatUtils.formatPrecision(event.liters, 2)) }
+    var priceText by remember { mutableStateOf(NumberFormatUtils.formatPrecision(event.pricePerLiter, 2)) }
+    var costText by remember { mutableStateOf(NumberFormatUtils.formatPrecision(event.totalCost, 2)) }
     var odoText by remember { mutableStateOf(NumberFormatUtils.formatOdometer(event.odometerKm, 0)) }
     var locationText by remember { mutableStateOf(event.locationName) }
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
+    ) { com.antigravity.copilot.core.designsystem.PopupScaled {
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.72f)
@@ -774,6 +775,7 @@ private fun EditFuelEventDialog(
                     OutlinedTextField(
                         value = litersText,
                         onValueChange = {
+                            if (!isTwoDecimalInput(it)) return@OutlinedTextField
                             litersText = it
                             val l = it.toDoubleOrNull() ?: 0.0
                             val p = priceText.toDoubleOrNull() ?: 0.0
@@ -795,6 +797,7 @@ private fun EditFuelEventDialog(
                     OutlinedTextField(
                         value = priceText,
                         onValueChange = {
+                            if (!isTwoDecimalInput(it)) return@OutlinedTextField
                             priceText = it
                             val l = litersText.toDoubleOrNull() ?: 0.0
                             val p = it.toDoubleOrNull() ?: 0.0
@@ -817,7 +820,7 @@ private fun EditFuelEventDialog(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = costText,
-                        onValueChange = { costText = it },
+                        onValueChange = { if (isTwoDecimalInput(it)) costText = it },
                         label = { Text("Total paid (₹) · auto", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
                         textStyle = CockpitTheme.typography.titleLarge.copy(color = CockpitTheme.colors.textPrimary, fontFeatureSettings = "tnum"),
@@ -863,7 +866,7 @@ private fun EditFuelEventDialog(
                             val newL = litersText.toDoubleOrNull() ?: event.liters
                             val newP = priceText.toDoubleOrNull() ?: event.pricePerLiter
                             val newC = costText.toDoubleOrNull() ?: (newL * newP)
-                            val newO = odoText.toDoubleOrNull() ?: event.odometerKm
+                            val newO = odoText.replace(",", "").trim().toDoubleOrNull() ?: event.odometerKm
                             val updated = event.copy(
                                 liters = newL,
                                 pricePerLiter = newP,
@@ -883,8 +886,11 @@ private fun EditFuelEventDialog(
                 }
             }
         }
-    }
+    } }
 }
+
+/** Accepts "", "12", "12.", "12.3", "12.34"; rejects a 3rd decimal, letters or a second dot. */
+internal fun isTwoDecimalInput(text: String): Boolean = Regex("""\d*(\.\d{0,2})?""").matches(text)
 
 // ==================== CALCULATION & DATA AGGREGATION ENGINE ====================
 

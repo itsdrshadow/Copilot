@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.abs
 import kotlin.math.exp
+import com.antigravity.copilot.core.road.RoadAnomalyMath as RoadMath
 
 /**
  * CarMapController:
@@ -131,8 +132,13 @@ class CarMapController(
             }
         }
 
-        /** Road-pinned callout: placed this far ahead of the car when its segment starts. */
-        private const val CALLOUT_AHEAD_M = 120.0
+        /** Road callout placement: distance band ahead (or behind) on the road, in metres. */
+        private const val CALLOUT_MIN_M = 120.0
+        private const val CALLOUT_MAX_M = 450.0
+        /** Behind the car by more than this: it has been passed, spawn the next one. */
+        private const val CALLOUT_PASSED_M = 40.0
+        /** At most one re-placement per this interval (no jumping around at junctions). */
+        private const val CALLOUT_RESPAWN_MIN_MS = 3_000L
 
         /** EMA factor for an irregular sample interval [dtMs]. */
         fun emaAlpha(dtMs: Long, tauMs: Double = SPEED_EMA_TAU_MS): Double = 1.0 - exp(-dtMs / tauMs)
@@ -427,6 +433,7 @@ class CarMapController(
      * All per-point work (including the snapshot copy) runs off the main thread and is throttled.
      */
     fun updateTrail(points: List<TripPoint>) {
+        trailRef = points
         val now = SystemClock.elapsedRealtime()
         val size = points.size
         if (size == lastTrailSize) return
@@ -1003,16 +1010,21 @@ class CarMapController(
     private var calloutKey: String? = null
     private var calloutLat = Double.NaN
     private var calloutLon = Double.NaN
+    private var calloutBehind = false
+    private var calloutSpawnMs = 0L
+    /** Latest trail (the road just driven), for placing the callout behind the car. */
+    @Volatile private var trailRef: List<TripPoint> = emptyList()
 
     /**
      * Runs on every camera frame (OnCameraMove), puck step and camera idle while the bubble is
      * visible: one batched JNI projection into preallocated arrays, then two float writes the UI
      * reads in its draw phase (graphicsLayer), so nothing re-composes or re-lays-out per frame.
      *
-     * The bubble belongs to a road segment, not to the car: when a new segment's stats appear it
-     * is pinned to a fixed map point on the road [CALLOUT_AHEAD_M] ahead of the car (along the
-     * heading, where the car is about to drive) and stays there; the car drives past it and the
-     * map scrolls it away. The next segment pins a new point.
+     * Google-Maps style placement: the bubble belongs to the road, not the car. It is spawned on
+     * the road itself, a good distance ahead ([calloutDistanceM], about a third of the visible
+     * map), and stays fixed there while the car drives towards and past it. It is re-spawned when
+     * the segment changes or the car has passed it; if the road does not continue far enough
+     * ahead (junction, dead end) it is spawned on the road behind, on the trail just driven.
      */
     private fun updateCalloutAnchor() {
         updateStationAnchor()
@@ -1028,13 +1040,10 @@ class CarMapController(
             listener.onAnchor(Float.NaN, Float.NaN)
             return
         }
-        if (key != calloutKey || calloutLat.isNaN()) {
-            val pos = puckPosition ?: lastLocation
-            val b = Math.toRadians(lastBearing)
-            calloutKey = key
-            calloutLat = pos.latitude + CALLOUT_AHEAD_M * kotlin.math.cos(b) / 111_320.0
-            calloutLon = pos.longitude + CALLOUT_AHEAD_M * kotlin.math.sin(b) /
-                (111_320.0 * kotlin.math.cos(Math.toRadians(pos.latitude)).coerceAtLeast(0.01))
+        val pos = puckPosition ?: lastLocation
+        val now = SystemClock.elapsedRealtime()
+        if (calloutLat.isNaN() || (now - calloutSpawnMs >= CALLOUT_RESPAWN_MIN_MS && needsRespawn(key, pos))) {
+            spawnCallout(key, pos, now)
         }
         calloutIn[0] = calloutLat
         calloutIn[1] = calloutLon
@@ -1042,6 +1051,82 @@ class CarMapController(
         val x = calloutOut[0].toFloat()
         val y = calloutOut[1].toFloat()
         listener.onAnchor(if (x.isFinite()) x else Float.NaN, if (y.isFinite()) y else Float.NaN)
+    }
+
+    private fun needsRespawn(key: String, pos: LatLng): Boolean {
+        if (key != calloutKey) return true
+        val d = RoadMath.distanceM(pos.latitude, pos.longitude, calloutLat, calloutLon)
+        val rel = kotlin.math.abs(
+            RoadMath.angleDiff(lastBearing.toDouble(), RoadMath.bearingDeg(pos.latitude, pos.longitude, calloutLat, calloutLon))
+        )
+        val target = calloutDistanceM()
+        return if (!calloutBehind) {
+            // Driven past it (now behind the car), or the road took it far away.
+            (rel > 100.0 && d > CALLOUT_PASSED_M) || d > target * 2.2
+        } else {
+            // Placed behind: look for road ahead again once the car has moved on.
+            d > target * 1.6
+        }
+    }
+
+    /** About a third of the visible map height, so the bubble sits well clear of the car. */
+    private fun calloutDistanceM(): Double {
+        val region = mapboxMap?.projection?.visibleRegion ?: return 250.0
+        val far = region.farLeft ?: return 250.0
+        val near = region.nearLeft ?: return 250.0
+        val spanM = kotlin.math.abs(far.latitude - near.latitude) * 111_320.0
+        return (spanM * 0.33).coerceIn(CALLOUT_MIN_M, CALLOUT_MAX_M)
+    }
+
+    private fun spawnCallout(key: String, pos: LatLng, now: Long) {
+        calloutKey = key
+        calloutSpawnMs = now
+        val target = calloutDistanceM()
+        val car = com.antigravity.copilot.core.map.intel.LonLat(pos.longitude, pos.latitude)
+        val ahead = roadIntel.pathAhead(car, lastBearing.toDouble(), target + 30.0).map { it.lat to it.lon }
+        val aheadLen = polylineLengthM(ahead)
+        val spot = if (aheadLen >= target * 0.7) {
+            calloutBehind = false
+            pointAlong(ahead, minOf(target, aheadLen - 10.0))
+        } else {
+            // Road ends / turns ahead: put it on the road just driven, behind the car.
+            val back = trailRef.asReversed().map { it.latitude to it.longitude }
+            val backLen = polylineLengthM(back)
+            if (backLen >= CALLOUT_MIN_M * 0.5) {
+                calloutBehind = true
+                pointAlong(back, minOf(target * 0.6, backLen - 5.0))
+            } else {
+                calloutBehind = false
+                // No geometry either way yet: along the heading.
+                val b = Math.toRadians(lastBearing.toDouble())
+                val dM = target * 0.6
+                (pos.latitude + dM * kotlin.math.cos(b) / 111_320.0) to
+                    (pos.longitude + dM * kotlin.math.sin(b) / (111_320.0 * kotlin.math.cos(Math.toRadians(pos.latitude)).coerceAtLeast(0.01)))
+            }
+        }
+        calloutLat = spot.first
+        calloutLon = spot.second
+    }
+
+    private fun polylineLengthM(pts: List<Pair<Double, Double>>): Double {
+        var len = 0.0
+        for (i in 1 until pts.size) len += RoadMath.distanceM(pts[i - 1].first, pts[i - 1].second, pts[i].first, pts[i].second)
+        return len
+    }
+
+    private fun pointAlong(pts: List<Pair<Double, Double>>, distanceM: Double): Pair<Double, Double> {
+        var walked = 0.0
+        for (i in 1 until pts.size) {
+            val (aLat, aLon) = pts[i - 1]
+            val (bLat, bLon) = pts[i]
+            val seg = RoadMath.distanceM(aLat, aLon, bLat, bLon)
+            if (walked + seg >= distanceM && seg > 0.0) {
+                val f = (distanceM - walked) / seg
+                return (aLat + (bLat - aLat) * f) to (aLon + (bLon - aLon) * f)
+            }
+            walked += seg
+        }
+        return pts.last()
     }
 
     private var renderingActive = true
