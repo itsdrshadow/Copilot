@@ -117,6 +117,8 @@ data class FuelState(
     val mileageConfidence: Double = 0.0,
     /** Unclamped model estimate; negative = "debt" (consumption beyond the tank). */
     val rawFuelLiters: Double = 48.0,
+    /** Learned gauge curve: single source for litres <-> bars on every screen (null = linear fallback). */
+    val gaugeCurve: com.antigravity.copilot.core.logic.fuel.GaugeCurve? = null,
     val topBufferLiters: Double = 3.0,
     val bottomBufferLiters: Double = 5.0,
     /** Sum of provisional unlogged-consumption entries awaiting the next refill. */

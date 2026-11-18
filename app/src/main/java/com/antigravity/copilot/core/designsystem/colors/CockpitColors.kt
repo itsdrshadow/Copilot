@@ -3,6 +3,7 @@ package com.antigravity.copilot.core.designsystem.colors
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 
 // ==================== THEME ENUMS & CONTRACTS ====================
 
@@ -263,7 +264,12 @@ val RaahiDayColors = CockpitColors(
 
 fun cockpitColorsFor(isDay: Boolean): CockpitColors = if (isDay) RaahiDayColors else RaahiNightColors
 
-fun mapPaletteFor(isDay: Boolean): MapPalette = if (isDay) RaahiDay.Map else RaahiNight.Map
+fun mapPaletteFor(isDay: Boolean, accent: AccentOption = AccentOption.CYAN): MapPalette {
+    val base = if (isDay) RaahiDay.Map else RaahiNight.Map
+    // Trail and geofence rings follow the chosen accent (default cyan keeps the stock palette).
+    val hex = String.format("#%06X", (if (isDay) accent.day else accent.night).toArgb() and 0xFFFFFF)
+    return base.copy(trail = hex, geofence = hex)
+}
 
 // Legacy names, now aliases of the Raahi Night palette (Night is the default appearance).
 val ApexCockpitColors = RaahiNightColors

@@ -197,13 +197,18 @@ fun CopilotTheme(
     }
 
     androidx.compose.runtime.SideEffect {
-        com.antigravity.copilot.core.designsystem.tokens.ThemeColorsSnapshot.colors = base
+        // Target (non-animated) accent so non-composable readers of StaticPalette follow the choice too.
+        com.antigravity.copilot.core.designsystem.tokens.ThemeColorsSnapshot.colors = base.copy(
+            accent = if (isDay) accentOption.day else accentOption.night,
+            accentSoft = (if (isDay) accentOption.day else accentOption.night).copy(alpha = base.accentSoft.alpha),
+            accentText = if (isDay) accentOption.dayText else accentOption.night
+        )
     }
 
     CompositionLocalProvider(
         ColorsLocal provides colors,
         ThemeModeLocal provides themeMode,
-        MapPaletteLocal provides mapPaletteFor(isDay),
+        MapPaletteLocal provides mapPaletteFor(isDay, accentOption),
         LocalAutomotiveTokens provides AutomotiveDesignTokens,
         LocalCockpitTypography provides CockpitTypography
     ) {

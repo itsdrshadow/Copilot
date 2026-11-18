@@ -447,6 +447,7 @@ class FuelRepository private constructor(context: Context) {
             explanation = estimator.currentExplanation,
             actualCapacityLiters = FuelMath.roundFuel(est.actualCapacityL),
             gaugeFillPoints = est.gaugePoints,
+            gaugeCurve = FuelModel.curve(model),
             mileageConfidence = est.mileageConfidence,
             rawFuelLiters = est.rawLitres,
             topBufferLiters = est.topBufferL,

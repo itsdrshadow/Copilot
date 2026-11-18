@@ -198,17 +198,23 @@ object FuelModel {
             p <= 0.0 -> minOf(est, c.litresAt(0.0))
             else -> c.litresAt(p)
         }
-        // Fuse model and gauge; the gauge is coarse so it never fully overrides a confident model.
-        val wModel = m.confidence
-        val wGauge = 0.6
-        val fused = (wModel * est + wGauge * gaugeL) / (wModel + wGauge)
         var next = s.copy(
             observations = (s.observations + GaugeObservation(p, est, weight = 0.3 + m.confidence, timeMs = nowMs))
                 .takeLast(FuelModelState.MAX_OBSERVATIONS)
         )
         next = addGaugeSegment(next, odoKm, gaugeL, nowMs)
+        // The driver just read the car's gauge, so the app's gauge must show that same reading right
+        // away. The observation above still nudges the learned curve toward the model's litres; the
+        // anchor is then placed on the *updated* curve at the picked point (previously a fused value
+        // on the old curve, which left the home gauge a bar or two off what was just entered).
+        val c2 = curve(next)
+        val anchor = when {
+            p >= Config.GAUGE_MAX_POINT -> maxOf(est, c2.litresAt(p))
+            p <= 0.0 -> minOf(est, c2.litresAt(0.0))
+            else -> c2.litresAt(p)
+        }.coerceIn(0.0, s.actualCapacityL)
         return next.copy(
-            anchorLitres = fused,
+            anchorLitres = anchor,
             anchorOdoKm = odoKm,
             anchorTimeMs = nowMs,
             lastGauge = GaugeAnchor(odoKm, gaugeL, 0.0)

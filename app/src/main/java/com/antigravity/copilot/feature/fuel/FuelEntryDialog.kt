@@ -119,20 +119,27 @@ fun FuelEntryDialog(
     val dispensedLiters = if (pricePerLiter > 0.0) totalAmount / pricePerLiter else 0.0
 
     val designCap = fuelState.designCapacityLiters.coerceAtLeast(30.0)
+    // The tank the fuel model really uses (learned usable capacity), the same one the home card's
+    // percentage and bars are based on. The design capacity only bounds the keypad sanity check.
+    val tankCap = fuelState.actualCapacityLiters.coerceAtLeast(1.0)
     val currentFuelLiters = fuelState.remainingLiters.coerceAtLeast(0.0)
     val predictedFinalTank = currentFuelLiters + dispensedLiters
-    val isOverfill = predictedFinalTank > designCap
-    val clampedFinalTank = predictedFinalTank.coerceAtMost(designCap)
+    val isOverfill = predictedFinalTank > tankCap + 0.05
+    val clampedFinalTank = predictedFinalTank.coerceAtMost(maxOf(tankCap, dispensedLiters))
     val effectiveMileage = if (fuelState.currentMileageKmpl > 0.0) fuelState.currentMileageKmpl else 18.0
 
     // Full-tank flag: defaults on when the refuel is projected to fill the tank; the driver decides.
-    val projectedFull = dispensedLiters > 0.0 && predictedFinalTank >= designCap * 0.98
+    val projectedFull = dispensedLiters > 0.0 && predictedFinalTank >= tankCap * 0.98
     var fullTankOverride by remember { mutableStateOf<Boolean?>(null) }
     val isFullTank = fullTankOverride ?: projectedFull
 
     // Indicator only: current fill from the home gauge, plus this refuel's share of the tank.
     val currentPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0)
-    val afterPoints = if (isFullTank) 10.0 else (currentPoints + dispensedLiters / designCap * 10.0).coerceIn(0.0, 10.0)
+    // Bars after the refuel come from the learned gauge curve (same one the home gauge uses), so a
+    // litre does not move the bars differently here than on the home screen.
+    val postRefillLiters = if (isFullTank) tankCap else clampedFinalTank
+    val afterPoints = if (isFullTank) 10.0 else (fuelState.gaugeCurve?.pointFor(postRefillLiters)
+        ?: (currentPoints + dispensedLiters / tankCap * 10.0)).coerceIn(currentPoints, 10.0)
 
     val enteredOdo = refuelOdometerText.toDoubleOrNull() ?: 0.0
     val isOdometerValid = !odometerEdited || refuelOdometerText.isEmpty() || enteredOdo > 0.0
@@ -296,8 +303,8 @@ fun FuelEntryDialog(
                         currentFuelLiters = currentFuelLiters,
                         dispensedLiters = dispensedLiters,
                         // A full fill sets the tank to capacity in the fuel model; show the same.
-                        postRefillLiters = if (isFullTank) designCap else clampedFinalTank,
-                        designCap = designCap,
+                        postRefillLiters = postRefillLiters,
+                        designCap = tankCap,
                         effectiveMileage = effectiveMileage,
                         pricePerLiter = pricePerLiter,
                         isOverfill = isOverfill,

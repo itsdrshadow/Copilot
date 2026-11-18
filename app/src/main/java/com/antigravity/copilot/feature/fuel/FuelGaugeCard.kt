@@ -43,7 +43,7 @@ internal fun RefuelProjectionCard(
 ) {
     val c = CockpitTheme.colors
     val tankPct = ((postRefillLiters / designCap) * 100).coerceIn(0.0, 100.0)
-    val currentPct = ((currentFuelLiters / designCap) * 100).toInt().coerceIn(0, 100)
+    val currentPct = Math.round((currentFuelLiters / designCap) * 100).toInt().coerceIn(0, 100)
     val addedRangeKm = dispensedLiters * effectiveMileage
     val runningCostPerKm = if (effectiveMileage > 0.0) pricePerLiter / effectiveMileage else 0.0
     val totalRangeKm = postRefillLiters * effectiveMileage
@@ -73,7 +73,7 @@ internal fun RefuelProjectionCard(
             Text("L", style = CockpitTheme.typography.titleMedium, color = c.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
             Spacer(Modifier.weight(1f))
             Text(
-                "${tankPct.toInt()}%",
+                "${Math.round(tankPct).toInt()}%",
                 style = CockpitTheme.typography.headlineLarge,
                 color = fuelLevelTextColor(tankPct),
                 maxLines = 1
@@ -86,7 +86,7 @@ internal fun RefuelProjectionCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(20.dp)
-                .semantics { contentDescription = "Projected fuel gauge, ${tankPct.toInt()} percent" },
+                .semantics { contentDescription = "Projected fuel gauge, ${Math.round(tankPct).toInt()} percent" },
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             for (i in 1..10) {

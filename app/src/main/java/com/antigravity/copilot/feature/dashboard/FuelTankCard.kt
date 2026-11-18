@@ -170,7 +170,9 @@ fun FuelTankCard(
     if (showGaugeDialog) {
         GaugeCalibrationDialog(
             currentPoint = fuelState.gaugeFillPoints,
-            capacityLiters = fuelState.designCapacityLiters,
+            capacityLiters = fuelState.actualCapacityLiters,
+            curve = fuelState.gaugeCurve,
+            currentLiters = fuelState.remainingLiters,
             onDismiss = { showGaugeDialog = false },
             onApply = { point ->
                 onCalibrateGauge(point)
@@ -247,12 +249,21 @@ fun GaugeCalibrationDialog(
     currentPoint: Double,
     capacityLiters: Double,
     onDismiss: () -> Unit,
-    onApply: (Double) -> Unit
+    onApply: (Double) -> Unit,
+    curve: com.antigravity.copilot.core.logic.fuel.GaugeCurve? = null,
+    /** Real current litres: shown as-is until the driver picks a different bar. */
+    currentLiters: Double? = null
 ) {
     val c = CockpitTheme.colors
     val initial = (Math.round(currentPoint * 2.0) / 2.0).coerceIn(0.0, 10.0)
     var point by remember { mutableDoubleStateOf(initial) }
-    val estLiters = (point * capacityLiters / 10.0).coerceIn(0.0, capacityLiters)
+    // Same litres/percent the home card and Add Fuel show for this many bars: the learned gauge
+    // curve and the actual (learned) capacity, not a straight bars x design-capacity split.
+    val estLiters = (
+        if (currentLiters != null && point == initial) currentLiters
+        else curve?.litresAt(point) ?: (point * capacityLiters / 10.0)
+    ).coerceIn(0.0, capacityLiters)
+    val levelPct = if (capacityLiters > 0.0) (estLiters / capacityLiters * 100.0).toInt().coerceIn(0, 100) else 0
 
     RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 900.dp) {
         Column(
@@ -290,7 +301,7 @@ fun GaugeCalibrationDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StatCell(label = "Bars", value = gaugePointLabel(point), unit = "of 10", modifier = Modifier.weight(1f))
-                StatCell(label = "Level", value = "${(point * 10).toInt()}", unit = "%", modifier = Modifier.weight(1f))
+                StatCell(label = "Level", value = "$levelPct", unit = "%", modifier = Modifier.weight(1f))
                 StatCell(
                     label = "Estimated fuel",
                     value = NumberFormatUtils.formatPrecision(estLiters, 1),
