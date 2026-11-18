@@ -2,14 +2,14 @@ package com.antigravity.copilot.baselineprofile
 
 import androidx.benchmark.macro.junit4.BaselineProfileRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.uiautomator.UiDevice
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Generates the app's baseline profile by walking the main user journeys:
- * cold start on Drive, then every navigation-rail tab with a scroll each.
+ * Generates the app's baseline profile by walking every critical journey in [Journey]:
+ * home map pan/zoom, Trips, Fuel, full-screen Maps, Apps, Log Fuel, odometer and gauge
+ * calibration, and every Settings tab with its sub-dialogs.
  *
  * Run (rooted device on API 28-32, or any device on API 33+):
  *   ./gradlew :app:generateReleaseBaselineProfile
@@ -21,51 +21,16 @@ class BaselineProfileGenerator {
     val rule = BaselineProfileRule()
 
     @Test
-    fun generate() = rule.collect(packageName = PACKAGE) {
-        PERMISSIONS.forEach { device.executeShellCommand("pm grant $PACKAGE android.permission.$it") }
-
+    fun generate() = rule.collect(
+        packageName = PACKAGE,
+        maxIterations = 4,
+        stableIterations = 2,
+    ) {
+        grantPermissions()
         pressHome()
         startActivityAndWait()
         device.waitForIdle()
-
-        // Rail tabs, designed for a 1280x800 head unit; scaled to the actual display.
-        listOf(TRIPS_Y, FUEL_Y, MAPS_Y, APPS_Y, SETTINGS_Y, DRIVE_Y).forEach { y ->
-            device.tapRail(y)
-            device.waitForIdle()
-            device.scrollContent()
-        }
-    }
-
-    private fun UiDevice.tapRail(y: Int) {
-        click(sx(RAIL_X), sy(y))
-    }
-
-    private fun UiDevice.scrollContent() {
-        val x = sx(1000)
-        swipe(x, sy(650), x, sy(200), 20)
-        waitForIdle()
-        swipe(x, sy(200), x, sy(650), 20)
-        waitForIdle()
-    }
-
-    private fun UiDevice.sx(x: Int) = x * displayWidth / 1280
-    private fun UiDevice.sy(y: Int) = y * displayHeight / 800
-
-    private companion object {
-        const val PACKAGE = "com.antigravity.copilot"
-        const val RAIL_X = 35
-        const val DRIVE_Y = 35
-        const val TRIPS_Y = 100
-        const val FUEL_Y = 160
-        const val MAPS_Y = 225
-        const val APPS_Y = 285
-        const val SETTINGS_Y = 765
-        val PERMISSIONS = listOf(
-            "ACCESS_FINE_LOCATION",
-            "ACCESS_COARSE_LOCATION",
-            "ACCESS_BACKGROUND_LOCATION",
-            "READ_EXTERNAL_STORAGE",
-            "WRITE_EXTERNAL_STORAGE",
-        )
+        Journey.values().forEach { device.runJourney(it) }
+        device.goDrive()
     }
 }

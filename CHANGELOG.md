@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.15.4] - 2026-11-18
+
+### Added
+- Frame-timing benchmark (`FrameTimingBenchmark`) for every critical journey, recording Macrobenchmark frame timing, gfxinfo jank counters and per-thread CPU (Compose main thread vs RenderThread vs MapLibre GL thread).
+
+### Changed
+- Baseline profile regenerated from all critical journeys: home map pan/zoom, Trips, Fuel, full-screen Maps, Apps, Log Fuel, odometer and gauge calibration, and every Settings tab with its dialogs.
+
 ## [2.15.3] - 2026-11-18
 
 ### Changed
