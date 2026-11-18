@@ -180,13 +180,27 @@ fun TripHistoryScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.5f), CopilotShapes.R12, borderWidth = 1.2.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Route,
+                            contentDescription = null,
+                            tint = Palette.Sky400,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+
                     Column {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Trip History",
+                                text = "Trip Records",
                                 style = CockpitTheme.typography.headlineLarge,
                                 color = CockpitTheme.colors.textPrimary
                             )
@@ -194,7 +208,7 @@ fun TripHistoryScreen(
                             // Year Pill
                             Box(
                                 modifier = Modifier
-                                    .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.4f), CopilotShapes.R6)
+                                    .cockpitSurface(CockpitTheme.colors.border, Palette.Sky400.copy(alpha = 0.35f), CopilotShapes.R6)
                                     .padding(horizontal = 8.dp, vertical = 3.dp)
                             ) {
                                 Text(
@@ -208,11 +222,9 @@ fun TripHistoryScreen(
                         }
 
                         Text(
-                            text = "GPS TELEMETRY ARCHIVE • ANIMATED ROUTE REPLAY • DRIVING INSIGHTS",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                letterSpacing = 0.5.sp
-                            ),
-                            color = Palette.Steel400
+                            text = "${yearlyAnalytics.totalTrips} trips in $selectedYear  •  ${NumberFormatUtils.formatPrecision(yearlyAnalytics.totalDistanceKm, 0)} km driven",
+                            style = CockpitTheme.typography.bodyMedium,
+                            color = CockpitTheme.colors.textSecondary
                         )
                     }
                 }
@@ -231,6 +243,7 @@ fun TripHistoryScreen(
                             val isSelected = year == selectedYear
                             Box(
                                 modifier = Modifier
+                                    .height(44.dp)
                                     .clip(CopilotShapes.R12)
                                     .background(if (isSelected) Palette.Ink600 else Palette.Ink900)
                                     .border(
@@ -239,7 +252,7 @@ fun TripHistoryScreen(
                                         shape = CopilotShapes.R12
                                     )
                                     .clickable { selectedYear = year }
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    .padding(horizontal = 16.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
