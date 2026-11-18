@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.16.0] - 2026-11-18
+
+### Added
+- Settings › General › **Map Rendering**: Smooth (60 FPS), Balanced (30 FPS) and Smart Auto (30 FPS while driving, 60 FPS during drag / zoom). Saved to SharedPreferences + DataStore and applied live to the MapView, no restart. Default: Smooth (60 FPS).
+- `MapFpsAbBenchmark`: per-mode A/B run (Drive screen + full screen) recording frame timing, gfxinfo jank, Mali GPU load/clock, system CPU and SoC/GPU temperature.
+
+### Changed
+- The FPS cap now follows the Map Rendering setting on both the Drive screen and full screen (replaces the fixed 20 / 30 fps caps).
+- MapLibre tuning for the Mali-G31 head unit: SQLite ambient cache disabled (tiles are already served from the local PMTiles RAM cache), prefetch zoom delta 4 → 2, cross-source symbol collisions off, building extrusion vertical gradient off.
+
 ## [2.15.6] - 2026-11-18
 
 ### Changed

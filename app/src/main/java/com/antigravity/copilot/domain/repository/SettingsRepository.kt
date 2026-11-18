@@ -11,6 +11,7 @@ interface SettingsRepository {
     fun updateCockpitTheme(mode: CockpitThemeMode)
     fun updateThemeAppearanceMode(modeId: String)
     fun updateAccentColor(accentId: String)
+    fun updateMapRenderFps(mode: com.antigravity.copilot.core.settings.MapRenderFps)
     fun setAutoForegroundOnBoot(enabled: Boolean)
     fun setScreenAlwaysOn(enabled: Boolean)
     fun setAutoMinimizeDrawer(enabled: Boolean)

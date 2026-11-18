@@ -49,6 +49,16 @@ import com.antigravity.copilot.core.model.TripPoint
 import com.mapbox.mapboxsdk.Mapbox
 import com.mapbox.mapboxsdk.maps.MapView
 import com.mapbox.mapboxsdk.maps.MapboxMapOptions
+import com.mapbox.mapboxsdk.offline.OfflineManager
+import com.antigravity.copilot.core.settings.AppSettingsManager
+import com.antigravity.copilot.core.settings.MapRenderFps
+import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.MotionEvent
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 const val MAP_MIN_ZOOM_LEVEL = 5.0
 const val MAP_MAX_ZOOM_LEVEL = 19.5
@@ -102,17 +112,87 @@ private class MapViewLifecycleHolder {
  * The panel is meant to stay composed for the whole session (see MainAppScreen): pass
  * [isCovered] = true while an opaque full-screen overlay hides it instead of removing it.
  */
-private const val MAP_MAX_FPS = 30
-
 /**
- * Cap while the map is embedded on the Drive screen. The map is a TextureView, so every map frame
- * forces hwui to redraw the whole window (all dashboard cards). Frame-timing benchmarks showed the
- * Drive screen bound by RenderThread draw commands, not by MapLibre or Compose; a lower cap cuts
- * those full-window redraws. Full screen keeps [MAP_MAX_FPS].
+ * Applies the user's [MapRenderFps] mode to the MapView live (Settings > Map Rendering).
+ *
+ * The map is a TextureView, so every map frame also makes hwui redraw the whole window (all
+ * dashboard cards): the cap bounds both GPU work and RenderThread load. Smart Auto renders at
+ * [MapRenderFps.idleFps] while driving and boosts to [MapRenderFps.interactiveFps] on the first
+ * touch, holding it until the gesture's fling / zoom animation settles.
  */
-private const val MAP_EMBEDDED_FPS = 20
+private class MapFpsGovernor {
+    var mapView: MapView? = null
+        set(value) { field = value; appliedFps = -1; apply() }
+    private var mode = MapRenderFps.DEFAULT
+    private var fingerDown = false
+    private var boosted = false
+    private var appliedFps = -1
+    private val handler = Handler(Looper.getMainLooper())
+    private val settle = Runnable { boosted = false; apply() }
 
-private fun mapFpsFor(isFullScreen: Boolean) = if (isFullScreen) MAP_MAX_FPS else MAP_EMBEDDED_FPS
+    fun setMode(newMode: MapRenderFps) { mode = newMode; apply() }
+
+    fun onTouch(event: MotionEvent) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                fingerDown = true
+                handler.removeCallbacks(settle)
+                if (!boosted) { boosted = true; apply() }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                fingerDown = false
+                // Fallback for taps that never move the camera (no idle callback follows).
+                handler.removeCallbacks(settle)
+                handler.postDelayed(settle, TOUCH_RELEASE_HOLD_MS)
+            }
+        }
+    }
+
+    /** Camera came to rest: drop back to the idle cap shortly after the gesture's fling ends. */
+    fun onCameraIdle() {
+        if (!boosted || fingerDown) return
+        handler.removeCallbacks(settle)
+        handler.postDelayed(settle, CAMERA_IDLE_HOLD_MS)
+    }
+
+    fun release() {
+        handler.removeCallbacks(settle)
+        mapView = null
+    }
+
+    private fun apply() {
+        val fps = if (boosted) mode.interactiveFps else mode.idleFps
+        val mv = mapView ?: return
+        if (fps == appliedFps) return
+        appliedFps = fps
+        mv.setMaximumFps(fps)
+        Log.d("MapFps", "cap=$fps mode=${mode.id} boosted=$boosted")
+    }
+
+    private companion object {
+        const val TOUCH_RELEASE_HOLD_MS = 1500L
+        const val CAMERA_IDLE_HOLD_MS = 250L
+    }
+}
+
+/** Once per process: MapLibre's SQLite ambient cache only duplicates our local PMTiles reads. */
+@Volatile private var ambientCacheDisabled = false
+
+private fun disableAmbientCache(context: Context) {
+    if (ambientCacheDisabled) return
+    ambientCacheDisabled = true
+    try {
+        OfflineManager.getInstance(context).setMaximumAmbientCacheSize(
+            0,
+            object : OfflineManager.FileSourceCallback {
+                override fun onSuccess() {}
+                override fun onError(message: String) { Log.w("LiveMapPanel", "Ambient cache: $message") }
+            }
+        )
+    } catch (e: Exception) {
+        Log.w("LiveMapPanel", "Ambient cache: ${e.message}")
+    }
+}
 
 @Composable
 fun LiveMapPanel(
@@ -139,10 +219,10 @@ fun LiveMapPanel(
     var showOfflineManagerDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     val lifecycleHolder = remember { MapViewLifecycleHolder() }
-    val currentIsFullScreen by rememberUpdatedState(isFullScreen)
-    LaunchedEffect(isFullScreen) {
-        lifecycleHolder.mapView?.setMaximumFps(mapFpsFor(isFullScreen))
-    }
+    val fpsGovernor = remember { MapFpsGovernor() }
+    val fpsMode by remember { AppSettingsManager.settingsState.map { it.mapRenderFpsMode }.distinctUntilChanged() }
+        .collectAsStateWithLifecycle(AppSettingsManager.settingsState.value.mapRenderFpsMode)
+    LaunchedEffect(fpsMode) { fpsGovernor.setMode(fpsMode) }
     val mapController = remember { CarMapController(context.applicationContext, coroutineScope) }
 
     val hasMapInstalled by mapController.hasMapInstalled.collectAsStateWithLifecycle()
@@ -163,6 +243,7 @@ fun LiveMapPanel(
             Mapbox.getInstance(context.applicationContext)
         } catch (_: Exception) {}
         OfflineMapManager.init(context.applicationContext)
+        disableAmbientCache(context.applicationContext)
     }
 
     // GPS ticks go straight to the controller (native camera ease + puck animation) through
@@ -238,6 +319,7 @@ fun LiveMapPanel(
             context.applicationContext.unregisterComponentCallbacks(memoryCallbacks)
             lifecycleOwner.lifecycle.removeObserver(observer)
             mapController.detachMap()
+            fpsGovernor.release()
             lifecycleHolder.destroy()
         }
     }
@@ -268,7 +350,15 @@ fun LiveMapPanel(
             factory = { ctx ->
                 val options = MapboxMapOptions.createFromAttributes(ctx)
                     .textureMode(true) // Crucial for older Mali / Adreno GPUs
-                    .pixelRatio(1.0f) // Cap map density at 1x for GLES2 head units
+                    // Head unit: 1280x800 at 148-160 dpi, i.e. ~1x density. 1.0 is native: no
+                    // supersampled tiles or glyph atlases for the Mali-G31 to fill.
+                    .pixelRatio(1.0f)
+                    // Placeholder tiles from 2 zooms up (default 4): local tiles arrive in <1 ms,
+                    // so far-parent prefetch only adds MVT parsing + GPU uploads on 4 A55 cores.
+                    .setPrefetchZoomDelta(2)
+                    // Our overlay symbols (geofence labels) allow overlap; skip the cross-source
+                    // collision pass on every placement.
+                    .crossSourceCollisions(false)
                     .foregroundLoadColor(mapLoadColor)
                     .compassEnabled(false)
                     .logoEnabled(false)
@@ -278,9 +368,10 @@ fun LiveMapPanel(
 
                 MapView(ctx, options).apply {
                     onCreate(null)
-                    // Follow mode re-renders continuously while driving: cap at 30 fps full screen
-                    // and 20 fps embedded on Drive (see MAP_EMBEDDED_FPS).
-                    setMaximumFps(mapFpsFor(currentIsFullScreen))
+                    // Follow mode re-renders continuously while driving: the FPS cap comes from
+                    // Settings > Map Rendering (see MapFpsGovernor).
+                    fpsGovernor.mapView = this
+                    setOnTouchListener { _, event -> fpsGovernor.onTouch(event); false }
                     lifecycleHolder.mapView = this
                     // The lifecycle observer may already have replayed ON_START/ON_RESUME before this
                     // view existed (fresh launch): bring the MapView up to the current state, or it
@@ -294,6 +385,7 @@ fun LiveMapPanel(
                         map.uiSettings.isTiltGesturesEnabled = true
                         map.uiSettings.isZoomGesturesEnabled = true
                         map.uiSettings.isDoubleTapGesturesEnabled = true
+                        map.addOnCameraIdleListener { fpsGovernor.onCameraIdle() }
                         mapController.attachMap(map)
                     }
                 }

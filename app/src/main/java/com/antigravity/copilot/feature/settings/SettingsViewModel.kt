@@ -44,6 +44,9 @@ class SettingsViewModel @Inject constructor(
 
     fun selectAccent(accentId: String) = settingsRepository.updateAccentColor(accentId)
 
+    fun selectMapRenderFps(mode: com.antigravity.copilot.core.settings.MapRenderFps) =
+        settingsRepository.updateMapRenderFps(mode)
+
     fun setAutoForegroundOnBoot(enabled: Boolean) = settingsRepository.setAutoForegroundOnBoot(enabled)
 
     fun setScreenAlwaysOn(enabled: Boolean) = settingsRepository.setScreenAlwaysOn(enabled)

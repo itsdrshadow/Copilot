@@ -63,6 +63,7 @@ object AppSettingsManager {
     const val KEY_AUTO_DAY_NIGHT_SOLAR = "auto_day_night_solar"
     const val KEY_MEDIA_PILL_ENABLED = "media_pill_enabled"
     const val KEY_AUTO_FOREGROUND_ON_BOOT = "auto_foreground_on_boot"
+    const val KEY_MAP_RENDER_FPS = "map_render_fps"
 
     data class SettingsState(
         val screenAlwaysOn: Boolean = true,
@@ -92,8 +93,12 @@ object AppSettingsManager {
         val mapBuildingFootprints: Boolean = true,
         val autoDayNightSolar: Boolean = true,
         val mediaPillEnabled: Boolean = true,
-        val autoForegroundOnBoot: Boolean = true
+        val autoForegroundOnBoot: Boolean = true,
+        val mapRenderFps: String = MapRenderFps.DEFAULT.id
     ) {
+        val mapRenderFpsMode: MapRenderFps
+            get() = MapRenderFps.fromId(mapRenderFps)
+
         val cockpitThemeMode: CockpitThemeMode
             get() = CockpitThemeMode.fromId(cockpitTheme)
 
@@ -178,7 +183,8 @@ object AppSettingsManager {
             mapBuildingFootprints = prefs.getBoolean(KEY_MAP_BUILDING_FOOTPRINTS, true),
             autoDayNightSolar = prefs.getBoolean(KEY_AUTO_DAY_NIGHT_SOLAR, true),
             mediaPillEnabled = prefs.getBoolean(KEY_MEDIA_PILL_ENABLED, true),
-            autoForegroundOnBoot = prefs.getBoolean(KEY_AUTO_FOREGROUND_ON_BOOT, true)
+            autoForegroundOnBoot = prefs.getBoolean(KEY_AUTO_FOREGROUND_ON_BOOT, true),
+            mapRenderFps = MapRenderFps.fromId(prefs.getString(KEY_MAP_RENDER_FPS, null)).id
         )
         isInitialized = true
     }
@@ -363,6 +369,15 @@ object AppSettingsManager {
         _settingsState.value = _settingsState.value.copy(accentColor = accentId)
         scope.launch {
             context.appDataStore.edit { it[SettingsDataStore.KEY_ACCENT_COLOR] = accentId }
+        }
+    }
+
+    /** Map rendering FPS mode (Settings › General › Map Rendering); the MapView applies it live. */
+    fun updateMapRenderFps(context: Context, mode: MapRenderFps) {
+        getPrefs(context).edit().putString(KEY_MAP_RENDER_FPS, mode.id).apply()
+        _settingsState.value = _settingsState.value.copy(mapRenderFps = mode.id)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_MAP_RENDER_FPS] = mode.id }
         }
     }
 

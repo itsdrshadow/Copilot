@@ -46,6 +46,7 @@ object SettingsDataStore {
     val KEY_AUTO_DAY_NIGHT_SOLAR = booleanPreferencesKey("auto_day_night_solar")
     val KEY_MEDIA_PILL_ENABLED = booleanPreferencesKey("media_pill_enabled")
     val KEY_AUTO_FOREGROUND_ON_BOOT = booleanPreferencesKey("auto_foreground_on_boot")
+    val KEY_MAP_RENDER_FPS = stringPreferencesKey("map_render_fps")
 
     val KEY_STORAGE_SCHEMA_VERSION = intPreferencesKey("storage_schema_version")
     val KEY_LAST_MIGRATION_TIMESTAMP = longPreferencesKey("last_migration_timestamp")
@@ -93,7 +94,8 @@ object SettingsDataStore {
             mapBuildingFootprints = prefs[KEY_MAP_BUILDING_FOOTPRINTS] ?: fallback.mapBuildingFootprints,
             autoDayNightSolar = prefs[KEY_AUTO_DAY_NIGHT_SOLAR] ?: fallback.autoDayNightSolar,
             mediaPillEnabled = prefs[KEY_MEDIA_PILL_ENABLED] ?: fallback.mediaPillEnabled,
-            autoForegroundOnBoot = prefs[KEY_AUTO_FOREGROUND_ON_BOOT] ?: fallback.autoForegroundOnBoot
+            autoForegroundOnBoot = prefs[KEY_AUTO_FOREGROUND_ON_BOOT] ?: fallback.autoForegroundOnBoot,
+            mapRenderFps = prefs[KEY_MAP_RENDER_FPS] ?: fallback.mapRenderFps
         )
     }
 
@@ -105,6 +107,7 @@ object SettingsDataStore {
             prefs[KEY_COCKPIT_THEME] = state.cockpitTheme
             prefs[KEY_THEME_APPEARANCE_MODE] = state.themeAppearanceMode
             prefs[KEY_ACCENT_COLOR] = state.accentColor
+            prefs[KEY_MAP_RENDER_FPS] = state.mapRenderFps
             prefs[KEY_CAR_NAME] = state.carName
             prefs[KEY_FUEL_TYPE] = state.fuelType
             prefs[KEY_TANK_CAPACITY] = state.tankCapacityLiters

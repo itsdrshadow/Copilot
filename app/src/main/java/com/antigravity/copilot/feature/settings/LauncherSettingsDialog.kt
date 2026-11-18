@@ -254,6 +254,7 @@ fun LauncherSettingsDialog(
                                     state = settingsState,
                                     onSelectAppearance = viewModel::selectAppearance,
                                     onSelectAccent = viewModel::selectAccent,
+                                    onSelectMapFps = viewModel::selectMapRenderFps,
                                     onToggleAutoForeground = { viewModel.setAutoForegroundOnBoot(!settingsState.autoForegroundOnBoot) },
                                     onToggleScreenAlwaysOn = { viewModel.setScreenAlwaysOn(!settingsState.screenAlwaysOn) },
                                     onToggleAutoMinimizeDrawer = { viewModel.setAutoMinimizeDrawer(!settingsState.autoMinimizeDrawer) },
@@ -441,6 +442,7 @@ private fun GeneralSettingsContent(
     state: AppSettingsManager.SettingsState,
     onSelectAppearance: (com.antigravity.copilot.core.designsystem.ThemeAppearanceMode) -> Unit,
     onSelectAccent: (String) -> Unit,
+    onSelectMapFps: (com.antigravity.copilot.core.settings.MapRenderFps) -> Unit,
     onToggleAutoForeground: () -> Unit,
     onToggleScreenAlwaysOn: () -> Unit,
     onToggleAutoMinimizeDrawer: () -> Unit,
@@ -620,6 +622,50 @@ private fun GeneralSettingsContent(
                 checked = state.autoMinimizeDrawer,
                 onToggle = onToggleAutoMinimizeDrawer
             )
+        }
+    }
+
+    // MAP RENDERING FPS: applied live to the MapView (no restart).
+    SettingsCard(title = "Map Rendering", icon = Icons.Default.Tune) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Frame rate for the live map on the Drive screen and in full screen. Changes apply instantly.",
+                style = CockpitTheme.typography.bodyMedium,
+                color = CockpitTheme.colors.textSecondary
+            )
+            com.antigravity.copilot.core.settings.MapRenderFps.entries.forEach { mode ->
+                val isSelected = state.mapRenderFpsMode == mode
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .clip(CopilotShapes.R16)
+                        .background(if (isSelected) CockpitTheme.colors.cardElevated else CockpitTheme.colors.card)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) CockpitTheme.colors.accent else CockpitTheme.colors.border,
+                            shape = CopilotShapes.R16
+                        )
+                        .clickable { onSelectMapFps(mode) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = isSelected, onClick = { onSelectMapFps(mode) })
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = mode.displayName,
+                            style = CockpitTheme.typography.titleMedium,
+                            color = CockpitTheme.colors.textPrimary
+                        )
+                        Text(
+                            text = mode.subtitle,
+                            style = CockpitTheme.typography.bodySmall,
+                            color = CockpitTheme.colors.textSecondary
+                        )
+                    }
+                }
+            }
         }
     }
 

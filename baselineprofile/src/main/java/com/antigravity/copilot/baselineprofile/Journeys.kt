@@ -200,24 +200,24 @@ private fun UiDevice.settings() {
 // Helpers (coordinates are authored for 1280x800 and scaled to the real display)
 // ---------------------------------------------------------------------------------------------
 
-private fun UiDevice.rail(label: String) {
+internal fun UiDevice.rail(label: String) {
     // Rail items sit at fixed positions; a coordinate tap cannot go stale.
     click(sx(35), sy(RAIL_Y.getValue(label)))
     waitForIdle()
     SystemClock.sleep(SHORT_MS)
 }
 
-private fun UiDevice.settingsTab(label: String) {
+internal fun UiDevice.settingsTab(label: String) {
     retryStale { findObjects(By.text(label)).firstOrNull { it.visibleBounds.centerX() < sx(340) }?.click() }
     waitForIdle()
 }
 
-private fun UiDevice.awaitText(text: String): UiObject2? =
+internal fun UiDevice.awaitText(text: String): UiObject2? =
     wait(Until.findObject(By.text(text)), TIMEOUT_MS)
 
-private fun UiDevice.tapText(text: String): Boolean = tap(By.text(text))
+internal fun UiDevice.tapText(text: String): Boolean = tap(By.text(text))
 
-private fun UiDevice.tapDesc(desc: String): Boolean = tap(By.desc(desc))
+internal fun UiDevice.tapDesc(desc: String): Boolean = tap(By.desc(desc))
 
 private fun UiDevice.tap(selector: BySelector): Boolean {
     val clicked = retryStale {
@@ -260,10 +260,10 @@ private fun UiDevice.clickRightmost(selector: BySelector) {
     waitForIdle()
 }
 
-private fun UiDevice.mapView(): UiObject2? =
+internal fun UiDevice.mapView(): UiObject2? =
     wait(Until.findObject(By.descStartsWith("Showing a Map")), TIMEOUT_MS)
 
-private fun UiDevice.panMap(map: UiObject2, rounds: Int) {
+internal fun UiDevice.panMap(map: UiObject2, rounds: Int) {
     val b = map.visibleBounds
     val cx = b.centerX()
     val cy = b.centerY()
@@ -278,7 +278,7 @@ private fun UiDevice.panMap(map: UiObject2, rounds: Int) {
     }
 }
 
-private fun UiDevice.pinchMap(map: UiObject2, rounds: Int) {
+internal fun UiDevice.pinchMap(map: UiObject2, rounds: Int) {
     map.setGestureMargin(map.visibleBounds.width() / 5)
     repeat(rounds) {
         retryStale { map.pinchOpen(0.7f, PINCH_SPEED) }

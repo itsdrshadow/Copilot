@@ -27,6 +27,8 @@ class SettingsRepositoryImpl @Inject constructor(
     override fun updateCockpitTheme(mode: CockpitThemeMode) = AppSettingsManager.updateCockpitTheme(context, mode)
     override fun updateThemeAppearanceMode(modeId: String) = AppSettingsManager.updateThemeAppearanceMode(context, modeId)
     override fun updateAccentColor(accentId: String) = AppSettingsManager.updateAccentColor(context, accentId)
+    override fun updateMapRenderFps(mode: com.antigravity.copilot.core.settings.MapRenderFps) =
+        AppSettingsManager.updateMapRenderFps(context, mode)
 
     override fun setAutoForegroundOnBoot(enabled: Boolean) = AppSettingsManager.updateAutoForegroundOnBoot(context, enabled)
 

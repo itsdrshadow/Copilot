@@ -401,6 +401,7 @@
       "paint": {
         "fill-extrusion-color": "#263244",
         "fill-extrusion-opacity": 0.85,
+        "fill-extrusion-vertical-gradient": false,
         "fill-extrusion-height": [
           "coalesce",
           [
