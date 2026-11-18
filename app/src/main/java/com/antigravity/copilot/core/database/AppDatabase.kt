@@ -246,7 +246,7 @@ interface RoadSegmentStatsDao {
         com.antigravity.copilot.core.fuel.station.FuelStationEntity::class,
         com.antigravity.copilot.core.fuel.station.RefuelLogEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -481,6 +481,13 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Average fuel price per station (shown in the map bubble). */
+        val MIGRATION_14_15 = object : androidx.room.migration.Migration(14, 15) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `fuel_stations` ADD COLUMN `avgFuelRate` REAL NOT NULL DEFAULT 0.0")
+            }
+        }
+
         /** Fuel station quality ratings + hybrid mileage refuel logs. */
         val MIGRATION_13_14 = object : androidx.room.migration.Migration(13, 14) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
@@ -517,7 +524,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
-            MIGRATION_13_14
+            MIGRATION_13_14,
+            MIGRATION_14_15
         )
 
         fun getInstance(context: Context): AppDatabase {

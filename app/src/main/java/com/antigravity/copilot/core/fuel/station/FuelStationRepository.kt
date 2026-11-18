@@ -32,8 +32,14 @@ class FuelStationRepository private constructor(context: Context) {
     data class EngineState(
         val pendingReserveOdometer: Double? = null,
         val openAnchorMode: RefuelMode? = null,
-        val trendKmpl: Double? = null
+        val trendKmpl: Double? = null,
+        /** Lifetime km/L over all completed cycles and the km behind it (null = none yet). */
+        val lifetimeKmpl: Double? = null,
+        val lifetimeKm: Double = 0.0
     )
+
+    /** Set by FuelRepository: receives (lifetime km/L, km behind it) after every replay. */
+    @Volatile var onLifetimeMileage: ((Double, Double) -> Unit)? = null
 
     private val _engineState = MutableStateFlow(EngineState())
     val engineState: StateFlow<EngineState> = _engineState.asStateFlow()
@@ -157,15 +163,25 @@ class FuelStationRepository private constructor(context: Context) {
         if (changedLogs.isNotEmpty()) logDao.updateAll(changedLogs)
 
         val averages = HybridMileageEngine.stationAverages(result.cycles)
+        val avgRates = logs.filter { it.stationId != null && it.rate > 0.0 && it.mode != RefuelMode.RESERVE_MARKER }
+            .groupBy { it.stationId!! }
+            .mapValues { (_, l) -> Math.round(l.map { it.rate }.average() * 100.0) / 100.0 }
         val changedStations = stationDao.getAll().mapNotNull { s ->
             val (avg, count) = averages[s.stationId] ?: (0.0 to 0)
             val quality = HybridMileageEngine.rate(avg).name
-            if (avg == s.averageMileage && quality == s.qualityRating && count == s.ratedCycles) null
-            else s.copy(averageMileage = avg, qualityRating = quality, ratedCycles = count)
+            val avgRate = avgRates[s.stationId] ?: s.lastFuelRate
+            if (avg == s.averageMileage && quality == s.qualityRating && count == s.ratedCycles && avgRate == s.avgFuelRate) null
+            else s.copy(averageMileage = avg, qualityRating = quality, ratedCycles = count, avgFuelRate = avgRate)
         }
         if (changedStations.isNotEmpty()) stationDao.updateAll(changedStations)
 
-        _engineState.value = EngineState(result.pendingReserveOdometer, result.openAnchorMode, result.trendKmpl)
+        val lifetime = HybridMileageEngine.lifetime(result.cycles)
+        _engineState.value = EngineState(
+            result.pendingReserveOdometer, result.openAnchorMode, result.trendKmpl,
+            lifetimeKmpl = lifetime?.first, lifetimeKm = lifetime?.second ?: 0.0
+        )
+        // The tank / range / Fuel-card mileage is the lifetime figure: hand it to the fuel model.
+        onLifetimeMileage?.invoke(lifetime?.first ?: 0.0, lifetime?.second ?: 0.0)
     }
 
     // ---- backup / reset ----

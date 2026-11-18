@@ -135,12 +135,13 @@ fun FuelTankCard(
         }
 
         // Low fuel: say it in words with the range, not only a red number.
-        // Reserve-light slot (the header has no room left): locked reading, low-fuel strip with a
-        // compact reserve button, or a quiet "Reserve light ON" row.
+        // Reserve-light slot (the header has no room left): locked reading; below
+        // RESERVE_OFFER_LITERS the low-fuel strip plus the "Reserve light ON" button (the lamp can
+        // only be on that close to empty); otherwise just the low-fuel strip when low.
         when {
             reserveMarkerOdometer != null ->
                 ReserveLockedStrip(odometerKm = reserveMarkerOdometer, onUndo = onToggleReserveLight)
-            tankPct < LOW_FUEL_PERCENT -> Row(
+            fuelState.remainingLiters < RESERVE_OFFER_LITERS -> Row(
                 // Button matches the strip's height so the card's stat row never gets pushed out.
                 modifier = Modifier.height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -149,7 +150,7 @@ fun FuelTankCard(
                 Box(Modifier.weight(1f)) { LowFuelStrip(rangeKm = fuelState.remainingRangeKm) }
                 ReserveLightButton(onClick = onToggleReserveLight)
             }
-            else -> ReserveLightRow(onClick = onToggleReserveLight)
+            tankPct < LOW_FUEL_PERCENT -> LowFuelStrip(rangeKm = fuelState.remainingRangeKm)
         }
 
         Spacer(Modifier.weight(0.55f))
@@ -400,6 +401,9 @@ fun PremiumFuelTankCard(
 /** Below this percent the card shows the "Fuel low" strip. */
 const val LOW_FUEL_PERCENT = 15.0
 
+/** The "Reserve light ON" button is offered only below this estimated fuel (the lamp cannot be on above it). */
+const val RESERVE_OFFER_LITERS = 5.0
+
 @Composable
 private fun LowFuelStrip(rangeKm: Double) {
     val c = CockpitTheme.colors
@@ -442,31 +446,6 @@ private fun ReserveLightButton(onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = c.warning, modifier = Modifier.size(24.dp))
-    }
-}
-
-/** Full-width quiet variant when fuel is not (yet) estimated low. */
-@Composable
-private fun ReserveLightRow(onClick: () -> Unit) {
-    val c = CockpitTheme.colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(Raahi.InnerShape)
-            .border(1.dp, c.border, Raahi.InnerShape)
-            .clickable(role = Role.Button, onClickLabel = "Reserve light is on", onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(22.dp))
-        Text(
-            "Reserve light ON",
-            style = CockpitTheme.typography.titleSmall,
-            color = c.textSecondary,
-            maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-        )
     }
 }
 

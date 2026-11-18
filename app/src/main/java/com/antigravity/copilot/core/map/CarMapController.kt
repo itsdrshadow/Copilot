@@ -131,10 +131,8 @@ class CarMapController(
             }
         }
 
-        /** Callout tail tip: this far ahead of the puck along the heading (screen dp)... */
-        private const val CALLOUT_AHEAD_DP = 46f
-        /** ...but never closer above the puck centre than this (clears the 20 px puck ring). */
-        private const val CALLOUT_MIN_GAP_DP = 30f
+        /** Road-pinned callout: placed this far ahead of the car when its segment starts. */
+        private const val CALLOUT_AHEAD_M = 120.0
 
         /** EMA factor for an irregular sample interval [dtMs]. */
         fun emaAlpha(dtMs: Long, tauMs: Double = SPEED_EMA_TAU_MS): Double = 1.0 - exp(-dtMs / tauMs)
@@ -987,8 +985,8 @@ class CarMapController(
     private var calloutListener: CalloutAnchorListener? = null
     private var calloutTracking = false
     // Reused projection buffers: [lat, lon] pairs in, [x, y] pairs out. No per-frame allocation.
-    private val calloutIn = DoubleArray(4)
-    private val calloutOut = DoubleArray(4)
+    private val calloutIn = DoubleArray(2)
+    private val calloutOut = DoubleArray(2)
 
     fun setCalloutAnchorListener(listener: CalloutAnchorListener?) {
         calloutListener = listener
@@ -1001,15 +999,20 @@ class CarMapController(
         if (active) updateCalloutAnchor()
     }
 
+    // Road-pinned callout: geographic anchor of the current segment's bubble.
+    private var calloutKey: String? = null
+    private var calloutLat = Double.NaN
+    private var calloutLon = Double.NaN
+
     /**
      * Runs on every camera frame (OnCameraMove), puck step and camera idle while the bubble is
      * visible: one batched JNI projection into preallocated arrays, then two float writes the UI
      * reads in its draw phase (graphicsLayer), so nothing re-composes or re-lays-out per frame.
      *
-     * The tip sits [CALLOUT_AHEAD_DP] ahead of the puck along the heading, i.e. on the road in
-     * front of the car. When that point isn't above the puck on screen (north-up while heading
-     * south, or a strongly tilted camera) it falls back to [CALLOUT_MIN_GAP_DP] straight above
-     * the puck so the bubble never covers the vehicle.
+     * The bubble belongs to a road segment, not to the car: when a new segment's stats appear it
+     * is pinned to a fixed map point on the road [CALLOUT_AHEAD_M] ahead of the car (along the
+     * heading, where the car is about to drive) and stays there; the car drives past it and the
+     * map scrolls it away. The next segment pins a new point.
      */
     private fun updateCalloutAnchor() {
         updateStationAnchor()
@@ -1020,29 +1023,25 @@ class CarMapController(
             listener.onAnchor(Float.NaN, Float.NaN)
             return
         }
-        val pos = puckPosition ?: lastLocation
-        val projection = map.projection
-        val lat = pos.latitude
-        val lon = pos.longitude
-        val aheadM = projection.getMetersPerPixelAtLatitude(lat) * CALLOUT_AHEAD_DP * density
-        val b = Math.toRadians(lastBearing)
-        val dLat = aheadM * kotlin.math.cos(b) / 111_320.0
-        val dLon = aheadM * kotlin.math.sin(b) / (111_320.0 * kotlin.math.cos(Math.toRadians(lat)).coerceAtLeast(0.01))
-        calloutIn[0] = lat
-        calloutIn[1] = lon
-        calloutIn[2] = lat + dLat
-        calloutIn[3] = lon + dLon
-        projection.toScreenLocations(calloutIn, calloutOut)
-        val puckX = calloutOut[0].toFloat()
-        val puckY = calloutOut[1].toFloat()
-        var x = calloutOut[2].toFloat()
-        var y = calloutOut[3].toFloat()
-        val minGap = CALLOUT_MIN_GAP_DP * density
-        if (!x.isFinite() || !y.isFinite() || y > puckY - minGap) {
-            x = puckX
-            y = puckY - minGap
+        val key = roadSegments.callout.value?.segmentKey
+        if (key == null) {
+            listener.onAnchor(Float.NaN, Float.NaN)
+            return
         }
-        listener.onAnchor(x, y)
+        if (key != calloutKey || calloutLat.isNaN()) {
+            val pos = puckPosition ?: lastLocation
+            val b = Math.toRadians(lastBearing)
+            calloutKey = key
+            calloutLat = pos.latitude + CALLOUT_AHEAD_M * kotlin.math.cos(b) / 111_320.0
+            calloutLon = pos.longitude + CALLOUT_AHEAD_M * kotlin.math.sin(b) /
+                (111_320.0 * kotlin.math.cos(Math.toRadians(pos.latitude)).coerceAtLeast(0.01))
+        }
+        calloutIn[0] = calloutLat
+        calloutIn[1] = calloutLon
+        map.projection.toScreenLocations(calloutIn, calloutOut)
+        val x = calloutOut[0].toFloat()
+        val y = calloutOut[1].toFloat()
+        listener.onAnchor(if (x.isFinite()) x else Float.NaN, if (y.isFinite()) y else Float.NaN)
     }
 
     private var renderingActive = true

@@ -36,3 +36,29 @@ fun ScaleToReferenceDisplay(content: @Composable () -> Unit) {
 
 private const val ReferenceWidthDp = 1280f
 private const val ReferenceHeightDp = 800f
+
+/**
+ * The same 1280 x 800 scale applied to the Activity's resources (call from attachBaseContext).
+ * Compose dialogs, dropdowns and alert dialogs open their own windows, which read the density
+ * from resources rather than from [ScaleToReferenceDisplay]; overriding `densityDpi` here makes
+ * every window of the activity (and the MapView's label sizes) use the reference scale too.
+ * The app is landscape-only, so the long display side is the width.
+ */
+fun referenceDensityConfig(base: android.content.Context): android.content.res.Configuration? {
+    // System metrics only: in attachBaseContext the activity's own resources / display services
+    // must not be touched yet (both throw).
+    val dm = android.content.res.Resources.getSystem().displayMetrics
+    val w = maxOf(dm.widthPixels, dm.heightPixels)
+    val h = minOf(dm.widthPixels, dm.heightPixels)
+    if (w <= 0 || h <= 0) return null
+    val pxPerDp = minOf(w / ReferenceWidthDp, h / ReferenceHeightDp)
+    val dpi = (pxPerDp * android.util.DisplayMetrics.DENSITY_DEFAULT).toInt().coerceIn(60, 960)
+    val cfg = android.content.res.Configuration(base.resources.configuration)
+    val ratio = cfg.densityDpi.toFloat() / dpi
+    // Screen size in dp must follow the new density, or windows (dialogs) are sized from the old one.
+    cfg.screenWidthDp = (cfg.screenWidthDp * ratio).toInt()
+    cfg.screenHeightDp = (cfg.screenHeightDp * ratio).toInt()
+    cfg.smallestScreenWidthDp = (cfg.smallestScreenWidthDp * ratio).toInt()
+    cfg.densityDpi = dpi
+    return cfg
+}

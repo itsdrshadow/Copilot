@@ -124,13 +124,21 @@ class FuelStationTracker private constructor(context: Context) {
             return best
         }
 
+        /**
+         * Name, average price, mileage and rating, always all shown: the price is known from the
+         * first fill, the mileage / rating only once a refuel cycle that burned this pump's fuel
+         * has closed (until then "not rated yet").
+         */
         fun bubbleText(s: FuelStationEntity): String {
             val name = s.name.ifBlank { "Fuel Station" }
+            val price = (s.avgFuelRate.takeIf { it > 0.0 } ?: s.lastFuelRate).takeIf { it > 0.0 }
+            val priceText = price?.let { " | avg ₹${NumberFormatUtils.formatPrecision(it, 2)}/L" } ?: ""
             val q = s.quality
-            if (q == StationQuality.NOT_AVAILABLE || s.averageMileage <= 0.0) return "⛽ $name | Quality: Not Available"
-            val rate = if (s.lastFuelRate > 0.0) " | ₹${NumberFormatUtils.formatPrecision(s.lastFuelRate, 2)}/L" else ""
+            if (q == StationQuality.NOT_AVAILABLE || s.averageMileage <= 0.0) {
+                return "⛽ $name$priceText | mileage: not rated yet"
+            }
             val label = q.name.lowercase().replaceFirstChar { it.uppercase() }
-            return "⛽ $name$rate | ${NumberFormatUtils.formatPrecision(s.averageMileage, 1)} km/l (★ $label)"
+            return "⛽ $name$priceText | ${NumberFormatUtils.formatPrecision(s.averageMileage, 1)} km/l (★ $label)"
         }
     }
 }

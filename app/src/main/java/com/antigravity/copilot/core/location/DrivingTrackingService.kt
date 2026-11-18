@@ -792,7 +792,8 @@ class DrivingTrackingService : Service(), LocationListener {
                         cruiseKmh = i.getFloatExtra("cruiseKmh", 100f).toDouble(),
                         refuels = i.getIntExtra("refuels", 4),
                         rupees = i.getFloatExtra("rupees", 100f).toDouble(),
-                        rate = i.getFloatExtra("rate", 101f).toDouble()
+                        rate = i.getFloatExtra("rate", 101f).toDouble(),
+                        turnAtKm = i.getFloatExtra("turnAtKm", 0f).toDouble()
                     )
                 )
             }

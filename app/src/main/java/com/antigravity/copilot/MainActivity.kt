@@ -79,6 +79,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        // One 1280 x 800 cockpit scale for every window this activity opens (dialogs included).
+        // Must wrap the base context: applyOverrideConfiguration() is too late once resources are read.
+        val scaled = com.antigravity.copilot.core.designsystem.referenceDensityConfig(newBase)
+            ?.let { newBase.createConfigurationContext(it) }
+        super.attachBaseContext(scaled ?: newBase)
+    }
+
 
     private val viewModel: MainViewModel by viewModels()
 

@@ -146,9 +146,10 @@ class HybridMileageEngineTest {
     }
 
     @Test fun bubbleText() {
-        assertEquals("⛽ S1 | Quality: Not Available", FuelStationTracker.bubbleText(station(1, 0.0)))
-        val rated = FuelStationTracker.bubbleText(station(2, 0.0, avg = 17.8, q = StationQuality.EXCELLENT))
-        assertTrue(rated, rated.startsWith("⛽ S2 | ₹104.5"))
+        // Unrated pump still shows its price (falls back to the latest when no average yet).
+        assertEquals("⛽ S1 | avg ₹104.5/L | mileage: not rated yet", FuelStationTracker.bubbleText(station(1, 0.0)))
+        val rated = FuelStationTracker.bubbleText(station(2, 0.0, avg = 17.8, q = StationQuality.EXCELLENT).copy(avgFuelRate = 102.25))
+        assertTrue(rated, rated.startsWith("⛽ S2 | avg ₹102.25/L"))
         assertTrue(rated, rated.endsWith("17.8 km/l (★ Excellent)"))
     }
 }

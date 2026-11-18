@@ -307,8 +307,15 @@ class OfflineRoadIntelligenceManager(
 
         val sharp = if (match != null && s.speedKmh >= TURN_MIN_SPEED_KMH) {
             val others = s.corridor.flatMap(::toRoadLines) + roadLines
-            val path = RoadGeometry.forwardPath(s.car, s.headingDeg, match, others, s.lookAheadM + 40.0)
-            RoadGeometry.detectSharpTurn(path, s.lookAheadM, TURN_MIN_ANGLE_DEG, TURN_WINDOW_M)
+            var forkAtM: Double? = null
+            val path = RoadGeometry.forwardPath(
+                s.car, s.headingDeg, match, others, s.lookAheadM + 40.0,
+                onFork = { forkAtM = it }, forkMinAngleDeg = TURN_MIN_ANGLE_DEG
+            )
+            val bend = RoadGeometry.detectSharpTurn(path, s.lookAheadM, TURN_MIN_ANGLE_DEG, TURN_WINDOW_M)
+            val fork = forkAtM?.takeIf { it <= s.lookAheadM }
+            // T-junction ahead (no straight way on): both directions, unless the road bends first.
+            if (fork != null && (bend == null || bend.distanceM > fork)) SharpTurn(TurnDirection.BOTH, fork, 90.0) else bend
         } else null
 
         var newPlaces = 0

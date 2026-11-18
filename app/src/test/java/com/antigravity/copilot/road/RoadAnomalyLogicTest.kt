@@ -150,21 +150,21 @@ class RoadAnomalyLogicTest {
     // ---- ahead cone alert ----
     @Test fun alertAcquiresInConeAndDismissesWhenPassed() {
         val tracker = AheadAlertTracker()
-        val rows = listOf(anomaly(7, 400.0))
+        val rows = listOf(anomaly(7, 700.0))
         var t = 0L
         var first: Double? = null
         var shownAt100 = false
         var m = 0.0
-        while (m <= 460.0) {
+        while (m <= 760.0) {
             val (lat, lon) = north(m)
             val a = tracker.update(t, lat, lon, 0.0, 50f, rows)
             if (a != null && first == null) first = a.distanceM
-            if (m == 300.0) shownAt100 = a != null
-            if (m >= 430.0) assertNull("dismissed after passing", a)
+            if (m == 600.0) shownAt100 = a != null
+            if (m >= 730.0) assertNull("dismissed after passing", a)
             m += 10.0; t += 1_000
         }
         assertNotNull(first)
-        assertTrue(first!! in 150.0..200.0)
+        assertTrue("first warned ~500 m ahead", first!! in 490.0..500.0)
         assertTrue(shownAt100)
     }
 
@@ -175,6 +175,17 @@ class RoadAnomalyLogicTest {
         val d = RoadAnomalyMath.distanceM(baseLat, baseLon, rows[0].latitude, rows[0].longitude)
         assertTrue(d in 150.0..200.0)
         assertNull(tracker.update(0, baseLat, baseLon, 0.0, 50f, rows))
+    }
+
+    @Test fun farAnomalyOnParallelRoadIsIgnored() {
+        val tracker = AheadAlertTracker()
+        // 480 m ahead, 80 m to the side: inside the 30° cone but beyond the 60 m lateral limit.
+        assertNull(tracker.update(0, baseLat, baseLon, 0.0, 50f, listOf(anomaly(5, 473.0, east = 80.0))))
+    }
+
+    @Test fun anomalyFirstSeenCloseStillWarns() {
+        val tracker = AheadAlertTracker()
+        assertNotNull(tracker.update(0, baseLat, baseLon, 0.0, 50f, listOf(anomaly(6, 120.0))))
     }
 
     @Test fun anomalyBehindIsIgnored() {

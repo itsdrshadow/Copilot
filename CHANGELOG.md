@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.30.0] - 2026-11-18
+
+### Added
+- Fuel-card / tank / range mileage now uses the hybrid refuel-cycle **lifetime** km/L (total km ÷ total litres over every completed cycle) as the fuel model's prior, weighted by the km behind it (full trust at 150 km), instead of staying at the 18 km/L default. The trip card keeps the current-trip estimate.
+- Sharp-turn badge at a T-junction with no straight way on: "Sharp left / right" with both arrows (no destination is set, so the driver's choice is unknown).
+- Fuel stations: average price per pump (`avgFuelRate`, DB v15); the map bubble always shows name, average price, mileage and rating ("mileage: not rated yet" until a cycle closes) — previously unrated pumps showed only "Quality: Not Available".
+- Debug drive simulator: `--ef turnAtKm` short test loop, ahead-alert logging, file log (`files/sim_log.txt`); leaves the pump prompt to auto-dismiss.
+
+### Changed
+- Pothole / speed-breaker warning starts up to 500 m ahead (was 150–200 m), with a 60 m lateral limit so parallel roads don't trigger it; nearby working set widened to 800 m.
+- "Reserve light ON" is offered only below 5 L estimated fuel.
+- Pump-stop prompt: one "Not now" button (Dismiss did the same) with a visible 45 s countdown, then auto-dismisses.
+- Road avg-speed / mileage bubble is pinned to a fixed point on the road for its segment instead of following the car.
+- Every window (dialogs, dropdowns, alert dialogs) now uses the same 1280 x 800 scale as the cockpit: the Activity's density and screen dp are overridden in `attachBaseContext`. Dialogs were previously drawn at the phone's native density (too big).
+
+### Fixed
+- `FuelRepository.getInstance` could create two repositories under a race (missing inner null check).
+- Two jolts recorded within the same second at one spot created duplicate anomalies (Room calls suspend on the serial dispatcher); merge / decay now hold a lock.
+
 ## [2.29.0] - 2026-11-18
 
 ### Added

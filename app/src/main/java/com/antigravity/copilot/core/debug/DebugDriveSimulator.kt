@@ -54,6 +54,16 @@ class DebugDriveSimulator(
     /** The service's own fix entry point; called on the main thread. */
     private val dispatch: (Location) -> Unit,
 ) {
+    /** Logcat plus files/sim_log.txt (some OEM builds throttle app logcat on long runs). */
+    private fun log(msg: String) {
+        Log.i(TAG, msg)
+        try {
+            java.io.File(context.filesDir, "sim_log.txt").appendText(
+                java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date()) + " " + msg + "\n"
+            )
+        } catch (_: Exception) {}
+    }
+
     @Volatile var isRunning: Boolean = false
         private set
     private var job: Job? = null
@@ -65,6 +75,8 @@ class DebugDriveSimulator(
         val refuels: Int,
         val rupees: Double,
         val rate: Double,
+        /** > 0: turn around after this many km instead of at the destination (shorter test loop). */
+        val turnAtKm: Double = 0.0,
     )
 
     private enum class EventType { PUMP, POTHOLE, BREAKER }
@@ -75,24 +87,25 @@ class DebugDriveSimulator(
         job?.cancel()
         job = null
         isRunning = false
-        Log.i(TAG, "Simulation stopped")
+        log("Simulation stopped")
     }
 
     fun start(cfg: Config) {
-        if (isRunning) { Log.w(TAG, "Already running"); return }
+        if (isRunning) { log("Already running"); return }
         val origin = currentPoint()
-        if (origin == null) { Log.e(TAG, "No current GPS position yet; wait for a fix"); return }
+        if (origin == null) { log("No current GPS position yet; wait for a fix"); return }
         isRunning = true
         job = scope.launch {
             try {
-                val route = withContext(Dispatchers.IO) {
+                val full = withContext(Dispatchers.IO) {
                     fetchRoute(origin.latitude, origin.longitude, cfg.destLat, cfg.destLon)
                 }
+                val route = if (cfg.turnAtKm > 0.0) truncateAndReturn(full, cfg.turnAtKm * 1000.0) else full
                 drive(route, cfg)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Simulation failed: ${e.message}", e)
+                log("Simulation failed: ${e.message}")
             } finally {
                 isRunning = false
             }
@@ -120,8 +133,26 @@ class DebugDriveSimulator(
             lon[i] = p.getDouble(0); lat[i] = p.getDouble(1)
             if (i > 0) cum[i] = cum[i - 1] + distanceM(lat[i - 1], lon[i - 1], lat[i], lon[i])
         }
-        Log.i(TAG, "Route: %.1f km out, %.1f km total, %d points".format(legOne / 1000, cum.last() / 1000, n))
+        log("Route: %.1f km out, %.1f km total, %d points".format(legOne / 1000, cum.last() / 1000, n))
         return Route(lat, lon, cum, legOne)
+    }
+
+    /** Outbound leg cut at [atM], then the same road back to the start. */
+    private fun truncateAndReturn(route: Route, atM: Double): Route {
+        val cut = min(atM, route.turnaroundM)
+        val outLat = ArrayList<Double>(); val outLon = ArrayList<Double>()
+        for (i in route.cum.indices) {
+            if (route.cum[i] >= cut) break
+            outLat += route.lat[i]; outLon += route.lon[i]
+        }
+        val (eLat, eLon) = pointAt(route, cut)
+        outLat += eLat; outLon += eLon
+        val lat = (outLat + outLat.reversed().drop(1)).toDoubleArray()
+        val lon = (outLon + outLon.reversed().drop(1)).toDoubleArray()
+        val cum = DoubleArray(lat.size)
+        for (i in 1 until lat.size) cum[i] = cum[i - 1] + distanceM(lat[i - 1], lon[i - 1], lat[i], lon[i])
+        log("Test loop: turn at %.1f km, %.1f km total".format(cut / 1000, cum.last() / 1000))
+        return Route(lat, lon, cum, cum[outLat.size - 1])
     }
 
     private fun plan(route: Route, cfg: Config): List<Event> {
@@ -158,7 +189,8 @@ class DebugDriveSimulator(
         var s = 0.0
         var v = 0.0
         var tick = 0
-        Log.i(TAG, "Drive started: cruise ${cfg.cruiseKmh} km/h, ${pumps.size} pumps")
+        var lastAlertId: Long? = null
+        log("Drive started: cruise ${cfg.cruiseKmh} km/h, ${pumps.size} pumps")
         while (scope.isActive && isRunning && s < route.length - 1.0) {
             val nextPump = events.firstOrNull { it.type == EventType.PUMP && it.atM >= s - 0.5 }
             // Target speed: cruise, slowed for bends ahead and braking (1.5 m/s²) into the next pump / the end.
@@ -178,8 +210,16 @@ class DebugDriveSimulator(
                 val (la, lo) = pointAt(route, e.atM)
                 val peak = if (e.type == EventType.POTHOLE) 7.8f else 4.6f
                 roadAnomalyManager.debugInjectHit(la, lo, peak, bearingAt(route, e.atM).toFloat())
-                Log.i(TAG, "Jolt ${e.type} injected at %.2f km (peak %.1f m/s²)".format(e.atM / 1000, peak))
+                log("Jolt ${e.type} injected at %.2f km (peak %.1f m/s²)".format(e.atM / 1000, peak))
                 events.remove(e)
+            }
+
+            // Evidence for the 500 m warning: log each new pothole alert and its first distance.
+            roadAnomalyManager.aheadAlert.value.let { a ->
+                if (a?.anomalyId != lastAlertId) {
+                    lastAlertId = a?.anomalyId
+                    if (a != null) log("Ahead alert ${a.severity} id=${a.anomalyId} first shown %.0f m ahead at %.2f km".format(a.distanceM, s / 1000))
+                }
             }
 
             if (nextPump != null && stopAt - s < 0.5) {
@@ -192,32 +232,38 @@ class DebugDriveSimulator(
         }
         // Parked back at the start: a few stationary fixes so the trip engine can settle / end the trip.
         repeat(20) { emitFix(route, route.length, 0.0); delay(1000L) }
-        Log.i(TAG, "Drive finished: %.1f km".format(route.length / 1000))
+        log("Drive finished: %.1f km".format(route.length / 1000))
         isRunning = false
     }
 
     /** Stopped at a pump long enough for the stop prompt (45 s dwell), then a ₹ refuel. */
     private suspend fun pumpStop(route: Route, s: Double, e: Event, cfg: Config, stationRepo: FuelStationRepository) {
         val (la, lo) = pointAt(route, s)
-        Log.i(TAG, "Pump stop ${e.index + 1}: ${pumpName(e.index)} at %.2f km".format(s / 1000))
+        log("Pump stop ${e.index + 1}: ${pumpName(e.index)} at %.2f km".format(s / 1000))
         // Refuels 1 and 3 happen with the reserve lamp on (tapped a few seconds before), the
         // others are plain top-ups: exercises reserve-to-reserve mileage (Rule B) and Rule C.
         val atReserve = e.index % 2 == 0
         if (atReserve) {
             stationRepo.toggleReserveLight(fuelRepository.getEffectiveOdometer())
-            Log.i(TAG, "Reserve light ON tapped at odo %.1f".format(fuelRepository.getEffectiveOdometer()))
+            log("Reserve light ON tapped at odo %.1f".format(fuelRepository.getEffectiveOdometer()))
         }
-        var promptSeen = false
-        for (sec in 0 until 75) {
+        // Wait for the stop prompt, then leave it untouched so its 45 s auto-dismiss is exercised.
+        var shownAt = -1
+        for (sec in 0 until 140) {
             emitFix(route, s, 0.0)
-            if (!promptSeen && fuelRepository.refuelPromptEvent.value != null) {
-                promptSeen = true
-                Log.i(TAG, "Stop prompt shown after ${sec}s: ${fuelRepository.refuelPromptEvent.value?.locationName}")
+            val showing = fuelRepository.refuelPromptEvent.value != null
+            if (shownAt < 0 && showing) {
+                shownAt = sec
+                log("Stop prompt shown after ${sec}s: ${fuelRepository.refuelPromptEvent.value?.locationName}")
             }
-            if (promptSeen && sec >= 60) break // leave the prompt on screen a few seconds
+            if (shownAt >= 0 && !showing) {
+                log("Stop prompt auto-dismissed after ${sec - shownAt}s")
+                break
+            }
+            if (shownAt < 0 && sec >= 75) break
             delay(1000L)
         }
-        if (!promptSeen) Log.w(TAG, "Stop prompt did NOT appear at ${pumpName(e.index)}")
+        if (shownAt < 0) log("Stop prompt did NOT appear at ${pumpName(e.index)}")
         fuelRepository.dismissRefuelPrompt()
 
         // Same two calls MainViewModel.recordRefuel makes when the Add Fuel dialog is saved.
@@ -241,7 +287,7 @@ class DebugDriveSimulator(
             latitude = la,
             longitude = lo
         )
-        Log.i(TAG, "Refuel ${e.index + 1}: ₹${cfg.rupees} = $liters L ($mode) at $name")
+        log("Refuel ${e.index + 1}: ₹${cfg.rupees} = $liters L ($mode) at $name")
         repeat(5) { emitFix(route, s, 0.0); delay(1000L) }
     }
 

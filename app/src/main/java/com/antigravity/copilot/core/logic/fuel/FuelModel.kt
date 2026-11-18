@@ -51,7 +51,10 @@ data class FuelModelState(
     val unlogged: List<UnloggedEntry> = emptyList(),
     val maxRefillL: Double = 0.0,
     /** Multiplier from impossible reconciliations (≤ ±15 % each); heals as new segments arrive. */
-    val mileageBias: Double = 1.0
+    val mileageBias: Double = 1.0,
+    /** Hybrid (refuel-cycle) lifetime km/L and the km behind it; 0 = none. Prior for [segments]. */
+    val hybridKmpl: Double = 0.0,
+    val hybridKm: Double = 0.0
 ) {
     /** Gson leaves missing fields null/zero; restore safe defaults after loading old JSON. */
     @Suppress("SENSELESS_COMPARISON", "USELESS_ELVIS")
@@ -152,9 +155,22 @@ object FuelModel {
     fun curve(s: FuelModelState): GaugeCurve = GaugeCurve.fit(s.actualCapacityL, s.observations)
 
     fun mileage(s: FuelModelState, nowMs: Long): MileageEstimate {
-        val e = MileageEstimator.estimate(s.segments, nowMs, s.defaultKmpl, s.confidencePenalty)
+        val e = MileageEstimator.estimate(s.segments, nowMs, priorKmpl(s), s.confidencePenalty)
         return e.copy(kmpl = (e.kmpl * s.mileageBias).coerceIn(Config.MILEAGE_MIN_KMPL, Config.MILEAGE_MAX_KMPL))
     }
+
+    /**
+     * Prior mileage when the ledger has no learned segments yet: the configured default, pulled
+     * toward the hybrid lifetime km/L in proportion to the km behind it (full trust at
+     * [HYBRID_FULL_TRUST_KM]), so one short ₹100 cycle nudges it instead of overriding it.
+     */
+    fun priorKmpl(s: FuelModelState): Double {
+        if (s.hybridKmpl <= 0.0 || s.hybridKm <= 0.0) return s.defaultKmpl
+        val w = (s.hybridKm / HYBRID_FULL_TRUST_KM).coerceIn(0.0, 1.0)
+        return s.defaultKmpl * (1 - w) + s.hybridKmpl * w
+    }
+
+    const val HYBRID_FULL_TRUST_KM = 150.0
 
     fun rawLitres(s: FuelModelState, odoKm: Double, nowMs: Long): Double {
         val km = (odoKm - s.anchorOdoKm).coerceAtLeast(0.0)

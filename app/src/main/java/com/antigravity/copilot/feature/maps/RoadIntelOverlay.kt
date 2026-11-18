@@ -97,7 +97,6 @@ private fun LocationPill(text: String) {
 private fun SharpTurnBadge(alert: SharpTurnAlert) {
     val c = CockpitTheme.colors
     val current by rememberUpdatedState(alert)
-    val left = current.direction == TurnDirection.LEFT
     Row(
         modifier = Modifier
             .clip(Raahi.PillShape)
@@ -108,14 +107,20 @@ private fun SharpTurnBadge(alert: SharpTurnAlert) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(
-            imageVector = if (left) Icons.Outlined.TurnSharpLeft else Icons.Outlined.TurnSharpRight,
-            contentDescription = null,
-            tint = c.warning,
-            modifier = Modifier.size(22.dp)
-        )
+        val dir = current.direction
+        if (dir != TurnDirection.RIGHT) {
+            Icon(Icons.Outlined.TurnSharpLeft, contentDescription = null, tint = c.warning, modifier = Modifier.size(22.dp))
+        }
+        if (dir != TurnDirection.LEFT) {
+            Icon(Icons.Outlined.TurnSharpRight, contentDescription = null, tint = c.warning, modifier = Modifier.size(22.dp))
+        }
+        val label = when (dir) {
+            TurnDirection.LEFT -> "Sharp left"
+            TurnDirection.RIGHT -> "Sharp right"
+            TurnDirection.BOTH -> "Sharp left / right"
+        }
         Text(
-            text = "Sharp ${if (left) "left" else "right"} · ${current.distanceM} m",
+            text = "$label · ${current.distanceM} m",
             style = CockpitTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = c.textPrimary,

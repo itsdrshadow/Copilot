@@ -34,7 +34,14 @@ object HybridMileageEngine {
 
     data class Outcome(val status: RefuelLogStatus, val mileage: Double?)
 
-    data class Cycle(val anchorLogId: Long, val stationId: Long?, val mileage: Double, val rule: Char)
+    data class Cycle(
+        val anchorLogId: Long,
+        val stationId: Long?,
+        val mileage: Double,
+        val rule: Char,
+        val distanceKm: Double = 0.0,
+        val fuelL: Double = 0.0
+    )
 
     data class Result(
         val outcomes: Map<Long, Outcome>,
@@ -70,7 +77,7 @@ object HybridMileageEngine {
             outcomes[a.entry.id] = Outcome(RefuelLogStatus.COMPLETED, if (valid) kmpl else null)
             topUps.forEach { outcomes[it.id] = Outcome(RefuelLogStatus.COMPLETED, null) }
             topUps.clear()
-            if (valid) cycles += Cycle(a.entry.id, a.entry.stationId, kmpl, rule)
+            if (valid) cycles += Cycle(a.entry.id, a.entry.stationId, kmpl, rule, distance, fuel)
             return valid
         }
 
@@ -128,6 +135,17 @@ object HybridMileageEngine {
         } else null
 
         return Result(outcomes, cycles, trend, anchor?.entry?.mode, pendingReserve)
+    }
+
+    /**
+     * Lifetime vehicle mileage from every completed cycle (any station or none): total km over
+     * total litres, so long cycles weigh more than short ones. Returns (km/L, km covered) or null.
+     */
+    fun lifetime(cycles: List<Cycle>): Pair<Double, Double>? {
+        val km = cycles.sumOf { it.distanceKm }
+        val l = cycles.sumOf { it.fuelL }
+        if (km <= 0.0 || l <= 0.0) return null
+        return (km / l).takeIf { it in MIN_VALID_KMPL..MAX_VALID_KMPL }?.let { it to km }
     }
 
     /** Rolling station average (mean of the last [STATION_WINDOW] cycles) and cycle count. */

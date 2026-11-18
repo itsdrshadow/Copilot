@@ -13,16 +13,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Self-healing road quality system: jerk → spatially de-duplicated Room row; smooth passes decay
- * confidence until the row is deleted; nearest anomaly 150–200 m ahead in a ±30° cone is exposed
- * as [aheadAlert]. All state is mutated on one serial dispatcher, so no locks are needed.
+ * confidence until the row is deleted; nearest anomaly up to 500 m ahead in a ±30° cone is exposed
+ * as [aheadAlert]. State lives on one serial dispatcher; Room calls suspend, so read-modify-write
+ * of rows (merge / decay) additionally holds [rowLock] to stop two hits both inserting.
  */
 class RoadAnomalyManager private constructor(context: Context) {
     private val dao = AppDatabase.getInstance(context).roadAnomalyDao()
     private val serial = Dispatchers.Default.limitedParallelism(1)
     private val scope = CoroutineScope(SupervisorJob() + serial)
+    private val rowLock = kotlinx.coroutines.sync.Mutex()
 
     private val passTracker = AnomalyPassTracker()
     private val alertTracker = AheadAlertTracker()
@@ -80,7 +83,7 @@ class RoadAnomalyManager private constructor(context: Context) {
         }
     }
 
-    private suspend fun record(hit: JerkHit) {
+    private suspend fun record(hit: JerkHit) = rowLock.withLock {
         try {
             val box = RoadAnomalyMath.boundingBox(hit.latitude, hit.longitude, RoadAnomalyConfig.DEDUP_RADIUS_M)
             val existing = dao.inBox(box.minLat, box.maxLat, box.minLon, box.maxLon)
@@ -120,8 +123,8 @@ class RoadAnomalyManager private constructor(context: Context) {
         }
     }
 
-    private suspend fun decay(id: Long) {
-        val row = dao.getById(id) ?: return
+    private suspend fun decay(id: Long) = rowLock.withLock {
+        val row = dao.getById(id) ?: return@withLock
         val next = row.confidenceScore - 1
         if (next <= 0) {
             dao.deleteById(id)

@@ -34,7 +34,9 @@ data class FuelStationEntity(
     val visitCount: Int = 0,
     /** Number of completed mileage cycles behind [averageMileage]. */
     val ratedCycles: Int = 0,
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    /** Mean ₹/L over every refuel logged at this station (0 = none); [lastFuelRate] is the latest. */
+    val avgFuelRate: Double = 0.0
 ) {
     val quality: StationQuality
         get() = runCatching { StationQuality.valueOf(qualityRating) }.getOrDefault(StationQuality.NOT_AVAILABLE)

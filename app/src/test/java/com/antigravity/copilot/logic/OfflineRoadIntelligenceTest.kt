@@ -144,6 +144,35 @@ class OfflineRoadIntelligenceTest {
     }
 
     @Test
+    fun `T-junction ahead reports a fork with both directions`() {
+        // Straight north 150 m, then the road ends at a cross street (east and west, no way on).
+        val stem = RoadLine(walk(origin, 0.0 to 150.0), roadClass = "secondary")
+        val end = stem.points.last()
+        val east = RoadLine(walk(end, 90.0 to 100.0), roadClass = "secondary")
+        val west = RoadLine(walk(end, 270.0 to 100.0), roadClass = "secondary")
+        val car = RoadGeometry.offset(origin, 0.0, 40.0)
+        val m = RoadGeometry.matchRoad(car, 0.0, 50.0, listOf(stem))!!
+        var fork: Double? = null
+        RoadGeometry.forwardPath(car, 0.0, m, listOf(stem, east, west), 200.0, onFork = { fork = it })
+        assertNotNull(fork)
+        assertTrue(fork!! in 100.0..120.0)
+    }
+
+    @Test
+    fun `junction with a straight way on is not a fork`() {
+        val stem = RoadLine(walk(origin, 0.0 to 150.0), roadClass = "secondary")
+        val end = stem.points.last()
+        val ahead = RoadLine(walk(end, 0.0 to 100.0), roadClass = "secondary")
+        val east = RoadLine(walk(end, 90.0 to 100.0), roadClass = "secondary")
+        val west = RoadLine(walk(end, 270.0 to 100.0), roadClass = "secondary")
+        val car = RoadGeometry.offset(origin, 0.0, 40.0)
+        val m = RoadGeometry.matchRoad(car, 0.0, 50.0, listOf(stem))!!
+        var fork: Double? = null
+        RoadGeometry.forwardPath(car, 0.0, m, listOf(stem, ahead, east, west), 200.0, onFork = { fork = it })
+        assertNull(fork)
+    }
+
+    @Test
     fun `gentle highway curve is not a sharp turn`() {
         // 30° spread over 150 m.
         val road = RoadLine(walk(origin, 0.0 to 100.0, 10.0 to 50.0, 20.0 to 50.0, 30.0 to 100.0), roadClass = "trunk")

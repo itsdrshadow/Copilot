@@ -38,15 +38,18 @@ object RoadAnomalyConfig {
     /** Smooth passes only decay an anomaly when travelling roughly the recorded direction. */
     const val VERIFY_HEADING_TOLERANCE_DEG = 45.0
 
-    const val ALERT_MIN_M = 150.0
-    const val ALERT_MAX_M = 200.0
+    /** Warn up to 500 m ahead; still warn if an anomaly is first seen closer (turning onto a road). */
+    const val ALERT_MIN_M = 40.0
+    const val ALERT_MAX_M = 500.0
     const val ALERT_CONE_DEG = 30.0
+    /** At 500 m a 30° cone is 250 m wide: also require the anomaly within this sideways offset. */
+    const val ALERT_ACQUIRE_LATERAL_M = 60.0
     /** Once tracked, keep the target while its lateral offset stays within a lane or two. */
     const val ALERT_KEEP_LATERAL_M = 12.0
     const val ALERT_MIN_SPEED_KMH = 10f
 
     /** Radius of the in-memory working set refreshed from Room by bounding box. */
-    const val NEARBY_RADIUS_M = 400.0
+    const val NEARBY_RADIUS_M = 800.0
     const val NEARBY_REFRESH_MOVE_M = 150.0
 }
 
@@ -303,6 +306,7 @@ class AheadAlertTracker {
             if (d < RoadAnomalyConfig.ALERT_MIN_M || d > RoadAnomalyConfig.ALERT_MAX_M || d >= bestD) continue
             val rel = RoadAnomalyMath.angleDiff(headingDeg, RoadAnomalyMath.bearingDeg(lat, lon, a.latitude, a.longitude))
             if (abs(rel) > RoadAnomalyConfig.ALERT_CONE_DEG) continue
+            if (abs(d * sin(Math.toRadians(rel))) > RoadAnomalyConfig.ALERT_ACQUIRE_LATERAL_M) continue
             best = a; bestD = d
         }
         val hit = best ?: return null

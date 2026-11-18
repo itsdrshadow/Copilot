@@ -4,6 +4,7 @@ import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.min
 import kotlin.math.sin
 
 /** A WGS84 coordinate. */
@@ -38,7 +39,8 @@ data class RoadMatch(
     val headingDiff: Double
 )
 
-enum class TurnDirection { LEFT, RIGHT }
+/** [BOTH]: a junction where the road only continues by turning sharply, both ways (T-junction). */
+enum class TurnDirection { LEFT, RIGHT, BOTH }
 
 data class SharpTurn(val direction: TurnDirection, val distanceM: Double, val angleDeg: Double)
 
@@ -157,7 +159,14 @@ object RoadGeometry {
         others: List<RoadLine>,
         lengthM: Double,
         joinToleranceM: Double = 8.0,
-        maxHops: Int = 8
+        maxHops: Int = 8,
+        /**
+         * Called once, at the first join with no straight-ish way on (every continuation turns
+         * ≥ [forkMinAngleDeg]) but sharp continuations to both the left and the right. Without
+         * a navigation destination the driver's choice is unknown, so both are reported.
+         */
+        onFork: ((distanceM: Double) -> Unit)? = null,
+        forkMinAngleDeg: Double = 50.0
     ): List<LonLat> {
         val pts = match.line.points
         val i = match.segmentIndex
@@ -184,6 +193,9 @@ object RoadGeometry {
             var bestPts: List<LonLat>? = null
             var bestLine: RoadLine? = null
             var bestScore = Double.MAX_VALUE
+            var minTurn = Double.MAX_VALUE
+            var hasLeft = false
+            var hasRight = false
             for (o in others) {
                 if (o.points.size < 2 || key(o) in used) continue
                 val oriented = when {
@@ -192,12 +204,20 @@ object RoadGeometry {
                     else -> continue
                 }
                 val nextBearing = firstBearing(oriented) ?: continue
-                val turn = abs(signedDelta(prevBearing, nextBearing))
+                val signed = signedDelta(prevBearing, nextBearing)
+                val turn = abs(signed)
                 if (turn > 120.0) continue
+                minTurn = min(minTurn, turn)
+                if (signed <= -forkMinAngleDeg) hasLeft = true
+                if (signed >= forkMinAngleDeg) hasRight = true
                 val score = turn + if (o.roadClass != currentClass) 40.0 else 0.0
                 if (score < bestScore) { bestScore = score; bestPts = oriented; bestLine = o }
             }
             val next = bestPts ?: return path
+            if (onFork != null && hasLeft && hasRight && minTurn >= forkMinAngleDeg) {
+                onFork(walked)
+                return path // the way on is the driver's choice: stop at the junction
+            }
             used += key(bestLine!!)
             currentClass = bestLine.roadClass
             for (p in next.drop(1)) if (add(p)) return path

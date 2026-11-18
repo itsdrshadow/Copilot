@@ -111,6 +111,8 @@ class FuelRepository private constructor(context: Context) {
     )
     @Volatile
     private var modelLoaded = false
+    /** Latest hybrid lifetime (km/L, km); re-applied after the persisted model loads. */
+    @Volatile private var hybridLifetime: Pair<Double, Double> = 0.0 to 0.0
 
     private fun seedOdometerKm(): Double = try { getEffectiveOdometer() } catch (_: Exception) { 0.0 }
 
@@ -130,6 +132,7 @@ class FuelRepository private constructor(context: Context) {
             val row = fuelModelDao.get()
             if (row != null && row.json.isNotBlank()) {
                 model = modelGson.fromJson(row.json, FuelModelState::class.java).normalized()
+                    .let { m -> if (hybridLifetime.second > 0.0) m.copy(hybridKmpl = hybridLifetime.first, hybridKm = hybridLifetime.second) else m }
             } else {
                 // First run on this version: seed from legacy state (learned mileage, odometer).
                 val learned = mileageEngine.overallEstimatedMileage.takeIf { mileageEngine.sampleCount >= 1 && it > 0 }
@@ -227,6 +230,23 @@ class FuelRepository private constructor(context: Context) {
         // Asynchronously rehydrate from ledger
         rehydrateLedgerAsync()
         scope.launch { stateMutex.withLock { loadModel() } }
+        // Hybrid refuel-cycle lifetime mileage drives the tank / range / Fuel-card km/L.
+        com.antigravity.copilot.core.fuel.station.FuelStationRepository.getInstance(appContext).let { repo ->
+            repo.onLifetimeMileage = { kmpl, km -> setHybridLifetime(kmpl, km) }
+            repo.engineState.value.lifetimeKmpl?.let { setHybridLifetime(it, repo.engineState.value.lifetimeKm) }
+        }
+    }
+
+    private fun setHybridLifetime(kmpl: Double, km: Double) {
+        hybridLifetime = kmpl to km
+        scope.launch {
+            stateMutex.withLock {
+                if (model.hybridKmpl == kmpl && model.hybridKm == km) return@withLock
+                model = model.copy(hybridKmpl = kmpl, hybridKm = km)
+                if (modelLoaded) persistModelNow()
+                _fuelState.update { buildFuelState() }
+            }
+        }
     }
 
     fun reloadFromDatabase() {
@@ -1211,10 +1231,10 @@ class FuelRepository private constructor(context: Context) {
         private var INSTANCE: FuelRepository? = null
 
         fun getInstance(context: Context): FuelRepository {
+            // Double-checked: without the inner check two racing callers each built their own
+            // repository (two fuel states, two tank estimates).
             return INSTANCE ?: synchronized(this) {
-                val inst = FuelRepository(context.applicationContext)
-                INSTANCE = inst
-                inst
+                INSTANCE ?: FuelRepository(context.applicationContext).also { INSTANCE = it }
             }
         }
     }

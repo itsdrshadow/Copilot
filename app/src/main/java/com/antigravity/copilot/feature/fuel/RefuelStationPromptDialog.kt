@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.PinDrop
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,6 +41,16 @@ fun RefuelStationPromptDialog(
     onDismiss: () -> Unit
 ) {
     val formattedTime = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(promptData.timestamp))
+    // Ignored prompt closes itself after AUTO_DISMISS_SECONDS (countdown shown on "Not now").
+    val dismiss by androidx.compose.runtime.rememberUpdatedState(onDismiss)
+    var secondsLeft by androidx.compose.runtime.remember(promptData) { androidx.compose.runtime.mutableIntStateOf(AUTO_DISMISS_SECONDS) }
+    androidx.compose.runtime.LaunchedEffect(promptData) {
+        while (secondsLeft > 0) {
+            kotlinx.coroutines.delay(1_000L)
+            secondsLeft--
+        }
+        dismiss()
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -178,29 +190,15 @@ fun RefuelStationPromptDialog(
                         textAlign = TextAlign.Center
                     )
 
-                    // 3 Actions: Dismiss, Not Now, Yes, Add Fuel
+                    // 2 actions: "Not now" (same as the close button; auto after the countdown) and "Yes, add fuel".
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OutlinedButton(
-                            onClick = onDismiss,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp),
-                            shape = CopilotShapes.R10,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, CockpitTheme.colors.border)
-                        ) {
-                            Text(
-                                "Dismiss",
-                                style = CockpitTheme.typography.labelSmall,
-                                color = CockpitTheme.colors.textPrimary)
-                        }
-
                         Button(
                             onClick = onDismiss,
                             modifier = Modifier
-                                .weight(1.1f)
+                                .weight(1.2f)
                                 .height(44.dp),
                             shape = CopilotShapes.R10,
                             colors = ButtonDefaults.buttonColors(
@@ -209,7 +207,7 @@ fun RefuelStationPromptDialog(
                             )
                         ) {
                             Text(
-                                "Not now",
+                                "Not now · ${secondsLeft}s",
                                 style = CockpitTheme.typography.labelSmall, color = contentColorOn(CockpitTheme.colors.cardElevated)
                             )
                         }
@@ -242,3 +240,5 @@ fun RefuelStationPromptDialog(
         }
     }
 }
+
+private const val AUTO_DISMISS_SECONDS = 45
