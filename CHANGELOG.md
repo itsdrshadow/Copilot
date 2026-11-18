@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.29.0] - 2026-11-18
+
+### Added
+- Debug-only virtual drive (`DebugDriveSimulator`): `adb shell am broadcast -a com.antigravity.copilot.DEBUG_SIM_DRIVE -p com.antigravity.copilot` drives by road (OSRM route) from the current position to Raigarh (or `--ef destLat/destLon`) and back at 1 Hz through the tracking service's normal GPS pipeline (real GPS ignored meanwhile). Exercises pump-stop prompts at fake fuel POIs, ₹ refuels via the same calls as the Add Fuel dialog (`--ei refuels`, `--ef rupees`, `--ef rate`), the Reserve-light marker, and speed-breaker / pothole hits on the way out so the return leg drives over them. `--ez stop true` aborts.
+- `RoadAnomalyManager.debugInjectHit` for the simulator (same merge / confidence path as a sensor hit).
+
 ## [2.28.0] - 2026-11-18
 
 ### Changed

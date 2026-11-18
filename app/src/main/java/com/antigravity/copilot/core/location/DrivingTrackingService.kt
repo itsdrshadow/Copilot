@@ -120,6 +120,7 @@ class DrivingTrackingService : Service(), LocationListener {
 
     private val fusedCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
+            if (debugSim?.isRunning == true) return // debug drive simulator owns the position
             lastFusedFixTimeMs = android.os.SystemClock.elapsedRealtime()
             for (location in result.locations) {
                 filterAndDispatchLocation(location)
@@ -348,6 +349,7 @@ class DrivingTrackingService : Service(), LocationListener {
         }
         registerLinearAccelerationSensor()
         roadAnomalyManager.start()
+        registerDebugDriveSimulator()
         tripRepository.learnedMileageProvider = { fuelRepository.getFuelTelemetrySnapshot().mileageKmpl }
         engine.fuelTelemetryProvider = {
             fuelRepository.getFuelTelemetrySnapshot()
@@ -735,6 +737,7 @@ class DrivingTrackingService : Service(), LocationListener {
     }
 
     override fun onLocationChanged(location: Location) {
+        if (debugSim?.isRunning == true) return // debug drive simulator owns the position
         // Network fixes are only a fallback: ignore them while GNSS is delivering.
         if (location.provider == LocationManager.NETWORK_PROVIDER &&
             android.os.SystemClock.elapsedRealtime() - lastPreciseFixElapsedMs < NETWORK_FALLBACK_AFTER_MS
@@ -763,6 +766,45 @@ class DrivingTrackingService : Service(), LocationListener {
     }
 
     private var linearAccelListener: android.hardware.SensorEventListener? = null
+
+    /** Debug builds only: virtual drive (see DebugDriveSimulator). */
+    private var debugSim: com.antigravity.copilot.core.debug.DebugDriveSimulator? = null
+    private var debugSimReceiver: BroadcastReceiver? = null
+
+    private fun registerDebugDriveSimulator() {
+        if (!com.antigravity.copilot.BuildConfig.DEBUG) return
+        val sim = com.antigravity.copilot.core.debug.DebugDriveSimulator(
+            context = applicationContext,
+            scope = serviceScope,
+            fuelRepository = fuelRepository,
+            roadAnomalyManager = roadAnomalyManager,
+            currentPoint = { latestEmittedPoint },
+            dispatch = { filterAndDispatchLocation(it) }
+        )
+        debugSim = sim
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context, i: Intent) {
+                if (i.getBooleanExtra("stop", false)) { sim.stop(); return }
+                sim.start(
+                    com.antigravity.copilot.core.debug.DebugDriveSimulator.Config(
+                        destLat = i.getFloatExtra("destLat", com.antigravity.copilot.core.debug.DebugDriveSimulator.RAIGARH_LAT.toFloat()).toDouble(),
+                        destLon = i.getFloatExtra("destLon", com.antigravity.copilot.core.debug.DebugDriveSimulator.RAIGARH_LON.toFloat()).toDouble(),
+                        cruiseKmh = i.getFloatExtra("cruiseKmh", 100f).toDouble(),
+                        refuels = i.getIntExtra("refuels", 4),
+                        rupees = i.getFloatExtra("rupees", 100f).toDouble(),
+                        rate = i.getFloatExtra("rate", 101f).toDouble()
+                    )
+                )
+            }
+        }
+        debugSimReceiver = receiver
+        val filter = IntentFilter(com.antigravity.copilot.core.debug.DebugDriveSimulator.ACTION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(receiver, filter)
+        }
+    }
 
     /**
      * Pump-stop station check: a saved station (Room) or a PMTiles fuel POI within 40 m first —
@@ -798,6 +840,8 @@ class DrivingTrackingService : Service(), LocationListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        debugSim?.stop()
+        debugSimReceiver?.let { try { unregisterReceiver(it) } catch (_: Exception) {} }
         linearAccelListener?.let { l ->
             try {
                 (getSystemService(Context.SENSOR_SERVICE) as? android.hardware.SensorManager)?.unregisterListener(l)

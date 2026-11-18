@@ -47,6 +47,15 @@ class RoadAnomalyManager private constructor(context: Context) {
     }
     fun onWake() = detector.rearm()
 
+    /**
+     * Debug drive simulator only: records a jolt as if the accelerometer had produced [peakMss] at
+     * this spot, through the same merge / confidence path as a real hit.
+     */
+    fun debugInjectHit(lat: Double, lon: Double, peakMss: Float, headingDeg: Float) {
+        val severity = RoadAnomalyMath.classify(peakMss) ?: return
+        scope.launch { record(JerkHit(lat, lon, peakMss, severity, headingDeg, SystemClock.elapsedRealtime())) }
+    }
+
     /** Feed every real GPS fix (from the tracking service). */
     fun onLocation(p: TripPoint) {
         detector.updateFix(p.latitude, p.longitude, p.speedKmh, p.bearing, p.accuracy)
