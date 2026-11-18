@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
  */
 fun numberGlow(color: Color): Shadow? =
     if (color.luminance() < 0.2f) null
-    else Shadow(color = color.copy(alpha = 0.20f), offset = Offset.Zero, blurRadius = 24f)
+    else Shadow(color = color.copy(alpha = 0.30f), offset = Offset.Zero, blurRadius = 24f)
 
 /**
  * Composite Adaptive Metric Text (Value + Unit):
