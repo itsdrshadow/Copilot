@@ -173,15 +173,13 @@ fun CurrentTripCard(
     modifier: Modifier = Modifier,
     baselineMileage: Double = 18.0
 ) {
-    val tripFill = DashTone.Trip
-    val tc = CockpitTheme.colors.onFill(tripFill)
-    val cardBorder = tc.border
-    val cyanAccent = tc.accent
-    val positiveAccent = tc.accent
-    val warningAccent = tc.warning
-    val dangerAccent = tc.critical
-    val textPrimary = tc.textPrimary
-    val textSecondary = tc.textSecondary
+    val cardBorder = CockpitTheme.colors.border
+    val cyanAccent = CockpitTheme.colors.accent
+    val positiveAccent = CockpitTheme.colors.accent
+    val warningAccent = CockpitTheme.colors.warning
+    val dangerAccent = CockpitTheme.colors.critical
+    val textPrimary = CockpitTheme.colors.textPrimary
+    val textSecondary = CockpitTheme.colors.textSecondary
 
     val isTripActive = currentTrip.status == TripStatus.ACTIVE_TRIP ||
             currentTrip.status == TripStatus.MOVEMENT_CANDIDATE ||
@@ -314,10 +312,9 @@ fun CurrentTripCard(
 
     Box(
         modifier = modifier
-            .dashCardSurface(borderColor = flashColor, fill = tripFill)
+            .dashCardSurface(borderColor = if (flashColor != Color.Transparent) flashColor else cardBorder)
             .padding(DashCard.Padding)
     ) {
-        FeaturedColors(tripFill) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
@@ -390,7 +387,7 @@ fun CurrentTripCard(
                         Icon(
                             imageVector = target.icon,
                             contentDescription = null,
-                            tint = textSecondary,
+                            tint = target.accentColor,
                             modifier = Modifier.size(17.dp)
                         )
                         Text(
@@ -413,7 +410,7 @@ fun CurrentTripCard(
                         preferredFontSize = CockpitTheme.typography.displaySmall.fontSize,
                         minFontSize = 24.sp,
                         valueColor = textPrimary,
-                        unitColor = textSecondary,
+                        unitColor = target.accentColor,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -573,7 +570,6 @@ fun CurrentTripCard(
                     )
                 }
             }
-        }
         }
     }
 }

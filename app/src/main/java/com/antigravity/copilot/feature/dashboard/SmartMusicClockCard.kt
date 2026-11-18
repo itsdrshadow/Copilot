@@ -116,10 +116,9 @@ fun SmartMusicClockCard(
 
     Box(
         modifier = modifier
-            .dashCardSurface(fill = DashTone.Clock)
+            .dashCardSurface()
             .padding(DashCard.Padding)
     ) {
-        FeaturedColors(DashTone.Clock) {
         AnimatedContent(
             targetState = isMusicActive,
             transitionSpec = {
@@ -149,7 +148,6 @@ fun SmartMusicClockCard(
                     onOpenMusicApp = { MediaPlaybackManager.openActivePlayerApp(context) }
                 )
             }
-        }
         }
     }
 }
