@@ -304,7 +304,7 @@ fun SpeedometerCluster(
                     }
 
                     // 3. Speed Limit Notch
-                    if (speedLimit in 10..160) {
+                    if (speedLimitInfo.isApplicable && speedLimit in 10..160) {
                         val limitAngle = startAngle + sweepRange * (speedLimit / maxDisplaySpeed)
                         val limitRad = Math.toRadians(limitAngle.toDouble())
                         val notchStart = Offset(

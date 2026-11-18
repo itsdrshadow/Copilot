@@ -42,7 +42,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.antigravity.copilot.core.designsystem.colors.*
 import com.antigravity.copilot.core.location.SpeedLimitInfo
-import com.antigravity.copilot.BuildConfig
 import com.antigravity.copilot.core.map.CarMapController
 import com.antigravity.copilot.core.map.MapMemoryGuard
 import com.antigravity.copilot.core.map.OfflineMapManager
@@ -250,9 +249,6 @@ fun LiveMapPanel(
         }
     }
 
-    // Debug builds: live FPS / native heap / style-load overlay (+ `adb logcat -s MapPerf`).
-    val perfStats = if (BuildConfig.DEBUG) remember { MapPerfStats() } else null
-
     // Ensure MapLibre native engine is initialized with applicationContext
     remember {
         try {
@@ -335,7 +331,6 @@ fun LiveMapPanel(
             mapController.detachMap()
             fpsGovernor.release()
             memoryGuard.release()
-            perfStats?.detach()
             lifecycleHolder.destroy()
         }
     }
@@ -388,7 +383,6 @@ fun LiveMapPanel(
                     // Settings > Map Rendering (see MapFpsGovernor).
                     fpsGovernor.mapView = this
                     memoryGuard.mapView = this
-                    perfStats?.attach(this)
                     setOnTouchListener { _, event -> fpsGovernor.onTouch(event); false }
                     lifecycleHolder.mapView = this
                     // The lifecycle observer may already have replayed ON_START/ON_RESUME before this
@@ -423,13 +417,6 @@ fun LiveMapPanel(
                     .zIndex(5f)
                     .graphicsLayer { alpha = coverAlpha }
                     .background(CockpitTheme.colors.bg)
-            )
-        }
-
-        if (perfStats != null) {
-            MapPerfOverlay(
-                stats = perfStats,
-                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp).zIndex(20f)
             )
         }
 
@@ -474,12 +461,14 @@ fun LiveMapPanel(
         }
 
         // Speed-limit sign: shown once, top-left of the map.
-        if (speedLimitInfo.speedLimitKmh > 0) {
-            SpeedLimitSign(
-                limitKmh = speedLimitInfo.speedLimitKmh,
-                estimated = speedLimitInfo.isEstimated,
-                modifier = Modifier.align(Alignment.TopStart).padding(14.dp)
-            )
+        // Hidden while stationary or off a matched road (see SpeedLimitInfo.isApplicable).
+        AnimatedVisibility(
+            visible = speedLimitInfo.isApplicable && speedLimitInfo.speedLimitKmh > 0,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopStart).padding(14.dp)
+        ) {
+            SpeedLimitSign(limitKmh = speedLimitInfo.speedLimitKmh)
         }
 
         DebugMapFixInjector(mapController)
@@ -655,34 +644,9 @@ private fun MapMenuItem(
 
 /** Regulatory speed-limit sign (white disc, red ring); the sign colours are fixed by law, not theme. */
 @Composable
-fun SpeedLimitSign(
-    limitKmh: Int,
-    modifier: Modifier = Modifier,
-    size: androidx.compose.ui.unit.Dp = 58.dp,
-    /** Inferred from road class (no signed maxspeed): captioned "est." under the sign. */
-    estimated: Boolean = false
-) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        SpeedLimitDisc(limitKmh, size)
-        if (estimated) {
-            Text(
-                text = "est.",
-                style = CockpitTheme.typography.labelSmall,
-                color = CockpitTheme.colors.textSecondary,
-                modifier = Modifier
-                    .padding(top = 3.dp)
-                    .clip(Raahi.PillShape)
-                    .background(CockpitTheme.colors.card)
-                    .padding(horizontal = 6.dp, vertical = 1.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SpeedLimitDisc(limitKmh: Int, size: androidx.compose.ui.unit.Dp) {
+fun SpeedLimitSign(limitKmh: Int, modifier: Modifier = Modifier, size: androidx.compose.ui.unit.Dp = 58.dp) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(size)
             .clip(CircleShape)
             .background(SignWhite)

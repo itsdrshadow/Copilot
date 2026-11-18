@@ -26,7 +26,12 @@ data class SpeedLimitInfo(
     val isOverspeed: Boolean = false,
     val isNearLimit: Boolean = false,
     /** True when the limit is inferred (road class / driving pattern), false for a tagged maxspeed. */
-    val isEstimated: Boolean = true
+    val isEstimated: Boolean = true,
+    /**
+     * Show the limit at all: the vehicle is moving on a road matched on the offline map.
+     * False when stationary, off-road, or with no map match (sign and dial notch hidden).
+     */
+    val isApplicable: Boolean = false
 )
 
 /** The road the offline map matched under the vehicle (from OfflineRoadIntelligenceManager). */
@@ -60,6 +65,10 @@ class SpeedLimitEngine private constructor() {
 
     private val debouncer = SpeedLimitRules.OverspeedDebouncer()
     private var lastSpeedKmh = 0f
+    /** Moving with hysteresis: on at [MOVING_ON_KMH], off below [MOVING_OFF_KMH]. */
+    private var isMoving = false
+    /** Consecutive map evaluations that found no road under the vehicle. */
+    private var mapRoadMisses = 0
 
     // Offline map match
     private var mapRoad: MapRoadObservation? = null
@@ -93,6 +102,7 @@ class SpeedLimitEngine private constructor() {
         if (context != null && appContext == null) appContext = context.applicationContext
         if (point == null) return
         lastSpeedKmh = point.speedKmh
+        isMoving = if (isMoving) point.speedKmh >= MOVING_OFF_KMH else point.speedKmh >= MOVING_ON_KMH
         if (point.latitude != 0.0 || point.longitude != 0.0) {
             lastLat = point.latitude
             lastLon = point.longitude
@@ -114,6 +124,9 @@ class SpeedLimitEngine private constructor() {
             mapRoad = observation
             mapRoadLat = lastLat
             mapRoadLon = lastLon
+            mapRoadMisses = 0
+        } else {
+            mapRoadMisses++
         }
         publish(newReading = false)
     }
@@ -121,9 +134,16 @@ class SpeedLimitEngine private constructor() {
     /** Only real GPS readings ([newReading]) count towards confirming overspeed. */
     private fun publish(newReading: Boolean) {
         val base = resolve()
-        if (newReading) debouncer.update(lastSpeedKmh, base.speedLimitKmh)
+        // Off-road (2 misses in a row debounce tile-edge gaps) or stationary: no limit to show or warn on.
+        val applicable = isMoving && freshMapRoad() != null && mapRoadMisses < 2
+        if (!applicable) debouncer.reset()
+        else if (newReading) debouncer.update(lastSpeedKmh, base.speedLimitKmh)
         else debouncer.onLimitChanged(lastSpeedKmh, base.speedLimitKmh)
-        val info = base.copy(isOverspeed = debouncer.isOverspeed, isNearLimit = debouncer.isNearLimit)
+        val info = base.copy(
+            isOverspeed = debouncer.isOverspeed,
+            isNearLimit = debouncer.isNearLimit,
+            isApplicable = applicable
+        )
         if (info != _speedLimitInfo.value) _speedLimitInfo.value = info
     }
 
@@ -245,6 +265,8 @@ class SpeedLimitEngine private constructor() {
          * pattern estimate. Distance, not time: a parked car gets no new fixes or matches.
          */
         const val MAP_MATCH_STALE_M = 150.0
+        private const val MOVING_ON_KMH = 8f
+        private const val MOVING_OFF_KMH = 3f
         private const val ONLINE_MIN_INTERVAL_MS = 15_000L
         private const val ONLINE_MIN_DISTANCE_M = 150.0
 

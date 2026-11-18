@@ -90,14 +90,14 @@ Pick one:
 2. Launch the app. The map should show roads and water around the vehicle.
 3. `adb logcat | grep -E "MapNetworkGuard|Mbgl"` should show **no** `BLOCKED map network request`
    lines (the map makes no HTTP requests at all). A debug build crashes on any map request, so you
-   cannot miss one. `adb logcat -s MapPerf MapMemoryGuard` shows FPS, native heap and style load time.
+   cannot miss one. `adb logcat -s MapMemoryGuard` shows native-heap trims.
 
 ## Road intelligence (pill, speed limit, sharp turns)
 
 `OfflineRoadIntelligenceManager` adds two invisible query layers on `transportation` and
 `transportation_name` (opacity **0.01**, not 0: MapLibre ignores opacity-0 layers in
 `queryRenderedFeatures`). Stock Planetiler OpenMapTiles output has **no `maxspeed`** on roads, so
-limits are MoRTH estimates by road class (shown as "est."); a tile build that adds `maxspeed` to
+limits are MoRTH estimates by road class; a tile build that adds `maxspeed` to
 `transportation` is picked up automatically.
 
 Test on a parked unit (debug build): pan the map so it stops following, then inject fixes, e.g.

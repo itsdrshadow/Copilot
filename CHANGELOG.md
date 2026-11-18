@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.20.0] - 2026-11-18
+
+### Changed
+- Speed limit sign (and the speedometer's limit notch) is shown only while moving on a road matched on the offline map; hidden when stationary (below 3 km/h, back at 8 km/h) or off-road (no road match twice in a row, or none within 150 m). Overspeed warnings are off in those states too.
+- Speed limit sign no longer shows an "est." caption.
+
+### Removed
+- Debug map performance overlay (black box with FPS / native heap / style load at the bottom-left of the map).
+
 ## [2.19.0] - 2026-11-18
 
 ### Added
