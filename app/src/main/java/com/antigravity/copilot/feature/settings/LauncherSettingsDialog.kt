@@ -119,20 +119,6 @@ fun LauncherSettingsDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CircleShape, borderWidth = 1.2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back to Cockpit",
-                            tint = CockpitTheme.colors.textPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
                     Box(
                         modifier = Modifier
                             .size(48.dp)

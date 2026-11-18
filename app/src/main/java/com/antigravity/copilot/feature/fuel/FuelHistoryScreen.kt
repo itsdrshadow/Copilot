@@ -171,19 +171,6 @@ fun FuelHistoryScreen(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp)
                   ) {
-                      IconButton(
-                          onClick = onBackToCockpit,
-                          modifier = Modifier
-                              .size(50.dp)
-                              .cockpitSurface(CockpitTheme.colors.border, Palette.Ink750, CopilotShapes.R12, borderWidth = 1.2.dp)
-                      ) {
-                          Icon(
-                              imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                              contentDescription = "Back",
-                              tint = CockpitTheme.colors.textPrimary,
-                              modifier = Modifier.size(24.dp)
-                          )
-                      }
                       Box(
                           modifier = Modifier
                               .size(48.dp)

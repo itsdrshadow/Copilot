@@ -180,20 +180,6 @@ fun TripHistoryScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    IconButton(
-                        onClick = onBackToCockpit,
-                        modifier = Modifier
-                            .size(50.dp)
-                            .cockpitSurface(Palette.Ink850, Palette.Graphite700, CircleShape, borderWidth = 1.2.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = CockpitTheme.colors.textPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
                     Column {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,

@@ -322,20 +322,6 @@ fun AppDrawerHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            IconButton(
-                onClick = onBackToHome,
-                modifier = Modifier
-                    .size(48.dp)
-                    .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CircleShape, borderWidth = 1.2.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = CockpitTheme.colors.textPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
