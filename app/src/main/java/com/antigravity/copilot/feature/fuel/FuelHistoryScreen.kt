@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.fuel
 
+import com.antigravity.copilot.core.designsystem.components.RaahiYearDropdown
+import com.antigravity.copilot.core.designsystem.components.currentMonthKey
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.MoreVert
@@ -30,7 +32,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -220,38 +221,12 @@ fun FuelHistoryScreen(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp)
                   ) {
-                      // Year Switcher Chips: only when there is more than one year.
-                      if (availableYears.size > 1) LazyRow(
-                          horizontalArrangement = Arrangement.spacedBy(8.dp),
-                          verticalAlignment = Alignment.CenterVertically
-                      ) {
-                          items(availableYears) { year ->
-                              val isSelected = year == selectedYear
-                              Box(
-                                  modifier = Modifier
-                                      .height(44.dp)
-                                      .clip(CopilotShapes.R12)
-                                      .background(if (isSelected) Palette.Ink600 else Palette.Ink900)
-                                      .border(
-                                          width = 1.2.dp,
-                                          color = if (isSelected) Palette.Sky400 else Palette.Ink750,
-                                          shape = CopilotShapes.R12
-                                      )
-                                      .clickable { selectedYear = year }
-                                      .padding(horizontal = 16.dp),
-                                  contentAlignment = Alignment.Center
-                              ) {
-                                  Text(
-                                      text = "$year",
-                                      style = CockpitTheme.typography.labelMedium.copy(
-                                          fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                          fontFeatureSettings = "tnum"
-                                      ),
-                                      color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
-                                  )
-                              }
-                          }
-                      }
+                      // Year picker: dropdown showing three years at a time, the rest scroll.
+                      RaahiYearDropdown(
+                          years = availableYears,
+                          selectedYear = selectedYear,
+                          onYearSelected = { selectedYear = it }
+                      )
                   }
               }
 
@@ -491,8 +466,8 @@ private fun FuelRecordsMonthGroupedFeed(
         ) {
             items(activeMonths, key = { "${it.year}-${it.monthIndex}" }) { monthData ->
                 val monthKey = "${monthData.year}-${monthData.monthIndex}"
-                // Defaults to expanded
-                val isExpanded = expandedMonths.getOrPut(monthKey) { true }
+                // Only the current month starts open; older/future months start collapsed.
+                val isExpanded = expandedMonths.getOrPut(monthKey) { monthKey == currentMonthKey() }
                 val arrowRotation by animateFloatAsState(
                     targetValue = if (isExpanded) 180f else 0f,
                     animationSpec = tween(250),

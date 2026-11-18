@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.trips
 
+import com.antigravity.copilot.core.designsystem.components.RaahiYearDropdown
+import com.antigravity.copilot.core.designsystem.components.currentMonthKey
 import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.domain.trip.*
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
@@ -15,7 +17,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -219,38 +220,12 @@ fun TripHistoryScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Year Selector: only when there is more than one year to pick from.
-                    if (availableYears.size > 1) LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        items(availableYears) { year ->
-                            val isSelected = year == selectedYear
-                            Box(
-                                modifier = Modifier
-                                    .height(44.dp)
-                                    .clip(CopilotShapes.R12)
-                                    .background(if (isSelected) Palette.Ink600 else Palette.Ink900)
-                                    .border(
-                                        width = 1.2.dp,
-                                        color = if (isSelected) Palette.Sky400 else Palette.Ink750,
-                                        shape = CopilotShapes.R12
-                                    )
-                                    .clickable { selectedYear = year }
-                                    .padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "$year",
-                                    style = CockpitTheme.typography.titleSmall.copy(
-                                        fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                    ),
-                                    color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
-                                )
-                            }
-                        }
-                    }
+                    // Year picker: dropdown showing three years at a time, the rest scroll.
+                    RaahiYearDropdown(
+                        years = availableYears,
+                        selectedYear = selectedYear,
+                        onYearSelected = { selectedYear = it }
+                    )
                 }
             }
 
@@ -683,7 +658,7 @@ internal fun TripListGroupedFeed(
         ) {
             activeMonthGroups.forEach { group ->
                 val monthKey = "${group.year}-${group.monthIndex}"
-                val isExpanded = expandedMonths[monthKey] ?: true
+                val isExpanded = expandedMonths[monthKey] ?: (monthKey == currentMonthKey())
                 item(key = "month-$monthKey", contentType = "month") {
                     TripMonthHeader(
                         group = group,

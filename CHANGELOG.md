@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.24.0] - 2026-11-18
+
+### Added
+- Shared `RaahiYearDropdown`: one year button; the popup shows three years at a time and scrolls for the rest.
+
+### Changed
+- Trips and Fuel: the year chips row is replaced by the year dropdown.
+- Trips and Fuel: only the current month starts expanded; every other month starts collapsed (tap a month header to open it).
+
 ## [2.23.0] - 2026-11-18
 
 ### Added
