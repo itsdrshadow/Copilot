@@ -20,4 +20,5 @@ See also `AGENTS.md` (git, changelog, emulator verification rules).
 - **Versioning & Git Push:** After completing any change, bump the version per SemVer
   (`PATCH` = fixes, `MINOR` = features, `MAJOR` = breaking; also `versionCode` +1 on Android).
   Stage changes, commit with a concise conventional message (`fix:`, `feat:`, `chore:`),
-  and `git push` to the current branch — confirm with the user first if on `main`/`master`.
+  then immediately `git push` to `origin` (https://github.com/itsdrshadow/Copilot) on the current
+  branch — including `main`, no confirmation needed. Never skip the push after a version bump.
