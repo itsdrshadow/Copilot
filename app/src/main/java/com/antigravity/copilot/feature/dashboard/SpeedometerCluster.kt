@@ -183,7 +183,7 @@ fun SpeedometerCluster(
     val statusColor by animateColorAsState(
         targetValue = when {
             speedLimit > 0 && rawSpeed > speedLimit * 1.05f -> Color(0xFFFFB4B4)
-            speedLimit > 0 && rawSpeed > speedLimit * 0.92f -> CockpitTheme.colors.warning
+            speedLimit > 0 && rawSpeed > speedLimit * 0.92f -> Color(0xFFFDE68A)
             else -> Color.White
         },
         animationSpec = tween(350),
@@ -222,15 +222,16 @@ fun SpeedometerCluster(
     val cyanAccent = Color.White
     val criticalColor = Color(0xFFFFB4B4)
     val textPrimary = Color.White
-    val textSecondary = Color.White.copy(alpha = 0.80f)
+    val textSecondary = Color.White.copy(alpha = 0.88f)
 
     // ==================== SPEEDOMETER CARD (240° dial) ====================
+    val speedFill = DashTone.accentFill(CockpitTheme.colors.accent)
     Box(
         modifier = modifier
-            .dashCardSurface(featured = true)
+            .dashCardSurface(fill = speedFill)
             .padding(DashCard.Padding)
     ) {
-        FeaturedColors {
+        FeaturedColors(speedFill) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween,
@@ -357,7 +358,7 @@ fun SpeedometerCluster(
                                 when {
                                     !isGpsValid -> CockpitTheme.colors.cardElevated
                                     isAccelerating -> cyanAccent.copy(alpha = 0.15f)
-                                    isDecelerating -> CockpitTheme.colors.warning.copy(alpha = 0.15f)
+                                    isDecelerating -> Color(0xFFFDE68A).copy(alpha = 0.15f)
                                     else -> CockpitTheme.colors.cardElevated
                                 }
                             )
@@ -377,7 +378,7 @@ fun SpeedometerCluster(
                             tint = when {
                                 !isGpsValid -> textSecondary
                                 isAccelerating -> cyanAccent
-                                isDecelerating -> CockpitTheme.colors.warning
+                                isDecelerating -> Color(0xFFFDE68A)
                                 else -> textSecondary
                             },
                             modifier = Modifier.size(20.dp)
@@ -400,7 +401,7 @@ fun SpeedometerCluster(
                             color = when {
                                 !isGpsValid -> textSecondary
                                 isAccelerating -> cyanAccent
-                                isDecelerating -> CockpitTheme.colors.warning
+                                isDecelerating -> Color(0xFFFDE68A)
                                 else -> textPrimary
                             }
                         )

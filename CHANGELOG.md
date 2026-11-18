@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.13.1] - 2026-11-18
+
+### Changed
+- Every Drive card now has its own solid colour (Speed = accent, Fuel = green/amber/red by level, Trip = violet, Clock = rose) with white text.
+- Speed card blue is darkened automatically so white text keeps >= 5.5:1 contrast for any accent choice.
+
+---
+
 ## [2.13.0] - 2026-11-18
 
 ### Changed

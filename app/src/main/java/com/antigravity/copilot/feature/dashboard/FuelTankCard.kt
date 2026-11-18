@@ -75,14 +75,16 @@ fun FuelTankCard(
     onDismissNotice: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val c = CockpitTheme.colors
     val tankPct = fuelState.fuelPercentage.toDouble().coerceIn(0.0, 100.0)
+    val fill = DashTone.forFuel(tankPct)
+    val c = CockpitTheme.colors.onFill(fill)
     var showGaugeDialog by remember { mutableStateOf(false) }
 
     // Same card anatomy as the other Drive cards (header, hero, gauge, stat strip).
+    FeaturedColors(fill) {
     Column(
         modifier = modifier
-            .dashCardSurface()
+            .dashCardSurface(fill = fill)
             .padding(DashCard.Padding),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -110,12 +112,12 @@ fun FuelTankCard(
             Text(
                 text = "${tankPct.toInt()}%",
                 style = CockpitTheme.typography.headlineSmall,
-                color = fuelLevelTextColor(tankPct),
+                color = Color.White,
                 maxLines = 1,
                 modifier = Modifier
                     .padding(bottom = 4.dp)
                     .clip(CopilotShapes.R8)
-                    .background(fuelLevelColor(tankPct).copy(alpha = 0.14f))
+                    .background(Color.White.copy(alpha = 0.20f))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
             )
         }
@@ -133,15 +135,8 @@ fun FuelTankCard(
             // Zone colours like a car gauge: bars 1-2 red, 3-4 yellow, 5-10 green.
             SegmentBar(
                 fillPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0),
-                color = fuelLevelColor(tankPct),
-                height = 34.dp,
-                segmentColor = { bar ->
-                    when {
-                        bar <= 2 -> c.critical
-                        bar <= 4 -> c.warning
-                        else -> c.positive
-                    }
-                }
+                color = Color.White,
+                height = 34.dp
             )
         }
 
@@ -170,6 +165,7 @@ fun FuelTankCard(
         fuelState.fuelNotice?.let { notice ->
             InfoLine(text = notice, title = "Fuel notice", onDismiss = onDismissNotice)
         }
+    }
     }
 
     if (showGaugeDialog) {
