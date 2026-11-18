@@ -232,24 +232,26 @@ fun FuelHistoryScreen(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp)
                   ) {
-                      // Year Switcher Chips
-                      LazyRow(
-                          horizontalArrangement = Arrangement.spacedBy(8.dp),
+                      // Year Switcher: one segmented pill, selected year filled with accent
+                      Row(
+                          modifier = Modifier
+                              .height(48.dp)
+                              .clip(CopilotShapes.R12)
+                              .background(CockpitTheme.colors.cardElevated)
+                              .border(1.2.dp, CockpitTheme.colors.border, CopilotShapes.R12)
+                              .padding(4.dp),
+                          horizontalArrangement = Arrangement.spacedBy(4.dp),
                           verticalAlignment = Alignment.CenterVertically
                       ) {
-                          items(availableYears) { year ->
+                          availableYears.forEach { year ->
                               val isSelected = year == selectedYear
                               Box(
                                   modifier = Modifier
-                                      .clip(CopilotShapes.R12)
-                                      .background(if (isSelected) Palette.Ink600 else Palette.Ink900)
-                                      .border(
-                                          width = 1.2.dp,
-                                          color = if (isSelected) Palette.Sky400 else Palette.Ink750,
-                                          shape = CopilotShapes.R12
-                                      )
+                                      .fillMaxHeight()
+                                      .clip(CopilotShapes.R8)
+                                      .background(if (isSelected) CockpitTheme.colors.accent else Color.Transparent)
                                       .clickable { selectedYear = year }
-                                      .padding(horizontal = 16.dp, vertical = 10.dp),
+                                      .padding(horizontal = 16.dp),
                                   contentAlignment = Alignment.Center
                               ) {
                                   Text(
@@ -258,7 +260,7 @@ fun FuelHistoryScreen(
                                           fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                           fontFeatureSettings = "tnum"
                                       ),
-                                      color = if (isSelected) CockpitTheme.colors.textPrimary else Palette.Steel400
+                                      color = if (isSelected) CockpitTheme.colors.onAccent else CockpitTheme.colors.textSecondary
                                   )
                               }
                           }
@@ -268,7 +270,7 @@ fun FuelHistoryScreen(
                               text = "Add Fuel",
                               icon = Icons.Outlined.Add,
                               onClick = onAddFuel,
-                              modifier = Modifier.height(52.dp)
+                              modifier = Modifier.height(48.dp)
                           )
                       }
                   }
