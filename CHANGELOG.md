@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.25.0] - 2026-11-18
+
+### Added
+- Self-healing pothole & speed-breaker map: `RoadAnomalyDetector` reads linear acceleration at game rate on a background thread, projects it onto the gravity axis (correct for upright head-unit mounts), low-passes it and classifies peaks as YELLOW (3.5–6.5 m/s²) or RED (> 6.5 m/s²). Gated on GPS speed ≥ 10 km/h, accuracy ≤ 15 m and fix age ≤ 3 s, with a 5 s wake-up guard (service start, ACC on, screen on) and a 3 s cooldown so the rear axle does not add a duplicate.
+- `road_anomalies` table (DB v13) with bounding-box queries; a hit within 12 m of an existing anomaly merges into it (confidence +1 up to 5, higher peak kept, coordinates smoothed).
+- Self-healing: a pass within 15 m at > 15 km/h (judged once per minute per anomaly, line-between-fixes geometry so 1 Hz GPS at highway speed still counts) adds confidence if it jolts again and removes one if smooth; the row is deleted at 0. A pass is not counted if the car slowed below 15 km/h in the zone, or was travelling the opposite way to when the anomaly was recorded.
+- Map: yellow (#FACC15) / red (#EF4444) dots via a reactive GeoJSON source and circle layer; fainter while unconfirmed.
+- Liquid-glass flash card at the top centre: nearest anomaly 150–200 m ahead within a ±30° cone, live countdown between GPS fixes, dismissed once passed or when the car turns away.
+- Road anomalies are included in backup/restore and cleared by factory reset.
+
 ## [2.24.1] - 2026-11-18
 
 ### Fixed

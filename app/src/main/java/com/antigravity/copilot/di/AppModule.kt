@@ -44,6 +44,10 @@ object AppModule {
     fun provideVehicleStateManager(@ApplicationContext context: Context): VehicleStateManager =
         VehicleStateManager.getInstance(context)
 
+    @Provides @Singleton
+    fun provideRoadAnomalyManager(@ApplicationContext context: Context): com.antigravity.copilot.core.road.RoadAnomalyManager =
+        com.antigravity.copilot.core.road.RoadAnomalyManager.getInstance(context)
+
     @Provides
     fun provideLauncherManager(@ApplicationContext context: Context): LauncherManager = LauncherManager(context)
 }

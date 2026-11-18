@@ -47,6 +47,7 @@ class DrivingTrackingService : Service(), LocationListener {
     private lateinit var engine: TripDetectionEngine
     @Inject lateinit var vehicleStateManager: VehicleStateManager
     @Inject lateinit var geofenceManager: TripGeofenceManager
+    @Inject lateinit var roadAnomalyManager: com.antigravity.copilot.core.road.RoadAnomalyManager
     private lateinit var geofenceEngine: GeofenceTripLifecycleEngine
 
     private var wakeLock: PowerManager.WakeLock? = null
@@ -301,6 +302,7 @@ class DrivingTrackingService : Service(), LocationListener {
                 com.antigravity.copilot.core.map.OfflineMapManager.saveLastKnownPosition(applicationContext, point.latitude, point.longitude)
                 tripRepository.onLocationReceived(point)
                 vehicleStateManager.onSpeedOrLocationUpdated(point.speedKmh, point.timestamp)
+                roadAnomalyManager.onLocation(point)
             },
             onTripStarted = { tripId ->
                 lastRecordedDistanceMeters = 0.0
@@ -344,6 +346,7 @@ class DrivingTrackingService : Service(), LocationListener {
             }
         }
         registerLinearAccelerationSensor()
+        roadAnomalyManager.start()
         tripRepository.learnedMileageProvider = { fuelRepository.getFuelTelemetrySnapshot().mileageKmpl }
         engine.fuelTelemetryProvider = {
             fuelRepository.getFuelTelemetrySnapshot()
@@ -360,6 +363,7 @@ class DrivingTrackingService : Service(), LocationListener {
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_POWER_CONNECTED)
             addAction(Intent.ACTION_POWER_DISCONNECTED)
+            addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SHUTDOWN)
             addAction(Intent.ACTION_REBOOT)
             addAction("android.intent.action.QUICKBOOT_POWEROFF")
@@ -371,13 +375,16 @@ class DrivingTrackingService : Service(), LocationListener {
                 when (intent?.action) {
                     Intent.ACTION_POWER_CONNECTED -> {
                         isPowerCut = false
+                        roadAnomalyManager.start() // ACC on: (re)starts the 5 s sensor wake-up guard
                         vehicleStateManager.onHardwarePowerConnected(now)
                         engine.onPowerConnected(now)
                         acquireWakeLock()
                         requestLocationUpdates()
                     }
+                    Intent.ACTION_SCREEN_ON -> roadAnomalyManager.onWake()
                     Intent.ACTION_POWER_DISCONNECTED -> {
                         isPowerCut = true
+                        roadAnomalyManager.stop()
                         if (::geofenceEngine.isInitialized) {
                             geofenceEngine.onPowerDisconnected(now)
                         }
@@ -785,6 +792,7 @@ class DrivingTrackingService : Service(), LocationListener {
                 (getSystemService(Context.SENSOR_SERVICE) as? android.hardware.SensorManager)?.unregisterListener(l)
             } catch (_: Exception) {}
         }
+        roadAnomalyManager.stop()
         // Save ongoing journey on service shutdown
         // Ongoing trip state is preserved in Room database across task removal and reboots
         powerReceiver?.let {

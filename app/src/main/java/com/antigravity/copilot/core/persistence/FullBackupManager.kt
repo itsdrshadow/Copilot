@@ -158,6 +158,7 @@ object FullBackupManager {
             val geofences = db.tripGeofenceDao().getAllGeofencesList()
             val fuelModelState = db.fuelModelDao().get()
             val roadCells = db.roadCellDao().getAll()
+            val roadAnomalies = db.roadAnomalyDao().getAll()
 
             fun encodePrefs(spName: String): Map<String, TypedPrefEntry> {
                 val sp = context.getSharedPreferences(spName, Context.MODE_PRIVATE)
@@ -237,6 +238,7 @@ object FullBackupManager {
             writeZipStringEntry("trip_geofences.json", gson.toJson(geofences))
             if (fuelModelState != null) writeZipStringEntry("fuel_model_state.json", gson.toJson(fuelModelState))
             writeZipStringEntry("road_cells.json", gson.toJson(roadCells))
+            writeZipStringEntry("road_anomalies.json", gson.toJson(roadAnomalies))
 
             // 3. SharedPreferences
             writeZipStringEntry("preferences.json", gson.toJson(prefsData))
@@ -361,6 +363,7 @@ object FullBackupManager {
             val geofencesJson = readEntryString("trip_geofences.json")
             val fuelModelJson = readEntryString("fuel_model_state.json")
             val roadCellsJson = readEntryString("road_cells.json")
+            val roadAnomaliesJson = readEntryString("road_anomalies.json")
 
             val prefsJson = readEntryString("preferences.json")
             val mapManifestJson = readEntryString("maps/india_offline_manifest.json")
@@ -448,6 +451,14 @@ object FullBackupManager {
                     if (cells != null) {
                         db.roadCellDao().clearAll()
                         db.roadCellDao().upsertAll(cells)
+                    }
+                }
+                if (!roadAnomaliesJson.isNullOrBlank()) {
+                    val type = object : TypeToken<List<com.antigravity.copilot.core.road.RoadAnomalyEntity>>() {}.type
+                    val rows: List<com.antigravity.copilot.core.road.RoadAnomalyEntity>? = gson.fromJson(roadAnomaliesJson, type)
+                    if (rows != null) {
+                        db.roadAnomalyDao().clearAll()
+                        db.roadAnomalyDao().insertAll(rows)
                     }
                 }
             }

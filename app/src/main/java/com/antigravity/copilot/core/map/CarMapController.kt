@@ -70,6 +70,10 @@ class CarMapController(
         private const val TRAIL_MIN_INTERVAL_MS = 2_000L
         private const val ROAD_SOURCE_ID = "copilot_road_mileage_source"
         private const val ROAD_LAYER_ID = "copilot_road_mileage_layer"
+        private const val ANOMALY_SOURCE_ID = "copilot_road_anomaly_source"
+        private const val ANOMALY_LAYER_ID = "copilot_road_anomaly_layer"
+        private const val ANOMALY_COLOR_YELLOW = "#FACC15"
+        private const val ANOMALY_COLOR_RED = "#EF4444"
 
         private const val DEFAULT_DRIVING_TILT = 45.0
 
@@ -319,6 +323,7 @@ class CarMapController(
                 setupGeofenceLayers(style)
                 setupRoadMileageLayer(style)
                 setupTrailLayers(style)
+                setupAnomalyLayer(style)
                 setupVehicleLayer(style)
                 roadIntel.onStyleLoaded(style)
                 isStyleLoaded = true
@@ -575,6 +580,61 @@ class CarMapController(
                 roadCollection = fc
                 mapboxMap?.style?.getSourceAs<GeoJsonSource>(ROAD_SOURCE_ID)?.setGeoJson(fc)
             }
+        }
+    }
+
+    // ---------------- Pothole / speed-breaker dots ----------------
+    @Volatile private var anomalyCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())
+
+    /** Reactive feed from Room; builds the GeoJSON off the main thread. */
+    fun updateAnomalies(rows: List<com.antigravity.copilot.core.road.RoadAnomalyEntity>) {
+        coroutineScope.launch(Dispatchers.Default) {
+            val features = rows.map { a ->
+                Feature.fromGeometry(Point.fromLngLat(a.longitude, a.latitude)).apply {
+                    addStringProperty("sev", a.severity)
+                    addNumberProperty("conf", a.confidenceScore)
+                }
+            }
+            val fc = FeatureCollection.fromFeatures(features)
+            withContext(Dispatchers.Main) {
+                anomalyCollection = fc
+                mapboxMap?.style?.getSourceAs<GeoJsonSource>(ANOMALY_SOURCE_ID)?.setGeoJson(fc)
+            }
+        }
+    }
+
+    private fun setupAnomalyLayer(style: Style) {
+        try {
+            if (style.getSource(ANOMALY_SOURCE_ID) == null) style.addSource(GeoJsonSource(ANOMALY_SOURCE_ID, anomalyCollection))
+            if (style.getLayer(ANOMALY_LAYER_ID) == null) {
+                val isRed = Expression.eq(Expression.get("sev"), Expression.literal("RED"))
+                style.addLayer(
+                    CircleLayer(ANOMALY_LAYER_ID, ANOMALY_SOURCE_ID).apply {
+                        setProperties(
+                            circleColor(
+                                Expression.switchCase(
+                                    isRed, Expression.color(Color.parseColor(ANOMALY_COLOR_RED)),
+                                    Expression.color(Color.parseColor(ANOMALY_COLOR_YELLOW))
+                                )
+                            ),
+                            circleRadius(Expression.switchCase(isRed, Expression.literal(7.0f), Expression.literal(5.5f))),
+                            // Fainter while unconfirmed (confidence 1..5 -> 0.55..0.95).
+                            circleOpacity(
+                                Expression.interpolate(
+                                    Expression.linear(), Expression.get("conf"),
+                                    Expression.stop(1, 0.55f), Expression.stop(5, 0.95f)
+                                )
+                            ),
+                            circleStrokeColor(Color.WHITE),
+                            circleStrokeWidth(1.5f),
+                            circleStrokeOpacity(0.8f),
+                            circlePitchAlignment(Property.CIRCLE_PITCH_ALIGNMENT_MAP)
+                        )
+                    }
+                )
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error setting up road anomaly layer: ${e.message}")
         }
     }
 

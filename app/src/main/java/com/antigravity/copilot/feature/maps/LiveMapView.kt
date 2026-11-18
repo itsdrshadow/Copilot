@@ -299,6 +299,12 @@ fun LiveMapPanel(
         )
     }
 
+    // Pothole / speed-breaker dots: Room flow -> GeoJsonSource (re-emits only on DB change).
+    LaunchedEffect(mapController) {
+        com.antigravity.copilot.core.road.RoadAnomalyManager.getInstance(context.applicationContext)
+            .anomalies.collect { mapController.updateAnomalies(it) }
+    }
+
     // Live trail with overlap colouring (throttled + computed off the main thread)
     LaunchedEffect(mapController) {
         snapshotFlow { currentTrail() }.collect { mapController.updateTrail(it) }

@@ -241,9 +241,10 @@ interface RoadSegmentStatsDao {
         TripGeofenceEntity::class,
         FuelModelStateEntity::class,
         RoadCellEntity::class,
-        RoadSegmentStatsEntity::class
+        RoadSegmentStatsEntity::class,
+        com.antigravity.copilot.core.road.RoadAnomalyEntity::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -256,6 +257,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun fuelModelDao(): FuelModelDao
     abstract fun roadCellDao(): RoadCellDao
     abstract fun roadSegmentStatsDao(): RoadSegmentStatsDao
+    abstract fun roadAnomalyDao(): com.antigravity.copilot.core.road.RoadAnomalyDao
 
     companion object {
         @Volatile
@@ -460,7 +462,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        const val DATABASE_SCHEMA_VERSION = 12
+        /** Self-healing pothole / speed-breaker map. */
+        val MIGRATION_12_13 = object : androidx.room.migration.Migration(12, 13) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `road_anomalies` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `maxZForce` REAL NOT NULL, " +
+                        "`severity` TEXT NOT NULL, `confidenceScore` INTEGER NOT NULL, `lastUpdated` INTEGER NOT NULL, " +
+                        "`headingDeg` REAL NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_road_anomalies_latitude_longitude` ON `road_anomalies` (`latitude`, `longitude`)"
+                )
+            }
+        }
+
+        const val DATABASE_SCHEMA_VERSION = 13
 
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
@@ -473,7 +490,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_8_9,
             MIGRATION_9_10,
             MIGRATION_10_11,
-            MIGRATION_11_12
+            MIGRATION_11_12,
+            MIGRATION_12_13
         )
 
         fun getInstance(context: Context): AppDatabase {

@@ -41,8 +41,12 @@ class MainViewModel @Inject constructor(
     private val tripRepository: TripRepository,
     private val fuelRepository: FuelRepository,
     private val speedLimitEngine: SpeedLimitEngine,
-    private val launcherManager: LauncherManager
+    private val launcherManager: LauncherManager,
+    roadAnomalyManager: com.antigravity.copilot.core.road.RoadAnomalyManager
 ) : ViewModel() {
+
+    /** 150–200 m ahead pothole / breaker alert for the flash card. */
+    val roadAnomalyAlert: StateFlow<com.antigravity.copilot.core.road.AnomalyAlert?> = roadAnomalyManager.aheadAlert
 
     // Core Domain Streams
     val currentTrip: StateFlow<TripSummary> = tripRepository.currentTrip
