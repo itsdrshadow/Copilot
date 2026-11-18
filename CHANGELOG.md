@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.11.2] - 2026-11-18
+
+### Fixed
+- **"Import map file" no longer crashes the app.** The head unit has no system document picker, so the picker request had no app to open it and the app crashed. The button now falls back to the device's file manager, and then to scanning storage for `.pmtiles` files. Maps picked from the file manager (`file://` links) now import correctly. Restoring a backup had the same crash and gets the same fallback.
+
+### Added
+- **All permissions are requested on app start, one after another:** location, storage and notifications (on Android 13 and later), then background location, then "All files access" (needed on Android 11+ to read `.pmtiles` from Download/USB), then the battery-optimisation exemption. Only permissions that are still missing are requested.
+
 ## [2.11.1] - 2026-11-18
 
 ### Changed

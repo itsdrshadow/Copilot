@@ -89,6 +89,7 @@ class OfflineMapsViewModel @Inject constructor(
             onProgress = { msg, _ -> _usbImportProgress.value = msg },
             onComplete = { _, msg ->
                 _usbImportProgress.value = null
+                refresh()
                 _messages.trySend(msg)
             }
         )

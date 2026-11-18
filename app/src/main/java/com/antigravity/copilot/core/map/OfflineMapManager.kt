@@ -428,8 +428,14 @@ object OfflineMapManager {
             val resolver = context.contentResolver
             try {
                 var size = -1L
-                var name = INDIA_MAP_FILE
-                resolver.query(uri, null, null, null, null)?.use { c ->
+                var name = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() } ?: INDIA_MAP_FILE
+                // OEM file managers often return file:// URIs, which have no provider to query.
+                if (uri.scheme == "file") {
+                    uri.path?.let { File(it) }?.takeIf { it.isFile }?.let { size = it.length() }
+                }
+                val cursor = if (uri.scheme == "file") null else
+                    try { resolver.query(uri, null, null, null, null) } catch (_: Exception) { null }
+                cursor?.use { c ->
                     if (c.moveToFirst()) {
                         val si = c.getColumnIndex(android.provider.OpenableColumns.SIZE)
                         val ni = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
@@ -488,10 +494,12 @@ object OfflineMapManager {
                 refreshPackageStatus(context)
                 refreshStorageInfo(context)
                 onComplete(true, "Imported $name (${dest.length() / (1024 * 1024)} MB)")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
+                // Throwable, not Exception: an OOM/linkage error here must not kill the app.
                 File(getMapsDir(context), "$INDIA_MAP_FILE.importing").delete()
                 Log.e(TAG, "Map import failed: ${e.message}", e)
-                onComplete(false, "Import failed: ${e.message}")
+                val hint = if (e is SecurityException) " — allow 'All files access' for Copilot in Settings." else ""
+                onComplete(false, "Import failed: ${e.message}$hint")
             }
         }
     }

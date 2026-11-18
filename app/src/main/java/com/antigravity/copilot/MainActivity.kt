@@ -80,23 +80,23 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
+    // Startup permission chain: runtime (location, storage, notifications) → background location
+    // → all-files access → battery exemption. Each step starts the next from its result callback
+    // so the system dialogs/screens appear one after another instead of clobbering each other.
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
-        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (fineGranted || coarseGranted) {
-            DrivingTrackingService.start(this)
-            requestBackgroundLocationIfNeeded()
-            requestBatteryOptimizationExemptionIfNeeded()
-        }
+    ) { _ ->
+        if (hasLocationPermission()) DrivingTrackingService.start(this)
+        requestBackgroundLocationIfNeeded()
     }
 
     private val backgroundPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        // Background location result handled
-    }
+    ) { _ -> requestAllFilesAccessIfNeeded() }
+
+    private val allFilesAccessLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { _ -> requestBatteryOptimizationExemptionIfNeeded() }
 
     var onBackupFileSelected: ((Uri) -> Unit)? = null
     val backupFilePickerLauncher = registerForActivityResult(
@@ -106,9 +106,21 @@ class MainActivity : ComponentActivity() {
             onBackupFileSelected?.invoke(uri)
         }
     }
+    private val backupGetContentLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? -> if (uri != null) onBackupFileSelected?.invoke(uri) }
 
     fun launchBackupPicker() {
-        backupFilePickerLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+        // Head units often lack DocumentsUI (no OPEN_DOCUMENT handler): fall back to GET_CONTENT.
+        try {
+            backupFilePickerLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+        } catch (_: android.content.ActivityNotFoundException) {
+            try {
+                backupGetContentLauncher.launch("*/*")
+            } catch (_: android.content.ActivityNotFoundException) {
+                Toast.makeText(this, "No file picker app found on this device", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private val packageReceiver = object : BroadcastReceiver() {
@@ -244,25 +256,51 @@ class MainActivity : ComponentActivity() {
         } catch (_: Exception) {}
     }
 
-    private fun checkAndRequestPermissions() {
-        val fineGranted = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        val coarseGranted = ContextCompat.checkSelfPermission(
-            this, Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+    private fun isGranted(permission: String) =
+        ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
 
-        if (fineGranted || coarseGranted) {
-            DrivingTrackingService.start(this)
-            requestBackgroundLocationIfNeeded()
+    private fun hasLocationPermission() =
+        isGranted(Manifest.permission.ACCESS_FINE_LOCATION) || isGranted(Manifest.permission.ACCESS_COARSE_LOCATION)
+
+    /** Asks for every permission the app uses, once per launch, for whatever is still missing. */
+    private fun checkAndRequestPermissions() {
+        val wanted = buildList {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+                add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        val missing = wanted.filterNot(::isGranted)
+        if (hasLocationPermission()) DrivingTrackingService.start(this)
+        if (missing.isNotEmpty()) {
+            // Android 11+ requires foreground location before background, so background is chained.
+            permissionLauncher.launch(missing.toTypedArray())
         } else {
-            // Android 11+ requires requesting foreground location first
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
+            requestBackgroundLocationIfNeeded()
+        }
+    }
+
+    /** Android 11+: .pmtiles maps in Download/USB are non-media files, readable only with all-files access. */
+    private fun requestAllFilesAccessIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || android.os.Environment.isExternalStorageManager()) {
+            requestBatteryOptimizationExemptionIfNeeded()
+            return
+        }
+        val appIntent = Intent(
+            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+            Uri.parse("package:$packageName")
+        )
+        try {
+            allFilesAccessLauncher.launch(appIntent)
+        } catch (_: android.content.ActivityNotFoundException) {
+            try {
+                allFilesAccessLauncher.launch(Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+            } catch (_: android.content.ActivityNotFoundException) {
+                requestBatteryOptimizationExemptionIfNeeded()
+            }
         }
     }
 
@@ -288,13 +326,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestBackgroundLocationIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val bgGranted = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!bgGranted) {
-                backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && hasLocationPermission() &&
+            !isGranted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        ) {
+            backgroundPermissionLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+        } else {
+            requestAllFilesAccessIfNeeded()
         }
     }
 }

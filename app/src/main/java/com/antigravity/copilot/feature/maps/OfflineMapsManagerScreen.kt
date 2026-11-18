@@ -70,10 +70,26 @@ fun OfflineMapsManagerContent(
     val storageInfo by viewModel.storageInfo.collectAsStateWithLifecycle()
     val statusMessage by viewModel.statusMessage.collectAsStateWithLifecycle()
     val usbImportProgressText by viewModel.usbImportProgress.collectAsStateWithLifecycle()
-    // Storage Access Framework picker for the India .pmtiles file (no storage permission needed)
+    // Storage Access Framework picker for the India .pmtiles file. Many head units ship without
+    // DocumentsUI, so OPEN_DOCUMENT can have no handler: fall back to GET_CONTENT (OEM file
+    // manager), then to the built-in storage scan, instead of crashing.
     val importMapLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
     ) { uri -> if (uri != null) viewModel.importMapFile(uri) }
+    val getContentLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri -> if (uri != null) viewModel.importMapFile(uri) }
+    val launchMapPicker: () -> Unit = {
+        try {
+            importMapLauncher.launch(arrayOf("application/octet-stream", "application/vnd.pmtiles", "*/*"))
+        } catch (_: android.content.ActivityNotFoundException) {
+            try {
+                getContentLauncher.launch("*/*")
+            } catch (_: android.content.ActivityNotFoundException) {
+                viewModel.importFromUsb("No file picker found — scanning storage for .pmtiles…")
+            }
+        }
+    }
     val isImportingUsb = usbImportProgressText != null
 
     LaunchedEffect(viewModel) {
@@ -258,7 +274,7 @@ fun OfflineMapsManagerContent(
                 // Import map file (.pmtiles) via Storage Access Framework
                 Button(
                     onClick = {
-                        importMapLauncher.launch(arrayOf("application/octet-stream", "application/vnd.pmtiles", "*/*"))
+                        launchMapPicker()
                     },
                     modifier = Modifier
                         .weight(1f)
