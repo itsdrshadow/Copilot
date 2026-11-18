@@ -1,5 +1,7 @@
 package com.antigravity.copilot.feature.dashboard
 
+import com.antigravity.copilot.core.designsystem.components.RaahiConfirmDialog
+
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -67,41 +69,41 @@ internal fun rememberTripMetrics(currentTrip: TripSummary, baselineMileage: Doub
         listOf(
             PremiumRotatingMetric(
                 id = "trip_distance",
-                title = "TRIP DISTANCE",
+                title = "Trip distance",
                 value = NumberFormatUtils.formatDistance(currentTrip.distanceMeters / 1000.0),
-                unit = "KM",
-                subtitle = if (isTripActive) "Distance covered in current trip" else if (isTripCompleted) "Total journey distance" else "Ready for journey",
+                unit = "km",
+                subtitle = if (isTripActive) "So far on this trip" else if (isTripCompleted) "Whole trip" else "Ready to drive",
                 icon = Icons.Default.Route,
                 accentColor = cyanAccent
             ),
             PremiumRotatingMetric(
                 id = "avg_speed",
-                title = "AVERAGE SPEED",
+                title = "Average speed",
                 value = if (hasTripMoved && currentTrip.avgSpeedKmh > 0.0) "${currentTrip.avgSpeedKmh.toInt()}" else "--",
-                unit = "KM/H",
-                subtitle = "Average moving velocity",
+                unit = "km/h",
+                subtitle = "While moving",
                 icon = Icons.Default.Speed,
                 accentColor = cyanAccent
             ),
             PremiumRotatingMetric(
                 id = "max_speed",
-                title = "MAX SPEED",
+                title = "Top speed",
                 value = if (currentTrip.maxSpeedKmh > 0.0) "${currentTrip.maxSpeedKmh.toInt()}" else "--",
-                unit = "KM/H",
-                subtitle = "Peak velocity during current journey",
+                unit = "km/h",
+                subtitle = if (isTripActive) "Fastest so far" else "Fastest on this trip",
                 icon = Icons.Default.TrendingUp,
                 accentColor = cyanAccent
             ),
             PremiumRotatingMetric(
                 id = "trip_mileage",
-                title = "TRIP ECONOMY",
+                title = "Trip mileage",
                 value = if (hasTripMoved) {
                     val effMileage = if (currentTrip.calculatedMileageKmpl > 0.0) currentTrip.calculatedMileageKmpl else baselineMileage
-                    if (effMileage > 0.0) NumberFormatUtils.formatMileage(effMileage, 2) else "--"
+                    if (effMileage > 0.0) NumberFormatUtils.formatMileage(effMileage) else "--"
                 } else {
                     "--"
                 },
-                unit = "KM/L",
+                unit = "km/L",
                 subtitle = if (hasTripMoved) {
                     val eff = if (currentTrip.calculatedMileageKmpl > 0.0) currentTrip.calculatedMileageKmpl else baselineMileage
                     if (baselineMileage > 0.0 && eff > 0.0) {
@@ -118,45 +120,45 @@ internal fun rememberTripMetrics(currentTrip: TripSummary, baselineMileage: Doub
             ),
             PremiumRotatingMetric(
                 id = "fuel_consumed",
-                title = "FUEL CONSUMED",
+                title = "Fuel used",
                 value = if (hasTripMoved && currentTrip.estimatedFuelConsumedLiters > 0.0) {
-                    NumberFormatUtils.formatFuelLiters(currentTrip.estimatedFuelConsumedLiters, 2)
+                    NumberFormatUtils.formatFuelLiters(currentTrip.estimatedFuelConsumedLiters)
                 } else if (hasTripMoved) {
-                    "0.00"
+                    "0"
                 } else {
                     "--"
                 },
                 unit = "L",
-                subtitle = if (hasTripMoved) "Fuel burned during current trip" else "Awaiting trip start",
+                subtitle = if (hasTripMoved) "Estimated for this trip" else "Starts with the trip",
                 icon = Icons.Default.LocalGasStation,
                 accentColor = warningAccent
             ),
             PremiumRotatingMetric(
                 id = "trip_cost",
-                title = "TRIP EXPENSE",
+                title = "Fuel cost",
                 value = if (hasTripMoved && currentTrip.estimatedTripCost > 0.0) {
-                    NumberFormatUtils.formatPrecision(currentTrip.estimatedTripCost, 1)
+                    NumberFormatUtils.formatCurrency(currentTrip.estimatedTripCost)
                 } else if (hasTripMoved) {
-                    "0.0"
+                    "0"
                 } else {
                     "--"
                 },
                 unit = "₹",
-                subtitle = "Estimated fuel cost for this journey",
+                subtitle = "Estimated for this trip",
                 icon = Icons.Default.Payments,
                 accentColor = warningAccent
             ),
             PremiumRotatingMetric(
                 id = "driver_score",
-                title = "DRIVE SCORE",
+                title = "Drive score",
                 value = if (hasTripMoved) "${currentTrip.driverScore}" else "--",
-                unit = "PTS",
+                unit = "/100",
                 subtitle = if (hasTripMoved && (currentTrip.harshBrakeCount + currentTrip.rapidAccelCount > 0)) {
-                    "${currentTrip.harshBrakeCount} hard brakes • ${currentTrip.rapidAccelCount} rapid accels"
+                    "${currentTrip.harshBrakeCount} hard brakes · ${currentTrip.rapidAccelCount} quick starts"
                 } else if (hasTripMoved) {
-                    "Smooth driving performance"
+                    "Smooth driving"
                 } else {
-                    "Driving safety & smoothness"
+                    "How smoothly you drive"
                 },
                 icon = Icons.Default.Security,
                 accentColor = if (currentTrip.driverScore >= 85) positiveAccent else if (currentTrip.driverScore >= 70) warningAccent else dangerAccent,
@@ -164,10 +166,14 @@ internal fun rememberTripMetrics(currentTrip: TripSummary, baselineMileage: Doub
             ),
             PremiumRotatingMetric(
                 id = "peak_braking",
-                title = "PEAK BRAKING",
-                value = if (currentTrip.maxDecelMss < -0.1f) NumberFormatUtils.formatPrecision(currentTrip.maxDecelMss, 2) else "0",
-                unit = "M/S²",
-                subtitle = "Maximum deceleration force",
+                title = "Braking",
+                value = "${currentTrip.harshBrakeCount}",
+                unit = if (currentTrip.harshBrakeCount == 1) "hard brake" else "hard brakes",
+                subtitle = when {
+                    currentTrip.maxDecelMss < -4.5f -> "One very hard stop"
+                    currentTrip.harshBrakeCount > 0 -> "Try braking earlier"
+                    else -> "Gentle braking"
+                },
                 icon = Icons.Default.Warning,
                 accentColor = if (currentTrip.maxDecelMss < -4.5f) dangerAccent else warningAccent,
                 healthScore = if (currentTrip.maxDecelMss < -0.1f) MetricHealth.brakingScore(currentTrip.maxDecelMss) else null
@@ -235,19 +241,7 @@ fun CurrentTripCard(
         else -> 0L
     }
 
-    val liveTripTimerText = remember(elapsedDurationMs) {
-        com.antigravity.copilot.core.trip.TimeFormatUtils.formatLiveTripTimer(elapsedDurationMs)
-    }
 
-    val metrics = rememberTripMetrics(currentTrip, baselineMileage)
-
-    var activeMetricIndex by remember { mutableIntStateOf(0) }
-
-    // Auto-cycle every 30 seconds; tapping or selecting resets timer for full 30 seconds on the new metric
-    LaunchedEffect(activeMetricIndex) {
-        delay(30_000L)
-        activeMetricIndex = (activeMetricIndex + 1) % metrics.size
-    }
 
     // Trip lifecycle flash animations (Start / End)
     val elapsedSinceEventMs = (liveWallTimeMs - tripVisualState.eventTimestamp).coerceAtLeast(0L)
@@ -302,26 +296,21 @@ fun CurrentTripCard(
     val context = LocalContext.current
     var showManualTripDialog by remember { mutableStateOf(false) }
     if (showManualTripDialog) {
-        AlertDialog(
-            onDismissRequest = { showManualTripDialog = false },
-            title = { Text(if (isTripActive) "End trip now?" else "Start trip now?") },
-            text = {
-                Text(
-                    if (isTripActive) "Manually ends the current trip here. Geofences normally do this automatically."
-                    else "Manually starts a trip now. Geofences normally do this automatically."
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showManualTripDialog = false
-                    if (isTripActive) {
-                        com.antigravity.copilot.core.location.DrivingTrackingService.manualEndTrip(context)
-                    } else {
-                        com.antigravity.copilot.core.location.DrivingTrackingService.manualStartTrip(context)
-                    }
-                }) { Text(if (isTripActive) "END TRIP" else "START TRIP", color = CockpitTheme.colors.textPrimary) }
-            },
-            dismissButton = { TextButton(onClick = { showManualTripDialog = false }) { Text("CANCEL", color = CockpitTheme.colors.textPrimary) } }
+        RaahiConfirmDialog(
+            title = if (isTripActive) "End this trip now?" else "Start a trip now?",
+            message = if (isTripActive) "The trip normally ends by itself when you reach a saved place."
+            else "Trips normally start by themselves when you leave a saved place.",
+            confirmText = if (isTripActive) "End trip" else "Start trip",
+            icon = if (isTripActive) Icons.Default.Flag else Icons.Default.PlayArrow,
+            onDismiss = { showManualTripDialog = false },
+            onConfirm = {
+                showManualTripDialog = false
+                if (isTripActive) {
+                    com.antigravity.copilot.core.location.DrivingTrackingService.manualEndTrip(context)
+                } else {
+                    com.antigravity.copilot.core.location.DrivingTrackingService.manualStartTrip(context)
+                }
+            }
         )
     }
 
@@ -337,7 +326,7 @@ fun CurrentTripCard(
             // ==================== 1. CARD HEADER (long-press: manual start / end) ====================
             DashCardHeader(
                 icon = Icons.Default.Timer,
-                title = if (isTripCompleted) "LAST TRIP" else "CURRENT TRIP",
+                title = if (isTripCompleted) "Last trip" else if (isTripActive) "This trip" else "Trip",
                 accent = statusColor,
                 modifier = Modifier.pointerInput(isTripActive) {
                     detectTapGestures(onLongPress = { showManualTripDialog = true })
@@ -372,123 +361,52 @@ fun CurrentTripCard(
                 }
             }
 
-            // ==================== 2. ROTATING TRIP METRIC HERO ====================
-            AnimatedContent(
-                targetState = activeMetricIndex,
-                transitionSpec = {
-                    (fadeIn(animationSpec = tween(220)) + slideInHorizontally { width -> width / 3 })
-                        .togetherWith(fadeOut(animationSpec = tween(200)) + slideOutHorizontally { width -> -width / 3 })
-                },
-                label = "PremiumTripMetricHero",
+            // ==================== 2. FIXED 2x2 TRIP GRID ====================
+            // Four facts that never rotate, so the driver always finds them in the same place.
+            val hasMoved = (isTripActive || isTripCompleted) && currentTrip.distanceMeters >= 50.0
+            val tripMileage = if (currentTrip.calculatedMileageKmpl > 0.0) currentTrip.calculatedMileageKmpl else baselineMileage
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(CopilotShapes.R10)
-                    .clickable {
-                        activeMetricIndex = (activeMetricIndex + 1) % metrics.size
-                    }
-                    .padding(vertical = 2.dp)
-            ) { targetIndex ->
-                val target = metrics.getOrElse(targetIndex) { metrics[0] }
-                val healthColor = target.healthScore?.let { animatedHealthColor(it) }
-                val heroAccent = healthColor ?: target.accentColor
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(
-                            if (healthColor != null) Modifier.background(
-                                androidx.compose.ui.graphics.Brush.radialGradient(
-                                    listOf(healthColor.copy(alpha = 0.16f), Color.Transparent)
-                                )
-                            ) else Modifier
-                        ),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = target.icon,
-                            contentDescription = null,
-                            tint = heroAccent,
-                            modifier = Modifier.size(17.dp)
-                        )
-                        Text(
-                            text = target.title,
-                            style = CockpitTheme.typography.labelMedium.copy(
-                                letterSpacing = 0.8.sp
-                            ),
-                            color = textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Spacer(Modifier.height(2.dp))
-
-                    AdaptiveMetricValueText(
-                        value = target.value,
-                        unit = target.unit,
-                        preferredFontSize = CockpitTheme.typography.displaySmall.fontSize,
-                        minFontSize = 24.sp,
-                        valueColor = healthColor ?: textPrimary,
-                        unitColor = heroAccent,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    target.healthScore?.let { score ->
-                        Spacer(Modifier.height(4.dp))
-                        HealthMeterBar(score, modifier = Modifier.fillMaxWidth(0.7f))
-                    }
-
-                    Spacer(Modifier.height(2.dp))
-
-                    Text(
-                        text = target.subtitle,
-                        style = CockpitTheme.typography.bodySmall,
-                        color = healthColor ?: textSecondary.copy(alpha = 0.8f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            // ==================== 3. CAROUSEL DOTS INDICATOR ====================
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
             ) {
-                metrics.forEachIndexed { index, _ ->
-                    val isSelected = index == activeMetricIndex
-                    val dotWidth by animateDpAsState(
-                        targetValue = if (isSelected) 12.dp else 4.dp,
-                        animationSpec = tween(220),
-                        label = "PremiumTripDotWidth"
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TripGridCell(
+                        icon = Icons.Default.Route,
+                        label = "Distance",
+                        value = if (isTripActive || isTripCompleted) NumberFormatUtils.formatDistance(currentTrip.distanceMeters / 1000.0) else "--",
+                        unit = "km",
+                        modifier = Modifier.weight(1f)
                     )
-                    Box(
-                        modifier = Modifier
-                            .defaultMinSize(minWidth = 20.dp, minHeight = 24.dp)
-                            .clickable {
-                                activeMetricIndex = index
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 2.dp)
-                                .height(4.dp)
-                                .width(dotWidth)
-                                .clip(CircleShape)
-                                .background(if (isSelected) cyanAccent else CockpitTheme.colors.textSecondary)
-                        )
-                    }
+                    TripGridCell(
+                        icon = Icons.Default.Timer,
+                        label = "Time",
+                        value = if (elapsedDurationMs > 0L) com.antigravity.copilot.core.trip.TimeFormatUtils.formatFriendlyDuration(elapsedDurationMs) else "--",
+                        unit = null,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TripGridCell(
+                        icon = Icons.Default.Speed,
+                        label = "Avg speed",
+                        value = if (hasMoved && currentTrip.avgSpeedKmh > 0.0) NumberFormatUtils.formatSpeed(currentTrip.avgSpeedKmh) else "--",
+                        unit = "km/h",
+                        modifier = Modifier.weight(1f)
+                    )
+                    TripGridCell(
+                        icon = Icons.Default.Eco,
+                        label = "Mileage",
+                        value = if (hasMoved && tripMileage > 0.0) NumberFormatUtils.formatMileage(tripMileage) else "--",
+                        unit = "km/L",
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
-            // ==================== 4. BOTTOM TELEMETRY DOCK (TRIP TIMER & STATUS) ====================
+            // ==================== 3. BOTTOM DOCK: STARTED AT + MOVING TIME ====================
             val dockBg = when {
                 isFlashingGreen -> positiveAccent.copy(alpha = 0.22f * flashPulseAlpha)
                 isFlashingRed -> dangerAccent.copy(alpha = 0.22f * flashPulseAlpha)
@@ -500,33 +418,24 @@ fun CurrentTripCard(
                 else -> CockpitTheme.colors.border
             }
             val dockBorderWidth = if (isFlashingGreen || isFlashingRed) 1.8.dp else 1.dp
-
-            val timerTextColor = when {
-                isFlashingGreen -> positiveAccent
-                isFlashingRed -> dangerAccent
-                isTripActive -> positiveAccent
-                else -> textPrimary
-            }
-            val isMultiDayElapsed = elapsedDurationMs >= 86_400_000L
-            val timerLabelText = when {
-                isFlashingGreen -> "TRIP STARTED"
-                isFlashingRed -> "TRIP COMPLETED"
-                isTripCompleted -> if (isMultiDayElapsed) "JOURNEY ELAPSED" else "TRIP DURATION"
-                isTripActive -> if (isMultiDayElapsed) "JOURNEY ELAPSED" else "ELAPSED TIME"
-                else -> "TRIP DURATION"
-            }
-            val timerLabelColor = when {
-                isFlashingGreen -> positiveAccent
-                isFlashingRed -> dangerAccent
-                isTripCompleted -> positiveAccent
-                else -> textSecondary
-            }
-
             val dockBackgroundModifier = if (isFlashingGreen || isFlashingRed) {
                 Modifier.background(dockBg)
             } else {
                 Modifier.background(CockpitTheme.colors.dockActionBrush)
             }
+            val leftValue = when {
+                isFlashingGreen -> "Trip started"
+                isFlashingRed -> "Trip ended"
+                tripStartTimeFormatted.isNotEmpty() && (isTripActive || isTripCompleted) -> tripStartTimeFormatted
+                else -> "Parked"
+            }
+            val leftLabel = when {
+                isFlashingGreen || isFlashingRed -> "Just now"
+                isTripActive -> "Started at"
+                isTripCompleted -> "Started at"
+                else -> "Ready to drive"
+            }
+            val drivingMs = currentTrip.drivingDurationMs
 
             Row(
                 modifier = Modifier
@@ -539,65 +448,30 @@ fun CurrentTripCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Cell 1: Elapsed Timer with Visual Flash
-                Column(modifier = Modifier.weight(1.2f)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(leftLabel, style = CockpitTheme.typography.labelMedium, color = textSecondary, maxLines = 1)
                     Text(
-                        text = liveTripTimerText,
-                        style = CockpitTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum",
-                            shadow = com.antigravity.copilot.core.designsystem.numberGlow(timerTextColor)
-                        ),
+                        text = leftValue,
+                        style = CockpitTheme.typography.headlineMedium,
+                        color = if (isFlashingGreen) positiveAccent else if (isFlashingRed) dangerAccent else textPrimary,
                         maxLines = 1,
-                        softWrap = false,
-                        color = timerTextColor
-                    )
-                    Text(
-                        text = timerLabelText,
-                        style = CockpitTheme.typography.labelSmall,
-                        maxLines = 1,
-                        softWrap = false,
-                        color = timerLabelColor
+                        softWrap = false
                     )
                 }
-
                 Box(
                     modifier = Modifier
-                        .height(20.dp)
+                        .height(28.dp)
                         .width(1.dp)
-                        .background(CockpitTheme.colors.textSecondary)
+                        .background(CockpitTheme.colors.border)
                 )
-
-                // Cell 2: Active / Moving Time
-                Column(
-                    modifier = Modifier.weight(1.0f),
-                    horizontalAlignment = Alignment.End
-                ) {
-                    val drivingMs = currentTrip.drivingDurationMs
-                    val movingText = if (drivingMs > 0L) {
-                        com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(drivingMs)
-                    } else if (isTripActive) {
-                        "ACTIVE"
-                    } else {
-                        "0m"
-                    }
+                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                    Text("Moving", style = CockpitTheme.typography.labelMedium, color = textSecondary, maxLines = 1)
                     Text(
-                        text = movingText,
-                        style = CockpitTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum",
-                            shadow = com.antigravity.copilot.core.designsystem.numberGlow(if (isTripActive) positiveAccent else cyanAccent)
-                        ),
+                        text = if (drivingMs > 0L) com.antigravity.copilot.core.trip.TimeFormatUtils.formatFriendlyDuration(drivingMs) else "--",
+                        style = CockpitTheme.typography.headlineMedium,
+                        color = textPrimary,
                         maxLines = 1,
-                        softWrap = false,
-                        color = if (isTripActive) positiveAccent else cyanAccent
-                    )
-                    Text(
-                        text = "DRIVING TIME",
-                        style = CockpitTheme.typography.labelSmall,
-                        maxLines = 1,
-                        softWrap = false,
-                        color = textSecondary
+                        softWrap = false
                     )
                 }
             }
@@ -621,3 +495,38 @@ fun PremiumCurrentTripCard(
     baselineMileage = baselineMileage
 )
 
+/** One cell of the trip card's fixed 2x2 grid: icon + label over a 28 sp value. */
+@Composable
+private fun TripGridCell(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String,
+    unit: String?,
+    modifier: Modifier = Modifier
+) {
+    val c = CockpitTheme.colors
+    Column(
+        modifier = modifier
+            .clip(CopilotShapes.R10)
+            .background(c.cardElevated.copy(alpha = 0.6f))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(icon, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(18.dp))
+            Text(label, style = CockpitTheme.typography.labelMedium, color = c.textSecondary, maxLines = 1)
+        }
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                value,
+                style = CockpitTheme.typography.headlineLarge,
+                color = c.textPrimary,
+                maxLines = 1,
+                softWrap = false
+            )
+            if (unit != null && value != "--") {
+                Spacer(Modifier.width(4.dp))
+                Text(unit, style = CockpitTheme.typography.labelMedium, color = c.textSecondary, modifier = Modifier.padding(bottom = 3.dp))
+            }
+        }
+    }
+}

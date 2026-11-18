@@ -56,7 +56,7 @@ fun displayMileage(fuelState: FuelState): Pair<Double, String> {
         fuelState.expectedMileageKmpl > 0.0 -> fuelState.expectedMileageKmpl
         else -> 18.0
     }
-    return value to if (confirmed) "Learned km/L" else "Est. km/L"
+    return value to "Mileage"
 }
 
 /**
@@ -83,15 +83,16 @@ fun FuelTankCard(
             .padding(DashCard.Padding),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        DashCardHeader(icon = Icons.Outlined.LocalGasStation, title = "FUEL") {
+        DashCardHeader(icon = Icons.Outlined.LocalGasStation, title = "Fuel") {
             AddFuelButton(onClick = onClick)
         }
-        Spacer(Modifier.weight(1f))
+        // Centre the litres + gauge block in the space between the header and the stat strip.
+        Spacer(Modifier.weight(0.45f))
 
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(
                 text = NumberFormatUtils.formatFuelLiters(fuelState.remainingLiters, 1),
-                style = CockpitTheme.typography.displayMedium.copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(c.textPrimary)),
+                style = CockpitTheme.typography.displayLarge.copy(fontSize = 60.sp, lineHeight = 62.sp, shadow = com.antigravity.copilot.core.designsystem.numberGlow(c.textPrimary)),
                 color = c.textPrimary,
                 maxLines = 1,
                 softWrap = false
@@ -106,7 +107,7 @@ fun FuelTankCard(
             Spacer(Modifier.weight(1f))
             Text(
                 text = "${tankPct.toInt()}%",
-                style = CockpitTheme.typography.displaySmall.copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(fuelLevelTextColor(tankPct))),
+                style = CockpitTheme.typography.displayMedium.copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(fuelLevelTextColor(tankPct))),
                 color = fuelLevelTextColor(tankPct),
                 maxLines = 1
             )
@@ -122,25 +123,25 @@ fun FuelTankCard(
                 .clickable(role = Role.Button) { showGaugeDialog = true },
             contentAlignment = Alignment.Center
         ) {
-            // Zone colours like a car gauge: bars 1-2 red, 3-4 yellow, 5-10 green.
+            // One colour for the whole fill, picked by level (green / amber / red); empty bars stay grey.
             SegmentBar(
                 fillPoints = fuelState.gaugeFillPoints.coerceIn(0.0, 10.0),
                 color = fuelLevelColor(tankPct),
-                height = 22.dp,
-                segmentColor = { bar ->
-                    when {
-                        bar <= 2 -> c.critical
-                        bar <= 4 -> c.warning
-                        else -> c.positive
-                    }
-                }
+                height = 30.dp
             )
         }
+
+        // Low fuel: say it in words with the range, not only a red number.
+        if (tankPct < LOW_FUEL_PERCENT) {
+            LowFuelStrip(rangeKm = fuelState.remainingRangeKm)
+        }
+
+        Spacer(Modifier.weight(0.55f))
 
         DashStatStrip {
             val rangeKm = fuelState.remainingRangeKm
             StatCell(
-                label = "Est. range",
+                label = "Range",
                 value = if (rangeKm > 0) "${rangeKm.toInt()}" else "--",
                 unit = "km",
                 valueStyle = CockpitTheme.typography.headlineMedium,
@@ -153,9 +154,6 @@ fun FuelTankCard(
                 value = String.format(Locale.US, "%.1f", kmpl),
                 unit = "km/L",
                 valueStyle = CockpitTheme.typography.headlineMedium,
-                valueColor = animatedHealthColor(
-                    MetricHealth.mileageScore(kmpl, fuelState.expectedMileageKmpl.takeIf { it > 0.0 } ?: 18.0)
-                ),
                 modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
                 horizontalAlignment = Alignment.End
             )
@@ -182,67 +180,81 @@ fun FuelTankCard(
     }
 }
 
-/** Next selection when segment [bar] is tapped: full → half → (bar 1 only) empty → full. */
-fun nextGaugePoint(current: Double, bar: Int): Double = when (current) {
-    bar.toDouble() -> bar - 0.5
-    bar - 0.5 -> if (bar == 1) 0.0 else bar.toDouble()
-    else -> bar.toDouble()
-}
-
 fun gaugePointLabel(point: Double): String =
     if (point % 1.0 == 0.0) "${point.toInt()}" else "${point.toInt()}½"
 
 /**
- * Tappable 10-segment gauge, drawn like the home-screen gauge (one row of segments, partial fill
- * for a half point) but tall enough to tap. Segment numbers sit underneath.
+ * Tappable 10-segment gauge drawn like a car's fuel gauge: bars grow taller towards Full, with
+ * E and F at the ends. Bar numbers sit underneath.
  */
 @Composable
 fun TappableGauge(
     point: Double,
     onTapBar: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    segmentHeight: Dp = 64.dp,
+    segmentHeight: Dp = 72.dp,
     fillColor: Color = CockpitTheme.colors.accent
 ) {
     val c = CockpitTheme.colors
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (bar in 1..10) {
-                val fill = (point - (bar - 1)).coerceIn(0.0, 1.0).toFloat()
-                val shape = RoundedCornerShape(8.dp)
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(segmentHeight)
-                        .clip(shape)
-                        .background(c.cardElevated)
-                        .border(1.dp, if (fill > 0f) fillColor else c.border, shape)
-                        .semantics { contentDescription = "Bar $bar" }
-                        .clickable(role = Role.Button) { onTapBar(bar) }
-                ) {
-                    if (fill > 0f) {
-                        Box(Modifier.fillMaxHeight().fillMaxWidth(fill).background(fillColor))
+    Row(modifier = modifier, verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        GaugeEndLabel("E", c.critical)
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(segmentHeight),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                for (bar in 1..10) {
+                    val fill = (point - (bar - 1)).coerceIn(0.0, 1.0).toFloat()
+                    val shape = RoundedCornerShape(8.dp)
+                    // 55 % tall at E rising to full height at F, like the cluster's wedge gauge.
+                    val heightFraction = 0.55f + 0.45f * (bar - 1) / 9f
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(heightFraction)
+                            .clip(shape)
+                            .background(c.cardElevated)
+                            .border(1.dp, if (fill > 0f) fillColor else c.border, shape)
+                            .semantics { contentDescription = "Bar $bar" }
+                            .clickable(role = Role.Button) { onTapBar(bar) }
+                    ) {
+                        if (fill > 0f) {
+                            Box(Modifier.fillMaxHeight().fillMaxWidth(fill).background(fillColor))
+                        }
                     }
                 }
             }
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (bar in 1..10) {
-                Text(
-                    text = "$bar",
-                    style = CockpitTheme.typography.labelMedium,
-                    color = c.textSecondary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (bar in 1..10) {
+                    Text(
+                        text = "$bar",
+                        style = CockpitTheme.typography.labelMedium,
+                        color = c.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
+        GaugeEndLabel("F", c.positive)
     }
 }
 
+@Composable
+private fun GaugeEndLabel(letter: String, color: Color) {
+    Text(
+        text = letter,
+        style = CockpitTheme.typography.headlineLarge,
+        color = color,
+        modifier = Modifier.padding(bottom = 30.dp)
+    )
+}
+
 /**
- * "Calibrate gauge": the driver taps the bars the car's own fuel gauge shows (tap a lit top bar
- * again for a half bar). Opened from the home-screen fuel gauge only.
+ * "Update fuel gauge": the driver taps the bars the car's own fuel gauge shows, and can mark the
+ * top bar as half lit with a button. Opens on the app's current estimate; Save is enabled once the
+ * driver picks a reading.
  */
 @Composable
 fun GaugeCalibrationDialog(
@@ -257,13 +269,15 @@ fun GaugeCalibrationDialog(
     val c = CockpitTheme.colors
     val initial = (Math.round(currentPoint * 2.0) / 2.0).coerceIn(0.0, 10.0)
     var point by remember { mutableDoubleStateOf(initial) }
+    var touched by remember { mutableStateOf(false) }
     // Same litres/percent the home card and Add Fuel show for this many bars: the learned gauge
     // curve and the actual (learned) capacity, not a straight bars x design-capacity split.
     val estLiters = (
-        if (currentLiters != null && point == initial) currentLiters
+        if (currentLiters != null && !touched) currentLiters
         else curve?.litresAt(point) ?: (point * capacityLiters / 10.0)
     ).coerceIn(0.0, capacityLiters)
     val levelPct = if (capacityLiters > 0.0) (estLiters / capacityLiters * 100.0).toInt().coerceIn(0, 100) else 0
+    val isHalf = point % 1.0 != 0.0
 
     RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 900.dp) {
         Column(
@@ -278,19 +292,19 @@ fun GaugeCalibrationDialog(
                     modifier = Modifier.size(48.dp).clip(Raahi.InnerShape).background(c.cardElevated),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.Tune, contentDescription = null, tint = c.accent, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.accent, modifier = Modifier.size(26.dp))
                 }
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Calibrate fuel gauge", style = CockpitTheme.typography.titleLarge, color = c.textPrimary)
+                    Text("Update fuel gauge", style = CockpitTheme.typography.titleLarge, color = c.textPrimary)
                     Text(
-                        "Tap the bars your car's gauge shows. Tap the top bar again for half a bar.",
+                        "Tap the last bar that is lit on your car's fuel gauge.",
                         style = CockpitTheme.typography.bodyMedium,
                         color = c.textSecondary
                     )
                 }
             }
 
-            // Readout row: bars, percent and litres, each on its own line so nothing wraps.
+            // Readout row: bars, percent and litres. Before the driver taps, this is the app's estimate.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -300,33 +314,53 @@ fun GaugeCalibrationDialog(
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StatCell(label = "Bars", value = gaugePointLabel(point), unit = "of 10", modifier = Modifier.weight(1f))
-                StatCell(label = "Level", value = "$levelPct", unit = "%", modifier = Modifier.weight(1f))
+                StatCell(label = if (touched) "Your gauge" else "App estimate", value = gaugePointLabel(point), unit = "of 10 bars", modifier = Modifier.weight(1.2f))
+                StatCell(label = "Tank", value = "$levelPct", unit = "%", modifier = Modifier.weight(1f))
                 StatCell(
-                    label = "Estimated fuel",
-                    value = NumberFormatUtils.formatPrecision(estLiters, 1),
+                    label = "Fuel",
+                    value = NumberFormatUtils.formatFuelLiters(estLiters),
                     unit = "of ${capacityLiters.toInt()} L",
-                    modifier = Modifier.weight(1.4f),
+                    modifier = Modifier.weight(1.2f),
                     horizontalAlignment = Alignment.End
                 )
             }
 
-            TappableGauge(point = point, onTapBar = { bar -> point = nextGaugePoint(point, bar) })
+            TappableGauge(point = point, onTapBar = { bar ->
+                // A tap selects the whole bar; the half-bar button handles a half-lit top bar.
+                // Tapping bar 1 again empties the gauge.
+                point = if (bar == 1 && point == 1.0) 0.0 else bar.toDouble()
+                touched = true
+            })
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                RaahiButton(
+                    text = if (isHalf) "Top bar fully lit" else "Top bar half lit",
+                    onClick = {
+                        point = when {
+                            isHalf -> point + 0.5
+                            point >= 1.0 -> point - 0.5
+                            else -> 0.5
+                        }
+                        touched = true
+                    },
+                    kind = RaahiButtonKind.Secondary,
+                    modifier = Modifier.weight(1.2f)
+                )
                 RaahiButton(
                     text = "Cancel",
                     onClick = onDismiss,
                     kind = RaahiButtonKind.Secondary,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(0.8f)
                 )
                 RaahiButton(
-                    text = "Log reading (${gaugePointLabel(point)}/10)",
+                    text = if (touched) "Save ${gaugePointLabel(point)} bars" else "Pick a bar",
                     onClick = { onApply(point) },
-                    modifier = Modifier.weight(1.6f)
+                    enabled = touched,
+                    modifier = Modifier.weight(1.2f)
                 )
             }
         }
@@ -347,8 +381,35 @@ fun PremiumFuelTankCard(
     modifier = modifier
 )
 
+/** Below this percent the card shows the "Fuel low" strip. */
+const val LOW_FUEL_PERCENT = 15.0
+
+@Composable
+private fun LowFuelStrip(rangeKm: Double) {
+    val c = CockpitTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Raahi.InnerShape)
+            .background(c.critical.copy(alpha = 0.14f))
+            .border(1.dp, c.critical.copy(alpha = 0.5f), Raahi.InnerShape)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.critical, modifier = Modifier.size(22.dp))
+        Text(
+            text = if (rangeKm > 0) "Fuel low · ${rangeKm.toInt()} km left" else "Fuel low · refuel soon",
+            style = CockpitTheme.typography.titleSmall,
+            color = c.textPrimary,
+            maxLines = 1
+        )
+    }
+}
+
 /**
- * "+ Add Fuel" action for the card header: 40 dp tall inside the 44 dp header. Solid accent so it is the one obvious action on the card.
+ * "+ Add Fuel" action for the card header: tonal (tinted, outlined) so the speed stays the hero
+ * of the Drive screen while this remains the card's obvious action.
  */
 @Composable
 private fun AddFuelButton(onClick: () -> Unit) {
@@ -358,17 +419,18 @@ private fun AddFuelButton(onClick: () -> Unit) {
         modifier = Modifier
             .height(40.dp)
             .clip(shape)
-            .background(c.accent)
+            .background(c.accent.copy(alpha = 0.14f))
+            .border(1.dp, c.accent.copy(alpha = 0.55f), shape)
             .clickable(role = Role.Button, onClickLabel = "Add fuel", onClick = onClick)
             .padding(start = 12.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Icon(Icons.Outlined.Add, contentDescription = null, tint = c.onAccent, modifier = Modifier.size(20.dp))
+        Icon(Icons.Outlined.Add, contentDescription = null, tint = c.accent, modifier = Modifier.size(20.dp))
         Text(
             "Add Fuel",
             style = CockpitTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = c.onAccent,
+            color = c.accent,
             maxLines = 1,
             softWrap = false
         )

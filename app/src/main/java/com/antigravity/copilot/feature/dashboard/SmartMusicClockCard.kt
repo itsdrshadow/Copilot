@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Icon
@@ -129,6 +130,11 @@ fun SmartMusicClockCard(
             if (!active) {
                 // ==================== STATE A: NO MUSIC PLAYING (CLOCK ONLY) ====================
                 ClockOnlyState(
+                    onPlayMusic = {
+                        // Resume the last player if there is one, otherwise open the music app.
+                        if (playbackState.title.isNotBlank()) MediaPlaybackManager.togglePlayPause()
+                        else MediaPlaybackManager.openActivePlayerApp(context)
+                    },
                     timeString = timeString,
                     amPmString = amPmString,
                     dayString = remember(calendar) { SimpleDateFormat("EEEE", Locale.getDefault()).format(calendar.time) },
@@ -158,6 +164,7 @@ fun SmartMusicClockCard(
  */
 @Composable
 private fun ClockOnlyState(
+    onPlayMusic: () -> Unit,
     timeString: String,
     amPmString: String,
     dayString: String,
@@ -168,7 +175,7 @@ private fun ClockOnlyState(
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        DashCardHeader(icon = Icons.Default.Schedule, title = "CLOCK")
+        DashCardHeader(icon = Icons.Default.Schedule, title = "Clock")
 
         // Center hero clock
         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -192,6 +199,25 @@ private fun ClockOnlyState(
                     )
                 }
             }
+        }
+
+        // Music shortcut: the clock card doubles as the media player, so offer one tap to start it.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
+                .heightIn(min = 56.dp)
+                .clip(CopilotShapes.R10)
+                .background(CockpitTheme.colors.cardElevated)
+                .border(1.dp, CockpitTheme.colors.border, CopilotShapes.R10)
+                .clickable(role = Role.Button, onClickLabel = "Play music", onClick = onPlayMusic)
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(Icons.Default.MusicNote, contentDescription = null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(24.dp))
+            Text("Play music", style = CockpitTheme.typography.titleMedium, color = CockpitTheme.colors.textPrimary, modifier = Modifier.weight(1f))
+            Icon(Icons.Default.PlayArrow, contentDescription = null, tint = CockpitTheme.colors.textSecondary, modifier = Modifier.size(28.dp))
         }
 
         // Same bottom strip as the other cards: Date | Day

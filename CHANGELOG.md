@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.22.0] - 2026-11-18
+
+UI/UX audit pass for the 10.1" 1280×800 head unit (148 dpi): larger type, plain wording, calmer colours.
+
+### Added
+- Shared confirmation dialog (`RaahiConfirmDialog`) used for every confirm/delete popup: opaque card, 24 sp title, 56 dp buttons.
+- Drive: "Fuel low · N km left" strip under 15 %; "Play music" shortcut on the clock card; zoom +/− buttons on the map.
+- Full-screen map: speed readout.
+- Trips: always-visible Route replay / Timeline / Charts tabs; drive score word (Smooth / Okay / Rough).
+- Fuel: "At a glance" card (this month's spend vs last month, mileage trend of the last fill-ups, most used pump); row ⋮ menu for edit/delete.
+- Add fuel: enter by litres or rupees; quick chips ₹500 / ₹1000 / ₹2000 / Full tank.
+- Apps: hold an app to pin it to the top or hide it (Hidden list in the header).
+- Offline maps: confirmation before deleting the map; server address moved under "Advanced".
+- Backup: confirmation before restoring; "Last backup N days ago" line.
+
+### Changed
+- Type scale: minimum text 16 sp (was 13 sp); labels in sentence case; legacy 9–15 sp literals raised.
+- Numbers: whole km/h, one decimal for km / km/L / litres, whole grouped rupees and odometer (₹20,095, 7,906 km); friendly durations ("1 h 5 min").
+- Colours: values neutral; accent only for actions and selection; green / amber / red only for status. Fuel bars use one colour by level with grey empty bars. Accent picker shows six calm colours.
+- Drive: 92 sp speed with plain status (Stopped / Steady / Speeding up / Slowing down / Hard braking) instead of m/s²; Last trip card is a fixed 2×2 grid (distance, time, average speed, mileage) instead of a 9-page ticker; tonal Add Fuel button; map menu closes by itself after 6 s and on tab changes.
+- Trips and Fuel lists show the newest month first; month headers are one plain line; year chips appear only when there is more than one year.
+- Trip counts and top speed come from the trip record in every view.
+- Yearly charts: taller, single colour, no overlapping labels, average in the title.
+- Calibrate gauge: E/F ends, bars grow towards Full, explicit half-bar button, Save enabled after a pick.
+- Calibrate odometer: whole km, plain wording, last-synced reading shown.
+- Settings: plain names ("Saved places", "Backup", "Map motion"), real switch for "Open Copilot on start", saved-place size presets match the default, coordinates under "Advanced".
+- Splash shortened to about 1.8 s (one logo stage).
+- Map label sizes raised in the offline style.
+
+### Fixed
+- Gauge readings showed in the Fuel list as "Refuel · 0 L · ₹0".
+- About showed a hard-coded "v1.43.0 (Build 75)"; it now reads the real version.
+- Saved-place switch rendered without a thumb.
+- Factory-reset warning text overlapped its title on a see-through background.
+- Restore started without asking.
+- Trips header showed "1m" driving and idle time with no trips.
+- Elevation axis cut "235.0" to "235.".
+
+### Removed
+- Unreachable dialogs (stopping distance, best eco speed) and the unused media/drive panel (`DrivePanel.kt`, now `TripSummaryExt.kt` with the shared trip helpers).
+- "Automotive Runtime Environment" settings card.
+- Fuel screen: the "+ Add Fuel" header button and the "Fuel gauge" side card (both stay on the Drive screen).
+
 ## [2.21.0] - 2026-11-18
 
 ### Added

@@ -51,41 +51,50 @@ internal fun RefuelProjectionCard(
     Column(
         modifier = modifier
             .raahiCard(raised = true)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            RaahiLabel("Tank after refuel", modifier = Modifier.weight(1f))
-            Text(
-                text = "Tank ${designCap.toInt()} L",
-                style = CockpitTheme.typography.labelMedium,
-                color = c.textSecondary
-            )
-        }
+        // Two answers a driver cares about: how full the tank will be, and how far that goes.
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                NumberFormatUtils.formatFuelLiters(postRefillLiters, 1),
-                style = CockpitTheme.typography.displaySmall,
-                color = c.textPrimary,
-                maxLines = 1
-            )
-            Spacer(Modifier.width(4.dp))
-            Text("L", style = CockpitTheme.typography.titleMedium, color = c.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
-            Spacer(Modifier.weight(1f))
-            Text(
-                "${Math.round(tankPct).toInt()}%",
-                style = CockpitTheme.typography.headlineLarge,
-                color = fuelLevelTextColor(tankPct),
-                maxLines = 1
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                RaahiLabel("Tank after this fill")
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        "${Math.round(tankPct).toInt()}%",
+                        style = CockpitTheme.typography.displaySmall,
+                        color = c.textPrimary,
+                        maxLines = 1
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "${NumberFormatUtils.formatFuelLiters(postRefillLiters)} L",
+                        style = CockpitTheme.typography.titleMedium,
+                        color = c.textSecondary,
+                        modifier = Modifier.padding(bottom = 5.dp)
+                    )
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                RaahiLabel("You can drive about")
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        "${kotlin.math.round(totalRangeKm).toInt()}",
+                        style = CockpitTheme.typography.displaySmall,
+                        color = c.textPrimary,
+                        maxLines = 1
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("km", style = CockpitTheme.typography.titleMedium, color = c.textSecondary, modifier = Modifier.padding(bottom = 5.dp))
+                }
+            }
         }
 
-        // Display-only gauge in the home-card zone colours (red / yellow / green):
-        // solid = fuel already in the tank, lighter = this refuel.
+        // Display-only gauge: solid = fuel already in the tank, lighter = this fill. One colour.
+        val fill = c.accent
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(20.dp)
+                .height(22.dp)
                 .semantics { contentDescription = "Projected fuel gauge, ${Math.round(tankPct).toInt()} percent" },
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -93,74 +102,29 @@ internal fun RefuelProjectionCard(
                 val base = (currentPoints - (i - 1)).coerceIn(0.0, 1.0).toFloat()
                 val total = (afterPoints - (i - 1)).coerceIn(0.0, 1.0).toFloat()
                 val shape = RoundedCornerShape(6.dp)
-                val zone = when {
-                    i <= 2 -> c.critical
-                    i <= 4 -> c.warning
-                    else -> c.positive
-                }
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(shape)
-                        .background(zone.copy(alpha = 0.14f))
-                        .border(1.dp, zone.copy(alpha = 0.35f), shape)
+                        .background(c.card)
+                        .border(1.dp, c.border, shape)
                 ) {
-                    if (total > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(total).clip(shape).background(zone.copy(alpha = 0.5f)))
-                    if (base > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(base).clip(shape).background(zone))
+                    if (total > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(total).clip(shape).background(fill.copy(alpha = 0.45f)))
+                    if (base > 0f) Box(Modifier.fillMaxHeight().fillMaxWidth(base).clip(shape).background(fill))
                 }
             }
         }
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                "Now $currentPct% (${NumberFormatUtils.formatFuelLiters(currentFuelLiters, 1)} L)",
-                style = CockpitTheme.typography.bodySmall,
-                color = c.textSecondary,
-                modifier = Modifier.weight(1f),
-                maxLines = 1
-            )
-            if (isOverfill) {
-                Text("More than the tank holds", style = CockpitTheme.typography.bodySmall, color = c.criticalText, maxLines = 1)
-            }
-        }
-
-        Row(modifier = Modifier.fillMaxWidth()) {
-            StatCell(
-                "Fuel added",
-                NumberFormatUtils.formatFuelLiters(dispensedLiters, 2),
-                unit = "L",
-                valueStyle = CockpitTheme.typography.headlineMedium,
-                valueColor = c.positiveText,
-                modifier = Modifier.weight(1f)
-            )
-            StatCell(
-                "Range gain",
-                "+${kotlin.math.round(addedRangeKm).toInt()}",
-                unit = "km",
-                valueStyle = CockpitTheme.typography.headlineMedium,
-                valueColor = c.accentText,
-                modifier = Modifier.weight(1f)
-            )
-            StatCell(
-                "Cost / km",
-                "₹${NumberFormatUtils.formatPrecision(runningCostPerKm, 2)}",
-                valueStyle = CockpitTheme.typography.headlineMedium,
-                valueColor = c.warningText,
-                modifier = Modifier.weight(1f)
-            )
-            StatCell(
-                "Total range",
-                "${kotlin.math.round(totalRangeKm).toInt()}",
-                unit = "km",
-                valueStyle = CockpitTheme.typography.headlineMedium,
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.End
-            )
-        }
         Text(
-            "Range at ${NumberFormatUtils.formatMileage(effectiveMileage, 1)} km/L",
-            style = CockpitTheme.typography.bodySmall,
-            color = c.textSecondary
+            text = when {
+                isOverfill -> "That is more than the tank holds"
+                dispensedLiters > 0.0 -> "Now $currentPct%  ·  adds ${NumberFormatUtils.formatFuelLiters(dispensedLiters)} L (+${kotlin.math.round(addedRangeKm).toInt()} km)  ·  ₹${NumberFormatUtils.formatPrecision(runningCostPerKm, 1)} per km"
+                else -> "Now $currentPct% (${NumberFormatUtils.formatFuelLiters(currentFuelLiters)} L)"
+            },
+            style = CockpitTheme.typography.bodyMedium,
+            color = if (isOverfill) c.criticalText else c.textSecondary,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }

@@ -37,7 +37,7 @@ object DashCard {
     val HeaderHeight = 44.dp
     val TileSize = 30.dp
     val IconSize = 18.dp
-    val StripHeight = 60.dp
+    val StripHeight = 70.dp
     val BorderWidth = 1.25.dp
     val Shape = RoundedCornerShape(AutomotiveDesignTokens.Radii.card)
 }
@@ -52,7 +52,7 @@ fun Modifier.dashCardSurface(borderColor: Color? = null): Modifier {
         .border(DashCard.BorderWidth, borderColor ?: c.border, DashCard.Shape)
 }
 
-/** Card header: tinted icon tile + bold tracked title, optional trailing content on the right. */
+/** Card header: tinted icon tile + sentence-case title, optional trailing content on the right. */
 @Composable
 fun DashCardHeader(
     icon: ImageVector,
@@ -78,7 +78,8 @@ fun DashCardHeader(
         }
         Text(
             text = title,
-            style = CockpitTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.1.sp),
+            // Sentence case, no tracking: the icon tile already names the card.
+            style = CockpitTheme.typography.titleMedium,
             color = c.textSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

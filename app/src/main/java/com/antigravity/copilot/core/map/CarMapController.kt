@@ -51,6 +51,9 @@ class CarMapController(
     private val coroutineScope: CoroutineScope
 ) {
     companion object {
+        private const val MIN_BUTTON_ZOOM = 4.0
+        private const val MAX_BUTTON_ZOOM = 19.0
+        private const val ZOOM_BUTTON_EASE_MS = 300
         private const val TAG = "CarMapController"
 
         private val _firstStyleLoaded = MutableStateFlow(false)
@@ -905,6 +908,18 @@ class CarMapController(
     fun toggleHeadingMode() {
         _isHeadingUp.value = !_isHeadingUp.value
         recenter()
+    }
+
+    /**
+     * Zoom buttons: steps the camera by [delta] levels and keeps that zoom while following (like a
+     * pinch), until Recenter restores speed-adaptive auto-zoom.
+     */
+    fun zoomBy(delta: Double) {
+        val map = mapboxMap ?: return
+        val target = (map.cameraPosition.zoom + delta).coerceIn(MIN_BUTTON_ZOOM, MAX_BUTTON_ZOOM)
+        manualZoom = target
+        lastEasedZoom = target
+        map.easeCamera(CameraUpdateFactory.zoomTo(target), ZOOM_BUTTON_EASE_MS)
     }
 
     /** Resume follow + speed-adaptive auto-zoom and glide back to the vehicle. */

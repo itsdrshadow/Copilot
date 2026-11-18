@@ -41,9 +41,9 @@ fun AutomotiveBrandLogo(modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center
         )
     }
-    val subtitleBase = CockpitTheme.typography.labelSmall
+    val subtitleBase = CockpitTheme.typography.labelLarge
     val subtitleStyle = remember(subtitleBase) {
-        subtitleBase.copy(letterSpacing = 6.sp, color = BrandPalette.Sky300, textAlign = TextAlign.Center)
+        subtitleBase.copy(letterSpacing = 3.sp, color = BrandPalette.Sky300, textAlign = TextAlign.Center)
     }
 
     Column(

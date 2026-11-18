@@ -48,13 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
 import com.antigravity.copilot.core.database.TripEntity
 import com.antigravity.copilot.core.designsystem.*
-import com.antigravity.copilot.core.fuel.intelligence.BestMileageSpeedEngine
-import com.antigravity.copilot.core.fuel.intelligence.BestMileageSpeedResult
-import com.antigravity.copilot.core.fuel.intelligence.EfficiencyLearningStatus
-import com.antigravity.copilot.core.location.RoadSurfaceCondition
 import com.antigravity.copilot.core.location.SpeedLimitInfo
-import com.antigravity.copilot.core.location.StoppingDistanceEngine
-import com.antigravity.copilot.core.location.StoppingDistanceEstimate
 import com.antigravity.copilot.core.model.TripPoint
 import com.antigravity.copilot.core.odometer.OdometerManager
 import java.util.Locale
@@ -166,18 +160,7 @@ fun SpeedometerCluster(
         label = "PremiumSpeedInterpolation"
     )
 
-    // Interactive Dialog States
-    var showStoppingDistanceDialog by remember { mutableStateOf(false) }
-    var showBestEcoDialog by remember { mutableStateOf(false) }
-
     val roundedSpeedInt by remember { derivedStateOf { animatedSpeedState.value.roundToInt() } }
-    val stoppingEstimate: StoppingDistanceEstimate = remember(roundedSpeedInt) {
-        StoppingDistanceEngine.calculate(roundedSpeedInt.toFloat(), RoadSurfaceCondition.DRY)
-    }
-
-    val bestEcoResult: BestMileageSpeedResult = remember(allTrips) {
-        BestMileageSpeedEngine.analyze(allTrips)
-    }
 
     // Dynamic Multi-Stage Speed Status Colors
     val statusColor by animateColorAsState(
@@ -216,6 +199,8 @@ fun SpeedometerCluster(
 
     val isAccelerating = smoothedAccelMss > 0.30f
     val isDecelerating = smoothedAccelMss < -0.30f
+    // Same 2.5 m/s² cut-off the trip charts count as a hard brake, so the chip and the trip agree.
+    val isHardBraking = smoothedAccelMss < -2.5f
 
     val cardBg = CockpitTheme.colors.cardTopLightGradient
     val cardBorder = CockpitTheme.colors.border
@@ -236,7 +221,7 @@ fun SpeedometerCluster(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ==================== 1. CLUSTER HEADER (limit sign lives on the map) ====================
-            DashCardHeader(icon = Icons.Default.Speed, title = "SPEEDOMETER")
+            DashCardHeader(icon = Icons.Default.Speed, title = "Speed")
 
             // ==================== 2. 240° STUDIO DIAL CANVAS ====================
             BoxWithConstraints(
@@ -332,17 +317,15 @@ fun SpeedometerCluster(
                 ) {
                     Text(
                         text = if (!isGpsValid && roundedSpeedInt < 1) "0" else "$roundedSpeedInt",
-                        style = (if (compactDial) CockpitTheme.typography.displayMedium else CockpitTheme.typography.displayLarge)
+                        // Hero readout: 92 sp is ~45 arc-minutes at the driver's seat, readable from the back.
+                        style = (if (compactDial) CockpitTheme.typography.displayLarge else CockpitTheme.typography.displayLarge.copy(fontSize = 92.sp, lineHeight = 92.sp))
                             .copy(shadow = com.antigravity.copilot.core.designsystem.numberGlow(textPrimary)),
                         color = textPrimary,
                         maxLines = 1
                     )
                     Text(
-                        text = "KM/H",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.0.sp
-                        ),
+                        text = "km/h",
+                        style = CockpitTheme.typography.labelLarge,
                         color = statusColor
                     )
                     Spacer(Modifier.height(if (compactDial) 4.dp else 8.dp))
@@ -356,6 +339,7 @@ fun SpeedometerCluster(
                             .background(
                                 when {
                                     !isGpsValid -> CockpitTheme.colors.cardElevated
+                                    isHardBraking -> criticalColor.copy(alpha = 0.15f)
                                     isAccelerating -> cyanAccent.copy(alpha = 0.15f)
                                     isDecelerating -> CockpitTheme.colors.warning.copy(alpha = 0.15f)
                                     else -> CockpitTheme.colors.cardElevated
@@ -369,6 +353,7 @@ fun SpeedometerCluster(
                         Icon(
                             imageVector = when {
                                 !isGpsValid -> Icons.Default.GpsNotFixed
+                                isHardBraking -> Icons.Default.Warning
                                 isAccelerating -> Icons.AutoMirrored.Filled.TrendingUp
                                 isDecelerating -> Icons.AutoMirrored.Filled.TrendingDown
                                 else -> Icons.Default.SwapHoriz
@@ -376,6 +361,7 @@ fun SpeedometerCluster(
                             contentDescription = null,
                             tint = when {
                                 !isGpsValid -> textSecondary
+                                isHardBraking -> criticalColor
                                 isAccelerating -> cyanAccent
                                 isDecelerating -> CockpitTheme.colors.warning
                                 else -> textSecondary
@@ -383,22 +369,22 @@ fun SpeedometerCluster(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
+                            // Plain words instead of m/s²: what the driver is doing, not the physics.
                             text = when {
-                                !isGpsValid -> "-- GPS"
-                                isAccelerating -> "+${String.format(Locale.US, "%.1f", smoothedAccelMss)} m/s² ACCEL"
-                                isDecelerating -> "${String.format(Locale.US, "%.1f", smoothedAccelMss)} m/s² DECEL"
-                                rawSpeed < 1.0f -> "0.0 m/s²"
-                                else -> "STEADY"
+                                !isGpsValid -> "No GPS"
+                                isHardBraking -> "Hard braking"
+                                isAccelerating -> "Speeding up"
+                                isDecelerating -> "Slowing down"
+                                rawSpeed < 1.0f -> "Stopped"
+                                else -> "Steady"
                             },
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.3.sp
-                            ),
+                            style = CockpitTheme.typography.labelLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             softWrap = false,
                             color = when {
                                 !isGpsValid -> textSecondary
+                                isHardBraking -> criticalColor
                                 isAccelerating -> cyanAccent
                                 isDecelerating -> CockpitTheme.colors.warning
                                 else -> textPrimary
@@ -412,7 +398,7 @@ fun SpeedometerCluster(
             DashStatStrip {
                 // Km driven since the odometer was last calibrated (tap Odometer to recalibrate).
                 StatCell(
-                    label = "Since cal.",
+                    label = "Since last sync",
                     value = if (deltaKmSinceCalibration > 0.05) String.format(Locale.US, "+%.1f", deltaKmSinceCalibration) else "0.0",
                     unit = "km",
                     valueStyle = CockpitTheme.typography.headlineMedium,
@@ -442,6 +428,8 @@ fun SpeedometerCluster(
     if (showOdometerDialog) {
         SpeedometerOdometerCalibrationDialog(
             currentOdometerKm = currentOdometerKm,
+            lastSyncedKm = odoConfig.baselineOdometerKm,
+            kmSinceSync = deltaKmSinceCalibration,
             onDismiss = { showOdometerDialog = false },
             onConfirmCalibration = { newKm ->
                 // Through FuelRepository so the first calibration re-bases the fuel model.
@@ -453,134 +441,6 @@ fun SpeedometerCluster(
         )
     }
 
-    // Modal Dialog 1: Stopping Distance Details
-    if (showStoppingDistanceDialog) {
-        Dialog(onDismissRequest = { showStoppingDistanceDialog = false }) {
-            Box(
-                modifier = Modifier
-                    .width(360.dp)
-                    .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CopilotShapes.R18)
-                    .padding(20.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Security, null, tint = cyanAccent, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Estimated Stopping Distance",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = textPrimary
-                        )
-                    }
-
-                    Text(
-                        text = "Physics-based estimate combining reaction time (1.0s) and dry asphalt braking deceleration (μ = 0.72).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = textSecondary
-                    )
-
-                    HorizontalDivider(color = CockpitTheme.colors.border)
-
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("Current Velocity:", style = MaterialTheme.typography.bodySmall, color = textSecondary)
-                        Text("$roundedSpeedInt km/h", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = textPrimary)
-                    }
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("Reaction Distance:", style = MaterialTheme.typography.bodySmall, color = textSecondary)
-                        Text("~${stoppingEstimate.reactionDistanceMeters.roundToInt()} m", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = textPrimary)
-                    }
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("Braking Distance:", style = MaterialTheme.typography.bodySmall, color = textSecondary)
-                        Text("~${stoppingEstimate.brakingDistanceMeters.roundToInt()} m", style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), color = textPrimary)
-                    }
-
-                    HorizontalDivider(color = CockpitTheme.colors.border)
-
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("Total Estimated Distance:", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = cyanAccent)
-                        Text(stoppingEstimate.formattedTotalMeters, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black), color = cyanAccent)
-                    }
-
-                    Row(Modifier.fillMaxWidth(), Arrangement.End) {
-                        Button(
-                            onClick = { showStoppingDistanceDialog = false },
-                            colors = ButtonDefaults.buttonColors(containerColor = cyanAccent)
-                        ) {
-                            Text("Close", color = contentColorOn(cyanAccent), fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Modal Dialog 2: Best Eco Speed Analysis
-    if (showBestEcoDialog) {
-        Dialog(onDismissRequest = { showBestEcoDialog = false }) {
-            Box(
-                modifier = Modifier
-                    .width(360.dp)
-                    .cockpitSurface(CockpitTheme.colors.card, CockpitTheme.colors.border, CopilotShapes.R18)
-                    .padding(20.dp)
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Eco, null, tint = CockpitTheme.colors.accent, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "Best Mileage Speed Analysis",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = textPrimary
-                        )
-                    }
-
-                    Text(
-                        text = "Learns the specific cruising speed range where this vehicle achieves maximum fuel economy using validated historical trips.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = textSecondary
-                    )
-
-                    HorizontalDivider(color = CockpitTheme.colors.border)
-
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("Learning Status:", style = MaterialTheme.typography.bodySmall, color = textSecondary)
-                        Text(
-                            bestEcoResult.status.name.replace('_', ' '),
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (bestEcoResult.status == EfficiencyLearningStatus.CONFIRMED) CockpitTheme.colors.accent else CockpitTheme.colors.warning
-                        )
-                    }
-
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("Best Cruising Range:", style = MaterialTheme.typography.bodySmall, color = textSecondary)
-                        Text(
-                            bestEcoResult.recommendedBand?.label ?: "Collecting more trips",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = textPrimary
-                        )
-                    }
-
-                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                        Text("Statistical Confidence:", style = MaterialTheme.typography.bodySmall, color = textSecondary)
-                        Text(
-                            "${bestEcoResult.confidencePercent}%",
-                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                            color = cyanAccent
-                        )
-                    }
-
-                    Row(Modifier.fillMaxWidth(), Arrangement.End) {
-                        Button(
-                            onClick = { showBestEcoDialog = false },
-                            colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent)
-                        ) {
-                            Text("Done", color = contentColorOn(CockpitTheme.colors.accent), fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-    }
 
 }
 
@@ -591,10 +451,12 @@ fun SpeedometerCluster(
 @Composable
 internal fun SpeedometerOdometerCalibrationDialog(
     currentOdometerKm: Double,
+    lastSyncedKm: Double = 0.0,
+    kmSinceSync: Double = 0.0,
     onDismiss: () -> Unit,
     onConfirmCalibration: (Double) -> Unit
 ) {
-    var textValue by remember { mutableStateOf(String.format(Locale.US, "%.1f", currentOdometerKm)) }
+    var textValue by remember { mutableStateOf(String.format(Locale.US, "%.0f", currentOdometerKm)) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 960.dp) {
@@ -636,7 +498,7 @@ internal fun SpeedometerOdometerCalibrationDialog(
                                 color = CockpitTheme.colors.textPrimary
                             )
                             Text(
-                                text = "Enter the reading shown on the car's instrument cluster",
+                                text = "Type the km shown on your car's meter",
                                 style = CockpitTheme.typography.bodyMedium,
                                 color = CockpitTheme.colors.textSecondary
                             )
@@ -647,8 +509,8 @@ internal fun SpeedometerOdometerCalibrationDialog(
                     val currentVal = textValue.toDoubleOrNull()
                     if (currentVal != null) {
                         val diff = currentVal - currentOdometerKm
-                        val diffText = if (kotlin.math.abs(diff) < 0.05) "Exact Match" else String.format(Locale.US, "%+.1f km", diff)
-                        val diffColor = if (kotlin.math.abs(diff) < 0.05) CockpitTheme.colors.positive else CockpitTheme.colors.warning
+                        val diffText = if (kotlin.math.abs(diff) < 0.5) "Matches your car ✓" else String.format(Locale.US, "%+,.0f km", diff)
+                        val diffColor = if (kotlin.math.abs(diff) < 0.5) CockpitTheme.colors.positive else CockpitTheme.colors.warning
                         Box(
                             modifier = Modifier
                                 .clip(Raahi.PillShape)
@@ -695,7 +557,7 @@ internal fun SpeedometerOdometerCalibrationDialog(
                                 )
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text(
-                                        text = textValue.ifEmpty { "0.0" },
+                                        text = textValue.ifEmpty { "0" },
                                         style = CockpitTheme.typography.displayMedium,
                                         maxLines = 1,
                                         softWrap = false,
@@ -713,10 +575,31 @@ internal fun SpeedometerOdometerCalibrationDialog(
                         }
 
                         Text(
-                            text = "GPS distance is scaled to match this reading. The first calibration only sets the starting point and never counts as fuel used.",
+                            text = "The app will match your car's meter from now on. Your fuel history does not change.",
                             style = CockpitTheme.typography.bodyMedium,
                             color = CockpitTheme.colors.textSecondary
                         )
+
+                        // Fills the left column with what the driver needs to decide: last sync and km since.
+                        if (lastSyncedKm > 0.0) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(CopilotShapes.R12)
+                                    .background(CockpitTheme.colors.cardElevated)
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("Last synced at", style = CockpitTheme.typography.labelMedium, color = CockpitTheme.colors.textSecondary)
+                                    Text(String.format(Locale.US, "%,.0f km", lastSyncedKm), style = CockpitTheme.typography.headlineMedium, color = CockpitTheme.colors.textPrimary)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Driven since", style = CockpitTheme.typography.labelMedium, color = CockpitTheme.colors.textSecondary)
+                                    Text(String.format(Locale.US, "%,.0f km", kmSinceSync.coerceAtLeast(0.0)), style = CockpitTheme.typography.headlineMedium, color = CockpitTheme.colors.textPrimary)
+                                }
+                            }
+                        }
 
                         if (errorMessage != null) {
                             Text(

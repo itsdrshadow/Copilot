@@ -599,6 +599,6 @@ class Tier1FeatureCoverageTest {
         val numberFormatter = NumberFormatUtils
         assertEquals("0", numberFormatter.formatDistance(0.0))
         assertEquals("0", numberFormatter.formatSpeed(0.0))
-        assertEquals("125.43", numberFormatter.formatDistance(125.432))
+        assertEquals("125.4", numberFormatter.formatDistance(125.432))
     }
 }

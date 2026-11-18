@@ -81,11 +81,11 @@ private fun LocationPill(text: String) {
             .clip(Raahi.PillShape)
             .background(c.card)
             .border(1.dp, c.border, Raahi.PillShape)
-            .padding(horizontal = 14.dp, vertical = 7.dp)
+            .padding(horizontal = 18.dp, vertical = 9.dp)
     ) { t ->
         Text(
             text = t,
-            style = CockpitTheme.typography.labelLarge,
+            style = CockpitTheme.typography.titleMedium,
             color = c.textPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -116,7 +116,7 @@ private fun SharpTurnBadge(alert: SharpTurnAlert) {
         )
         Text(
             text = "Sharp ${if (left) "left" else "right"} · ${current.distanceM} m",
-            style = CockpitTheme.typography.labelLarge,
+            style = CockpitTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = c.textPrimary,
             maxLines = 1

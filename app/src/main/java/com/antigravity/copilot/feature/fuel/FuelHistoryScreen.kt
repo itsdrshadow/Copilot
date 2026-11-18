@@ -1,5 +1,10 @@
 package com.antigravity.copilot.feature.fuel
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material.icons.outlined.Add
 
 import com.antigravity.copilot.core.designsystem.components.RaahiButton
@@ -191,35 +196,18 @@ fun FuelHistoryScreen(
                               horizontalArrangement = Arrangement.spacedBy(8.dp)
                           ) {
                               Text(
-                                  text = "Fuel Records",
-                                  style = CockpitTheme.typography.headlineLarge.copy(
-                                      letterSpacing = (-0.5).sp
-                                  ),
+                                  text = "Fuel",
+                                  style = CockpitTheme.typography.headlineLarge,
                                   color = CockpitTheme.colors.textPrimary
                               )
-
-                              // Current Year Badge
-                              Box(
-                                  modifier = Modifier
-                                      .cockpitSurface(CockpitTheme.colors.border, Palette.Sky400.copy(alpha = 0.35f), CopilotShapes.R6)
-                                      .padding(horizontal = 8.dp, vertical = 3.dp)
-                              ) {
-                                  Text(
-                                      text = "$selectedYear",
-                                      style = CockpitTheme.typography.labelSmall.copy(
-                                          fontWeight = FontWeight.Black,
-                                          fontFeatureSettings = "tnum"
-                                      ),
-                                      color = Palette.Sky400
-                                  )
-                              }
                           }
 
                           Text(
                               text = buildString {
-                                  append("${yearlyAnalytics.totalRefills} refills in $selectedYear")
+                                  val n = yearlyAnalytics.totalRefills
+                                  append("$n ${if (n == 1) "fill-up" else "fill-ups"} in $selectedYear")
                                   val price = fuelState?.fuelPricePerLiter ?: 0.0
-                                  if (price > 0) append("  •  Last price ₹${NumberFormatUtils.formatPrecision(price, 2)} / L")
+                                  if (price > 0) append("  ·  Last price ₹${NumberFormatUtils.formatPrecision(price, 2)}/L")
                               },
                               style = CockpitTheme.typography.bodyMedium,
                               color = CockpitTheme.colors.textSecondary
@@ -232,8 +220,8 @@ fun FuelHistoryScreen(
                       verticalAlignment = Alignment.CenterVertically,
                       horizontalArrangement = Arrangement.spacedBy(10.dp)
                   ) {
-                      // Year Switcher Chips
-                      LazyRow(
+                      // Year Switcher Chips: only when there is more than one year.
+                      if (availableYears.size > 1) LazyRow(
                           horizontalArrangement = Arrangement.spacedBy(8.dp),
                           verticalAlignment = Alignment.CenterVertically
                       ) {
@@ -264,14 +252,6 @@ fun FuelHistoryScreen(
                               }
                           }
                       }
-                      if (fuelState != null) {
-                          RaahiButton(
-                              text = "Add Fuel",
-                              icon = Icons.Outlined.Add,
-                              onClick = onAddFuel,
-                              modifier = Modifier.height(44.dp)
-                          )
-                      }
                   }
               }
 
@@ -289,12 +269,13 @@ fun FuelHistoryScreen(
                   if (showSidePanel && fuelState != null) {
                       Column(
                           modifier = Modifier
-                              .width(340.dp)
-                              .fillMaxHeight(),
+                              .width(360.dp)
+                              .fillMaxHeight()
+                              .verticalScroll(rememberScrollState()),
                           verticalArrangement = Arrangement.spacedBy(12.dp)
                       ) {
                           FuelTankSummaryCard(fuelState, modifier = Modifier.fillMaxWidth())
-                          GaugeStatusCard(fuelState, onOpenDrive = onBackToCockpit, modifier = Modifier.fillMaxWidth().weight(1f))
+                          FuelInsightCard(fuelEvents, modifier = Modifier.fillMaxWidth())
                       }
                   }
                   Column(
@@ -333,41 +314,19 @@ fun FuelHistoryScreen(
 
     // ==================== DELETE CONFIRMATION DIALOG ====================
     eventToDelete?.let { targetEvent ->
-        AlertDialog(
-            onDismissRequest = { eventToDelete = null },
-            title = {
-                Text(
-                    text = "Delete Fuel Record?",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-                    color = CockpitTheme.colors.textPrimary
-                )
+        val isGauge = targetEvent.eventType == "MID_OBSERVED" || (targetEvent.liters <= 0.0 && targetEvent.totalCost <= 0.0)
+        com.antigravity.copilot.core.designsystem.components.RaahiConfirmDialog(
+            title = if (isGauge) "Delete this gauge reading?" else "Delete this fill-up?",
+            message = if (isGauge) "The app will go back to its own fuel estimate."
+            else "${NumberFormatUtils.formatFuelLiters(targetEvent.liters)} L for ${NumberFormatUtils.formatCurrencyWithSymbol(targetEvent.totalCost)}. Your mileage numbers will update.",
+            confirmText = "Delete",
+            destructive = true,
+            icon = Icons.Default.Delete,
+            onConfirm = {
+                onDeleteEvent(targetEvent.id)
+                eventToDelete = null
             },
-            text = {
-                Text(
-                    text = "Are you sure you want to delete this record of ${NumberFormatUtils.formatFuelLiters(targetEvent.liters, 2)} L (${NumberFormatUtils.formatCurrencyWithSymbol(targetEvent.totalCost, 2)})? This will adjust historical distance and fuel analytics.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = CockpitTheme.colors.textSecondary
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        onDeleteEvent(targetEvent.id)
-                        eventToDelete = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.critical),
-                    shape = CopilotShapes.R10
-                ) {
-                    Text("Delete", fontWeight = FontWeight.Bold, color = contentColorOn(CockpitTheme.colors.critical))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { eventToDelete = null }) {
-                    Text("Cancel", color = CockpitTheme.colors.textPrimary)
-                }
-            },
-            containerColor = CockpitTheme.colors.border,
-            shape = RoundedCornerShape(20.dp)
+            onDismiss = { eventToDelete = null }
         )
     }
 }
@@ -387,49 +346,33 @@ private fun YearlySummaryBanner(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Total Refills
         FuelStatBadgeCard(
             modifier = Modifier.weight(1f),
-            label = "TOTAL REFILLS",
+            label = "Fill-ups",
             value = "${analytics.totalRefills}",
-            unit = "Logs",
+            unit = "",
             color = CockpitTheme.colors.textPrimary
         )
-
-        // Total Fuel Filled
         FuelStatBadgeCard(
-            modifier = Modifier.weight(1.15f),
-            label = "TOTAL FUEL",
-            value = if (analytics.totalLiters > 0) NumberFormatUtils.formatFuelLiters(analytics.totalLiters, 2) else "0",
-            unit = "L",
-            color = Palette.Sky400
+            modifier = Modifier.weight(1f),
+            label = "Fuel bought",
+            value = if (analytics.totalLiters > 0) NumberFormatUtils.formatFuelLiters(analytics.totalLiters, 0) else "--",
+            unit = if (analytics.totalLiters > 0) "L" else "",
+            color = CockpitTheme.colors.textPrimary
         )
-
-        // Total Cost
         FuelStatBadgeCard(
-            modifier = Modifier.weight(1.25f),
-            label = "TOTAL COST",
-            value = if (analytics.totalCost > 0) NumberFormatUtils.formatCurrency(analytics.totalCost, 2, useGrouping = true) else "0",
-            unit = "₹",
-            color = Palette.Amber500
+            modifier = Modifier.weight(1.2f),
+            label = "Spent",
+            value = if (analytics.totalCost > 0) NumberFormatUtils.formatCurrencyWithSymbol(analytics.totalCost) else "--",
+            unit = "",
+            color = CockpitTheme.colors.textPrimary
         )
-
-        // Average Mileage (True Tank-to-Tank / Delta)
         FuelStatBadgeCard(
-            modifier = Modifier.weight(1.3f),
-            label = "AVG MILEAGE",
-            value = if (analytics.avgMileageKmpl > 0) NumberFormatUtils.formatMileage(analytics.avgMileageKmpl, 2) else "--",
-            unit = "km/L",
-            color = Palette.Emerald500
-        )
-
-        // Total Distance
-        FuelStatBadgeCard(
-            modifier = Modifier.weight(1.25f),
-            label = "TOTAL DISTANCE",
-            value = if (analytics.totalDistanceKm > 0) NumberFormatUtils.formatDistance(analytics.totalDistanceKm, 2, useGrouping = true) else "--",
-            unit = "km",
-            color = Palette.Purple500
+            modifier = Modifier.weight(1.1f),
+            label = "Average mileage",
+            value = if (analytics.avgMileageKmpl > 0) NumberFormatUtils.formatMileage(analytics.avgMileageKmpl) else "--",
+            unit = if (analytics.avgMileageKmpl > 0) "km/L" else "",
+            color = CockpitTheme.colors.textPrimary
         )
     }
 }
@@ -444,7 +387,7 @@ private fun FuelStatBadgeCard(
 ) {
     Box(
         modifier = modifier
-            .defaultMinSize(minHeight = 62.dp)
+            .defaultMinSize(minHeight = 72.dp)
             .cockpitSurface(Palette.Ink900, Palette.Ink800, CopilotShapes.R10)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
@@ -459,7 +402,7 @@ private fun FuelStatBadgeCard(
             ) {
                 Text(
                     text = value,
-                    style = CockpitTheme.typography.headlineLarge.copy(
+                    style = CockpitTheme.typography.displaySmall.copy(
                         fontFeatureSettings = "tnum"
                     ),
                     color = color
@@ -468,20 +411,18 @@ private fun FuelStatBadgeCard(
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = unit,
-                        style = CockpitTheme.typography.labelSmall.copy(
+                        style = CockpitTheme.typography.labelLarge.copy(
                             fontFeatureSettings = "tnum"
                         ),
                         color = Palette.Steel400,
-                        modifier = Modifier.padding(bottom = 1.dp)
+                        modifier = Modifier.padding(bottom = 3.dp)
                     )
                 }
             }
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = label,
-                style = CockpitTheme.typography.labelSmall.copy(
-                    letterSpacing = 0.4.sp
-                ),
+                style = CockpitTheme.typography.labelMedium,
                 color = Palette.Steel400,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -502,7 +443,7 @@ private fun FuelRecordsMonthGroupedFeed(
 ) {
     // Only display months that contain records
     val activeMonths = remember(analytics) {
-        analytics.monthlyStats.filter { it.events.isNotEmpty() }
+        analytics.monthlyStats.filter { it.events.isNotEmpty() }.sortedByDescending { it.year * 12 + it.monthIndex }
     }
 
     if (activeMonths.isEmpty()) {
@@ -529,7 +470,7 @@ private fun FuelRecordsMonthGroupedFeed(
                 }
 
                 Text(
-                    text = "No Fuel Records in ${analytics.year}",
+                    text = "No fill-ups yet in ${analytics.year}",
                     style = CockpitTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -537,7 +478,7 @@ private fun FuelRecordsMonthGroupedFeed(
                 )
 
                 Text(
-                    text = "Refuels recorded via '+ ADD FUEL' during ${analytics.year} will appear grouped here with live mileage and costs.",
+                    text = "Add a fill-up from the Fuel card on the Drive screen. Your fill-ups, costs and mileage will show here.",
                     style = CockpitTheme.typography.bodyMedium,
                     color = Palette.Steel400
                 )
@@ -583,36 +524,23 @@ private fun FuelRecordsMonthGroupedFeed(
                         ) {
                             Text(
                                 text = "${monthData.monthFullName} ${monthData.year}",
-                                style = CockpitTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Black
-                                ),
+                                style = CockpitTheme.typography.headlineMedium,
                                 color = CockpitTheme.colors.textPrimary
                             )
 
-                            // Quick monthly summary pills
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                PillBadge(
-                                    text = "${monthData.refillCount} refills",
-                                    color = Palette.Slate400
-                                )
-                                PillBadge(
-                                    text = NumberFormatUtils.formatFuelLitersWithUnit(monthData.totalLiters, 2),
-                                    color = Palette.Sky400
-                                )
-                                PillBadge(
-                                    text = NumberFormatUtils.formatCurrencyWithSymbol(monthData.totalCost, 2, useGrouping = true),
-                                    color = Palette.Amber500
-                                )
-                                if (monthData.mileageKmpl > 0) {
-                                    PillBadge(
-                                        text = NumberFormatUtils.formatMileageWithUnit(monthData.mileageKmpl, 2),
-                                        color = Palette.Emerald500
-                                    )
-                                }
-                            }
+                            Text(
+                                text = buildString {
+                                    val n = monthData.refillCount
+                                    append("$n ${if (n == 1) "fill-up" else "fill-ups"}")
+                                    if (monthData.totalLiters > 0) append("  ·  ${NumberFormatUtils.formatFuelLitersWithUnit(monthData.totalLiters)}")
+                                    if (monthData.totalCost > 0) append("  ·  ${NumberFormatUtils.formatCurrencyWithSymbol(monthData.totalCost)}")
+                                    if (monthData.mileageKmpl > 0) append("  ·  ${NumberFormatUtils.formatMileageWithUnit(monthData.mileageKmpl)}")
+                                },
+                                style = CockpitTheme.typography.bodyLarge,
+                                color = CockpitTheme.colors.textSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
 
                         Icon(
@@ -661,261 +589,133 @@ private fun FuelEventCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val c = CockpitTheme.colors
     val dateStr = remember(event.timestamp) {
-        SimpleDateFormat("dd MMM yyyy • hh:mm a", Locale.getDefault()).format(Date(event.timestamp))
+        SimpleDateFormat("d MMM · h:mm a", Locale.getDefault()).format(Date(event.timestamp))
     }
+    // F1: a gauge reading is not a refuel; it has no litres or bill to show or edit.
+    val isGaugeUpdate = event.eventType == "MID_OBSERVED" || (event.liters <= 0.0 && event.midLevelObserved in 0..10 && event.totalCost <= 0.0)
+    val isAuto = event.eventType == "UNLOGGED_REFILL_AUTO" || event.eventType == "UNLOGGED_CONSUMPTION"
+    var menuOpen by remember { mutableStateOf(false) }
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .cockpitSurface(CockpitTheme.colors.border, Palette.Ink750, CopilotShapes.R12)
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .clip(CopilotShapes.R12)
+            .background(c.card)
+            .border(1.dp, c.border, CopilotShapes.R12)
+            .then(if (!isGaugeUpdate) Modifier.clickable(onClickLabel = "Edit fill-up", onClick = onEdit) else Modifier)
+            .padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            // Header Row: Event Tag, MID Gauge Visualization, Date
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(Palette.Sky600.copy(alpha = 0.2f))
-                            .border(1.dp, Palette.Sky400.copy(alpha = 0.45f), RoundedCornerShape(5.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(c.cardElevated),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (isGaugeUpdate) Icons.Default.Speed else Icons.Default.LocalGasStation,
+                contentDescription = null,
+                tint = c.textSecondary,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (isGaugeUpdate) {
+                Text("Gauge updated", style = CockpitTheme.typography.titleMedium, color = c.textPrimary)
+                Text(
+                    "${event.midLevelObserved} of 10 bars  ·  $dateStr",
+                    style = CockpitTheme.typography.bodyMedium,
+                    color = c.textSecondary
+                )
+            } else {
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = NumberFormatUtils.formatFuelLiters(event.liters),
+                        style = CockpitTheme.typography.displaySmall,
+                        color = c.textPrimary
+                    )
+                    Text("L", style = CockpitTheme.typography.titleMedium, color = c.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                    if (event.pricePerLiter > 0) {
                         Text(
-                            text = when {
-                                event.eventType == "UNLOGGED_CONSUMPTION" && event.notes.startsWith("RESOLVED") -> "Unlogged (resolved)"
-                                event.eventType == "UNLOGGED_CONSUMPTION" -> "Unlogged (provisional)"
-                                event.eventType == "UNLOGGED_REFILL_AUTO" -> "Unlogged refill"
-                                else -> "Refuel"
-                            },
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Black,
-                                fontFeatureSettings = "tnum"
-                            ),
-                            color = Palette.Sky400
+                            "at ₹${NumberFormatUtils.formatPrecision(event.pricePerLiter, 2)}/L",
+                            style = CockpitTheme.typography.bodyMedium,
+                            color = c.textSecondary,
+                            modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
                         )
                     }
-
-                    // "Auto" chip: entries the fuel system created by itself (not typed by the driver).
-                    if (event.eventType == "UNLOGGED_REFILL_AUTO" || event.eventType == "UNLOGGED_CONSUMPTION") {
+                    if (isAuto) {
                         com.antigravity.copilot.core.designsystem.components.RaahiPill(
-                            text = "Auto",
-                            color = CockpitTheme.colors.warning,
+                            text = if (event.eventType == "UNLOGGED_REFILL_AUTO") "Added by app" else "Estimated",
+                            color = c.warning,
                             filled = true
                         )
                     }
-
-                    // Mini 10-Pt MID Gauge Visualizer
-                    if (event.midLevelObserved in 0..10) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            modifier = Modifier
-                                .cockpitSurface(Palette.Ink850, Palette.Graphite700, RoundedCornerShape(5.dp))
-                                .padding(horizontal = 5.dp, vertical = 3.dp)
-                        ) {
-                            for (i in 0 until 10) {
-                                val isFilled = i < event.midLevelObserved
-                                val barColor = when {
-                                    isFilled && i < 2 -> Palette.Red500
-                                    isFilled && i < 5 -> Palette.Amber500
-                                    isFilled -> Palette.Sky400
-                                    else -> CockpitTheme.colors.border
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .size(width = 4.dp, height = 8.dp)
-                                        .clip(RoundedCornerShape(1.dp))
-                                        .background(barColor)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(3.dp))
-                            Text(
-                                text = "${event.midLevelObserved}/10 MID",
-                                style = CockpitTheme.typography.labelSmall.copy(
-                                    fontFeatureSettings = "tnum"
-                                ),
-                                color = Palette.Slate300
-                            )
-                        }
-                    }
                 }
-
                 Text(
-                    text = dateStr,
-                    style = CockpitTheme.typography.bodySmall.copy(
-                        fontFeatureSettings = "tnum"
-                    ),
-                    color = Palette.Steel400
+                    text = buildString {
+                        append(if (event.locationName.isNotBlank()) event.locationName else "Fill-up")
+                        append("  ·  ")
+                        append(dateStr)
+                    },
+                    style = CockpitTheme.typography.bodyMedium,
+                    color = c.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+        }
 
-            // Middle Telemetry Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Liters & Rate & Location
-                Column(
-                    modifier = Modifier.weight(1.3f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = NumberFormatUtils.formatSignedPrecision(event.liters, 2),
-                            style = CockpitTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Black,
-                                fontFeatureSettings = "tnum",
-                                letterSpacing = (-0.5).sp
-                            ),
-                            color = Palette.Sky400
-                        )
-                        Spacer(modifier = Modifier.width(3.dp))
-                        Text(
-                            text = "L",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontFeatureSettings = "tnum"
-                            ),
-                            color = Palette.Steel400,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "@ ${NumberFormatUtils.formatCurrencyWithSymbol(event.pricePerLiter, 2)}/L",
-                            style = CockpitTheme.typography.bodyMedium.copy(
-                                fontFeatureSettings = "tnum"
-                            ),
-                            color = Palette.Steel400,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    }
-
-                    if (event.locationName.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "📍", style = CockpitTheme.typography.bodySmall)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = event.locationName,
-                                style = CockpitTheme.typography.bodySmall.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Palette.Slate400,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-
-                // Total Cost & Badges
-                Column(
-                    modifier = Modifier.weight(1.2f),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = NumberFormatUtils.formatCurrencyWithSymbol(event.totalCost, 2, useGrouping = true),
-                        style = CockpitTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Amber500
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
+        if (!isGaugeUpdate) {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = NumberFormatUtils.formatCurrencyWithSymbol(event.totalCost),
+                    style = CockpitTheme.typography.headlineLarge,
+                    color = c.textPrimary
+                )
+                Text(
+                    text = buildString {
+                        if (event.calculatedMileageKmpl > 0) append("${NumberFormatUtils.formatMileage(event.calculatedMileageKmpl)} km/L")
                         if (event.odometerKm > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .cockpitSurface(Palette.Ink850, Palette.Graphite700, CopilotShapes.R6)
-                                    .padding(horizontal = 6.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = "🚗 ${NumberFormatUtils.formatOdometer(event.odometerKm, 2)} km",
-                                    style = CockpitTheme.typography.labelSmall.copy(
-                                        fontFeatureSettings = "tnum"
-                                    ),
-                                    color = CockpitTheme.colors.textPrimary
-                                )
-                            }
+                            if (isNotEmpty()) append("  ·  ")
+                            append("${NumberFormatUtils.formatOdometer(event.odometerKm)} km")
                         }
+                    },
+                    style = CockpitTheme.typography.bodyMedium,
+                    color = c.textSecondary,
+                    maxLines = 1
+                )
+            }
+        }
 
-                        if (event.calculatedMileageKmpl > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(CopilotShapes.R6)
-                                    .background(Palette.Emerald500.copy(alpha = 0.15f))
-                                    .border(1.dp, Palette.Emerald500.copy(alpha = 0.4f), CopilotShapes.R6)
-                                    .padding(horizontal = 6.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = "⚡ ${NumberFormatUtils.formatMileageWithUnit(event.calculatedMileageKmpl, 2)}",
-                                    style = CockpitTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Black,
-                                        fontFeatureSettings = "tnum"
-                                    ),
-                                    color = Palette.Emerald500
-                                )
-                            }
-                        }
-                    }
+        // F3: edit/delete live in one overflow menu instead of two big buttons on every row.
+        Box {
+            IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(52.dp)) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More actions", tint = c.textSecondary, modifier = Modifier.size(26.dp))
+            }
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                modifier = Modifier.background(c.cardElevated)
+            ) {
+                if (!isGaugeUpdate) {
+                    DropdownMenuItem(
+                        text = { Text("Edit", style = CockpitTheme.typography.titleMedium, color = c.textPrimary) },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, tint = c.textSecondary) },
+                        onClick = { menuOpen = false; onEdit() },
+                        modifier = Modifier.heightIn(min = 56.dp)
+                    )
                 }
-
-                Spacer(modifier = Modifier.width(14.dp))
-
-                // Action Buttons: Edit and Delete with distinct styling and proper touch boundaries
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .cockpitSurface(CockpitTheme.colors.accentSoft, Palette.Sky400.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = true, color = Palette.Sky400),
-                                onClick = onEdit
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Refuel",
-                            tint = Palette.Sky400,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .cockpitSurface(CockpitTheme.colors.critical.copy(alpha = 0.14f), Palette.Red500.copy(alpha = 0.55f), CircleShape, borderWidth = 1.2.dp)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = rememberRipple(bounded = true, color = Palette.Red500),
-                                onClick = onDelete
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Refuel",
-                            tint = Palette.Red500,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
+                DropdownMenuItem(
+                    text = { Text("Delete", style = CockpitTheme.typography.titleMedium, color = c.criticalText) },
+                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = c.critical) },
+                    onClick = { menuOpen = false; onDelete() },
+                    modifier = Modifier.heightIn(min = 56.dp)
+                )
             }
         }
     }
@@ -963,7 +763,7 @@ private fun EditFuelEventDialog(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Edit Refuel Entry",
+                            text = "Edit fill-up",
                             style = CockpitTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Black
                             ),
@@ -972,9 +772,9 @@ private fun EditFuelEventDialog(
                     }
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(36.dp).clip(CircleShape).background(Palette.Ink700)
+                        modifier = Modifier.size(52.dp).clip(CircleShape).background(Palette.Ink700)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = CockpitTheme.colors.textPrimary, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = CockpitTheme.colors.textPrimary, modifier = Modifier.size(26.dp))
                     }
                 }
 
@@ -982,14 +782,14 @@ private fun EditFuelEventDialog(
                 OutlinedTextField(
                     value = locationText,
                     onValueChange = { locationText = it },
-                    label = { Text("Fuel Station / Location", color = CockpitTheme.colors.textSecondary) },
+                    label = { Text("Petrol pump", color = CockpitTheme.colors.textSecondary) },
                     modifier = Modifier.fillMaxWidth(),
                     textStyle = CockpitTheme.typography.titleMedium.copy(color = CockpitTheme.colors.textPrimary),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = CockpitTheme.colors.textPrimary,
                         unfocusedTextColor = CockpitTheme.colors.textPrimary,
                         focusedBorderColor = CockpitTheme.colors.accent,
-                        unfocusedBorderColor = Palette.Ink700
+                        unfocusedBorderColor = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
                     ),
                     shape = CopilotShapes.R12
                 )
@@ -1004,7 +804,7 @@ private fun EditFuelEventDialog(
                             val p = priceText.toDoubleOrNull() ?: 0.0
                             costText = NumberFormatUtils.formatPrecision(l * p, 2)
                         },
-                        label = { Text("Quantity (L)", color = CockpitTheme.colors.textSecondary) },
+                        label = { Text("Litres", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
                         textStyle = CockpitTheme.typography.titleLarge.copy(color = CockpitTheme.colors.textPrimary, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -1012,7 +812,7 @@ private fun EditFuelEventDialog(
                             focusedTextColor = CockpitTheme.colors.textPrimary,
                             unfocusedTextColor = CockpitTheme.colors.textPrimary,
                             focusedBorderColor = CockpitTheme.colors.accent,
-                            unfocusedBorderColor = Palette.Ink700
+                            unfocusedBorderColor = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
                         ),
                         shape = CopilotShapes.R12
                     )
@@ -1025,7 +825,7 @@ private fun EditFuelEventDialog(
                             val p = it.toDoubleOrNull() ?: 0.0
                             costText = NumberFormatUtils.formatPrecision(l * p, 2)
                         },
-                        label = { Text("Price (₹ / L)", color = CockpitTheme.colors.textSecondary) },
+                        label = { Text("Price per litre (₹)", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
                         textStyle = CockpitTheme.typography.titleLarge.copy(color = CockpitTheme.colors.textPrimary, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -1033,7 +833,7 @@ private fun EditFuelEventDialog(
                             focusedTextColor = CockpitTheme.colors.textPrimary,
                             unfocusedTextColor = CockpitTheme.colors.textPrimary,
                             focusedBorderColor = CockpitTheme.colors.accent,
-                            unfocusedBorderColor = Palette.Ink700
+                            unfocusedBorderColor = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
                         ),
                         shape = CopilotShapes.R12
                     )
@@ -1043,15 +843,15 @@ private fun EditFuelEventDialog(
                     OutlinedTextField(
                         value = costText,
                         onValueChange = { costText = it },
-                        label = { Text("Total Bill (₹)", color = CockpitTheme.colors.textSecondary) },
+                        label = { Text("Total paid (₹) · auto", color = CockpitTheme.colors.textSecondary) },
                         modifier = Modifier.weight(1f),
-                        textStyle = CockpitTheme.typography.titleLarge.copy(color = Palette.Amber300, fontFeatureSettings = "tnum"),
+                        textStyle = CockpitTheme.typography.titleLarge.copy(color = CockpitTheme.colors.textPrimary, fontFeatureSettings = "tnum"),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Palette.Amber300,
-                            unfocusedTextColor = Palette.Amber300,
-                            focusedBorderColor = Palette.Amber300,
-                            unfocusedBorderColor = Palette.Ink700
+                            focusedTextColor = CockpitTheme.colors.textPrimary,
+                            unfocusedTextColor = CockpitTheme.colors.textPrimary,
+                            focusedBorderColor = CockpitTheme.colors.accent,
+                            unfocusedBorderColor = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
                         ),
                         shape = CopilotShapes.R12
                     )
@@ -1067,7 +867,7 @@ private fun EditFuelEventDialog(
                             focusedTextColor = CockpitTheme.colors.textPrimary,
                             unfocusedTextColor = CockpitTheme.colors.textPrimary,
                             focusedBorderColor = CockpitTheme.colors.accent,
-                            unfocusedBorderColor = Palette.Ink700
+                            unfocusedBorderColor = CockpitTheme.colors.textSecondary.copy(alpha = 0.6f)
                         ),
                         shape = CopilotShapes.R12
                     )

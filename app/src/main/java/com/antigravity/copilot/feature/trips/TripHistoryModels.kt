@@ -19,9 +19,9 @@ internal enum class TripDetailTab(
     val subtitle: String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
-    MAP_REPLAY("Route Replay", "Map and animated playback", Icons.Default.PlayCircleOutline),
+    MAP_REPLAY("Route replay", "Map and animated playback", Icons.Default.PlayCircleOutline),
     TIMELINE("Timeline", "Every event, start to finish", Icons.Default.Schedule),
-    CHARTS("Trip Charts", "Speed, braking and efficiency", Icons.AutoMirrored.Filled.ShowChart)
+    CHARTS("Charts", "Speed, braking and efficiency", Icons.AutoMirrored.Filled.ShowChart)
 }
 
 internal enum class PlaybackStatus {

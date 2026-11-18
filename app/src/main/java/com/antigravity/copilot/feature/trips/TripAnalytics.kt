@@ -160,7 +160,7 @@ internal fun generateTripTimeline(
             p.timestamp, TimelineKind.HARD_BRAKE, "Hard braking",
             "${spd(from.speedKmh)} → ${spd(p.speedKmh)}",
             Icons.Default.Warning, StaticPalette.Red500, speedKmh = p.speedKmh, distanceKm = cumKm[j.idx],
-            chips = listOf(String.format(Locale.US, "%.1f m/s²", j.a))
+            chips = listOf(if (j.a <= -4.5) "Very hard" else "Hard")
         )
     }
     pick(accels, compareByDescending { it.a }).forEach { j ->
@@ -169,7 +169,7 @@ internal fun generateTripTimeline(
             p.timestamp, TimelineKind.HARD_ACCEL, "Quick acceleration",
             "${spd(from.speedKmh)} → ${spd(p.speedKmh)}",
             Icons.Default.Bolt, StaticPalette.Purple500, speedKmh = p.speedKmh, distanceKm = cumKm[j.idx],
-            chips = listOf(String.format(Locale.US, "+%.1f m/s²", j.a))
+            chips = listOf(if (j.a >= 3.5) "Very quick" else "Quick")
         )
     }
 
@@ -291,7 +291,8 @@ internal fun computeSpeedBands(points: List<TripPointEntity>): List<SpeedBand> {
 }
 
 internal fun formatDurationHoursMinutes(durationMs: Long): String {
-    return com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(durationMs)
+    if (durationMs <= 0L) return "--"
+    return com.antigravity.copilot.core.trip.TimeFormatUtils.formatFriendlyDuration(durationMs)
 }
 
 internal fun formatDurationShort(durationMs: Long): String {

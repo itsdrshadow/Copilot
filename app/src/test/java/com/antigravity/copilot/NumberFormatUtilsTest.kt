@@ -60,11 +60,13 @@ class NumberFormatUtilsTest {
 
     @Test
     fun testSemanticHelpers() {
-        assertEquals("42.86 km/h", NumberFormatUtils.formatSpeedWithUnit(42.857142857))
+        // Display rules: whole km/h; 1 decimal for km, km/L and litres; whole grouped rupees.
+        assertEquals("43 km/h", NumberFormatUtils.formatSpeedWithUnit(42.857142857))
         assertEquals("15.2 km/L", NumberFormatUtils.formatMileageWithUnit(15.200))
         assertEquals("35.5 L", NumberFormatUtils.formatFuelLitersWithUnit(35.50))
-        assertEquals("₹96.5", NumberFormatUtils.formatCurrencyWithSymbol(96.50))
+        assertEquals("₹97", NumberFormatUtils.formatCurrencyWithSymbol(96.50))
         assertEquals("₹1,250", NumberFormatUtils.formatCurrencyWithSymbol(1250.0, useGrouping = true))
-        assertEquals("120.45 km", NumberFormatUtils.formatDistanceWithUnit(120.452))
+        assertEquals("120.5 km", NumberFormatUtils.formatDistanceWithUnit(120.452))
+        assertEquals("7,906", NumberFormatUtils.formatOdometer(7906.43))
     }
 }

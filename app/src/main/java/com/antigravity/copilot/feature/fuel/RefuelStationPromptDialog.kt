@@ -89,15 +89,13 @@ fun RefuelStationPromptDialog(
                                         .padding(horizontal = 6.dp, vertical = 1.dp)
                                 ) {
                                     Text(
-                                        text = "FUEL STATION DETECTED",
-                                        style = CockpitTheme.typography.labelSmall.copy(
-                                            letterSpacing = 0.5.sp
-                                        ),
+                                        text = "At a petrol pump",
+                                        style = CockpitTheme.typography.labelMedium,
                                         color = CockpitTheme.colors.accent
                                     )
                                 }
                                 Text(
-                                    text = "Did you refuel here?",
+                                    text = "Did you fill up here?",
                                     style = CockpitTheme.typography.headlineSmall.copy(
                                         fontWeight = FontWeight.Black
                                     ),
@@ -109,7 +107,7 @@ fun RefuelStationPromptDialog(
                         IconButton(
                             onClick = onDismiss,
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(52.dp)
                                 .clip(CopilotShapes.R8)
                                 .background(CockpitTheme.colors.cardElevated)
                         ) {
@@ -150,7 +148,7 @@ fun RefuelStationPromptDialog(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Text(
-                                        text = "Odometer: ${NumberFormatUtils.formatOdometer(promptData.currentOdometerKm, 2)} km",
+                                        text = "Odometer: ${NumberFormatUtils.formatOdometer(promptData.currentOdometerKm)} km",
                                         style = CockpitTheme.typography.bodySmall.copy(
                                             fontFeatureSettings = "tnum"
                                         ),
@@ -174,7 +172,7 @@ fun RefuelStationPromptDialog(
                     }
 
                     Text(
-                        text = "Vehicle has been stationary for over 30 seconds at this fuel station. Would you like to log this refill now?",
+                        text = "You stopped at a petrol pump. Add the fill-up now so your mileage stays right.",
                         style = CockpitTheme.typography.bodyMedium,
                         color = CockpitTheme.colors.textSecondary,
                         textAlign = TextAlign.Center
@@ -211,7 +209,7 @@ fun RefuelStationPromptDialog(
                             )
                         ) {
                             Text(
-                                "Not Now",
+                                "Not now",
                                 style = CockpitTheme.typography.labelSmall, color = contentColorOn(CockpitTheme.colors.cardElevated)
                             )
                         }
@@ -234,7 +232,7 @@ fun RefuelStationPromptDialog(
                             )
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(
-                                "Yes, Add Fuel",
+                                "Yes, add fuel",
                                 style = CockpitTheme.typography.labelMedium.copy(fontWeight = FontWeight.Black), color = contentColorOn(CockpitTheme.colors.accent)
                             )
                         }

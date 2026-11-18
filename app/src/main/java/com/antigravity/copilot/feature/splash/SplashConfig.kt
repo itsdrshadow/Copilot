@@ -1,27 +1,30 @@
 package com.antigravity.copilot.feature.splash
 
-/** Splash timeline. Kept short (~5.4 s) so the dashboard is reachable quickly; tap skips it. */
+/**
+ * Splash timeline (SP1/SP2): one logo stage, about 1.8 s, so the Drive screen comes up fast on the
+ * head unit's slow CPU. The later stages start after the exit, so they never draw; tap skips.
+ */
 data class SplashConfig(
-    val totalDurationMs: Long = 5400L,
-    // Stage 1: Brand Logo (visible initially, fades out into Stage 2)
-    val logoVisibleDurationMs: Long = 1700L,
-    val logoFadeOutDurationMs: Long = 500L,
-    // Stage 2: Light trails & Car silhouette
-    val trailsStartMs: Long = 1800L,
+    val totalDurationMs: Long = 1800L,
+    // Stage 1: Brand Logo (the only stage shown)
+    val logoVisibleDurationMs: Long = 1300L,
+    val logoFadeOutDurationMs: Long = 400L,
+    // Stage 2: Light trails & Car silhouette (not shown: starts after the exit)
+    val trailsStartMs: Long = 60_000L,
     val trailsDurationMs: Long = 1300L,
-    val silhouetteStartMs: Long = 2000L,
+    val silhouetteStartMs: Long = 60_000L,
     val silhouetteDurationMs: Long = 1600L,
-    // Stage 3: Welcome typography & subtitle
-    val welcomeStartMs: Long = 2900L,
+    // Stage 3: Welcome typography & subtitle (not shown)
+    val welcomeStartMs: Long = 60_000L,
     val welcomeDurationMs: Long = 1100L,
-    val subtitleStartMs: Long = 3500L,
+    val subtitleStartMs: Long = 60_000L,
     val subtitleDurationMs: Long = 900L,
     // Pulse effect
-    val glowPulseStartMs: Long = 2700L,
+    val glowPulseStartMs: Long = 300L,
     val glowPulsePeriodMs: Long = 1400L,
-    // Stage 4: Exit transition into dashboard
-    val exitTransitionStartMs: Long = 4800L,
-    val exitTransitionDurationMs: Long = 600L,
+    // Exit transition into dashboard
+    val exitTransitionStartMs: Long = 1400L,
+    val exitTransitionDurationMs: Long = 400L,
     val allowTapToSkip: Boolean = true
 ) {
     init {

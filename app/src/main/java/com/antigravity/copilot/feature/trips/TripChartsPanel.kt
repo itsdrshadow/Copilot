@@ -170,8 +170,9 @@ internal fun TripChartsView(
     val parkedMs = (wallMs - movingMs - idleMs).coerceAtLeast(0L)
     val totalMs = (movingMs + idleMs + parkedMs).coerceAtLeast(1L)
     val bands = remember(series) { bandSeconds(series) }
-    val brakeCount = remember(series) { countJolts(series, braking = true) }
-    val accelCount = remember(series) { countJolts(series, braking = false) }
+    // Same counts as Route replay and Timeline: the trip's saved record.
+    val brakeCount = trip.brakeCount
+    val accelCount = trip.accelCount
     val ecoShare = remember(bands) {
         val tot = bands.sum().coerceAtLeast(1f)
         ((bands[1] + bands[2]) / tot * 100).roundToInt()
@@ -185,12 +186,12 @@ internal fun TripChartsView(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 val m = Modifier.weight(1f)
-                KpiTile("Avg speed", NumberFormatUtils.formatPrecision(trip.avgSpeedKmh, 0), "km/h", c.accentText, m)
-                KpiTile("Top speed", NumberFormatUtils.formatPrecision(trip.maxSpeedKmh, 0), "km/h", StaticPalette.Purple500, m)
-                KpiTile("Moving", "${(movingMs * 100 / totalMs)}", "%", c.positiveText, m)
-                KpiTile("Est. fuel", if (trip.estimatedFuelLiters > 0) NumberFormatUtils.formatPrecision(trip.estimatedFuelLiters, 2) else "--", "L", c.textPrimary, m)
-                KpiTile("Trip cost", if (trip.estimatedFuelLiters > 0) "₹${(trip.estimatedFuelLiters * price).roundToInt()}" else "--", "", c.warningText, m)
-                KpiTile("Mileage", if (trip.calculatedMileageKmpl > 0) NumberFormatUtils.formatPrecision(trip.calculatedMileageKmpl, 1) else "--", "km/L", c.positiveText, m)
+                KpiTile("Avg speed", NumberFormatUtils.formatSpeed(trip.avgSpeedKmh), "km/h", c.textPrimary, m)
+                KpiTile("Top speed", NumberFormatUtils.formatSpeed(trip.maxSpeedKmh), "km/h", c.textPrimary, m)
+                KpiTile("Moving", "${(movingMs * 100 / totalMs)}", "%", c.textPrimary, m)
+                KpiTile("Fuel used", if (trip.estimatedFuelLiters > 0) NumberFormatUtils.formatFuelLiters(trip.estimatedFuelLiters) else "--", "L", c.textPrimary, m)
+                KpiTile("Fuel cost", if (trip.estimatedFuelLiters > 0) NumberFormatUtils.formatCurrencyWithSymbol(trip.estimatedFuelLiters * price) else "--", "", c.textPrimary, m)
+                KpiTile("Mileage", if (trip.calculatedMileageKmpl > 0) NumberFormatUtils.formatMileage(trip.calculatedMileageKmpl) else "--", "km/L", c.textPrimary, m)
             }
         }
         // ---- Speed profile + speed bands ----
@@ -207,7 +208,7 @@ internal fun TripChartsView(
         // ---- Acceleration + time split ----
         item {
             Row(modifier = Modifier.height(230.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ChartCard("Acceleration & braking", c.warning, "$accelCount quick · $brakeCount hard", Modifier.weight(2f).fillMaxHeight()) {
+                ChartCard("Acceleration & braking", c.warning, "$accelCount quick starts · $brakeCount hard brakes", Modifier.weight(2f).fillMaxHeight()) {
                     AccelerationChart(series)
                 }
                 ChartCard("Time split", c.positive, null, Modifier.weight(1f).fillMaxHeight()) {
@@ -228,7 +229,7 @@ internal fun TripChartsView(
                 } else {
                     ChartCard(
                         "Distance progress", c.accent,
-                        NumberFormatUtils.formatDistanceWithUnit(series.cumKm.last().toDouble(), 2),
+                        NumberFormatUtils.formatDistanceWithUnit(series.cumKm.last().toDouble()),
                         Modifier.weight(1f).fillMaxHeight()
                     ) { LineAreaChart(series.cumKm, c.accent, unit = "km", skipZeros = false) }
                 }
@@ -389,7 +390,7 @@ private fun ColumnScope.SpeedProfileChart(series: TripSeries, startTime: Long, a
         Legend(c.accent, "Speed")
         Legend(c.warning, "Average")
         Legend(c.critical, "Hard brake")
-        Legend(StaticPalette.Purple500, "Quick accel / top")
+        Legend(StaticPalette.Purple500, "Quick start / top speed")
     }
 }
 
@@ -530,7 +531,7 @@ private fun ColumnScope.LineAreaChart(values: FloatArray, color: Color, unit: St
     }
     val lo = if (skipZeros) (data.minOrNull() ?: 0f) else 0f
     val hi = max((data.maxOrNull() ?: 1f), lo + 1f)
-    fun fmt(v: Float) = if (hi - lo < 10) String.format(Locale.US, "%.1f", v) else v.roundToInt().toString()
+    fun fmt(v: Float) = if (hi - lo < 10 && hi < 100f) String.format(Locale.US, "%.1f", v) else v.roundToInt().toString()
     AxisFrame(listOf(fmt(hi), fmt((hi + lo) / 2), fmt(lo)), listOf("start", "", "end")) {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width; val h = size.height
@@ -577,7 +578,7 @@ private fun ColumnScope.BehaviourCard(trip: TripEntity, brakes: Int, accels: Int
         }
         Column(modifier = Modifier.weight(1.1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             BehaviourRow("Hard braking", "$brakes", if (brakes == 0) c.positiveText else c.criticalText)
-            BehaviourRow("Quick accel.", "$accels", if (accels == 0) c.positiveText else c.warningText)
+            BehaviourRow("Quick starts", "$accels", if (accels == 0) c.positiveText else c.warningText)
             BehaviourRow("Eco speed (20–60)", "$ecoShare%", if (ecoShare >= 60) c.positiveText else c.warningText)
             BehaviourRow(
                 "Best km/L",

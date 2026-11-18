@@ -54,8 +54,11 @@ object AutomotiveTypographyTokens {
 
     val DefaultPlatformStyle = PlatformTextStyle(includeFontPadding = false)
 
-    /** Minimum label size anywhere in the app. */
-    val MinLabelSize = 13.sp
+    /**
+     * Minimum label size anywhere in the app. 16 sp on this 148 dpi panel is ~8 arc-minutes at the
+     * driver's 70 cm; anything read while driving uses 20 sp+ (ISO 15008 asks for 12'+).
+     */
+    val MinLabelSize = 16.sp
 
     private fun numeric(size: Float, line: Float, weight: FontWeight = FontWeight.Bold, tracking: Float = 0f) = TextStyle(
         fontFamily = FontFamilyNumeric,
@@ -83,20 +86,20 @@ object AutomotiveTypographyTokens {
     val DisplayLarge = numeric(70f, 74f, tracking = -1f)
     val DisplayMedium = numeric(44f, 48f, tracking = -0.5f)
     val DisplaySmall = numeric(32f, 36f)
-    val HeadlineLarge = numeric(26f, 30f)
-    val HeadlineMedium = numeric(21f, 25f)
-    val HeadlineSmall = numeric(18f, 22f, weight = FontWeight.SemiBold)
+    val HeadlineLarge = numeric(28f, 32f)
+    val HeadlineMedium = numeric(24f, 28f)
+    val HeadlineSmall = numeric(20f, 24f, weight = FontWeight.SemiBold)
 
-    // ---- Labels (Inter, Medium 500 / SemiBold 600; 13 sp minimum) ----
-    val TitleLarge = label(18f, 24f, FontWeight.SemiBold)
-    val TitleMedium = label(16f, 21f, FontWeight.SemiBold)
-    val TitleSmall = label(14f, 19f, FontWeight.SemiBold)
-    val BodyLarge = label(16f, 22f)
-    val BodyMedium = label(14f, 20f)
-    val BodySmall = label(13f, 18f)
-    val LabelLarge = label(15f, 20f, FontWeight.SemiBold, 0.1f)
-    val LabelMedium = label(13f, 18f, FontWeight.SemiBold, 0.15f)
-    val LabelSmall = label(13f, 17f, FontWeight.SemiBold, 0.2f)
+    // ---- Labels (Inter, Medium 500 / SemiBold 600; 16 sp minimum) ----
+    val TitleLarge = label(22f, 28f, FontWeight.SemiBold)
+    val TitleMedium = label(19f, 25f, FontWeight.SemiBold)
+    val TitleSmall = label(17f, 22f, FontWeight.SemiBold)
+    val BodyLarge = label(18f, 25f)
+    val BodyMedium = label(17f, 23f)
+    val BodySmall = label(16f, 21f)
+    val LabelLarge = label(17f, 22f, FontWeight.SemiBold)
+    val LabelMedium = label(16f, 20f, FontWeight.SemiBold)
+    val LabelSmall = label(16f, 20f, FontWeight.Medium)
 
     // Dedicated numeric variants
     val NumericClock = numeric(52f, 56f, tracking = -0.5f)

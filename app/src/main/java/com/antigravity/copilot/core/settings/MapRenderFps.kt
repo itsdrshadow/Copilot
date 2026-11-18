@@ -17,22 +17,22 @@ enum class MapRenderFps(
 ) {
     SMOOTH_60(
         id = "smooth_60",
-        displayName = "Smooth (60 FPS)",
-        subtitle = "Maximum smoothness, highest GPU load and heat",
+        displayName = "Smoothest",
+        subtitle = "Silkiest map; the head unit runs warmer",
         idleFps = 60,
         interactiveFps = 60
     ),
     BALANCED_30(
         id = "balanced_30",
-        displayName = "Balanced (30 FPS)",
-        subtitle = "Battery & heat saver, lowest GPU load",
+        displayName = "Battery saver",
+        subtitle = "Keeps the head unit cool; map moves a little less smoothly",
         idleFps = 30,
         interactiveFps = 30
     ),
     SMART_AUTO(
         id = "smart_auto",
-        displayName = "Smart Auto (30 / 60 FPS)",
-        subtitle = "30 FPS while driving, 60 FPS the moment you drag or zoom the map",
+        displayName = "Auto (recommended)",
+        subtitle = "Saves power while driving, goes smooth when you touch the map",
         idleFps = 30,
         interactiveFps = 60
     );

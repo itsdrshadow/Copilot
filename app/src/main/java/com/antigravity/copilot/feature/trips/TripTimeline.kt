@@ -186,7 +186,7 @@ private fun TimelineRow(
     nextColor: Color?
 ) {
     val c = CockpitTheme.colors
-    val timeStr = remember(event.timestamp) { SimpleDateFormat("h:mm:ss a", Locale.getDefault()).format(Date(event.timestamp)) }
+    val timeStr = remember(event.timestamp) { SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(event.timestamp)) }
     val accent = event.accentColor
     val major = event.kind == TimelineKind.START || event.kind == TimelineKind.END
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -196,12 +196,6 @@ private fun TimelineRow(
             horizontalAlignment = Alignment.End
         ) {
             Text(timeStr, style = CockpitTheme.typography.labelLarge, color = c.textPrimary, maxLines = 1)
-            Text(
-                if (isFirst) "start" else "+${formatElapsed(elapsedMs)}",
-                style = CockpitTheme.typography.labelMedium,
-                color = c.textSecondary,
-                maxLines = 1
-            )
         }
         // Rail + node
         Box(modifier = Modifier.width(48.dp).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
@@ -251,7 +245,7 @@ private fun TimelineRow(
                 )
                 if (event.distanceKm >= 0) {
                     Text(
-                        NumberFormatUtils.formatDistanceWithUnit(event.distanceKm, 2),
+                        NumberFormatUtils.formatDistanceWithUnit(event.distanceKm),
                         style = CockpitTheme.typography.labelLarge,
                         color = c.textSecondary,
                         maxLines = 1
@@ -295,9 +289,10 @@ private fun TimelineGlance(trip: TripEntity, events: List<TimelineEvent>, durati
         }
         total
     }
-    val brakes = events.count { it.kind == TimelineKind.HARD_BRAKE }
-    val accels = events.count { it.kind == TimelineKind.HARD_ACCEL }
-    val peak = events.firstOrNull { it.kind == TimelineKind.PEAK_SPEED }?.speedKmh ?: trip.maxSpeedKmh.toFloat()
+    // Same numbers as the Route replay and Charts views: the trip's saved record.
+    val brakes = trip.brakeCount
+    val accels = trip.accelCount
+    val peak = trip.maxSpeedKmh.toFloat()
     Column(
         modifier = modifier
             .clip(CopilotShapes.R12)
@@ -308,12 +303,12 @@ private fun TimelineGlance(trip: TripEntity, events: List<TimelineEvent>, durati
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("At a glance", style = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = c.textPrimary)
-        GlanceRow("Duration", formatDurationHoursMinutes(durationMs), c.accentText)
-        GlanceRow("Distance", NumberFormatUtils.formatDistanceWithUnit(trip.distanceMeters / 1000.0, 2), c.textPrimary)
+        GlanceRow("Duration", formatDurationHoursMinutes(durationMs), c.textPrimary)
+        GlanceRow("Distance", NumberFormatUtils.formatDistanceWithUnit(trip.distanceMeters / 1000.0), c.textPrimary)
         GlanceRow("Top speed", NumberFormatUtils.formatSpeedWithUnit(peak, 0), c.textPrimary)
-        GlanceRow("Stops", if (stops > 0) "$stops · ${formatDurationHoursMinutes(stoppedMs)}" else "None", c.warningText)
+        GlanceRow("Stops", if (stops > 0) "$stops · ${formatDurationHoursMinutes(stoppedMs)}" else "None", if (stops > 0) c.warningText else c.textPrimary)
         GlanceRow("Hard braking", "$brakes", if (brakes > 0) c.criticalText else c.positiveText)
-        GlanceRow("Quick accel.", "$accels", if (accels > 0) c.warningText else c.positiveText)
+        GlanceRow("Quick starts", "$accels", if (accels > 0) c.warningText else c.positiveText)
         val smooth = (100 - brakes * 8 - accels * 5).coerceIn(0, 100)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row {

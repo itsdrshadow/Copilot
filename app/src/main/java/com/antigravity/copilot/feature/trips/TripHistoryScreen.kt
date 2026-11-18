@@ -200,29 +200,14 @@ fun TripHistoryScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Trip Records",
+                                text = "Trips",
                                 style = CockpitTheme.typography.headlineLarge,
                                 color = CockpitTheme.colors.textPrimary
                             )
-
-                            // Year Pill
-                            Box(
-                                modifier = Modifier
-                                    .cockpitSurface(CockpitTheme.colors.border, Palette.Sky400.copy(alpha = 0.35f), CopilotShapes.R6)
-                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                            ) {
-                                Text(
-                                    text = "$selectedYear",
-                                    style = CockpitTheme.typography.labelSmall.copy(
-                                        fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                                    ),
-                                    color = Palette.Sky400
-                                )
-                            }
                         }
 
                         Text(
-                            text = "${yearlyAnalytics.totalTrips} trips in $selectedYear  •  ${NumberFormatUtils.formatPrecision(yearlyAnalytics.totalDistanceKm, 0)} km driven",
+                            text = "${yearlyAnalytics.totalTrips} ${if (yearlyAnalytics.totalTrips == 1) "trip" else "trips"} in $selectedYear  ·  ${NumberFormatUtils.formatDistance(yearlyAnalytics.totalDistanceKm, 0)} km driven",
                             style = CockpitTheme.typography.bodyMedium,
                             color = CockpitTheme.colors.textSecondary
                         )
@@ -234,8 +219,8 @@ fun TripHistoryScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Year Selector
-                    LazyRow(
+                    // Year Selector: only when there is more than one year to pick from.
+                    if (availableYears.size > 1) LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -257,7 +242,7 @@ fun TripHistoryScreen(
                             ) {
                                 Text(
                                     text = "$year",
-                                    style = CockpitTheme.typography.labelMedium.copy(
+                                    style = CockpitTheme.typography.titleSmall.copy(
                                         fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
                                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                                     ),
@@ -473,52 +458,39 @@ internal fun YearlyTripSummaryBanner(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val none = analytics.totalTrips == 0
         TripStatTile(
             modifier = Modifier.weight(1f),
-            label = "TOTAL TRIPS",
+            label = "Trips",
             value = "${analytics.totalTrips}",
-            unit = "Trips",
+            unit = "",
             color = CockpitTheme.colors.textPrimary
         )
         TripStatTile(
             modifier = Modifier.weight(1.2f),
-            label = "TOTAL DISTANCE",
-            value = NumberFormatUtils.formatDistance(analytics.totalDistanceKm, 2, useGrouping = true),
-            unit = "km",
-            color = Palette.Sky400
+            label = "Distance",
+            value = if (none) "--" else NumberFormatUtils.formatDistance(analytics.totalDistanceKm, 0),
+            unit = if (none) "" else "km",
+            color = CockpitTheme.colors.textPrimary
         )
         TripStatTile(
             modifier = Modifier.weight(1.2f),
-            label = "DRIVING TIME",
-            value = formatDurationHoursMinutes(analytics.totalDrivingDurationMs),
+            label = "Time driving",
+            value = if (none) "--" else formatDurationHoursMinutes(analytics.totalDrivingDurationMs),
             unit = "",
-            color = Palette.Amber500
+            color = CockpitTheme.colors.textPrimary
         )
         TripStatTile(
-            modifier = Modifier.weight(1.15f),
-            label = "AVG SPEED",
-            value = if (analytics.avgSpeedKmh > 0) NumberFormatUtils.formatSpeed(analytics.avgSpeedKmh, 2) else "--",
-            unit = "km/h",
-            color = Palette.Emerald500
-        )
-        TripStatTile(
-            modifier = Modifier.weight(1.15f),
-            label = "MAX SPEED",
-            value = if (analytics.maxSpeedKmh > 0) NumberFormatUtils.formatSpeed(analytics.maxSpeedKmh, 2) else "--",
-            unit = "km/h",
-            color = Palette.Purple500
-        )
-        TripStatTile(
-            modifier = Modifier.weight(1.1f),
-            label = "IDLE TIME",
-            value = formatDurationHoursMinutes(analytics.totalIdleDurationMs),
-            unit = "",
-            color = Palette.Slate400
+            modifier = Modifier.weight(1.2f),
+            label = "Average speed",
+            value = if (none || analytics.avgSpeedKmh <= 0) "--" else NumberFormatUtils.formatSpeed(analytics.avgSpeedKmh),
+            unit = if (none || analytics.avgSpeedKmh <= 0) "" else "km/h",
+            color = CockpitTheme.colors.textPrimary
         )
         if (onToggleInsights != null) {
             Box(
                 modifier = Modifier
-                    .size(62.dp)
+                    .size(width = 84.dp, height = 68.dp)
                     .cockpitSurface(
                         if (insightsExpanded) Palette.Ink600 else Palette.Ink900,
                         if (insightsExpanded) Palette.Sky400 else Palette.Ink800,
@@ -535,7 +507,7 @@ internal fun YearlyTripSummaryBanner(
                         modifier = Modifier.size(22.dp)
                     )
                     Text(
-                        text = "CHARTS",
+                        text = "Charts",
                         style = CockpitTheme.typography.labelSmall,
                         color = if (insightsExpanded) Palette.Sky400 else Palette.Steel400
                     )
@@ -551,7 +523,7 @@ internal fun YearlyTripInsightsRow(analytics: YearlyTripAnalytics) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(170.dp),
+            .height(230.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Column(
@@ -562,9 +534,13 @@ internal fun YearlyTripInsightsRow(analytics: YearlyTripAnalytics) {
                 .padding(10.dp)
         ) {
             Text(
-                text = "DISTANCE BY MONTH • ${analytics.year}",
-                style = CockpitTheme.typography.labelSmall,
-                color = Palette.Steel400
+                text = run {
+                    val active = analytics.monthlyGroups.filter { it.totalDistanceKm > 0.0 }
+                    if (active.isEmpty()) "Distance by month"
+                    else "Distance by month  ·  average ${NumberFormatUtils.formatDistance(active.map { it.totalDistanceKm }.average(), 0)} km (dashed line)"
+                },
+                style = CockpitTheme.typography.titleSmall,
+                color = CockpitTheme.colors.textSecondary
             )
             MonthlyDistanceCanvas(
                 monthlyGroups = analytics.monthlyGroups,
@@ -579,9 +555,9 @@ internal fun YearlyTripInsightsRow(analytics: YearlyTripAnalytics) {
                 .padding(10.dp)
         ) {
             Text(
-                text = "TRIPS BY WEEKDAY",
-                style = CockpitTheme.typography.labelSmall,
-                color = Palette.Steel400
+                text = "Trips by day of week",
+                style = CockpitTheme.typography.titleSmall,
+                color = CockpitTheme.colors.textSecondary
             )
             WeeklyDrivingPatternCanvas(
                 distribution = analytics.weeklyDistribution,
@@ -601,7 +577,7 @@ internal fun TripStatTile(
 ) {
     Box(
         modifier = modifier
-            .defaultMinSize(minHeight = 62.dp)
+            .defaultMinSize(minHeight = 72.dp)
             .cockpitSurface(Palette.Ink900, Palette.Ink800, CopilotShapes.R10)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
@@ -616,7 +592,7 @@ internal fun TripStatTile(
             ) {
                 Text(
                     text = value,
-                    style = CockpitTheme.typography.headlineLarge.copy(
+                    style = CockpitTheme.typography.displaySmall.copy(
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                         platformStyle = PlatformTextStyle(includeFontPadding = false)
                     ),
@@ -626,7 +602,7 @@ internal fun TripStatTile(
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = unit,
-                        style = CockpitTheme.typography.labelSmall.copy(
+                        style = CockpitTheme.typography.labelLarge.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum",
                             platformStyle = PlatformTextStyle(includeFontPadding = false)
                         ),
@@ -638,8 +614,7 @@ internal fun TripStatTile(
             Spacer(modifier = Modifier.height(3.dp))
             Text(
                 text = label,
-                style = CockpitTheme.typography.labelSmall.copy(
-                    letterSpacing = 0.4.sp,
+                style = CockpitTheme.typography.labelMedium.copy(
                     platformStyle = PlatformTextStyle(includeFontPadding = false)
                 ),
                 color = Palette.Steel400,
@@ -659,7 +634,8 @@ internal fun TripListGroupedFeed(
     modifier: Modifier = Modifier
 ) {
     val activeMonthGroups = remember(analytics) {
-        analytics.monthlyGroups.filter { it.trips.isNotEmpty() }
+        // Newest month first, matching the newest-first trips inside each month.
+        analytics.monthlyGroups.filter { it.trips.isNotEmpty() }.sortedByDescending { it.year * 12 + it.monthIndex }
     }
 
     if (activeMonthGroups.isEmpty()) {
@@ -687,13 +663,13 @@ internal fun TripListGroupedFeed(
                     )
                 }
                 Text(
-                    text = "No Trips in ${analytics.year}",
+                    text = "No trips yet in ${analytics.year}",
                     style = CockpitTheme.typography.titleMedium,
                     color = CockpitTheme.colors.textPrimary
                 )
                 Text(
-                    text = "Drive to record telemetry trips with high-precision GPS playback.",
-                    style = CockpitTheme.typography.bodySmall,
+                    text = "Trips are saved by themselves when you drive. You can replay each one here.",
+                    style = CockpitTheme.typography.bodyMedium,
                     color = Palette.Steel400
                 )
             }
@@ -703,7 +679,7 @@ internal fun TripListGroupedFeed(
         // are composed (a busy month no longer composes hundreds of cards at once).
         LazyColumn(
             modifier = modifier,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             activeMonthGroups.forEach { group ->
                 val monthKey = "${group.year}-${group.monthIndex}"
@@ -746,28 +722,24 @@ private fun TripMonthHeader(
             .fillMaxWidth()
             .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R14)
             .clickable(onClick = onToggle)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .heightIn(min = 52.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = "${group.monthName} ${group.year}",
-                style = CockpitTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Black
-                ),
+                style = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 color = CockpitTheme.colors.textPrimary
             )
-            PillBadge(
-                text = "${group.trips.size} trips",
-                color = Palette.Slate400
-            )
-            PillBadge(
-                text = NumberFormatUtils.formatDistanceWithUnit(group.totalDistanceKm, 2),
-                color = Palette.Sky400
+            Text(
+                text = "${group.trips.size} ${if (group.trips.size == 1) "trip" else "trips"} · ${NumberFormatUtils.formatDistanceWithUnit(group.totalDistanceKm)}",
+                style = CockpitTheme.typography.bodyMedium,
+                color = CockpitTheme.colors.textSecondary
             )
         }
 
@@ -776,7 +748,7 @@ private fun TripMonthHeader(
             contentDescription = if (isExpanded) "Collapse" else "Expand",
             tint = Palette.Steel400,
             modifier = Modifier
-                .size(18.dp)
+                .size(26.dp)
                 .rotate(arrowRotation)
         )
     }
@@ -790,14 +762,14 @@ internal fun TripCardItem(
     modifier: Modifier = Modifier
 ) {
     // Formatters are costly to build; create them once per row, not on every recomposition.
-    val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+    val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     val dateFormat = remember { SimpleDateFormat("dd MMM", Locale.getDefault()) }
     val dayKeyFormat = remember { SimpleDateFormat("yyyyMMdd", Locale.US) }
     val startStr = timeFormat.format(Date(trip.startTime))
     val endStr = if (trip.endTime > trip.startTime) timeFormat.format(Date(trip.endTime)) else ""
     val dateStr = dateFormat.format(Date(trip.startTime))
 
-    val distanceKm = NumberFormatUtils.formatDistance(trip.distanceMeters / 1000.0, 2)
+    val distanceKm = NumberFormatUtils.formatDistance(trip.distanceMeters / 1000.0)
     val wallClockDurationMs = if (trip.endTime > trip.startTime) (trip.endTime - trip.startTime) else (trip.drivingDurationMs + trip.stationaryDurationMs)
     val activeDurationMs = trip.drivingDurationMs + trip.stationaryDurationMs
     val isMultiDay = (trip.endTime > trip.startTime) && (
@@ -805,16 +777,16 @@ internal fun TripCardItem(
         dayKeyFormat.format(Date(trip.startTime)) != dayKeyFormat.format(Date(trip.endTime))
     )
     val durationText = if (isMultiDay) {
-        val wallText = com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(wallClockDurationMs)
-        val activeText = com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(activeDurationMs)
-        "$wallText ($activeText active)"
+        val wallText = com.antigravity.copilot.core.trip.TimeFormatUtils.formatFriendlyDuration(wallClockDurationMs)
+        val activeText = com.antigravity.copilot.core.trip.TimeFormatUtils.formatFriendlyDuration(activeDurationMs)
+        "$wallText ($activeText on the road)"
     } else {
-        com.antigravity.copilot.core.trip.TimeFormatUtils.formatAdaptiveDuration(activeDurationMs)
+        com.antigravity.copilot.core.trip.TimeFormatUtils.formatFriendlyDuration(activeDurationMs)
     }
     val dateDisplayStr = if (isMultiDay) {
         "${dateFormat.format(Date(trip.startTime))} $startStr -> ${dateFormat.format(Date(trip.endTime))} $endStr"
     } else {
-        "$dateStr • $startStr${if (endStr.isNotBlank()) " - $endStr" else ""}"
+        "$dateStr · $startStr${if (endStr.isNotBlank()) " – $endStr" else ""}"
     }
 
     Box(
@@ -828,9 +800,9 @@ internal fun TripCardItem(
                 shape = CopilotShapes.R12
             )
             .clickable { onClick() }
-            .padding(10.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             // Origin ➔ Destination and Distance
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -841,14 +813,14 @@ internal fun TripCardItem(
                     val title = tripTitle(trip, LocalTripViaNames.current[trip.id])
                     Text(
                         text = title.title,
-                        style = CockpitTheme.typography.titleSmall,
+                        style = CockpitTheme.typography.titleMedium,
                         color = CockpitTheme.colors.textPrimary,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
                     Text(
                         text = dateDisplayStr,
-                        style = CockpitTheme.typography.bodySmall.copy(
+                        style = CockpitTheme.typography.bodyMedium.copy(
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
                         color = Palette.Steel400
@@ -859,10 +831,10 @@ internal fun TripCardItem(
 
                 Text(
                     text = "$distanceKm km",
-                    style = CockpitTheme.typography.titleLarge.copy(
+                    style = CockpitTheme.typography.headlineLarge.copy(
                         fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                     ),
-                    color = if (isSelected) Palette.Sky400 else CockpitTheme.colors.textPrimary
+                    color = CockpitTheme.colors.textPrimary
                 )
             }
 
@@ -876,48 +848,27 @@ internal fun TripCardItem(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    Icon(Icons.Default.Schedule, contentDescription = null, tint = CockpitTheme.colors.textSecondary, modifier = Modifier.size(18.dp))
                     Text(
-                        text = "⏱️ $durationText",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Slate300
+                        text = "$durationText  ·  ${NumberFormatUtils.formatSpeed(trip.avgSpeedKmh)} km/h avg",
+                        style = CockpitTheme.typography.bodyMedium,
+                        color = CockpitTheme.colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Text(text = "•", style = CockpitTheme.typography.labelSmall, color = Palette.Slate600)
-                    Text(
-                        text = "${NumberFormatUtils.formatSpeed(trip.avgSpeedKmh, 2)} km/h avg",
-                        style = CockpitTheme.typography.labelSmall.copy(
-                            fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                        ),
-                        color = Palette.Slate300
-                    )
-                    if (trip.maxSpeedKmh > 0) {
-                        Text(text = "•", style = CockpitTheme.typography.labelSmall, color = Palette.Slate600)
-                        Text(
-                            text = "max ${NumberFormatUtils.formatSpeed(trip.maxSpeedKmh, 2)}",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
-                            ),
-                            color = Palette.Purple500
-                        )
-                    }
                 }
 
-                val scoreColor = when {
-                    trip.driverScore >= 88 -> Palette.Emerald500
-                    trip.driverScore >= 72 -> Palette.Amber500
-                    else -> Palette.Red500
-                }
+                val scoreColor = driveScoreColor(trip.driverScore)
                 Box(
                     modifier = Modifier
                         .clip(CopilotShapes.R6)
                         .background(scoreColor.copy(alpha = 0.15f))
                         .border(1.dp, scoreColor.copy(alpha = 0.35f), CopilotShapes.R6)
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "Score ${trip.driverScore}",
-                        style = CockpitTheme.typography.labelSmall.copy(
+                        text = "${trip.driverScore} · ${driveScoreWord(trip.driverScore)}",
+                        style = CockpitTheme.typography.labelMedium.copy(
                             fontWeight = FontWeight.Black,
                             fontFamily = AutomotiveDesignTokens.NumericTypography.fontFamily, fontFeatureSettings = "tnum"
                         ),
@@ -939,3 +890,17 @@ internal fun PillBadge(text: String, color: Color) = TintedBadge(
         fontFeatureSettings = "tnum"
     )
 )
+
+/** T8: three plain bands for the drive score, used for both the word and the chip colour. */
+internal fun driveScoreWord(score: Int): String = when {
+    score >= 80 -> "Smooth"
+    score >= 60 -> "Okay"
+    else -> "Rough"
+}
+
+@Composable
+internal fun driveScoreColor(score: Int): Color = when {
+    score >= 80 -> CockpitTheme.colors.positive
+    score >= 60 -> CockpitTheme.colors.warning
+    else -> CockpitTheme.colors.critical
+}

@@ -471,7 +471,7 @@
         "text-font": [
           "Noto Sans Regular"
         ],
-        "text-size": 13,
+        "text-size": 15,
         "symbol-placement": "point",
         "text-max-width": 8
       },
@@ -527,19 +527,7 @@
         ],
         "symbol-placement": "line",
         "text-rotation-alignment": "map",
-        "text-size": [
-          "interpolate",
-          [
-            "linear"
-          ],
-          [
-            "zoom"
-          ],
-          13,
-          11,
-          17,
-          15
-        ],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 13, 14, 17, 20],
         "symbol-spacing": 350
       },
       "paint": {
@@ -581,7 +569,7 @@
         "text-font": [
           "Noto Sans Medium"
         ],
-        "text-size": 11,
+        "text-size": 14,
         "icon-image": "shield",
         "icon-text-fit": "both",
         "icon-text-fit-padding": [
@@ -680,7 +668,7 @@
         "text-font": [
           "Noto Sans Regular"
         ],
-        "text-size": 12,
+        "text-size": 15,
         "text-anchor": "top",
         "text-offset": [
           0,
@@ -738,19 +726,7 @@
         "text-font": [
           "Noto Sans Regular"
         ],
-        "text-size": [
-          "interpolate",
-          [
-            "linear"
-          ],
-          [
-            "zoom"
-          ],
-          11,
-          11,
-          16,
-          14
-        ],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11, 14, 16, 18],
         "text-max-width": 8,
         "text-transform": "uppercase",
         "text-letter-spacing": 0.05
@@ -802,38 +778,7 @@
           "Noto Sans Medium"
         ],
         "text-max-width": 8,
-        "text-size": [
-          "interpolate",
-          [
-            "linear"
-          ],
-          [
-            "zoom"
-          ],
-          5,
-          [
-            "match",
-            [
-              "get",
-              "class"
-            ],
-            "city",
-            13,
-            10
-          ],
-          12,
-          [
-            "match",
-            [
-              "get",
-              "class"
-            ],
-            "city",
-            20,
-            15
-          ]
-        ]
-      },
+        "text-size": ["interpolate", ["linear"], ["zoom"], 5, ["match", ["get", "class"], "city", 16, 13], 12, ["match", ["get", "class"], "city", 24, 18]]},
       "paint": {
         "text-color": "#FFFFFF",
         "text-halo-color": "#0F172A",

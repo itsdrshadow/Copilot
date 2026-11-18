@@ -88,6 +88,9 @@ fun FuelEntryDialog(
     // True once the driver types into the odometer field: only then is it a real reading.
     var odometerEdited by remember { mutableStateOf(false) }
     var totalAmountText by remember { mutableStateOf("") }
+    // L4: the first field can take litres instead of rupees (the bill is then litres x price).
+    var byLitres by remember { mutableStateOf(false) }
+    var litresText by remember { mutableStateOf("") }
     var pricePerLiterText by remember {
         mutableStateOf(
             if (fuelState.fuelPricePerLiter > 0) NumberFormatUtils.formatPrecision(fuelState.fuelPricePerLiter, 2) else "96.50"
@@ -115,8 +118,9 @@ fun FuelEntryDialog(
     // ---- Calculations ----
     // An empty / zero rate is invalid; never silently substitute a default price.
     val pricePerLiter = pricePerLiterText.toDoubleOrNull() ?: 0.0
-    val totalAmount = totalAmountText.toDoubleOrNull() ?: 0.0
-    val dispensedLiters = if (pricePerLiter > 0.0) totalAmount / pricePerLiter else 0.0
+    val dispensedLiters = if (byLitres) (litresText.toDoubleOrNull() ?: 0.0)
+        else if (pricePerLiter > 0.0) (totalAmountText.toDoubleOrNull() ?: 0.0) / pricePerLiter else 0.0
+    val totalAmount = if (byLitres) dispensedLiters * pricePerLiter else (totalAmountText.toDoubleOrNull() ?: 0.0)
 
     val designCap = fuelState.designCapacityLiters.coerceAtLeast(30.0)
     // The tank the fuel model really uses (learned usable capacity), the same one the home card's
@@ -149,17 +153,17 @@ fun FuelEntryDialog(
     // A dispensed volume the tank can physically hold (5 % slack for the filler neck).
     val exceedsTankCapacity = dispensedLiters > designCap * 1.05
     val validationError = when {
-        totalAmount > 0.0 && !isPriceValid -> "Enter a valid fuel rate (₹/L)"
+        (totalAmount > 0.0 || dispensedLiters > 0.0) && !isPriceValid -> "Enter a valid fuel rate (₹/L)"
         exceedsTankCapacity ->
             "${NumberFormatUtils.formatPrecision(dispensedLiters, 1)} L is more than the ${designCap.toInt()} L tank. Check the amount and rate."
         !isOdometerValid -> "Enter a valid odometer reading"
         else -> null
     }
-    val isFormValid = totalAmount > 0.0 && validationError == null
+    val isFormValid = totalAmount > 0.0 && dispensedLiters > 0.0 && validationError == null
 
     fun edit(field: ActiveFuelField, f: (String) -> String) {
         when (field) {
-            ActiveFuelField.AMOUNT -> totalAmountText = f(totalAmountText)
+            ActiveFuelField.AMOUNT -> if (byLitres) litresText = f(litresText) else totalAmountText = f(totalAmountText)
             ActiveFuelField.RATE -> pricePerLiterText = f(pricePerLiterText)
             ActiveFuelField.ODOMETER -> {
                 // First key replaces the pre-filled hint rather than appending to it.
@@ -187,8 +191,8 @@ fun FuelEntryDialog(
         }
     }
 
-    val amountColor = c.positive
-    val rateColor = c.warning
+    val amountColor = c.accent
+    val rateColor = c.accent
     val odoColor = c.accent
 
     RaahiDialogHost(onDismissRequest = onDismiss, maxWidth = 1160.dp) {
@@ -205,17 +209,15 @@ fun FuelEntryDialog(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(Raahi.InnerShape)
-                        .background(
-                            Brush.linearGradient(listOf(c.warning.copy(alpha = 0.35f), c.critical.copy(alpha = 0.20f)))
-                        )
-                        .border(1.dp, c.warning.copy(alpha = 0.55f), Raahi.InnerShape),
+                        .background(c.accent.copy(alpha = 0.14f))
+                        .border(1.dp, c.accent.copy(alpha = 0.45f), Raahi.InnerShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.warning, modifier = Modifier.size(30.dp))
+                    Icon(Icons.Outlined.LocalGasStation, contentDescription = null, tint = c.accent, modifier = Modifier.size(30.dp))
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        "Log Fuel",
+                        "Add fuel",
                         style = CockpitTheme.typography.titleLarge.copy(fontSize = 26.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold),
                         color = c.textPrimary
                     )
@@ -260,11 +262,12 @@ fun FuelEntryDialog(
                 Column(modifier = Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         FuelField(
-                            label = "Amount paid",
-                            icon = Icons.Outlined.Payments,
+                            label = if (byLitres) "Litres filled" else "Amount paid",
+                            icon = if (byLitres) Icons.Outlined.LocalGasStation else Icons.Outlined.Payments,
                             accent = amountColor,
-                            prefix = "₹",
-                            value = totalAmountText.ifEmpty { "0" },
+                            prefix = if (byLitres) null else "₹",
+                            suffix = if (byLitres) "L" else null,
+                            value = (if (byLitres) litresText else totalAmountText).ifEmpty { "0" },
                             active = activeField == ActiveFuelField.AMOUNT,
                             onClick = { activeField = ActiveFuelField.AMOUNT },
                             modifier = Modifier.weight(1.1f)
@@ -282,7 +285,7 @@ fun FuelEntryDialog(
                     }
                     FuelField(
                         label = when {
-                            !odometerEdited -> "Odometer (optional, tap to enter)"
+                            !odometerEdited -> "Odometer · app reading, tap to change"
                             odoTripDelta > 0.05 -> "Odometer  +${NumberFormatUtils.formatDistance(odoTripDelta, 1)} km"
                             else -> "Odometer"
                         },
@@ -296,6 +299,42 @@ fun FuelEntryDialog(
                         onClick = { activeField = ActiveFuelField.ODOMETER },
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        com.antigravity.copilot.core.designsystem.components.SegmentedToggle(
+                            options = listOf(false to "₹ Amount", true to "Litres"),
+                            selected = byLitres,
+                            onSelect = {
+                                byLitres = it
+                                activeField = ActiveFuelField.AMOUNT
+                            }
+                        )
+                        // L-N1: one-tap amounts.
+                        listOf(500, 1000, 2000).forEach { amt ->
+                            com.antigravity.copilot.core.designsystem.components.RaahiPill(
+                                text = "₹$amt",
+                                color = c.accent,
+                                onClick = {
+                                    byLitres = false
+                                    totalAmountText = "$amt"
+                                    activeField = ActiveFuelField.AMOUNT
+                                }
+                            )
+                        }
+                        com.antigravity.copilot.core.designsystem.components.RaahiPill(
+                            text = "Full tank",
+                            color = c.positive,
+                            onClick = {
+                                byLitres = true
+                                litresText = NumberFormatUtils.formatPrecision((tankCap - currentFuelLiters).coerceAtLeast(0.0), 1)
+                                fullTankOverride = true
+                                activeField = ActiveFuelField.AMOUNT
+                            }
+                        )
+                    }
 
                     RefuelProjectionCard(
                         currentPoints = currentPoints,
@@ -332,7 +371,7 @@ fun FuelEntryDialog(
                             enabled = isFormValid,
                             onClick = {
                                 if (!isFormValid) {
-                                    Toast.makeText(context, validationError ?: "Enter the refuel amount", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, validationError ?: "Enter the amount or litres", Toast.LENGTH_SHORT).show()
                                     return@SaveFuelButton
                                 }
                                 onSaveRefuel(
@@ -383,9 +422,9 @@ fun FuelEntryDialog(
                                 TactileKeypadButton(
                                     text = if (isBack) "" else k,
                                     icon = if (isBack) Icons.AutoMirrored.Outlined.Backspace else null,
-                                    accentColor = if (isBack) c.warning else c.textPrimary,
-                                    backgroundColor = if (isBack) c.warning.copy(alpha = 0.12f) else c.card,
-                                    idleBorderColor = if (isBack) c.warning.copy(alpha = 0.45f) else c.border,
+                                    accentColor = c.textPrimary,
+                                    backgroundColor = c.card,
+                                    idleBorderColor = c.border,
                                     textStyle = keyStyle,
                                     shape = Raahi.InnerShape,
                                     showRipple = true,
@@ -398,9 +437,9 @@ fun FuelEntryDialog(
                     Row(modifier = Modifier.weight(0.85f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TactileKeypadButton(
                             text = "Clear",
-                            accentColor = c.criticalText,
-                            backgroundColor = c.critical.copy(alpha = 0.12f),
-                            idleBorderColor = c.critical.copy(alpha = 0.45f),
+                            accentColor = c.textPrimary,
+                            backgroundColor = c.card,
+                            idleBorderColor = c.border,
                             textStyle = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             shape = Raahi.InnerShape,
                             showRipple = true,
@@ -547,19 +586,19 @@ private fun FullTankToggle(checked: Boolean, onToggle: () -> Unit) {
 @Composable
 private fun SaveFuelButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val c = CockpitTheme.colors
-    val bg = if (enabled) c.positive else c.cardElevated
-    val fg = if (enabled) contentColorOn(c.positive) else c.textDisabled
+    val bg = if (enabled) c.accent else c.cardElevated
+    val fg = if (enabled) contentColorOn(c.accent) else c.textSecondary
     Row(
         modifier = modifier
             .height(60.dp)
             .clip(Raahi.InnerShape)
             .background(bg)
-            .border(1.dp, if (enabled) c.positive else c.border, Raahi.InnerShape)
+            .border(1.dp, if (enabled) c.accent else c.border, Raahi.InnerShape)
             .clickable(role = Role.Button, onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(Icons.Outlined.Check, contentDescription = null, tint = fg, modifier = Modifier.size(26.dp))
-        Text("Save refuel", style = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = fg)
+        Text("Save fill-up", style = CockpitTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = fg)
     }
 }

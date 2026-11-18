@@ -96,6 +96,7 @@ fun OfflineMapsManagerContent(
         viewModel.messages.collect { msg -> Toast.makeText(context, msg, Toast.LENGTH_LONG).show() }
     }
     var editingPackageForUrl by remember { mutableStateOf<OfflineMapManager.OfflinePackage?>(null) }
+    var pendingDelete by remember { mutableStateOf<OfflineMapManager.OfflinePackage?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.refresh()
@@ -138,15 +139,15 @@ fun OfflineMapsManagerContent(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "OFFLINE MAPS MANAGER",
+                            text = "Offline maps",
                             fontFamily = com.antigravity.copilot.core.designsystem.typography.GoogleSansFamily,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 19.sp,
+                            fontSize = 26.sp,
                             color = CockpitTheme.colors.textPrimary
                         )
                         Text(
-                            text = "India PMTiles vector map, 100% offline (Max 15 GB Budget)",
-                            fontSize = 12.sp,
+                            text = "Maps that work without internet",
+                            fontSize = 17.sp,
                             color = CockpitTheme.colors.textSecondary
                         )
                     }
@@ -177,10 +178,6 @@ fun OfflineMapsManagerContent(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Live GPS Detected Region Pill Banner
-            CurrentGpsRegionBanner(currentGpsRegion = currentGpsRegion)
-
-            Spacer(modifier = Modifier.height(10.dp))
 
             // Active Download Progress Card
             AnimatedVisibility(
@@ -232,7 +229,7 @@ fun OfflineMapsManagerContent(
                         Text(
                             text = usbImportProgressText ?: "Importing...",
                             color = CockpitTheme.colors.accent,
-                            fontSize = 13.sp
+                            fontSize = 17.sp
                         )
                     }
                 }
@@ -257,7 +254,7 @@ fun OfflineMapsManagerContent(
                             Toast.makeText(context, "Starting download for ${pkg.title}", Toast.LENGTH_SHORT).show()
                             viewModel.startDownload(pkg.id)
                         },
-                        onDelete = { viewModel.deletePackage(pkg.id) },
+                        onDelete = { pendingDelete = pkg },
                         onUpdate = { viewModel.startDownload(pkg.id) },
                         onEditUrl = { editingPackageForUrl = pkg }
                     )
@@ -290,11 +287,23 @@ fun OfflineMapsManagerContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "IMPORT MAP FILE",
+                        text = "Import map file",
                         fontWeight = FontWeight.Bold,
                         color = contentColorOn(CockpitTheme.colors.border),
-                        fontSize = 13.sp
+                        fontSize = 17.sp
                     )
+                }
+
+                // Advanced: the download server address, kept out of the main list.
+                OutlinedButton(
+                    onClick = { editingPackageForUrl = installedPackages.firstOrNull() },
+                    enabled = installedPackages.isNotEmpty(),
+                    modifier = Modifier.height(52.dp),
+                    shape = CopilotShapes.R12
+                ) {
+                    Icon(imageVector = Icons.Default.Link, contentDescription = null, tint = CockpitTheme.colors.textSecondary, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Advanced", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = CockpitTheme.colors.textPrimary)
                 }
 
                 // Check for Updates Button
@@ -317,12 +326,27 @@ fun OfflineMapsManagerContent(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "CHECK FOR UPDATES",
+                        text = "Check for updates",
                         fontWeight = FontWeight.Bold,
                         color = CockpitTheme.colors.textPrimary,
-                        fontSize = 13.sp
+                        fontSize = 17.sp
                     )
                 }
+            }
+
+            pendingDelete?.let { pkg ->
+                com.antigravity.copilot.core.designsystem.components.RaahiConfirmDialog(
+                    title = "Delete the ${friendlyMapTitle(pkg.title)}?",
+                    message = "The map will stop working offline until you download or import it again.",
+                    confirmText = "Delete map",
+                    destructive = true,
+                    icon = Icons.Default.Delete,
+                    onConfirm = {
+                        viewModel.deletePackage(pkg.id)
+                        pendingDelete = null
+                    },
+                    onDismiss = { pendingDelete = null }
+                )
             }
 
             // Custom Download URL Editor Dialog
@@ -342,53 +366,6 @@ fun OfflineMapsManagerContent(
                     },
                     onDismiss = { editingPackageForUrl = null }
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun CurrentGpsRegionBanner(currentGpsRegion: OfflineMapManager.OfflinePackage?) {
-    Surface(
-        color = CockpitTheme.colors.border,
-        shape = CopilotShapes.R12,
-        border = androidx.compose.foundation.BorderStroke(1.dp, CockpitTheme.colors.accent.copy(alpha = 0.35f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.GpsFixed,
-                contentDescription = null,
-                tint = CockpitTheme.colors.accent,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "CURRENT GPS REGION: ",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp,
-                        color = CockpitTheme.colors.textSecondary
-                    )
-                    Text(
-                        text = currentGpsRegion?.title ?: "Detecting Location...",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = CockpitTheme.colors.accent
-                    )
-                }
-                if (!currentGpsRegion?.coveredStates.isNullOrBlank()) {
-                    Text(
-                        text = currentGpsRegion?.coveredStates ?: "",
-                        fontSize = 10.sp,
-                        color = CockpitTheme.colors.textSecondary,
-                        maxLines = 1
-                    )
-                }
             }
         }
     }
@@ -425,15 +402,15 @@ private fun StorageBudgetCard(storageInfo: OfflineMapManager.StorageBudgetInfo) 
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "DEVICE STORAGE BUDGET",
+                        text = "Storage",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
+                        fontSize = 17.sp,
                         color = CockpitTheme.colors.textPrimary
                     )
                 }
                 Text(
-                    text = String.format("%.1f GB Free of %.1f GB (Maps: %.2f GB)", freeGb, totalGb, usedOfflineGb),
-                    fontSize = 12.sp,
+                    text = String.format("Maps use %.1f GB · %.1f GB free", usedOfflineGb, freeGb),
+                    fontSize = 17.sp,
                     color = if (storageInfo.isLowStorageWarning) CockpitTheme.colors.critical else CockpitTheme.colors.accent,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -470,8 +447,8 @@ private fun StorageBudgetCard(storageInfo: OfflineMapManager.StorageBudgetInfo) 
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "WARNING: Free storage below 2.0 GB. Clean up unused regional maps.",
-                        fontSize = 11.sp,
+                        text = "Storage is almost full (under 2 GB free).",
+                        fontSize = 16.sp,
                         color = CockpitTheme.colors.critical,
                         fontWeight = FontWeight.Medium
                     )
@@ -506,7 +483,7 @@ private fun ActiveDownloadCard(
                 Text(
                     text = packageTitle,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 19.sp,
                     color = CockpitTheme.colors.textPrimary
                 )
                 Text(
@@ -514,7 +491,7 @@ private fun ActiveDownloadCard(
                         OfflineMapManager.DownloadState.PAUSED_USER -> "Paused"
                         else -> String.format("%.1f%% (%.1f MB/s)", progress * 100f, speedMbs)
                     },
-                    fontSize = 13.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = CockpitTheme.colors.accent
                 )
@@ -548,7 +525,7 @@ private fun ActiveDownloadCard(
                 ) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("CANCEL", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CockpitTheme.colors.textPrimary)
+                    Text("Cancel", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = CockpitTheme.colors.textPrimary)
                 }
 
                 Spacer(modifier = Modifier.width(10.dp))
@@ -568,10 +545,10 @@ private fun ActiveDownloadCard(
                         tint = contentColorOn(if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) CockpitTheme.colors.warning else CockpitTheme.colors.accent))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) "PAUSE" else "RESUME",
+                        text = if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) "Pause" else "Resume",
                         fontWeight = FontWeight.Bold,
                         color = contentColorOn(if (downloadState == OfflineMapManager.DownloadState.DOWNLOADING) CockpitTheme.colors.warning else CockpitTheme.colors.accent),
-                        fontSize = 12.sp
+                        fontSize = 17.sp
                     )
                 }
             }
@@ -608,9 +585,9 @@ private fun PackageItemRow(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = pkg.title,
+                        text = friendlyMapTitle(pkg.title),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
+                        fontSize = 19.sp,
                         color = CockpitTheme.colors.textPrimary
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -621,8 +598,8 @@ private fun PackageItemRow(
                             shape = CopilotShapes.R6
                         ) {
                             Text(
-                                text = "★ GPS REGION",
-                                fontSize = 9.sp,
+                                text = "You are here",
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Black,
                                 color = CockpitTheme.colors.accent,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
@@ -637,8 +614,8 @@ private fun PackageItemRow(
                         shape = CopilotShapes.R6
                     ) {
                         Text(
-                            text = if (pkg.isInstalled) "INSTALLED" else "NOT INSTALLED",
-                            fontSize = 9.sp,
+                            text = if (pkg.isInstalled) "Downloaded" else "Not downloaded",
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (pkg.isInstalled) CockpitTheme.colors.positive else CockpitTheme.colors.textSecondary,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
@@ -650,7 +627,7 @@ private fun PackageItemRow(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = pkg.coveredStates,
-                        fontSize = 11.sp,
+                        fontSize = 16.sp,
                         color = CockpitTheme.colors.accent.copy(alpha = 0.8f),
                         fontWeight = FontWeight.Medium
                     )
@@ -662,9 +639,10 @@ private fun PackageItemRow(
                 } else {
                     "${pkg.estimatedSizeBytes / 1024} KB"
                 }
-                Text(
-                    text = "${pkg.description} • $sizeText",
-                    fontSize = 11.sp,
+                // Installed: the storage card already shows the real size, so no estimate here.
+                if (!pkg.isInstalled) Text(
+                    text = "$sizeText download",
+                    fontSize = 16.sp,
                     color = CockpitTheme.colors.textSecondary
                 )
             }
@@ -673,21 +651,6 @@ private fun PackageItemRow(
 
             // Large Touch Action Buttons
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                // Link / Custom URL button
-                IconButton(
-                    onClick = onEditUrl,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(CockpitTheme.colors.border, CopilotShapes.R8)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Link,
-                        contentDescription = "Configure URL",
-                        tint = CockpitTheme.colors.accent.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
                 if (pkg.isInstalled) {
                     OutlinedButton(
                         onClick = onUpdate,
@@ -695,7 +658,7 @@ private fun PackageItemRow(
                         shape = CopilotShapes.R8,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = CockpitTheme.colors.accent)
                     ) {
-                        Text("UPDATE", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = CockpitTheme.colors.textPrimary)
+                        Text("Update", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = CockpitTheme.colors.textPrimary)
                     }
 
                     OutlinedButton(
@@ -706,7 +669,7 @@ private fun PackageItemRow(
                     ) {
                         Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(3.dp))
-                        Text("DELETE", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = CockpitTheme.colors.textPrimary)
+                        Text("Delete", fontWeight = FontWeight.Bold, fontSize = 17.sp, color = CockpitTheme.colors.textPrimary)
                     }
                 } else {
                     Button(
@@ -726,10 +689,10 @@ private fun PackageItemRow(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "DOWNLOAD",
+                            text = "Download",
                             fontWeight = FontWeight.Bold,
                             color = if (isCurrentGpsMatch) contentColorOn(CockpitTheme.colors.accent) else CockpitTheme.colors.textPrimary,
-                            fontSize = 12.sp
+                            fontSize = 17.sp
                         )
                     }
                 }
@@ -766,9 +729,9 @@ private fun DownloadErrorCard(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "DOWNLOAD FAILED / ERROR",
+                        text = "Download failed",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
+                        fontSize = 19.sp,
                         color = CockpitTheme.colors.critical
                     )
                 }
@@ -788,7 +751,7 @@ private fun DownloadErrorCard(
             Text(
                 text = errorMessage,
                 color = CockpitTheme.colors.textPrimary,
-                fontSize = 12.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Medium
             )
 
@@ -807,7 +770,7 @@ private fun DownloadErrorCard(
                 ) {
                     Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("RETRY", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = contentColorOn(CockpitTheme.colors.critical))
+                    Text("Try again", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = contentColorOn(CockpitTheme.colors.critical))
                 }
 
                 OutlinedButton(
@@ -821,7 +784,7 @@ private fun DownloadErrorCard(
                 ) {
                     Icon(imageVector = Icons.Default.Usb, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("IMPORT FROM USB / STORAGE", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = CockpitTheme.colors.textPrimary)
+                    Text("Import from USB", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = CockpitTheme.colors.textPrimary)
                 }
             }
         }
@@ -849,15 +812,15 @@ private fun CustomUrlDialog(
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Text(
-                    text = "Configure Server URL",
+                    text = "Map download address",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 17.sp,
+                    fontSize = 22.sp,
                     color = CockpitTheme.colors.textPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Set custom mirror or local server for ${pkg.title}:",
-                    fontSize = 12.sp,
+                    text = "Advanced: download the ${friendlyMapTitle(pkg.title)} from your own server.",
+                    fontSize = 17.sp,
                     color = CockpitTheme.colors.textPrimary
                 )
 
@@ -886,19 +849,19 @@ private fun CustomUrlDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onReset) {
-                        Text("RESET DEFAULT", color = CockpitTheme.colors.textPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("Reset", color = CockpitTheme.colors.textPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = onDismiss) {
-                            Text("CANCEL", color = CockpitTheme.colors.textPrimary, fontSize = 12.sp)
+                            Text("Cancel", color = CockpitTheme.colors.textPrimary, fontSize = 17.sp)
                         }
                         Button(
                             onClick = { onSave(urlText) },
                             colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accent),
                             shape = CopilotShapes.R8
                         ) {
-                            Text("SAVE", color = contentColorOn(CockpitTheme.colors.accent), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Save", color = contentColorOn(CockpitTheme.colors.accent), fontWeight = FontWeight.Bold, fontSize = 17.sp)
                         }
                     }
                 }
@@ -906,3 +869,10 @@ private fun CustomUrlDialog(
         }
     }
 }
+
+/** "India Vector Map (PMTiles)" -> "India map": file-format words mean nothing to a driver. */
+private fun friendlyMapTitle(title: String): String =
+    title.replace(Regex("\\s*\\(.*?\\)"), "")
+        .replace("Vector ", "")
+        .replace(" Map", " map")
+        .trim()

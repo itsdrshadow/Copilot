@@ -129,8 +129,10 @@ class CockpitThemeSystemTest {
             .forEach { assertEquals("tnum", it.fontFeatureSettings) }
         assertEquals(112f, t.SpeedHero.fontSize.value, 0.01f)
         listOf(t.TitleLarge, t.TitleMedium, t.TitleSmall, t.BodyLarge, t.BodyMedium, t.BodySmall, t.LabelLarge, t.LabelMedium, t.LabelSmall)
-            .forEach { assertTrue(it.fontSize.value >= 12f) }
-        assertEquals(FontWeight.Normal, t.BodyMedium.fontWeight)
-        assertEquals(FontWeight.Medium, t.LabelLarge.fontWeight)
+            .forEach { assertTrue(it.fontSize.value >= t.MinLabelSize.value) }
+        // 16 sp minimum for any text on the 148 dpi head unit; nothing renders in Regular.
+        assertEquals(16f, t.MinLabelSize.value, 0.01f)
+        assertEquals(FontWeight.Medium, t.BodyMedium.fontWeight)
+        assertEquals(FontWeight.SemiBold, t.LabelLarge.fontWeight)
     }
 }

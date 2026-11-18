@@ -56,18 +56,18 @@ object AutomotiveDesignTokens {
 
     object Typography {
         val speedValue: TextUnit = 82.sp
-        val speedUnit: TextUnit = 14.5.sp
+        val speedUnit: TextUnit = 18.sp
         val clockValue: TextUnit = 62.sp
         val heroMetric: TextUnit = 44.sp
         val largeMetric: TextUnit = 34.sp
         val screenTitle: TextUnit = 22.sp
         val cardTitle: TextUnit = 16.sp
         val sectionHeader: TextUnit = 18.sp
-        val buttonLabel: TextUnit = 14.sp
-        val secondaryLabel: TextUnit = 13.sp
-        val bodyText: TextUnit = 14.sp
-        val caption: TextUnit = 11.5.sp
-        val badgeText: TextUnit = 11.sp
+        val buttonLabel: TextUnit = 17.sp
+        val secondaryLabel: TextUnit = 16.sp
+        val bodyText: TextUnit = 17.sp
+        val caption: TextUnit = 16.sp
+        val badgeText: TextUnit = 16.sp
     }
 
     /**
@@ -126,7 +126,7 @@ object AutomotiveDesignTokens {
 
     object AppDrawer {
         val iconSize: Dp = 48.dp
-        val labelSize: TextUnit = 12.sp
+        val labelSize: TextUnit = 17.sp
         val gridVerticalSpacing: Dp = 4.dp
         val gridHorizontalSpacing: Dp = 6.dp
     }

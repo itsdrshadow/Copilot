@@ -82,13 +82,13 @@ internal fun TripDetailContainer(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Trip GPS Playback View",
+                    text = "Pick a trip",
                     style = CockpitTheme.typography.titleLarge,
                     color = CockpitTheme.colors.textPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Select any journey on the left to start fast-forward animated route replay.",
+                    text = "Choose a trip on the left to see its route and replay it.",
                     style = CockpitTheme.typography.bodyMedium,
                     color = Palette.Steel400
                 )
@@ -105,43 +105,29 @@ internal fun TripDetailContainer(
                 )
 
                 if (showDeleteConfirm) {
-                    AlertDialog(
-                        onDismissRequest = { showDeleteConfirm = false },
-                        title = {
-                            Text(
-                                text = "Delete Trip Record?",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                                color = CockpitTheme.colors.textPrimary
-                            )
+                    com.antigravity.copilot.core.designsystem.components.RaahiConfirmDialog(
+                        title = "Delete this trip?",
+                        message = "The trip and its route will be removed. This cannot be undone.",
+                        confirmText = "Delete trip",
+                        destructive = true,
+                        icon = Icons.Default.DeleteOutline,
+                        onConfirm = {
+                            showDeleteConfirm = false
+                            onDeleteTrip?.invoke(trip.id)
                         },
-                        text = {
-                            Text(
-                                text = "Permanently remove this trip and its recorded GPS breadcrumbs? This action cannot be undone.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Palette.Slate400
-                            )
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    showDeleteConfirm = false
-                                    onDeleteTrip?.invoke(trip.id)
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Palette.Red500)
-                            ) {
-                                Text("Delete", fontWeight = FontWeight.Bold, color = contentColorOn(Palette.Red500))
-                            }
-                        },
-                        dismissButton = {
-                            OutlinedButton(
-                                onClick = { showDeleteConfirm = false }
-                            ) {
-                                Text("Cancel", color = CockpitTheme.colors.textPrimary)
-                            }
-                        },
-                        containerColor = Palette.Slate900
+                        onDismiss = { showDeleteConfirm = false }
                     )
                 }
+
+                // T2: the three views as always-visible tabs instead of a hidden dropdown.
+                com.antigravity.copilot.core.designsystem.components.SegmentedToggle(
+                    options = TripDetailTab.values().map { it to it.title },
+                    selected = selectedTab,
+                    onSelect = onSelectTab,
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .fillMaxWidth()
+                )
 
                 // Tab Content
                 Box(
@@ -260,8 +246,6 @@ private fun TripDetailHeader(
             )
         }
 
-        TripViewDropdown(selected = selectedTab, onSelect = onSelectTab)
-
         if (onDelete != null) {
             IconButton(
                 onClick = onDelete,
@@ -274,79 +258,6 @@ private fun TripDetailHeader(
                     contentDescription = "Delete Trip",
                     tint = Palette.Red500,
                     modifier = Modifier.size(22.dp)
-                )
-            }
-        }
-    }
-}
-
-/** Compact view picker (Route Replay / Timeline / Trip Charts) in place of the old tab strip. */
-@Composable
-private fun TripViewDropdown(
-    selected: TripDetailTab,
-    onSelect: (TripDetailTab) -> Unit
-) {
-    val c = CockpitTheme.colors
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        Row(
-            modifier = Modifier
-                .height(48.dp)
-                .clip(Raahi.PillShape)
-                .background(c.accent.copy(alpha = 0.12f))
-                .border(1.25.dp, c.accent.copy(alpha = 0.6f), Raahi.PillShape)
-                .clickable(role = Role.Button, onClickLabel = "Change view") { expanded = true }
-                .padding(start = 14.dp, end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(selected.icon, contentDescription = null, tint = c.accent, modifier = Modifier.size(22.dp))
-            Text(
-                selected.title,
-                style = CockpitTheme.typography.labelLarge,
-                color = c.textPrimary,
-                maxLines = 1
-            )
-            Icon(
-                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = null,
-                tint = c.textSecondary,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(c.cardElevated)
-        ) {
-            TripDetailTab.values().forEach { tab ->
-                val isSel = tab == selected
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(
-                                tab.title,
-                                style = CockpitTheme.typography.titleMedium,
-                                color = if (isSel) c.accentText else c.textPrimary
-                            )
-                            Text(
-                                tab.subtitle,
-                                style = CockpitTheme.typography.bodySmall,
-                                color = c.textSecondary
-                            )
-                        }
-                    },
-                    leadingIcon = {
-                        Icon(tab.icon, contentDescription = null, tint = if (isSel) c.accent else c.textSecondary, modifier = Modifier.size(24.dp))
-                    },
-                    trailingIcon = if (isSel) {
-                        { Icon(Icons.Default.Check, contentDescription = "Selected", tint = c.accent) }
-                    } else null,
-                    onClick = {
-                        expanded = false
-                        onSelect(tab)
-                    },
-                    modifier = Modifier.heightIn(min = 60.dp).widthIn(min = 280.dp)
                 )
             }
         }
@@ -385,7 +296,7 @@ internal fun TripMapReplayView(
     } else if (points.isEmpty()) {
         Box(modifier = modifier, contentAlignment = Alignment.Center) {
             Text(
-                text = "No GPS route points recorded for this journey.",
+                text = "No route was saved for this trip.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Palette.Steel400
             )
@@ -462,7 +373,7 @@ internal fun TripMapReplayView(
                         color = statusDotColor
                     )
                     Text(
-                        text = NumberFormatUtils.formatSpeedWithUnit(currentPt?.speedKmh ?: 0f, 2),
+                        text = NumberFormatUtils.formatSpeedWithUnit(currentPt?.speedKmh ?: 0f),
                         style = CockpitTheme.typography.headlineSmall,
                         color = CockpitTheme.colors.textPrimary
                     )

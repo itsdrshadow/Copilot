@@ -39,18 +39,18 @@ class AutomotiveDesignTokensTest {
     fun testGlanceableTypographyHierarchy() {
         // High-contrast, glanceable automotive typography
         assertEquals(82.sp, AutomotiveDesignTokens.Typography.speedValue)
-        assertEquals(14.5.sp, AutomotiveDesignTokens.Typography.speedUnit)
+        assertEquals(18.sp, AutomotiveDesignTokens.Typography.speedUnit)
         assertEquals(62.sp, AutomotiveDesignTokens.Typography.clockValue)
         assertEquals(44.sp, AutomotiveDesignTokens.Typography.heroMetric)
         assertEquals(34.sp, AutomotiveDesignTokens.Typography.largeMetric)
         assertEquals(22.sp, AutomotiveDesignTokens.Typography.screenTitle)
         assertEquals(16.sp, AutomotiveDesignTokens.Typography.cardTitle)
         assertEquals(18.sp, AutomotiveDesignTokens.Typography.sectionHeader)
-        assertEquals(14.sp, AutomotiveDesignTokens.Typography.buttonLabel)
-        assertEquals(13.sp, AutomotiveDesignTokens.Typography.secondaryLabel)
-        assertEquals(14.sp, AutomotiveDesignTokens.Typography.bodyText)
-        assertEquals(11.5.sp, AutomotiveDesignTokens.Typography.caption)
-        assertEquals(11.sp, AutomotiveDesignTokens.Typography.badgeText)
+        assertEquals(17.sp, AutomotiveDesignTokens.Typography.buttonLabel)
+        assertEquals(16.sp, AutomotiveDesignTokens.Typography.secondaryLabel)
+        assertEquals(17.sp, AutomotiveDesignTokens.Typography.bodyText)
+        assertEquals(16.sp, AutomotiveDesignTokens.Typography.caption)
+        assertEquals(16.sp, AutomotiveDesignTokens.Typography.badgeText)
     }
 
     @Test
@@ -68,7 +68,7 @@ class AutomotiveDesignTokensTest {
         assertEquals(5, LauncherManager.GRID_ROWS)
         assertEquals(30, LauncherManager.APPS_PER_PAGE)
         assertEquals(48.dp, AutomotiveDesignTokens.AppDrawer.iconSize)
-        assertEquals(12.sp, AutomotiveDesignTokens.AppDrawer.labelSize)
+        assertEquals(17.sp, AutomotiveDesignTokens.AppDrawer.labelSize)
         assertEquals(4.dp, AutomotiveDesignTokens.AppDrawer.gridVerticalSpacing)
         assertEquals(6.dp, AutomotiveDesignTokens.AppDrawer.gridHorizontalSpacing)
     }

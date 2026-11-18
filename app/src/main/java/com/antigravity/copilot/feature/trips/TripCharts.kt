@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.trips
 
+import kotlin.math.roundToLong
 import com.antigravity.copilot.core.designsystem.tokens.StaticPalette
 import com.antigravity.copilot.domain.trip.*
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
@@ -108,462 +109,115 @@ internal fun SpeedTimeCanvas(
     }
 }
 
+/**
+ * Trips per day of the week. One colour, no background tracks or badges: the tallest bar already
+ * shows the busiest day. Text sizes are in sp so they scale with the panel density.
+ */
 @Composable
 internal fun WeeklyDrivingPatternCanvas(
     distribution: IntArray,
     modifier: Modifier = Modifier
 ) {
-    val weekdayAccent = Palette.Sky400
-    val weekendAccent = Palette.Purple500
+    val barColor = CockpitTheme.colors.accent
     val gridColor = CockpitTheme.colors.border
-
-    val dayLabelPaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.parseColor("#94A3B8")
-            textSize = 17f
-            typeface = Typeface.DEFAULT_BOLD
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-    }
-    val countValuePaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.WHITE
-            textSize = 18f
-            isFakeBoldText = true
-            typeface = Typeface.MONOSPACE
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-    }
-    val peakBadgePaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.parseColor("#38BDF8")
-            textSize = 13f
-            isFakeBoldText = true
-            typeface = Typeface.DEFAULT_BOLD
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-    }
-    val zoneHeaderPaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.parseColor("#64748B")
-            textSize = 13f
-            typeface = Typeface.MONOSPACE
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-    }
-
-    val dayNames = listOf("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")
+    val labelColor = CockpitTheme.colors.textSecondary.toArgb()
+    val valueColor = CockpitTheme.colors.textPrimary.toArgb()
+    val labelPaint = remember { Paint().apply { isAntiAlias = true; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD } }
+    val valuePaint = remember { Paint().apply { isAntiAlias = true; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD } }
+    val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
     Canvas(modifier = modifier) {
-        val totalWidth = size.width
-        val totalHeight = size.height
-
-        val topPadding = 42f
-        val bottomPadding = 32f
-        val leftPadding = 24f
-        val rightPadding = 24f
-
-        val graphWidth = totalWidth - leftPadding - rightPadding
-        val graphHeight = totalHeight - topPadding - bottomPadding
-
+        labelPaint.textSize = 16.sp.toPx(); labelPaint.color = labelColor
+        valuePaint.textSize = 17.sp.toPx(); valuePaint.color = valueColor
+        val topPadding = valuePaint.textSize + 10f
+        val bottomPadding = labelPaint.textSize + 14f
+        val side = 8f
+        val graphWidth = size.width - side * 2
+        val graphHeight = size.height - topPadding - bottomPadding
         val maxVal = (distribution.maxOrNull() ?: 0).coerceAtLeast(1)
-        val peakDay = distribution.indices.maxByOrNull { distribution[it] } ?: -1
         val colWidth = graphWidth / 7f
-        val barWidth = (colWidth * 0.46f).coerceIn(24f, 64f)
+        val barWidth = (colWidth * 0.5f).coerceIn(18f, 56f)
+        val baseY = topPadding + graphHeight
 
-        // 1. Weekday vs Weekend Zone Backgrounds
-        val weekdayWidth = colWidth * 5f
-        val weekendWidth = colWidth * 2f
+        drawLine(gridColor, Offset(side, baseY), Offset(size.width - side, baseY), strokeWidth = 1.dp.toPx())
 
-        // Weekday zone background (Mon-Fri)
-        drawRoundRect(
-            color = StaticPalette.Slate900.copy(alpha = 0.35f),
-            topLeft = Offset(leftPadding, topPadding),
-            size = Size(weekdayWidth, graphHeight),
-            cornerRadius = CornerRadius(6f, 6f)
-        )
-        drawContext.canvas.nativeCanvas.drawText(
-            "WEEKDAYS (MON - FRI)",
-            leftPadding + weekdayWidth / 2f,
-            topPadding - 16f,
-            zoneHeaderPaint
-        )
-
-        // Weekend zone background (Sat-Sun)
-        drawRoundRect(
-            color = StaticPalette.overlapBlue.copy(alpha = 0.22f),
-            topLeft = Offset(leftPadding + weekdayWidth, topPadding),
-            size = Size(weekendWidth, graphHeight),
-            cornerRadius = CornerRadius(6f, 6f)
-        )
-        drawContext.canvas.nativeCanvas.drawText(
-            "WEEKEND (SAT - SUN)",
-            leftPadding + weekdayWidth + weekendWidth / 2f,
-            topPadding - 16f,
-            zoneHeaderPaint
-        )
-
-        // Zone separator line
-        drawLine(
-            color = StaticPalette.Ink725,
-            start = Offset(leftPadding + weekdayWidth, topPadding - 20f),
-            end = Offset(leftPadding + weekdayWidth, topPadding + graphHeight),
-            strokeWidth = 1.2f
-        )
-
-        // Horizontal baseline
-        drawLine(
-            color = gridColor,
-            start = Offset(leftPadding, topPadding + graphHeight),
-            end = Offset(totalWidth - rightPadding, topPadding + graphHeight),
-            strokeWidth = 1f
-        )
-
-        // 2. Full-height Recessed Channel Tracks for all 7 days
         for (day in 0 until 7) {
-            val centerX = leftPadding + colWidth * day + colWidth / 2f
-            val barLeft = centerX - barWidth / 2f
-
-            drawRoundRect(
-                color = StaticPalette.border,
-                topLeft = Offset(barLeft, topPadding),
-                size = Size(barWidth, graphHeight),
-                cornerRadius = CornerRadius(6f, 6f)
-            )
-            drawRoundRect(
-                color = StaticPalette.accentSoft,
-                topLeft = Offset(barLeft, topPadding),
-                size = Size(barWidth, graphHeight),
-                cornerRadius = CornerRadius(6f, 6f),
-                style = Stroke(0.8f)
-            )
-        }
-
-        // 3. Daily Bars
-        for (day in 0 until 7) {
-            val count = if (day in distribution.indices) distribution[day] else 0
-            val centerX = leftPadding + colWidth * day + colWidth / 2f
-            val barLeft = centerX - barWidth / 2f
-            val isPeak = day == peakDay && count > 0
-            val isWeekend = day >= 5
-            val barAccent = if (isWeekend) weekendAccent else weekdayAccent
-
+            val count = distribution.getOrElse(day) { 0 }
+            val centerX = side + colWidth * day + colWidth / 2f
             if (count > 0) {
-                val ratio = (count.toFloat() / maxVal).coerceIn(0f, 1f)
-                val barH = (graphHeight * ratio).coerceAtLeast(10f)
-                val barTop = topPadding + graphHeight - barH
-
-                // Gradient bar
+                val barH = (graphHeight * count.toFloat() / maxVal).coerceAtLeast(8f)
                 drawRoundRect(
-                    brush = Brush.verticalGradient(
-                        colors = if (isPeak) {
-                            listOf(barAccent, barAccent.copy(alpha = 0.40f))
-                        } else {
-                            listOf(barAccent.copy(alpha = 0.85f), barAccent.copy(alpha = 0.20f))
-                        },
-                        startY = barTop,
-                        endY = topPadding + graphHeight
-                    ),
-                    topLeft = Offset(barLeft, barTop),
+                    color = barColor,
+                    topLeft = Offset(centerX - barWidth / 2f, baseY - barH),
                     size = Size(barWidth, barH),
                     cornerRadius = CornerRadius(6f, 6f)
                 )
-
-                // Top highlight rim
-                drawRoundRect(
-                    color = if (isPeak) StaticPalette.textPrimary else barAccent,
-                    topLeft = Offset(barLeft, barTop),
-                    size = Size(barWidth, 4f),
-                    cornerRadius = CornerRadius(2f, 2f)
-                )
-
-                // Peak beacon & tag
-                if (isPeak) {
-                    drawCircle(color = barAccent.copy(alpha = 0.35f), radius = 10f, center = Offset(centerX, barTop))
-                    drawCircle(color = StaticPalette.textPrimary, radius = 4f, center = Offset(centerX, barTop))
-                    peakBadgePaint.color = barAccent.toArgb()
-                    drawContext.canvas.nativeCanvas.drawText("★ PEAK DAY", centerX, barTop - 24f, peakBadgePaint)
-                }
-
-                // Trip count text above bar
-                drawContext.canvas.nativeCanvas.drawText(
-                    "$count",
-                    centerX,
-                    barTop - 7f,
-                    countValuePaint
-                )
-            } else {
-                drawRoundRect(
-                    color = StaticPalette.border,
-                    topLeft = Offset(barLeft, topPadding + graphHeight - 4f),
-                    size = Size(barWidth, 4f),
-                    cornerRadius = CornerRadius(2f, 2f)
-                )
+                drawContext.canvas.nativeCanvas.drawText("$count", centerX, baseY - barH - 8f, valuePaint)
             }
-
-            // Draw day labels below baseline
-            val dayLabel = dayNames[day]
-            dayLabelPaint.color = when {
-                isPeak -> barAccent.toArgb()
-                count > 0 -> android.graphics.Color.WHITE
-                isWeekend -> weekendAccent.copy(alpha = 0.7f).toArgb()
-                else -> android.graphics.Color.parseColor("#94A3B8")
-            }
-            drawContext.canvas.nativeCanvas.drawText(
-                dayLabel,
-                centerX,
-                totalHeight - 8f,
-                dayLabelPaint
-            )
+            drawContext.canvas.nativeCanvas.drawText(dayNames[day], centerX, size.height - 6f, labelPaint)
         }
     }
 }
 
+/**
+ * Distance per month. One colour; empty months have no bar at all (no ghost tracks), and the
+ * yearly average is a dashed line whose value is shown in the card title, so labels never collide.
+ */
 @Composable
 internal fun MonthlyDistanceCanvas(
     monthlyGroups: List<MonthlyTripGroup>,
     modifier: Modifier = Modifier
 ) {
-    val accentColor = Palette.Amber500
+    val barColor = CockpitTheme.colors.accent
+    val avgColor = CockpitTheme.colors.textSecondary
     val gridColor = CockpitTheme.colors.border
-
-    val axisTextPaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.parseColor("#64748B")
-            textSize = 15f
-            typeface = Typeface.MONOSPACE
-            isAntiAlias = true
-            textAlign = Paint.Align.RIGHT
-        }
-    }
-    val monthTextPaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.parseColor("#94A3B8")
-            textSize = 17f
-            typeface = Typeface.DEFAULT_BOLD
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-    }
-    val valPaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.WHITE
-            textSize = 19f
-            isFakeBoldText = true
-            typeface = Typeface.MONOSPACE
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-    }
-    val peakBadgePaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.parseColor("#F59E0B")
-            textSize = 13f
-            isFakeBoldText = true
-            typeface = Typeface.DEFAULT_BOLD
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-    }
-    val avgBadgeTextPaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.WHITE
-            textSize = 13f
-            isFakeBoldText = true
-            typeface = Typeface.MONOSPACE
-            isAntiAlias = true
-            textAlign = Paint.Align.LEFT
-        }
-    }
+    val labelColor = CockpitTheme.colors.textSecondary.toArgb()
+    val valueColor = CockpitTheme.colors.textPrimary.toArgb()
+    val labelPaint = remember { Paint().apply { isAntiAlias = true; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD } }
+    val valuePaint = remember { Paint().apply { isAntiAlias = true; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD } }
 
     Canvas(modifier = modifier) {
-        val totalWidth = size.width
-        val totalHeight = size.height
-
-        val bottomPadding = 32f
-        val topPadding = 38f
-        val leftPadding = 64f
-        val rightPadding = 24f
-
-        val graphWidth = totalWidth - leftPadding - rightPadding
-        val graphHeight = totalHeight - topPadding - bottomPadding
-
-        val maxKm = (monthlyGroups.maxOfOrNull { it.totalDistanceKm } ?: 0.0).coerceAtLeast(10.0)
-        val effectiveMax = maxKm * 1.25
-        val activeGroups = monthlyGroups.filter { it.totalDistanceKm > 0.0 }
-        val avgKm = if (activeGroups.isNotEmpty()) activeGroups.map { it.totalDistanceKm }.average() else 0.0
-        val maxKmIdx = monthlyGroups.indices.maxByOrNull { monthlyGroups[it].totalDistanceKm } ?: -1
-
-        // 1. Draw 4 horizontal reference grid lines with Y-axis scale numbers
-        val steps = 3
-        for (i in 0..steps) {
-            val y = topPadding + (graphHeight / steps) * i
-            val scaleVal = effectiveMax * (1.0 - i.toDouble() / steps)
-
-            drawLine(
-                color = gridColor,
-                start = Offset(leftPadding, y),
-                end = Offset(totalWidth - rightPadding, y),
-                strokeWidth = 1f
-            )
-
-            // Draw Y-axis scale value text on left
-            val label = if (scaleVal >= 1000) "${NumberFormatUtils.formatPrecision(scaleVal / 1000.0, 1)}k" else "${scaleVal.toInt()}km"
-            drawContext.canvas.nativeCanvas.drawText(
-                label,
-                leftPadding - 8f,
-                y + 5f,
-                axisTextPaint
-            )
-        }
-
+        labelPaint.textSize = 16.sp.toPx(); labelPaint.color = labelColor
+        valuePaint.textSize = 16.sp.toPx(); valuePaint.color = valueColor
+        val topPadding = valuePaint.textSize + 10f
+        val bottomPadding = labelPaint.textSize + 14f
+        val side = 8f
+        val graphWidth = size.width - side * 2
+        val graphHeight = size.height - topPadding - bottomPadding
+        val baseY = topPadding + graphHeight
+        val maxKm = (monthlyGroups.maxOfOrNull { it.totalDistanceKm } ?: 0.0).coerceAtLeast(1.0)
+        val active = monthlyGroups.filter { it.totalDistanceKm > 0.0 }
+        val avgKm = if (active.isNotEmpty()) active.map { it.totalDistanceKm }.average() else 0.0
         val colWidth = graphWidth / 12f
-        val barWidth = (colWidth * 0.52f).coerceIn(14f, 36f)
+        val barWidth = (colWidth * 0.55f).coerceIn(12f, 40f)
 
-        // 2. Full-height Background Channel Tracks for all 12 months
-        for (m in 0 until 12) {
-            val centerX = leftPadding + colWidth * m + colWidth / 2f
-            val barLeft = centerX - barWidth / 2f
-            drawRoundRect(
-                color = StaticPalette.border,
-                topLeft = Offset(barLeft, topPadding),
-                size = Size(barWidth, graphHeight),
-                cornerRadius = CornerRadius(5f, 5f)
-            )
-            drawRoundRect(
-                color = StaticPalette.accentSoft,
-                topLeft = Offset(barLeft, topPadding),
-                size = Size(barWidth, graphHeight),
-                cornerRadius = CornerRadius(5f, 5f),
-                style = Stroke(0.8f)
-            )
-        }
+        drawLine(gridColor, Offset(side, baseY), Offset(size.width - side, baseY), strokeWidth = 1.dp.toPx())
 
-        // 3. Yearly Average Distance Dashed Reference Line
         if (avgKm > 0.0) {
-            val avgY = topPadding + graphHeight * (1f - (avgKm / effectiveMax).toFloat())
-            val dashWidth = 10f
-            val dashGap = 6f
-            var curX = leftPadding
-            while (curX < totalWidth - rightPadding) {
-                val endX = (curX + dashWidth).coerceAtMost(totalWidth - rightPadding)
-                drawLine(
-                    color = accentColor.copy(alpha = 0.55f),
-                    start = Offset(curX, avgY),
-                    end = Offset(endX, avgY),
-                    strokeWidth = 1.6f
-                )
-                curX += dashWidth + dashGap
+            val avgY = baseY - graphHeight * (avgKm / maxKm).toFloat()
+            var x = side
+            while (x < size.width - side) {
+                drawLine(avgColor.copy(alpha = 0.6f), Offset(x, avgY), Offset((x + 10f).coerceAtMost(size.width - side), avgY), strokeWidth = 1.5.dp.toPx())
+                x += 16f
             }
-
-            // Draw AVG floating badge on right edge
-            val avgText = "AVG ${avgKm.toInt()} km"
-            val avgBadgeW = 90f
-            val avgBadgeH = 20f
-            val avgBadgeX = totalWidth - rightPadding - avgBadgeW
-            val avgBadgeY = (avgY - avgBadgeH / 2f).coerceIn(topPadding, topPadding + graphHeight - avgBadgeH)
-            drawRoundRect(
-                color = StaticPalette.border,
-                topLeft = Offset(avgBadgeX, avgBadgeY),
-                size = Size(avgBadgeW, avgBadgeH),
-                cornerRadius = CornerRadius(4f, 4f)
-            )
-            drawRoundRect(
-                color = accentColor.copy(alpha = 0.65f),
-                topLeft = Offset(avgBadgeX, avgBadgeY),
-                size = Size(avgBadgeW, avgBadgeH),
-                cornerRadius = CornerRadius(4f, 4f),
-                style = Stroke(1f)
-            )
-            drawContext.canvas.nativeCanvas.drawText(
-                avgText,
-                avgBadgeX + 6f,
-                avgBadgeY + 14f,
-                avgBadgeTextPaint
-            )
         }
 
-        // 4. Monthly Distance Gradient Bars
         for (m in 0 until 12) {
             val group = monthlyGroups.getOrNull(m)
             val km = group?.totalDistanceKm ?: 0.0
-            val centerX = leftPadding + colWidth * m + colWidth / 2f
-            val barLeft = centerX - barWidth / 2f
-            val isPeak = m == maxKmIdx && km > 0.0
-
+            val centerX = side + colWidth * m + colWidth / 2f
             if (km > 0.0) {
-                val ratio = (km / effectiveMax).coerceIn(0.0, 1.0).toFloat()
-                val barH = (graphHeight * ratio).coerceAtLeast(8f)
-                val barTop = topPadding + graphHeight - barH
-
-                // Gradient bar
+                val barH = (graphHeight * (km / maxKm).toFloat()).coerceAtLeast(6f)
                 drawRoundRect(
-                    brush = Brush.verticalGradient(
-                        colors = if (isPeak) {
-                            listOf(accentColor, accentColor.copy(alpha = 0.40f))
-                        } else {
-                            listOf(accentColor.copy(alpha = 0.85f), accentColor.copy(alpha = 0.20f))
-                        },
-                        startY = barTop,
-                        endY = topPadding + graphHeight
-                    ),
-                    topLeft = Offset(barLeft, barTop),
+                    color = barColor,
+                    topLeft = Offset(centerX - barWidth / 2f, baseY - barH),
                     size = Size(barWidth, barH),
                     cornerRadius = CornerRadius(5f, 5f)
                 )
-
-                // Top highlight rim
-                drawRoundRect(
-                    color = if (isPeak) StaticPalette.textPrimary else accentColor,
-                    topLeft = Offset(barLeft, barTop),
-                    size = Size(barWidth, 3.5f),
-                    cornerRadius = CornerRadius(2f, 2f)
-                )
-
-                // Peak beacon & tag
-                if (isPeak) {
-                    drawCircle(color = accentColor.copy(alpha = 0.35f), radius = 9f, center = Offset(centerX, barTop))
-                    drawCircle(color = StaticPalette.textPrimary, radius = 3.5f, center = Offset(centerX, barTop))
-                    drawContext.canvas.nativeCanvas.drawText("★ TOP", centerX, barTop - 24f, peakBadgePaint)
-                }
-
-                // Value above bar
-                val valStr = if (km >= 1000) "${NumberFormatUtils.formatPrecision(km / 1000.0, 1)}k" else "${km.toInt()}"
-                drawContext.canvas.nativeCanvas.drawText(
-                    valStr,
-                    centerX,
-                    barTop - 8f,
-                    valPaint
-                )
-            } else {
-                drawRoundRect(
-                    color = StaticPalette.border,
-                    topLeft = Offset(barLeft, topPadding + graphHeight - 4f),
-                    size = Size(barWidth, 4f),
-                    cornerRadius = CornerRadius(2f, 2f)
-                )
+                val valStr = if (km >= 1000) "${NumberFormatUtils.formatPrecision(km / 1000.0, 1)}k" else "${km.roundToLong()}"
+                drawContext.canvas.nativeCanvas.drawText(valStr, centerX, baseY - barH - 8f, valuePaint)
             }
-
-            // Month Labels at bottom (refined 17f size, highlighted for peak/active)
-            val monthLabel = group?.monthName ?: ""
-            monthTextPaint.color = if (isPeak) {
-                accentColor.toArgb()
-            } else if (km > 0.0) {
-                android.graphics.Color.WHITE
-            } else {
-                android.graphics.Color.parseColor("#64748B")
-            }
-
-            drawContext.canvas.nativeCanvas.drawText(
-                monthLabel,
-                centerX,
-                totalHeight - 8f,
-                monthTextPaint
-            )
+            drawContext.canvas.nativeCanvas.drawText(group?.monthName?.take(3) ?: "", centerX, size.height - 6f, labelPaint)
         }
     }
 }

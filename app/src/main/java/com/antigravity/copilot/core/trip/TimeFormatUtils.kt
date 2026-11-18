@@ -77,4 +77,20 @@ object TimeFormatUtils {
         return String.format(Locale.US, "%02dd : %02dh : %02dm", days, hours, minutes)
     }
 
+    /**
+     * Plain-language duration for cards: "45 sec", "15 min", "1 h 5 min", "2 d 3 h".
+     */
+    fun formatFriendlyDuration(durationMs: Long): String {
+        val totalSec = (durationMs / 1000L).coerceAtLeast(0L)
+        val days = totalSec / 86400L
+        val hours = (totalSec % 86400L) / 3600L
+        val minutes = (totalSec % 3600L) / 60L
+        return when {
+            days > 0 -> "$days d $hours h"
+            hours > 0 -> if (minutes > 0) "$hours h $minutes min" else "$hours h"
+            minutes > 0 -> "$minutes min"
+            else -> "$totalSec sec"
+        }
+    }
+
 }

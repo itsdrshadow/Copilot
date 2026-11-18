@@ -35,8 +35,7 @@ val visibleTripLayers: List<TripMapLayer>
     get() = TripMapLayer.entries.filter { it != TripMapLayer.MILEAGE || TRIP_MILEAGE_LAYER_AVAILABLE }
 
 private fun minutesText(ms: Long): String {
-    val m = ms / 60_000L
-    return if (m >= 60) "${m / 60}h ${m % 60}m" else "${m}m"
+    return if (ms <= 0L) "--" else com.antigravity.copilot.core.trip.TimeFormatUtils.formatFriendlyDuration(ms)
 }
 
 /**
@@ -76,41 +75,27 @@ fun TripSummaryPanel(
             { StatCard("Distance", NumberFormatUtils.formatDistance(trip.distanceMeters / 1000.0), unit = "km", modifier = it) },
             { StatCard("Trip time", minutesText(totalMs), modifier = it) },
         )
+        // Six facts only; moving/idle split, fuel and best mileage live in the Charts view.
         pair(
-            { StatCard("Moving", minutesText(trip.drivingDurationMs), modifier = it) },
-            { StatCard("Idle", minutesText(trip.stationaryDurationMs), modifier = it) },
-        )
-        pair(
-            { StatCard("Max speed", "${trip.maxSpeedKmh.toInt()}", unit = "km/h", modifier = it) },
-            { StatCard("Avg speed", "${trip.avgSpeedKmh.toInt()}", unit = "km/h", modifier = it) },
-        )
-        pair(
-            { StatCard("Est. fuel", NumberFormatUtils.formatFuelLiters(trip.estimatedFuelLiters, 2), unit = "L", modifier = it) },
-            {
-                StatCard(
-                    "Trip mileage",
-                    if (trip.calculatedMileageKmpl > 0) NumberFormatUtils.formatMileage(trip.calculatedMileageKmpl, 1) else "--",
-                    unit = "km/L",
-                    modifier = it,
-                )
-            },
+            { StatCard("Avg speed", NumberFormatUtils.formatSpeed(trip.avgSpeedKmh), unit = "km/h", modifier = it) },
+            { StatCard("Top speed", NumberFormatUtils.formatSpeed(trip.maxSpeedKmh), unit = "km/h", modifier = it) },
         )
         pair(
             {
                 StatCard(
-                    "Best mileage",
-                    if (trip.bestMileageKmpl > 0) NumberFormatUtils.formatMileage(trip.bestMileageKmpl, 1) else "--",
+                    "Mileage",
+                    if (trip.calculatedMileageKmpl > 0) NumberFormatUtils.formatMileage(trip.calculatedMileageKmpl) else "--",
                     unit = "km/L",
                     modifier = it,
                 )
             },
-            { StatCard("Drive score", "${trip.driverScore}", modifier = it) },
+            { StatCard("Drive score", "${trip.driverScore}", unit = driveScoreWord(trip.driverScore), modifier = it) },
         )
 
         RaahiLabel("Driving events")
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             RaahiPill(
-                "${trip.brakeCount} braking",
+                "${trip.brakeCount} hard ${if (trip.brakeCount == 1) "brake" else "brakes"}",
                 color =
                     if (trip.brakeCount >
                         0
@@ -122,12 +107,12 @@ fun TripSummaryPanel(
                 filled = trip.brakeCount > 0,
             )
             RaahiPill(
-                "${trip.accelCount} hard accel.",
+                "${trip.accelCount} quick ${if (trip.accelCount == 1) "start" else "starts"}",
                 color =
                     if (trip.accelCount >
                         0
                     ) {
-                        c.accent
+                        c.warning
                     } else {
                         c.textSecondary
                     },
@@ -136,7 +121,7 @@ fun TripSummaryPanel(
         }
 
         Text(
-            "Fuel and mileage for a trip are estimates from distance, speed and your learned km/L. They never change the tank level.",
+            "Fuel and mileage for a trip are estimates.",
             style = CockpitTheme.typography.bodySmall,
             color = c.textSecondary,
         )

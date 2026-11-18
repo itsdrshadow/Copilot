@@ -1,5 +1,9 @@
 package com.antigravity.copilot.feature.maps
 
+import com.antigravity.copilot.core.designsystem.components.RaahiConfirmDialog
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Add
 import com.antigravity.copilot.core.designsystem.tokens.CopilotShapes
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
 import com.antigravity.copilot.core.designsystem.CockpitTheme
@@ -220,6 +224,15 @@ fun LiveMapPanel(
 
     var showOfflineManagerDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
+    // H7: the menu closes by itself after a few seconds, when the map is covered (tab change)
+    // and when switching between the Drive map and full screen.
+    LaunchedEffect(menuExpanded) {
+        if (menuExpanded) {
+            kotlinx.coroutines.delay(MENU_AUTO_CLOSE_MS)
+            menuExpanded = false
+        }
+    }
+    LaunchedEffect(isCovered, isFullScreen) { menuExpanded = false }
     val lifecycleHolder = remember { MapViewLifecycleHolder() }
     val fpsGovernor = remember { MapFpsGovernor() }
     val fpsMode by remember { AppSettingsManager.settingsState.map { it.mapRenderFpsMode }.distinctUntilChanged() }
@@ -446,7 +459,7 @@ fun LiveMapPanel(
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Import india.pmtiles or set a download URL in the offline maps manager (see MAP_SETUP.md).",
+                        text = "Download or import the India map to see roads offline.",
                         style = CockpitTheme.typography.bodyMedium,
                         color = CockpitTheme.colors.textSecondary,
                         textAlign = TextAlign.Center
@@ -519,6 +532,18 @@ fun LiveMapPanel(
             }
         }
 
+        // Full-screen map: speed readout top-left (under the limit sign) so the big map is not
+        // just a picture. Reads the GPS lambda inside its own scope: only this pill recomposes.
+        if (isFullScreen) {
+            FullScreenSpeedPill(
+                latestPoint = latestPoint,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 14.dp, top = if (speedLimitInfo.isApplicable && speedLimitInfo.speedLimitKmh > 0) 86.dp else 14.dp)
+                    .zIndex(10f)
+            )
+        }
+
         // Map controls, bottom-right: secondary menu, heading, recenter (54 dp).
         Row(
             modifier = Modifier
@@ -556,7 +581,20 @@ fun LiveMapPanel(
                     )
                 }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // M2: explicit zoom, since pinching while driving is hard.
+                MapFloatingButton(
+                    icon = Icons.Outlined.Add,
+                    contentDescription = "Zoom in",
+                    isActive = false,
+                    onClick = { mapController.zoomBy(1.0) }
+                )
+                MapFloatingButton(
+                    icon = Icons.Outlined.Remove,
+                    contentDescription = "Zoom out",
+                    isActive = false,
+                    onClick = { mapController.zoomBy(-1.0) }
+                )
                 MapFloatingButton(
                     icon = if (menuExpanded) Icons.Outlined.Close else Icons.Outlined.MoreVert,
                     contentDescription = if (menuExpanded) "Close map menu" else "Map options",
@@ -581,17 +619,15 @@ fun LiveMapPanel(
     }
 
     selectedRoadCell?.let { cell ->
-        AlertDialog(
-            onDismissRequest = { mapController.clearSelectedRoadCell() },
-            title = { Text("Road mileage") },
-            text = {
-                Text(
-                    "Avg mileage: ${"%.1f".format(cell.avgKmpl)} km/L\n" +
-                        "Passes: ${cell.passes}\n" +
-                        "Avg speed: ${"%.0f".format(cell.avgSpeedKmh)} km/h"
-                )
-            },
-            confirmButton = { TextButton(onClick = { mapController.clearSelectedRoadCell() }) { Text("OK", color = CockpitTheme.colors.textPrimary) } }
+        RaahiConfirmDialog(
+            title = "Mileage on this road",
+            message = "${"%.1f".format(cell.avgKmpl)} km/L on average at ${"%.0f".format(cell.avgSpeedKmh)} km/h, from ${cell.passes} " +
+                (if (cell.passes == 1) "drive" else "drives") + " here.",
+            confirmText = "OK",
+            showDismiss = false,
+            icon = Icons.Outlined.LocalGasStation,
+            onConfirm = { mapController.clearSelectedRoadCell() },
+            onDismiss = { mapController.clearSelectedRoadCell() }
         )
     }
 
@@ -710,11 +746,31 @@ private fun LegendChipFrame(content: @Composable RowScope.() -> Unit) {
 @Composable
 fun MileageLegendChip() {
     val c = CockpitTheme.colors
-    val label = CockpitTheme.typography.labelMedium
+    val label = CockpitTheme.typography.labelLarge
     LegendChipFrame {
-        Text("km/L", style = label, color = c.textSecondary)
-        LegendDot(c.critical); Text("Low", style = label, color = c.textPrimary)
+        LegendDot(c.critical); Text("Low mileage", style = label, color = c.textPrimary)
         LegendDot(c.warning)
-        LegendDot(c.positive); Text("High", style = label, color = c.textPrimary)
+        LegendDot(c.positive); Text("Good mileage", style = label, color = c.textPrimary)
+    }
+}
+
+private const val MENU_AUTO_CLOSE_MS = 6_000L
+
+/** Speed readout for the full-screen map (44 sp). */
+@Composable
+private fun FullScreenSpeedPill(latestPoint: () -> TripPoint?, modifier: Modifier = Modifier) {
+    val c = CockpitTheme.colors
+    val speed by remember(latestPoint) { derivedStateOf { latestPoint()?.speedKmh?.toInt() ?: 0 } }
+    Row(
+        modifier = modifier
+            .clip(Raahi.CardShape)
+            .background(c.card)
+            .border(1.dp, c.border, Raahi.CardShape)
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text("$speed", style = CockpitTheme.typography.displayMedium, color = c.textPrimary, maxLines = 1)
+        Text("km/h", style = CockpitTheme.typography.labelLarge, color = c.textSecondary, modifier = Modifier.padding(bottom = 8.dp))
     }
 }

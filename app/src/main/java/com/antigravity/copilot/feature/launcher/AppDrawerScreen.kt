@@ -1,5 +1,6 @@
 package com.antigravity.copilot.feature.launcher
 
+import androidx.compose.foundation.combinedClickable
 import com.antigravity.copilot.core.designsystem.components.contentColorOn
 import com.antigravity.copilot.core.designsystem.components.cockpitBackground
 import com.antigravity.copilot.core.designsystem.components.cockpitSurface
@@ -58,13 +59,22 @@ fun AppDrawerScreen(
     BackHandler(onBack = onBackToHome)
 
     var searchQuery by remember { mutableStateOf("") }
-    val filteredApps = remember(apps, searchQuery) {
-        if (searchQuery.isBlank()) {
-            apps
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { AppDrawerPrefs(context.applicationContext) }
+    var pinned by remember { mutableStateOf(prefs.pinned()) }
+    var hidden by remember { mutableStateOf(prefs.hidden()) }
+    var showHidden by remember { mutableStateOf(false) }
+    var actionApp by remember { mutableStateOf<AppDrawerItem?>(null) }
+    val filteredApps = remember(apps, searchQuery, pinned, hidden, showHidden) {
+        val visible = apps.filter { (it.packageName in hidden) == showHidden }
+        val searched = if (searchQuery.isBlank()) {
+            visible
         } else {
             val q = searchQuery.trim().lowercase()
-            apps.filter { it.label.lowercase().contains(q) || it.packageName.lowercase().contains(q) }
+            visible.filter { it.label.lowercase().contains(q) || it.packageName.lowercase().contains(q) }
         }
+        // Pinned apps first (in label order), then the rest.
+        searched.sortedWith(compareBy<AppDrawerItem> { it.packageName !in pinned }.thenBy { it.label.lowercase() })
     }
 
     val pageChunks = remember(filteredApps) {
@@ -91,7 +101,10 @@ fun AppDrawerScreen(
                 pageIndex = pagerState.currentPage,
                 totalPages = totalPages,
                 totalAppsCount = filteredApps.size,
-                onBackToHome = onBackToHome
+                onBackToHome = onBackToHome,
+                hiddenCount = hidden.count { h -> apps.any { it.packageName == h } },
+                showingHidden = showHidden,
+                onToggleHidden = { showHidden = !showHidden }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -113,7 +126,7 @@ fun AppDrawerScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = if (searchQuery.isNotBlank()) "No applications match \"$searchQuery\"" else "No applications installed",
+                            text = if (searchQuery.isNotBlank()) "No apps match \"$searchQuery\"" else if (showHidden) "No hidden apps" else "No apps installed",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = CockpitTheme.colors.textSecondary
                         )
@@ -124,7 +137,7 @@ fun AppDrawerScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = CockpitTheme.colors.accentSoft),
                                 shape = CopilotShapes.R10
                             ) {
-                                Text("Clear Search", color = CockpitTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
+                                Text("Clear search", color = CockpitTheme.colors.textPrimary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -140,12 +153,34 @@ fun AppDrawerScreen(
                     AppDrawer3x4Grid(
                         apps = pageApps,
                         modifier = Modifier.fillMaxSize(),
-                        onAppClick = onAppClick
+                        onAppClick = onAppClick,
+                        pinned = pinned,
+                        onAppLongClick = { actionApp = it }
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
+
+            actionApp?.let { app ->
+                val isPinned = app.packageName in pinned
+                val isHidden = app.packageName in hidden
+                com.antigravity.copilot.core.designsystem.components.RaahiConfirmDialog(
+                    title = app.label,
+                    message = if (isHidden) "This app is hidden from the app list." else "Pin it to the top of the list, or hide it if you never use it in the car.",
+                    confirmText = if (isPinned) "Unpin" else "Pin to top",
+                    dismissText = if (isHidden) "Show again" else "Hide app",
+                    onConfirm = {
+                        pinned = prefs.toggle(AppDrawerPrefs.PINNED, app.packageName)
+                        actionApp = null
+                    },
+                    onDismiss = {
+                        hidden = prefs.toggle(AppDrawerPrefs.HIDDEN, app.packageName)
+                        actionApp = null
+                    },
+                    onDismissRequest = { actionApp = null }
+                )
+            }
 
             // ==================== 3. PAGE INDICATOR DOTS ====================
             if (totalPages > 1) {
@@ -171,7 +206,9 @@ fun AppDrawerScreen(
 fun AppDrawer3x4Grid(
     apps: List<AppDrawerItem>,
     modifier: Modifier = Modifier,
-    onAppClick: (AppDrawerItem) -> Unit
+    onAppClick: (AppDrawerItem) -> Unit,
+    pinned: Set<String> = emptySet(),
+    onAppLongClick: (AppDrawerItem) -> Unit = {}
 ) {
     Column(
         modifier = modifier.fillMaxSize(),
@@ -193,7 +230,9 @@ fun AppDrawer3x4Grid(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight(),
-                            onClick = { onAppClick(app) }
+                            onClick = { onAppClick(app) },
+                            isPinned = app.packageName in pinned,
+                            onLongClick = { onAppLongClick(app) }
                         )
                     } else {
                         // Empty placeholder cell preserves the 6-column x 5-row grid structure
@@ -213,17 +252,20 @@ fun AppDrawer3x4Grid(
  * Clean 1x1 automotive app icon without heavy card background.
  * Full-cell clickable tile with tactile bounce animation & ripple feedback.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun AppGridItem(
     app: AppDrawerItem,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isPinned: Boolean = false,
+    onLongClick: () -> Unit = {}
 ) {
     val imageBitmap = remember(app.packageName, app.activityName) {
         app.iconBitmap?.asImageBitmap()
     }
-    val iconSize = 58.dp
-    val labelSize = 14.5.sp
+    // A1: 72 dp icons and 17 sp labels, sized for a glance from the driver's seat.
+    val iconSize = 72.dp
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -243,10 +285,12 @@ fun AppGridItem(
             }
             .clip(CopilotShapes.R16)
             .background(if (isPressed) CockpitTheme.colors.cardElevated.copy(alpha = 0.8f) else Color.Transparent)
-            .clickable(
+            .combinedClickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(bounded = true, color = CockpitTheme.colors.accent),
                 role = Role.Button,
+                onLongClickLabel = "Pin or hide",
+                onLongClick = onLongClick,
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
@@ -279,19 +323,17 @@ fun AppGridItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(5.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // App Label underneath the icon
+            // App Label underneath the icon (a star marks a pinned app)
             Text(
-                text = app.label,
-                style = CockpitTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold
-                ),
+                text = if (isPinned) "★ ${app.label}" else app.label,
+                style = CockpitTheme.typography.titleSmall,
                 color = CockpitTheme.colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.widthIn(max = 140.dp)
+                modifier = Modifier.widthIn(max = 190.dp)
             )
         }
     }
@@ -307,7 +349,10 @@ fun AppDrawerHeader(
     pageIndex: Int,
     totalPages: Int,
     totalAppsCount: Int,
-    onBackToHome: () -> Unit
+    onBackToHome: () -> Unit,
+    hiddenCount: Int = 0,
+    showingHidden: Boolean = false,
+    onToggleHidden: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -325,28 +370,27 @@ fun AppDrawerHeader(
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "All Applications",
+                        text = if (showingHidden) "Hidden apps" else "Apps",
                         style = CockpitTheme.typography.headlineLarge,
                         color = CockpitTheme.colors.textPrimary
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .cockpitSurface(CockpitTheme.colors.cardElevated, CockpitTheme.colors.border, CopilotShapes.R6)
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = "$totalAppsCount apps",
-                            style = CockpitTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = CockpitTheme.colors.accent
+                    if (hiddenCount > 0 || showingHidden) {
+                        Spacer(modifier = Modifier.width(14.dp))
+                        com.antigravity.copilot.core.designsystem.components.RaahiPill(
+                            text = if (showingHidden) "Back to apps" else "Hidden ($hiddenCount)",
+                            color = CockpitTheme.colors.textSecondary,
+                            onClick = onToggleHidden
                         )
                     }
                 }
+                Text(
+                    text = "Hold an app to pin it to the top or hide it",
+                    style = CockpitTheme.typography.bodyMedium,
+                    color = CockpitTheme.colors.textSecondary
+                )
                 if (totalPages > 1) {
                     Text(
-                        text = "Page ${pageIndex + 1} of $totalPages • Swipe left/right",
+                        text = "Page ${pageIndex + 1} of $totalPages · swipe for more",
                         style = CockpitTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Medium
                         ),
@@ -362,7 +406,7 @@ fun AppDrawerHeader(
             onValueChange = onSearchQueryChange,
             placeholder = {
                 Text(
-                    "Search apps...",
+                    "Search apps",
                     color = CockpitTheme.colors.textDisabled,
                     style = CockpitTheme.typography.bodyMedium
                 )
@@ -445,5 +489,25 @@ fun AppDrawerPageIndicator(
                     }
             )
         }
+    }
+}
+
+/** Pinned and hidden apps for the drawer, kept in the app's own preferences (A2/A3). */
+internal class AppDrawerPrefs(context: android.content.Context) {
+    private val prefs = context.getSharedPreferences("app_drawer_prefs", android.content.Context.MODE_PRIVATE)
+    fun pinned(): Set<String> = prefs.getStringSet(PINNED, emptySet()).orEmpty().toSet()
+    fun hidden(): Set<String> = prefs.getStringSet(HIDDEN, emptySet()).orEmpty().toSet()
+
+    /** Adds or removes [pkg] from [key] and returns the new set. */
+    fun toggle(key: String, pkg: String): Set<String> {
+        val current = prefs.getStringSet(key, emptySet()).orEmpty().toMutableSet()
+        if (!current.add(pkg)) current.remove(pkg)
+        prefs.edit().putStringSet(key, current).apply()
+        return current.toSet()
+    }
+
+    companion object {
+        const val PINNED = "pinned"
+        const val HIDDEN = "hidden"
     }
 }

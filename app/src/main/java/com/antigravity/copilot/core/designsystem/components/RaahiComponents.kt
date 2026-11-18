@@ -50,6 +50,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.designsystem.CockpitTheme
@@ -165,8 +166,8 @@ fun RaahiPill(
 
 /**
  * 10-segment level bar of rounded segments. [fillPoints] is 0..[segments]; a partial top segment is
- * drawn partially. [segmentColor], when given, colours each segment by its position (e.g. fuel
- * zones red / yellow / green); empty segments then show a faint tint of their zone colour.
+ * drawn partially. [segmentColor], when given, colours each filled segment by its position. Empty
+ * segments are always the neutral track, so an empty bar never reads as a rainbow.
  */
 @Composable
 fun SegmentBar(
@@ -194,8 +195,8 @@ fun SegmentBar(
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(shape)
-                        .background(if (segmentColor != null) segColor.copy(alpha = 0.16f) else track)
-                        .border(Raahi.Border, if (segmentColor != null) segColor.copy(alpha = 0.35f) else trackBorder, shape),
+                        .background(track)
+                        .border(Raahi.Border, trackBorder, shape),
             ) {
                 if (seg > 0f) {
                     Box(Modifier.fillMaxHeight().fillMaxWidth(seg).clip(shape).background(segColor))
@@ -260,7 +261,7 @@ fun StatCard(
     }
 }
 
-enum class RaahiButtonKind { Primary, Secondary, Danger }
+enum class RaahiButtonKind { Primary, Secondary, Danger, DangerSolid, Tonal }
 
 /** 52 dp+ button. Primary = cyan fill; Secondary = raised card with border. */
 @Composable
@@ -278,6 +279,8 @@ fun RaahiButton(
             RaahiButtonKind.Primary -> Triple(c.accent, c.onAccent, c.accent)
             RaahiButtonKind.Secondary -> Triple(c.cardElevated, c.textPrimary, c.border)
             RaahiButtonKind.Danger -> Triple(c.critical.copy(alpha = 0.14f), c.textPrimary, c.critical)
+            RaahiButtonKind.DangerSolid -> Triple(c.critical, contentColorOn(c.critical), c.critical)
+            RaahiButtonKind.Tonal -> Triple(c.accent.copy(alpha = 0.16f), c.accent, c.accent.copy(alpha = 0.5f))
         }
     Row(
         modifier =
@@ -379,6 +382,7 @@ fun <T> SegmentedToggle(
             Box(
                 modifier =
                     Modifier
+                        .weight(1f, fill = false)
                         .defaultMinSize(minWidth = 80.dp, minHeight = Raahi.MinTouch)
                         .clip(Raahi.PillShape)
                         .background(if (isSel) c.cardElevated else Color.Transparent)
@@ -444,6 +448,61 @@ fun RaahiDialogHost(
                         ),
                 content = content,
             )
+        }
+    }
+}
+
+/**
+ * The one confirmation dialog used across the app: opaque card, 24 sp title, 18 sp body, 56 dp
+ * buttons. Cancel sits left, the action right; a [destructive] action is red.
+ */
+@Composable
+fun RaahiConfirmDialog(
+    title: String,
+    message: String,
+    confirmText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    destructive: Boolean = false,
+    icon: ImageVector? = null,
+    dismissText: String = "Cancel",
+    showDismiss: Boolean = true,
+    /** Tap outside / back. Defaults to [onDismiss]; set it when the second button is an action. */
+    onDismissRequest: (() -> Unit)? = null,
+    extraContent: (@Composable ColumnScope.() -> Unit)? = null,
+) {
+    val c = CockpitTheme.colors
+    val tone = if (destructive) c.critical else c.accent
+    RaahiDialogHost(onDismissRequest = onDismissRequest ?: onDismiss, maxWidth = 600.dp) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(Raahi.CardShape)
+                .background(c.cardElevated)
+                .border(Raahi.Border, c.border, Raahi.CardShape)
+                .padding(28.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (icon != null) Icon(icon, contentDescription = null, tint = tone, modifier = Modifier.size(30.dp))
+                Text(title, style = CockpitTheme.typography.titleLarge.copy(fontSize = 24.sp), color = c.textPrimary)
+            }
+            Text(message, style = CockpitTheme.typography.bodyLarge, color = c.textSecondary)
+            extraContent?.invoke(this)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (showDismiss) {
+                    RaahiButton(dismissText, onDismiss, Modifier.weight(1f).heightIn(min = 56.dp), kind = RaahiButtonKind.Secondary)
+                }
+                RaahiButton(
+                    confirmText,
+                    onConfirm,
+                    Modifier.weight(1f).heightIn(min = 56.dp),
+                    kind = if (destructive) RaahiButtonKind.DangerSolid else RaahiButtonKind.Primary,
+                )
+            }
         }
     }
 }
