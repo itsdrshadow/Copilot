@@ -89,6 +89,7 @@ private fun animated(target: Color, label: String): Color =
 fun CopilotTheme(
     themeMode: CockpitThemeMode = CockpitThemeMode.RAAHI,
     appearanceMode: ThemeAppearanceMode = ThemeAppearanceMode.AUTO,
+    accentOption: com.antigravity.copilot.core.designsystem.colors.AccentOption = com.antigravity.copilot.core.designsystem.colors.AccentOption.CYAN,
     @Suppress("UNUSED_PARAMETER") isDaytimeCalculated: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -103,7 +104,8 @@ fun CopilotTheme(
     val textPrimary = animated(base.textPrimary, "textPrimary")
     val textSecondary = animated(base.textSecondary, "textSecondary")
     val textDisabled = animated(base.textDisabled, "textDisabled")
-    val accent = animated(base.accent, "accent")
+    val accent = animated(if (isDay) accentOption.day else accentOption.night, "accent")
+    val accentText = animated(if (isDay) accentOption.dayText else accentOption.night, "accentText")
     val warning = animated(base.warning, "warning")
     val critical = animated(base.critical, "critical")
     val positive = animated(base.positive, "positive")
@@ -121,6 +123,7 @@ fun CopilotTheme(
         textDisabled = textDisabled,
         accent = accent,
         accentSoft = accent.copy(alpha = base.accentSoft.alpha),
+        accentText = accentText,
         warning = warning,
         critical = critical,
         positive = positive,

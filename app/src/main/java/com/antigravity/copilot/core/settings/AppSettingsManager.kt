@@ -32,6 +32,7 @@ object AppSettingsManager {
     const val KEY_COCKPIT_THEME = "cockpit_theme"
     const val KEY_LAST_STABLE_THEME = "last_stable_cockpit_theme"
     const val KEY_THEME_APPEARANCE_MODE = "theme_appearance_mode"
+    const val KEY_ACCENT_COLOR = "accent_color"
 
     // Vehicle
     const val KEY_CAR_NAME = "car_name"
@@ -69,6 +70,7 @@ object AppSettingsManager {
         val language: String = "English (Automotive Standard)",
         val cockpitTheme: String = "apex",
         val themeAppearanceMode: String = "auto",
+        val accentColor: String = "cyan",
         val carName: String = "My Car",
         val fuelType: String = "Petrol",
         val tankCapacityLiters: Double = 48.0,
@@ -97,6 +99,9 @@ object AppSettingsManager {
 
         val appearanceMode: com.antigravity.copilot.core.designsystem.ThemeAppearanceMode
             get() = com.antigravity.copilot.core.designsystem.ThemeAppearanceMode.fromId(themeAppearanceMode)
+
+        val accentOption: com.antigravity.copilot.core.designsystem.colors.AccentOption
+            get() = com.antigravity.copilot.core.designsystem.colors.AccentOption.fromId(accentColor)
     }
 
     private val _settingsState = MutableStateFlow(SettingsState())
@@ -151,6 +156,7 @@ object AppSettingsManager {
             // Normalise through fromId: legacy ids (old "glass" variants etc.) fold to Apex, "liquid_glass" survives.
             cockpitTheme = CockpitThemeMode.fromId(prefs.getString(KEY_COCKPIT_THEME, "apex") ?: "apex").id,
             themeAppearanceMode = prefs.getString(KEY_THEME_APPEARANCE_MODE, "auto") ?: "auto",
+            accentColor = prefs.getString(KEY_ACCENT_COLOR, "cyan") ?: "cyan",
             carName = prefs.getString(KEY_CAR_NAME, "My Car") ?: "My Car",
             fuelType = prefs.getString(KEY_FUEL_TYPE, "Petrol") ?: "Petrol",
             tankCapacityLiters = prefs.getSafeFloat(KEY_TANK_CAPACITY, 48.0f).toDouble(),
@@ -348,6 +354,15 @@ object AppSettingsManager {
         _settingsState.value = _settingsState.value.copy(themeAppearanceMode = modeId)
         scope.launch {
             context.appDataStore.edit { it[SettingsDataStore.KEY_THEME_APPEARANCE_MODE] = modeId }
+        }
+    }
+
+    /** Accent colour choice (Settings › General › Appearance). */
+    fun updateAccentColor(context: Context, accentId: String) {
+        getPrefs(context).edit().putString(KEY_ACCENT_COLOR, accentId).apply()
+        _settingsState.value = _settingsState.value.copy(accentColor = accentId)
+        scope.launch {
+            context.appDataStore.edit { it[SettingsDataStore.KEY_ACCENT_COLOR] = accentId }
         }
     }
 

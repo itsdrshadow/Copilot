@@ -19,6 +19,7 @@ object SettingsDataStore {
     val KEY_COCKPIT_THEME = stringPreferencesKey("cockpit_theme")
     val KEY_LAST_STABLE_THEME = stringPreferencesKey("last_stable_cockpit_theme")
     val KEY_THEME_APPEARANCE_MODE = stringPreferencesKey("theme_appearance_mode")
+    val KEY_ACCENT_COLOR = stringPreferencesKey("accent_color")
 
     val KEY_CAR_NAME = stringPreferencesKey("car_name")
     val KEY_FUEL_TYPE = stringPreferencesKey("fuel_type")
@@ -70,6 +71,7 @@ object SettingsDataStore {
             language = prefs[KEY_LANGUAGE] ?: fallback.language,
             cockpitTheme = prefs[KEY_COCKPIT_THEME] ?: fallback.cockpitTheme,
             themeAppearanceMode = prefs[KEY_THEME_APPEARANCE_MODE] ?: fallback.themeAppearanceMode,
+            accentColor = prefs[KEY_ACCENT_COLOR] ?: fallback.accentColor,
             carName = prefs[KEY_CAR_NAME] ?: fallback.carName,
             fuelType = prefs[KEY_FUEL_TYPE] ?: fallback.fuelType,
             tankCapacityLiters = prefs[KEY_TANK_CAPACITY] ?: fallback.tankCapacityLiters,
@@ -102,6 +104,7 @@ object SettingsDataStore {
             prefs[KEY_LANGUAGE] = state.language
             prefs[KEY_COCKPIT_THEME] = state.cockpitTheme
             prefs[KEY_THEME_APPEARANCE_MODE] = state.themeAppearanceMode
+            prefs[KEY_ACCENT_COLOR] = state.accentColor
             prefs[KEY_CAR_NAME] = state.carName
             prefs[KEY_FUEL_TYPE] = state.fuelType
             prefs[KEY_TANK_CAPACITY] = state.tankCapacityLiters

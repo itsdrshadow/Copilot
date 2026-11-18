@@ -267,6 +267,7 @@ fun LauncherSettingsDialog(
                                 SettingsTab.GENERAL -> GeneralSettingsContent(
                                     state = settingsState,
                                     onSelectAppearance = viewModel::selectAppearance,
+                                    onSelectAccent = viewModel::selectAccent,
                                     onToggleAutoForeground = { viewModel.setAutoForegroundOnBoot(!settingsState.autoForegroundOnBoot) },
                                     onToggleScreenAlwaysOn = { viewModel.setScreenAlwaysOn(!settingsState.screenAlwaysOn) },
                                     onToggleAutoMinimizeDrawer = { viewModel.setAutoMinimizeDrawer(!settingsState.autoMinimizeDrawer) },
@@ -453,6 +454,7 @@ fun LauncherSettingsDialog(
 private fun GeneralSettingsContent(
     state: AppSettingsManager.SettingsState,
     onSelectAppearance: (com.antigravity.copilot.core.designsystem.ThemeAppearanceMode) -> Unit,
+    onSelectAccent: (String) -> Unit,
     onToggleAutoForeground: () -> Unit,
     onToggleScreenAlwaysOn: () -> Unit,
     onToggleAutoMinimizeDrawer: () -> Unit,
@@ -507,6 +509,60 @@ private fun GeneralSettingsContent(
                             text = subtitles[mode].orEmpty(),
                             style = CockpitTheme.typography.bodySmall,
                             color = CockpitTheme.colors.textSecondary
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // ACCENT COLOUR: buttons, selected states, nav highlight, small labels and icons
+    SettingsCard(title = "Accent colour", icon = Icons.Default.Palette) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Colour used for buttons, selected items, labels and icons across the app.",
+                style = CockpitTheme.typography.bodyMedium,
+                color = CockpitTheme.colors.textSecondary
+            )
+            val isDark = CockpitTheme.isDark
+            @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                com.antigravity.copilot.core.designsystem.colors.AccentOption.entries.forEach { option ->
+                    val selected = state.accentOption == option
+                    val swatch = if (isDark) option.night else option.day
+                    Column(
+                        modifier = Modifier
+                            .width(64.dp)
+                            .clip(CopilotShapes.R10)
+                            .clickable { onSelectAccent(option.id) }
+                            .padding(vertical = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(swatch)
+                                .border(
+                                    width = if (selected) 3.dp else 1.dp,
+                                    color = if (selected) CockpitTheme.colors.textPrimary else CockpitTheme.colors.border,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (selected) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = CockpitTheme.colors.onAccent, modifier = Modifier.size(22.dp))
+                            }
+                        }
+                        Text(
+                            text = option.displayName,
+                            style = CockpitTheme.typography.labelMedium,
+                            color = if (selected) CockpitTheme.colors.textPrimary else CockpitTheme.colors.textSecondary,
+                            maxLines = 1
                         )
                     }
                 }
