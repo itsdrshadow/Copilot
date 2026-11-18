@@ -17,3 +17,7 @@ See also `AGENTS.md` (git, changelog, emulator verification rules).
 ## Workflow
 - Before multi-file edits, state a brief 2-3 line plan.
 - Wait for confirmation if architectural changes are needed.
+- **Versioning & Git Push:** After completing any change, bump the version per SemVer
+  (`PATCH` = fixes, `MINOR` = features, `MAJOR` = breaking; also `versionCode` +1 on Android).
+  Stage changes, commit with a concise conventional message (`fix:`, `feat:`, `chore:`),
+  and `git push` to the current branch — confirm with the user first if on `main`/`master`.
