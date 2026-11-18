@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.17.0] - 2026-11-18
+
+### Added
+- Debug builds: a map performance overlay (bottom-left of the map) showing live MapLibre render FPS and ms/frame, native heap MB (current and peak), and style load time. The same values are logged every 5 s under `adb logcat -s MapPerf`.
+
+### Changed
+- MapLibre Android SDK upgraded from 10.3.2 to **13.7.1, OpenGL ES variant** (`org.maplibre.gl:android-sdk-opengl`, not the default Vulkan build) for the Mali-G31 / armeabi-v7a head unit. Packages moved from `com.mapbox.mapboxsdk.*` to `org.maplibre.android.*` (`Mapbox` → `MapLibre`, `MapboxMap` → `MapLibreMap`, `MapboxMapOptions` → `MapLibreMapOptions`); geojson and gestures moved to `org.maplibre.*`.
+- Toolchain: Kotlin 1.9.22 → 2.2.10 (required by MapLibre 13), with the Kotlin Compose compiler plugin replacing `kotlinCompilerExtensionVersion`; Hilt 2.50 → 2.57.1 and Room 2.6.1 → 2.7.2 so annotation processing can read Kotlin 2.2 metadata.
+
+### Removed
+- `DeadCodeCleanupVerificationTest`: dropped the stale assertion that the MapLibre SDK must be absent from the classpath.
+
 ## [2.16.0] - 2026-11-18
 
 ### Added

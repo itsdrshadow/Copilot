@@ -42,16 +42,6 @@ class DeadCodeCleanupVerificationTest {
                 field.type.name.contains("maplibre", ignoreCase = true)
             )
         }
-
-        // Verify MapLibre class is not loaded on classpath
-        var mapLibreClassLoaded = false
-        try {
-            Class.forName("org.maplibre.android.MapLibre")
-            mapLibreClassLoaded = true
-        } catch (_: ClassNotFoundException) {
-            mapLibreClassLoaded = false
-        }
-        assertFalse("MapLibre SDK should no longer be present in dependencies", mapLibreClassLoaded)
     }
 
     @Test

@@ -2,8 +2,8 @@ package com.antigravity.copilot.core.map
 
 import android.util.Log
 import com.antigravity.copilot.core.logic.MapOfflinePolicy
-import com.mapbox.mapboxsdk.Mapbox
-import com.mapbox.mapboxsdk.module.http.HttpRequestUtil
+import org.maplibre.android.MapLibre
+import org.maplibre.android.module.http.HttpRequestUtil
 import okhttp3.Dispatcher
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -34,7 +34,7 @@ object MapNetworkGuard {
     /**
      * Hand gzipped tiles to MapLibre untouched with `Content-Encoding: gzip`.
      * Off by default: OkHttp's transparent gunzip only runs in its BridgeInterceptor, which our
-     * application interceptor short-circuits, and MapLibre Android 10.3.2 passes response bytes
+     * application interceptor short-circuits, and MapLibre Android passes response bytes
      * straight to native MVT parsing. An emulator trial with this on drew no roads, but that run
      * was confounded by an out-of-region GPS fix — verify on a head unit before enabling.
      * Meanwhile tiles stay gzipped in the RAM cache and are inflated per request (~<1 ms/tile).
@@ -85,7 +85,7 @@ object MapNetworkGuard {
 
     fun install(failLoudly: Boolean) {
         try {
-            Mapbox.setConnected(true)
+            MapLibre.setConnected(true)
             // MapLibre fans out many tile requests at once; OkHttp's default of 5 per host would
             // serialise them behind our single local host. Reads are lock-free (positional
             // FileChannel + RAM cache), so let the dispatcher's worker pool run them in parallel.

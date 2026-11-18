@@ -22,11 +22,11 @@ import com.antigravity.copilot.core.map.MapNetworkGuard
 import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.map.OfflineStyle
 import com.antigravity.copilot.core.map.StaticMapCamera
-import com.mapbox.mapboxsdk.camera.CameraPosition
-import com.mapbox.mapboxsdk.geometry.LatLng
-import com.mapbox.mapboxsdk.maps.Style
-import com.mapbox.mapboxsdk.snapshotter.MapSnapshot
-import com.mapbox.mapboxsdk.snapshotter.MapSnapshotter
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.Style
+import org.maplibre.android.snapshotter.MapSnapshot
+import org.maplibre.android.snapshotter.MapSnapshotter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine

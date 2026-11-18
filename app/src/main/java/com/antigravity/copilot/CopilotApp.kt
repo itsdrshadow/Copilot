@@ -40,7 +40,7 @@ class CopilotApp : Application() {
 
         // 3. Initialize MapLibre Native & Offline Map Engine (32-bit armeabi-v7a)
         try {
-            com.mapbox.mapboxsdk.Mapbox.getInstance(this)
+            org.maplibre.android.MapLibre.getInstance(this)
             // 100% offline map: no tile/style/glyph network access; debug builds crash on any attempt.
             com.antigravity.copilot.core.map.MapNetworkGuard.install(failLoudly = BuildConfig.DEBUG)
         } catch (e: Throwable) {

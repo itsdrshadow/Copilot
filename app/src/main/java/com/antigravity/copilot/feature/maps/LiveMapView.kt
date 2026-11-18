@@ -42,14 +42,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.antigravity.copilot.core.designsystem.colors.*
 import com.antigravity.copilot.core.location.SpeedLimitInfo
+import com.antigravity.copilot.BuildConfig
 import com.antigravity.copilot.core.map.CarMapController
 import com.antigravity.copilot.core.map.MapNetworkGuard
 import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.model.TripPoint
-import com.mapbox.mapboxsdk.Mapbox
-import com.mapbox.mapboxsdk.maps.MapView
-import com.mapbox.mapboxsdk.maps.MapboxMapOptions
-import com.mapbox.mapboxsdk.offline.OfflineManager
+import org.maplibre.android.MapLibre
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.MapLibreMapOptions
+import org.maplibre.android.offline.OfflineManager
 import com.antigravity.copilot.core.settings.AppSettingsManager
 import com.antigravity.copilot.core.settings.MapRenderFps
 import android.content.Context
@@ -106,7 +107,7 @@ private class MapViewLifecycleHolder {
 
 /**
  * LiveMapPanel:
- * MapLibre Android SDK v10.3.2 integrated with textureMode=true for rock-solid rendering
+ * MapLibre Android SDK v13.7.1 (OpenGL ES variant) integrated with textureMode=true for rock-solid rendering
  * on 32-bit armeabi-v7a Android 11 car head units.
  *
  * The panel is meant to stay composed for the whole session (see MainAppScreen): pass
@@ -237,10 +238,13 @@ fun LiveMapPanel(
     val mapPalette = CockpitTheme.map
     LaunchedEffect(mapController, mapPalette) { mapController.setMapPalette(mapPalette) }
 
+    // Debug builds: live FPS / native heap / style-load overlay (+ `adb logcat -s MapPerf`).
+    val perfStats = if (BuildConfig.DEBUG) remember { MapPerfStats() } else null
+
     // Ensure MapLibre native engine is initialized with applicationContext
     remember {
         try {
-            Mapbox.getInstance(context.applicationContext)
+            MapLibre.getInstance(context.applicationContext)
         } catch (_: Exception) {}
         OfflineMapManager.init(context.applicationContext)
         disableAmbientCache(context.applicationContext)
@@ -320,6 +324,7 @@ fun LiveMapPanel(
             lifecycleOwner.lifecycle.removeObserver(observer)
             mapController.detachMap()
             fpsGovernor.release()
+            perfStats?.detach()
             lifecycleHolder.destroy()
         }
     }
@@ -348,7 +353,7 @@ fun LiveMapPanel(
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
-                val options = MapboxMapOptions.createFromAttributes(ctx)
+                val options = MapLibreMapOptions.createFromAttributes(ctx)
                     .textureMode(true) // Crucial for older Mali / Adreno GPUs
                     // Head unit: 1280x800 at 148-160 dpi, i.e. ~1x density. 1.0 is native: no
                     // supersampled tiles or glyph atlases for the Mali-G31 to fill.
@@ -371,6 +376,7 @@ fun LiveMapPanel(
                     // Follow mode re-renders continuously while driving: the FPS cap comes from
                     // Settings > Map Rendering (see MapFpsGovernor).
                     fpsGovernor.mapView = this
+                    perfStats?.attach(this)
                     setOnTouchListener { _, event -> fpsGovernor.onTouch(event); false }
                     lifecycleHolder.mapView = this
                     // The lifecycle observer may already have replayed ON_START/ON_RESUME before this
@@ -400,6 +406,13 @@ fun LiveMapPanel(
                     .zIndex(5f)
                     .graphicsLayer { alpha = coverAlpha }
                     .background(CockpitTheme.colors.bg)
+            )
+        }
+
+        if (perfStats != null) {
+            MapPerfOverlay(
+                stats = perfStats,
+                modifier = Modifier.align(Alignment.BottomStart).padding(8.dp).zIndex(20f)
             )
         }
 

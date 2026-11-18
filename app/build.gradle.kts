@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.kapt")
     id("com.google.dagger.hilt.android")
     id("androidx.baselineprofile")
@@ -14,8 +15,8 @@ android {
         applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 120
-        versionName = "2.16.0"
+        versionCode = 121
+        versionName = "2.17.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -68,10 +69,6 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
-    }
-
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -113,12 +110,12 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     // Dependency Injection (Hilt)
-    implementation("com.google.dagger:hilt-android:2.50")
-    kapt("com.google.dagger:hilt-compiler:2.50")
+    implementation("com.google.dagger:hilt-android:2.57.1")
+    kapt("com.google.dagger:hilt-compiler:2.57.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
     // Room Database
-    val roomVersion = "2.6.1"
+    val roomVersion = "2.7.2"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
@@ -126,8 +123,8 @@ dependencies {
     // Jetpack DataStore (Preferences & Versioned Settings)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
-    // Map Engine: MapLibre Android SDK (Pinned to 10.3.2 for armeabi-v7a & head unit GPUs)
-    implementation("org.maplibre.gl:android-sdk:10.3.2")
+    // Map Engine: MapLibre Android SDK 13.x, OpenGL ES variant (Mali-G31 / armeabi-v7a; avoid default Vulkan artifact)
+    implementation("org.maplibre.gl:android-sdk-opengl:13.7.1")
 
     // WorkManager & OkHttp (Resumable downloads with Range header)
     implementation("androidx.work:work-runtime-ktx:2.9.0")

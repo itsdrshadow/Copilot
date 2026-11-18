@@ -8,23 +8,23 @@ import android.util.Log
 import android.view.animation.LinearInterpolator
 import com.antigravity.copilot.core.logic.LatLon
 import com.antigravity.copilot.core.model.TripPoint
-import com.mapbox.android.gestures.MoveGestureDetector
-import com.mapbox.android.gestures.RotateGestureDetector
-import com.mapbox.geojson.Feature
-import com.mapbox.geojson.FeatureCollection
-import com.mapbox.geojson.LineString
-import com.mapbox.geojson.Point
-import com.mapbox.mapboxsdk.camera.CameraPosition
-import com.mapbox.mapboxsdk.camera.CameraUpdateFactory
-import com.mapbox.mapboxsdk.geometry.LatLng
-import com.mapbox.mapboxsdk.maps.MapboxMap
-import com.mapbox.mapboxsdk.maps.Style
-import com.mapbox.mapboxsdk.style.expressions.Expression
-import com.mapbox.mapboxsdk.style.layers.CircleLayer
-import com.mapbox.mapboxsdk.style.layers.LineLayer
-import com.mapbox.mapboxsdk.style.layers.Property
-import com.mapbox.mapboxsdk.style.layers.PropertyFactory.*
-import com.mapbox.mapboxsdk.style.sources.GeoJsonSource
+import org.maplibre.android.gestures.MoveGestureDetector
+import org.maplibre.android.gestures.RotateGestureDetector
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.LineString
+import org.maplibre.geojson.Point
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.Style
+import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory.*
+import org.maplibre.android.style.sources.GeoJsonSource
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -119,7 +119,7 @@ class CarMapController(
         fun emaAlpha(dtMs: Long, tauMs: Double = SPEED_EMA_TAU_MS): Double = 1.0 - exp(-dtMs / tauMs)
     }
 
-    private var mapboxMap: MapboxMap? = null
+    private var mapboxMap: MapLibreMap? = null
     private var isStyleLoaded = false
     /** Map id baked into the loaded style (null = background-only style). */
     private var loadedMapId: String? = null
@@ -168,33 +168,33 @@ class CarMapController(
     private var puckPosition: LatLng? = null
     private var puckAnimator: ValueAnimator? = null
 
-    private val moveListener = object : MapboxMap.OnMoveListener {
+    private val moveListener = object : MapLibreMap.OnMoveListener {
         override fun onMoveBegin(detector: MoveGestureDetector) = suspendFollow()
         override fun onMove(detector: MoveGestureDetector) {}
         override fun onMoveEnd(detector: MoveGestureDetector) {}
     }
-    private val rotateListener = object : MapboxMap.OnRotateListener {
+    private val rotateListener = object : MapLibreMap.OnRotateListener {
         override fun onRotateBegin(detector: RotateGestureDetector) = suspendFollow()
         override fun onRotate(detector: RotateGestureDetector) {}
         override fun onRotateEnd(detector: RotateGestureDetector) {}
     }
-    private val cameraMoveStartedListener = MapboxMap.OnCameraMoveStartedListener { reason ->
-        if (reason == MapboxMap.OnCameraMoveStartedListener.REASON_API_GESTURE) userGestureInProgress = true
+    private val cameraMoveStartedListener = MapLibreMap.OnCameraMoveStartedListener { reason ->
+        if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) userGestureInProgress = true
     }
-    private val cameraIdleListener = MapboxMap.OnCameraIdleListener {
+    private val cameraIdleListener = MapLibreMap.OnCameraIdleListener {
         if (userGestureInProgress) {
             userGestureInProgress = false
             // Pinch / double-tap: keep the user's zoom until Recenter.
             mapboxMap?.let { manualZoom = it.cameraPosition.zoom; lastEasedZoom = it.cameraPosition.zoom }
         }
     }
-    private val mapClickListener = MapboxMap.OnMapClickListener { latLng -> onMapTapped(latLng) }
+    private val mapClickListener = MapLibreMap.OnMapClickListener { latLng -> onMapTapped(latLng) }
 
     /**
      * Attaches the MapLibre map: restores the camera at the last vehicle position immediately
      * (no fly-in) and loads the offline style once.
      */
-    fun attachMap(map: MapboxMap) {
+    fun attachMap(map: MapLibreMap) {
         if (mapboxMap === map) return
         map.addOnMapClickListener(mapClickListener)
         map.addOnCameraMoveStartedListener(cameraMoveStartedListener)
@@ -468,7 +468,7 @@ class CarMapController(
             }
             if (style.getLayer(GEOFENCE_LABEL_LAYER_ID) == null) {
                 style.addLayer(
-                    com.mapbox.mapboxsdk.style.layers.SymbolLayer(GEOFENCE_LABEL_LAYER_ID, GEOFENCE_SOURCE_ID).apply {
+                    org.maplibre.android.style.layers.SymbolLayer(GEOFENCE_LABEL_LAYER_ID, GEOFENCE_SOURCE_ID).apply {
                         setFilter(Expression.eq(Expression.geometryType(), Expression.literal("Point")))
                         setProperties(
                             textField(Expression.get("name")),
