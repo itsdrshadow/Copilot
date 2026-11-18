@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.15.6] - 2026-11-18
+
+### Changed
+- Map embedded on the Drive screen is capped at 20 fps (full-screen Maps stays at 30). The TextureView map forces a full-window redraw per map frame; benchmark: Drive RenderThread CPU -26%, janky frames -28%.
+
 ## [2.15.5] - 2026-11-18
 
 ### Changed

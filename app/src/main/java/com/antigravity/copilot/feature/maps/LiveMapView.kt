@@ -104,6 +104,16 @@ private class MapViewLifecycleHolder {
  */
 private const val MAP_MAX_FPS = 30
 
+/**
+ * Cap while the map is embedded on the Drive screen. The map is a TextureView, so every map frame
+ * forces hwui to redraw the whole window (all dashboard cards). Frame-timing benchmarks showed the
+ * Drive screen bound by RenderThread draw commands, not by MapLibre or Compose; a lower cap cuts
+ * those full-window redraws. Full screen keeps [MAP_MAX_FPS].
+ */
+private const val MAP_EMBEDDED_FPS = 20
+
+private fun mapFpsFor(isFullScreen: Boolean) = if (isFullScreen) MAP_MAX_FPS else MAP_EMBEDDED_FPS
+
 @Composable
 fun LiveMapPanel(
     latestPoint: () -> TripPoint?,
@@ -129,6 +139,10 @@ fun LiveMapPanel(
     var showOfflineManagerDialog by remember { mutableStateOf(false) }
     var menuExpanded by remember { mutableStateOf(false) }
     val lifecycleHolder = remember { MapViewLifecycleHolder() }
+    val currentIsFullScreen by rememberUpdatedState(isFullScreen)
+    LaunchedEffect(isFullScreen) {
+        lifecycleHolder.mapView?.setMaximumFps(mapFpsFor(isFullScreen))
+    }
     val mapController = remember { CarMapController(context.applicationContext, coroutineScope) }
 
     val hasMapInstalled by mapController.hasMapInstalled.collectAsStateWithLifecycle()
@@ -264,9 +278,9 @@ fun LiveMapPanel(
 
                 MapView(ctx, options).apply {
                     onCreate(null)
-                    // Follow mode re-renders continuously while driving; 30 fps is smooth for a
-                    // car display and halves map GL + window composite work on head units.
-                    setMaximumFps(MAP_MAX_FPS)
+                    // Follow mode re-renders continuously while driving: cap at 30 fps full screen
+                    // and 20 fps embedded on Drive (see MAP_EMBEDDED_FPS).
+                    setMaximumFps(mapFpsFor(currentIsFullScreen))
                     lifecycleHolder.mapView = this
                     // The lifecycle observer may already have replayed ON_START/ON_RESUME before this
                     // view existed (fresh launch): bring the MapView up to the current state, or it
