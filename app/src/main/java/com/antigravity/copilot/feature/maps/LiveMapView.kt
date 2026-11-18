@@ -471,6 +471,26 @@ fun LiveMapPanel(
             SpeedLimitSign(limitKmh = speedLimitInfo.speedLimitKmh)
         }
 
+        // Road-anchored callout (avg speed / km/L of the current road segment). Moves per camera
+        // frame through graphicsLayer only; content changes at most every ~1 s.
+        val roadCallout by mapController.roadSegments.callout.collectAsStateWithLifecycle()
+        val calloutAnchor = remember { CalloutAnchorState() }
+        DisposableEffect(mapController, calloutAnchor) {
+            mapController.setCalloutAnchorListener(calloutAnchor)
+            onDispose { mapController.setCalloutAnchorListener(null) }
+        }
+        val calloutShown = roadCallout != null
+        LaunchedEffect(mapController, calloutShown) {
+            // Keep projecting through the fade-out, then stop the per-frame work.
+            if (!calloutShown) kotlinx.coroutines.delay(600)
+            mapController.setCalloutTracking(calloutShown)
+        }
+        RoadCalloutBubble(
+            callout = roadCallout,
+            anchor = calloutAnchor,
+            modifier = Modifier.matchParentSize().zIndex(4f)
+        )
+
         DebugMapFixInjector(mapController)
 
         // Top-centre: offline "NH-49 • Near Kharsia" pill and the sharp-turn badge.

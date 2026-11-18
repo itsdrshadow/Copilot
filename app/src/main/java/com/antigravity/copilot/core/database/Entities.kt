@@ -157,3 +157,26 @@ data class RoadCellEntity(
     val speedKm: Double,
     val updatedAt: Long = System.currentTimeMillis()
 )
+
+/**
+ * Per road-segment stats for the map callout bubble. A segment is a road class inside a
+ * ~550 m grid cell (`"primary_4412_16634"`, see [com.antigravity.copilot.core.map.intel.RoadSegmentMath]),
+ * so unnamed village roads still get their own history.
+ *
+ * [rawEstimatedMileageKmpl] is the physics / speed-band estimate against the vehicle baseline;
+ * [calibratedMileageKmpl] = raw × the fuel-log calibration multiplier, which is re-applied to every
+ * row whenever a tank-to-tank segment updates it.
+ */
+@Entity(tableName = "road_segment_stats")
+data class RoadSegmentStatsEntity(
+    @PrimaryKey val segmentKey: String,
+    val roadClass: String,
+    val roadName: String?,
+    /** Distance-weighted, history-capped (exponentially forgetting) average while moving. */
+    val avgSpeedKmh: Double,
+    val sampleCount: Int,
+    val totalDistanceKm: Double,
+    val rawEstimatedMileageKmpl: Double,
+    val calibratedMileageKmpl: Double,
+    val lastUpdatedTimestamp: Long
+)

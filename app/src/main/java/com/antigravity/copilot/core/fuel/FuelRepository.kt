@@ -143,6 +143,7 @@ class FuelRepository private constructor(context: Context) {
             Log.e(TAG, "Fuel model load failed; keeping seed: ${e.message}", e)
         }
         modelLoaded = true
+        notifyRoadSegmentCalibration()
         _fuelState.update { buildFuelState() }
     }
 
@@ -151,6 +152,20 @@ class FuelRepository private constructor(context: Context) {
             fuelModelDao.upsert(FuelModelStateEntity(json = modelGson.toJson(model)))
         } catch (e: Exception) {
             Log.e(TAG, "Fuel model persist failed: ${e.message}", e)
+        }
+        notifyRoadSegmentCalibration()
+    }
+
+    /**
+     * Road-segment mileage calibration hook: a new tank-to-tank / gauge-to-gauge segment (or a
+     * baseline change) re-scales the calibrated km/L of every stored road segment. Cheap no-op
+     * when nothing relevant changed.
+     */
+    private fun notifyRoadSegmentCalibration() {
+        try {
+            com.antigravity.copilot.core.map.intel.RoadSegmentRepository.getInstance(appContext).onFuelModelUpdated(model)
+        } catch (e: Exception) {
+            Log.w(TAG, "Road segment calibration skipped: ${e.message}")
         }
     }
 

@@ -15,8 +15,8 @@ android {
         applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 124
-        versionName = "2.20.0"
+        versionCode = 125
+        versionName = "2.21.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

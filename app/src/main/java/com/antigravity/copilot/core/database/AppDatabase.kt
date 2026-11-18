@@ -208,6 +208,28 @@ interface RoadCellDao {
     suspend fun clearAll()
 }
 
+@Dao
+interface RoadSegmentStatsDao {
+    @Query("SELECT * FROM road_segment_stats WHERE segmentKey = :key LIMIT 1")
+    suspend fun get(key: String): RoadSegmentStatsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(row: RoadSegmentStatsEntity)
+
+    /**
+     * Calibration hook: scale every raw estimate by [rawFactor] (baseline change) and recompute
+     * the calibrated value with [multiplier]. SQLite evaluates the RHS on the pre-update row.
+     */
+    @Query(
+        "UPDATE road_segment_stats SET rawEstimatedMileageKmpl = rawEstimatedMileageKmpl * :rawFactor, " +
+            "calibratedMileageKmpl = rawEstimatedMileageKmpl * :rawFactor * :multiplier"
+    )
+    suspend fun rescaleAll(rawFactor: Double, multiplier: Double): Int
+
+    @Query("DELETE FROM road_segment_stats")
+    suspend fun clearAll()
+}
+
 @Database(
     entities = [
         VehicleEntity::class,
@@ -218,9 +240,10 @@ interface RoadCellDao {
         FuelLedgerEntity::class,
         TripGeofenceEntity::class,
         FuelModelStateEntity::class,
-        RoadCellEntity::class
+        RoadCellEntity::class,
+        RoadSegmentStatsEntity::class
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -232,6 +255,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun tripGeofenceDao(): TripGeofenceDao
     abstract fun fuelModelDao(): FuelModelDao
     abstract fun roadCellDao(): RoadCellDao
+    abstract fun roadSegmentStatsDao(): RoadSegmentStatsDao
 
     companion object {
         @Volatile
@@ -424,7 +448,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        const val DATABASE_SCHEMA_VERSION = 11
+        /** Road-segment stats for the map callout bubble. */
+        val MIGRATION_11_12 = object : androidx.room.migration.Migration(11, 12) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `road_segment_stats` (`segmentKey` TEXT NOT NULL, `roadClass` TEXT NOT NULL, " +
+                        "`roadName` TEXT, `avgSpeedKmh` REAL NOT NULL, `sampleCount` INTEGER NOT NULL, " +
+                        "`totalDistanceKm` REAL NOT NULL, `rawEstimatedMileageKmpl` REAL NOT NULL, " +
+                        "`calibratedMileageKmpl` REAL NOT NULL, `lastUpdatedTimestamp` INTEGER NOT NULL, PRIMARY KEY(`segmentKey`))"
+                )
+            }
+        }
+
+        const val DATABASE_SCHEMA_VERSION = 12
 
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
@@ -436,7 +472,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_7_8,
             MIGRATION_8_9,
             MIGRATION_9_10,
-            MIGRATION_10_11
+            MIGRATION_10_11,
+            MIGRATION_11_12
         )
 
         fun getInstance(context: Context): AppDatabase {

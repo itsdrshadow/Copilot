@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.21.0] - 2026-11-18
+
+### Added
+- Road-anchored callout bubble on the live map: a rounded glass card whose tail points at the road just ahead of the car, showing the current road segment's average speed and mileage (`~18.6 km/l` until fuel-log calibrated, solid once calibrated). Follows the camera per frame without recomposition; fades out when off-road or stationary for 30 s; values cross-fade and slide when entering a new segment.
+- Road segment stats (`road_segment_stats` table, DB v12): road class + ~500 m grid cell per segment, distance-weighted average speed and a physics/speed-band mileage estimate, written on segment exit or every 20 s.
+- Fuel-log calibration of road-segment mileage: each new tank-to-tank (or gauge-to-gauge) segment updates a multiplier (actual ÷ predicted km/L over the tracked driving) and recalculates every stored segment's calibrated km/L. Baseline mileage changes in Settings rescale consistently. Cleared by factory reset.
+
 ## [2.20.0] - 2026-11-18
 
 ### Changed

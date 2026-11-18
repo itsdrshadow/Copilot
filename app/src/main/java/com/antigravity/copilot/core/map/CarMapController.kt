@@ -9,6 +9,8 @@ import android.view.animation.LinearInterpolator
 import com.antigravity.copilot.core.location.SpeedLimitEngine
 import com.antigravity.copilot.core.logic.LatLon
 import com.antigravity.copilot.core.map.intel.OfflineRoadIntelligenceManager
+import com.antigravity.copilot.core.map.intel.RoadSegmentRepository
+import com.antigravity.copilot.core.map.intel.RoadSegmentTracker
 import com.antigravity.copilot.core.model.TripPoint
 import org.maplibre.android.gestures.MoveGestureDetector
 import org.maplibre.android.gestures.RotateGestureDetector
@@ -117,6 +119,11 @@ class CarMapController(
             }
         }
 
+        /** Callout tail tip: this far ahead of the puck along the heading (screen dp)... */
+        private const val CALLOUT_AHEAD_DP = 46f
+        /** ...but never closer above the puck centre than this (clears the 20 px puck ring). */
+        private const val CALLOUT_MIN_GAP_DP = 30f
+
         /** EMA factor for an irregular sample interval [dtMs]. */
         fun emaAlpha(dtMs: Long, tauMs: Double = SPEED_EMA_TAU_MS): Double = 1.0 - exp(-dtMs / tauMs)
     }
@@ -124,12 +131,20 @@ class CarMapController(
     private var mapboxMap: MapLibreMap? = null
     private var isStyleLoaded = false
 
+    private val density = context.resources.displayMetrics.density
+
+    /** Avg speed / calibrated km/L of the road segment under the car (map callout bubble). */
+    val roadSegments = RoadSegmentTracker(coroutineScope, RoadSegmentRepository.getInstance(context))
+
     /** Location pill, map-based speed limit and sharp-turn alerts from the offline vector tiles. */
     val roadIntel = OfflineRoadIntelligenceManager(
         scope = coroutineScope,
-        density = context.resources.displayMetrics.density,
+        density = density,
         placeStore = java.io.File(context.filesDir, "road_intel_places.tsv"),
-        onRoadObserved = { SpeedLimitEngine.getInstance(context).onMapRoad(it) }
+        onRoadObserved = {
+            SpeedLimitEngine.getInstance(context).onMapRoad(it)
+            roadSegments.onRoad(it)
+        }
     )
     /** Map id baked into the loaded style (null = background-only style). */
     private var loadedMap: ActiveMapFile.Map? = null
@@ -191,7 +206,9 @@ class CarMapController(
     private val cameraMoveStartedListener = MapLibreMap.OnCameraMoveStartedListener { reason ->
         if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) userGestureInProgress = true
     }
+    private val cameraMoveListener = MapLibreMap.OnCameraMoveListener { updateCalloutAnchor() }
     private val cameraIdleListener = MapLibreMap.OnCameraIdleListener {
+        updateCalloutAnchor()
         if (userGestureInProgress) {
             userGestureInProgress = false
             // Pinch / double-tap: keep the user's zoom until Recenter.
@@ -209,10 +226,12 @@ class CarMapController(
         map.addOnMapClickListener(mapClickListener)
         map.addOnCameraMoveStartedListener(cameraMoveStartedListener)
         map.addOnCameraIdleListener(cameraIdleListener)
+        map.addOnCameraMoveListener(cameraMoveListener)
         map.addOnMoveListener(moveListener)
         map.addOnRotateListener(rotateListener)
         this.mapboxMap = map
         roadIntel.attach(map)
+        roadSegments.attach()
         // Start where the car last was (not a hard-coded city) so the first fix needs no camera pan.
         if (!hasFix) {
             val (savedLat, savedLon) = OfflineMapManager.getLastKnownPosition(context)
@@ -239,10 +258,12 @@ class CarMapController(
             map.removeOnMapClickListener(mapClickListener)
             map.removeOnCameraMoveStartedListener(cameraMoveStartedListener)
             map.removeOnCameraIdleListener(cameraIdleListener)
+            map.removeOnCameraMoveListener(cameraMoveListener)
             map.removeOnMoveListener(moveListener)
             map.removeOnRotateListener(rotateListener)
         }
         roadIntel.detach()
+        roadSegments.detach()
         mapboxMap = null
         isStyleLoaded = false
         loadedMap = null
@@ -657,6 +678,7 @@ class CarMapController(
 
         // Throttled internally (1.5 s / 25 m); skips while the map is hidden.
         roadIntel.onFix(lat, lon, bearing.toDouble(), speed, renderingActive)
+        roadSegments.onFix(lat, lon, speed)
 
         val map = mapboxMap ?: return
         if (!renderingActive) {
@@ -774,6 +796,74 @@ class CarMapController(
         puckPosition = pos
         mapboxMap?.style?.getSourceAs<GeoJsonSource>(VEHICLE_SOURCE_ID)
             ?.setGeoJson(Point.fromLngLat(pos.longitude, pos.latitude))
+        updateCalloutAnchor()
+    }
+
+    // ---------------- Road-segment callout anchor ----------------
+
+    /** Receives the callout tail-tip position in MapView pixels, or NaN when it can't be placed. */
+    fun interface CalloutAnchorListener {
+        fun onAnchor(x: Float, y: Float)
+    }
+
+    private var calloutListener: CalloutAnchorListener? = null
+    private var calloutTracking = false
+    // Reused projection buffers: [lat, lon] pairs in, [x, y] pairs out. No per-frame allocation.
+    private val calloutIn = DoubleArray(4)
+    private val calloutOut = DoubleArray(4)
+
+    fun setCalloutAnchorListener(listener: CalloutAnchorListener?) {
+        calloutListener = listener
+        updateCalloutAnchor()
+    }
+
+    /** Project only while the bubble is shown. */
+    fun setCalloutTracking(active: Boolean) {
+        calloutTracking = active
+        if (active) updateCalloutAnchor()
+    }
+
+    /**
+     * Runs on every camera frame (OnCameraMove), puck step and camera idle while the bubble is
+     * visible: one batched JNI projection into preallocated arrays, then two float writes the UI
+     * reads in its draw phase (graphicsLayer), so nothing re-composes or re-lays-out per frame.
+     *
+     * The tip sits [CALLOUT_AHEAD_DP] ahead of the puck along the heading, i.e. on the road in
+     * front of the car. When that point isn't above the puck on screen (north-up while heading
+     * south, or a strongly tilted camera) it falls back to [CALLOUT_MIN_GAP_DP] straight above
+     * the puck so the bubble never covers the vehicle.
+     */
+    private fun updateCalloutAnchor() {
+        val listener = calloutListener ?: return
+        if (!calloutTracking || !renderingActive) return
+        val map = mapboxMap
+        if (map == null || !isStyleLoaded) {
+            listener.onAnchor(Float.NaN, Float.NaN)
+            return
+        }
+        val pos = puckPosition ?: lastLocation
+        val projection = map.projection
+        val lat = pos.latitude
+        val lon = pos.longitude
+        val aheadM = projection.getMetersPerPixelAtLatitude(lat) * CALLOUT_AHEAD_DP * density
+        val b = Math.toRadians(lastBearing)
+        val dLat = aheadM * kotlin.math.cos(b) / 111_320.0
+        val dLon = aheadM * kotlin.math.sin(b) / (111_320.0 * kotlin.math.cos(Math.toRadians(lat)).coerceAtLeast(0.01))
+        calloutIn[0] = lat
+        calloutIn[1] = lon
+        calloutIn[2] = lat + dLat
+        calloutIn[3] = lon + dLon
+        projection.toScreenLocations(calloutIn, calloutOut)
+        val puckX = calloutOut[0].toFloat()
+        val puckY = calloutOut[1].toFloat()
+        var x = calloutOut[2].toFloat()
+        var y = calloutOut[3].toFloat()
+        val minGap = CALLOUT_MIN_GAP_DP * density
+        if (!x.isFinite() || !y.isFinite() || y > puckY - minGap) {
+            x = puckX
+            y = puckY - minGap
+        }
+        listener.onAnchor(x, y)
     }
 
     private var renderingActive = true
