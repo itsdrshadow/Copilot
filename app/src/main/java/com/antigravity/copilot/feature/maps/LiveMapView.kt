@@ -28,6 +28,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -230,6 +231,18 @@ fun LiveMapPanel(
     // MapLibre paints this until its first frame is rendered (default is a beige #F0E9E1 flash).
     val mapLoadColor = CockpitTheme.colors.bg.toArgb()
 
+    // Fade-in on first load. Also reveal if no offline map exists (nothing will ever render).
+    var mapRevealed by remember { mutableStateOf(false) }
+    LaunchedEffect(hasMapInstalled) {
+        if (!hasMapInstalled) { kotlinx.coroutines.delay(1500); mapRevealed = true }
+    }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(4000); mapRevealed = true } // safety net
+    val coverAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (mapRevealed) 0f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 900),
+        label = "mapReveal"
+    )
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -260,6 +273,8 @@ fun LiveMapPanel(
                     // never renders until the app is backgrounded once.
                     lifecycleHolder.hostState = lifecycleOwner.lifecycle.currentState
                     lifecycleHolder.sync()
+                    // Reveal the map (fade out the cover) once the first full render is done.
+                    addOnDidFinishRenderingMapListener { fully -> if (fully) mapRevealed = true }
                     getMapAsync { map ->
                         map.uiSettings.isRotateGesturesEnabled = true
                         map.uiSettings.isTiltGesturesEnabled = true
@@ -270,6 +285,17 @@ fun LiveMapPanel(
                 }
             }
         )
+
+        // Cover that fades away so the map eases in instead of popping in on launch.
+        if (coverAlpha > 0.01f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(5f)
+                    .graphicsLayer { alpha = coverAlpha }
+                    .background(CockpitTheme.colors.bg)
+            )
+        }
 
         // Missing offline map prompt
         if (!hasMapInstalled) {

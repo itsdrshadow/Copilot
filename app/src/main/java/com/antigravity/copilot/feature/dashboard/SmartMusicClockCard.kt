@@ -173,13 +173,14 @@ private fun ClockOnlyState(
         // Center hero clock
         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Row(
-                verticalAlignment = Alignment.Bottom,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = timeString,
                     style = AutomotiveTypographyTokens.NumericClock,
-                    color = CockpitTheme.colors.textPrimary
+                    color = CockpitTheme.colors.textPrimary,
+                    modifier = Modifier.offset(y = (-4).dp)
                 )
                 if (amPmString.isNotBlank()) {
                     Spacer(modifier = Modifier.width(6.dp))
