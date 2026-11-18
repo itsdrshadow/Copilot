@@ -27,11 +27,10 @@ import org.maplibre.android.maps.MapView
  * `adb logcat -s MapPerf`.
  *
  * FPS reads 0 while the map is idle — MapLibre only renders when something changes.
+ * (MapLibre's per-frame render time / GPU memory stats read 0 on this build, so they are not shown.)
  */
 internal class MapPerfStats {
     var fps by mutableIntStateOf(0)
-        private set
-    var renderMsAvg by mutableIntStateOf(0)
         private set
     var nativeHeapMb by mutableIntStateOf(0)
         private set
@@ -42,15 +41,11 @@ internal class MapPerfStats {
 
     // MapLibre delivers these callbacks on the main thread.
     private var frames = 0
-    private var renderMsSum = 0.0
     private var styleStartMs = 0L
     private var ticks = 0
     private var mapView: MapView? = null
 
-    private val frameListener = MapView.OnDidFinishRenderingFrameListener { _, _, renderingMs ->
-        frames++
-        renderMsSum += renderingMs
-    }
+    private val frameListener = MapView.OnDidFinishRenderingFrameListener { _, _, _ -> frames++ }
     private val styleStartListener = MapView.OnWillStartLoadingMapListener {
         styleStartMs = SystemClock.elapsedRealtime()
     }
@@ -81,13 +76,11 @@ internal class MapPerfStats {
     /** Called once per second. */
     fun tick() {
         fps = frames
-        renderMsAvg = if (frames > 0) (renderMsSum / frames).toInt() else 0
         frames = 0
-        renderMsSum = 0.0
         nativeHeapMb = (Debug.getNativeHeapAllocatedSize() / MB).toInt()
         if (nativeHeapMb > peakNativeHeapMb) peakNativeHeapMb = nativeHeapMb
         if (++ticks % 5 == 0) {
-            Log.d(TAG, "fps=$fps renderMs=$renderMsAvg nativeHeap=${nativeHeapMb}MB peak=${peakNativeHeapMb}MB styleLoad=${styleLoadMs}ms")
+            Log.d(TAG, "fps=$fps nativeHeap=${nativeHeapMb}MB peak=${peakNativeHeapMb}MB styleLoad=${styleLoadMs}ms")
         }
     }
 
@@ -107,7 +100,7 @@ internal fun MapPerfOverlay(stats: MapPerfStats, modifier: Modifier = Modifier) 
     }
     val style = if (stats.styleLoadMs >= 0) "${stats.styleLoadMs} ms" else "…"
     Text(
-        text = "FPS ${stats.fps} · ${stats.renderMsAvg} ms/frame\n" +
+        text = "FPS ${stats.fps}\n" +
             "Native heap ${stats.nativeHeapMb} MB (peak ${stats.peakNativeHeapMb})\n" +
             "Style load $style",
         color = Color(0xFF7CFC9A),

@@ -7,7 +7,7 @@ import com.antigravity.copilot.core.designsystem.colors.RaahiNight
 import com.antigravity.copilot.core.logic.MapOfflinePolicy
 
 /**
- * Builds the offline style JSON (bundled template + the active PMTiles map id). Shared by the live
+ * Builds the offline style JSON (bundled template + the active PMTiles `pmtiles://file://` URL). Shared by the live
  * map and the static snapshot maps (Trips, Geofence) so they render the identical basemap.
  */
 object OfflineStyle {
@@ -21,12 +21,12 @@ object OfflineStyle {
             .also { templateCache = it }
 
     /**
-     * Style JSON for [mapId]; with no map installed (null) a background-only style, so nothing ever
+     * Style JSON for [mapUrl]; with no map installed (null) a background-only style, so nothing ever
      * points at a missing or remote source. Returns null if the bundled template cannot be read.
      */
-    fun build(context: Context, mapId: String?, palette: MapPalette = RaahiNight.Map): String? = try {
+    fun build(context: Context, mapUrl: String?, palette: MapPalette = RaahiNight.Map): String? = try {
         val template = template(context)
-        val bound = if (mapId != null) MapOfflinePolicy.bindStyle(template, mapId) else backgroundOnly(template)
+        val bound = if (mapUrl != null) MapOfflinePolicy.bindStyle(template, mapUrl) else backgroundOnly(template)
         val json = applyPalette(bound, palette)
         val remote = MapOfflinePolicy.remoteUrls(json)
         if (remote.isNotEmpty()) Log.e(TAG, "Style contains remote URLs (will be blocked): $remote")

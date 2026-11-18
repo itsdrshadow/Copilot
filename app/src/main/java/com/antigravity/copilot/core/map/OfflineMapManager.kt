@@ -337,7 +337,7 @@ object OfflineMapManager {
         managerScope.launch {
             val pkg = AVAILABLE_PACKAGES.find { it.id == packageId } ?: return@launch
             val file = File(getMapsDir(context), pkg.fileName)
-            MapNetworkGuard.setMapFile(null) // close the reader before deleting
+            ActiveMapFile.set(null)
             if (file.exists()) file.delete()
             refreshPackageStatus(context)
             refreshStorageInfo(context)
@@ -479,16 +479,15 @@ object OfflineMapManager {
                         }
                     }
                 } ?: throw java.io.IOException("Cannot open $uri")
-                // Verify the whole archive is readable (header + supported compression) before swapping.
-                try {
-                    PmTilesReader(tmp).close()
-                } catch (e: Exception) {
+                // Verify MapLibre can render it (PMTiles v3, gzip/none, vector tiles) before swapping.
+                val problem = try { ActiveMapFile.headerProblem(tmp) } catch (e: Exception) { e.message ?: "unreadable" }
+                if (problem != null) {
                     tmp.delete()
-                    onComplete(false, "Map file rejected: ${e.message}")
+                    onComplete(false, "Map file rejected: $problem")
                     return@launch
                 }
                 val dest = File(mapsDir, INDIA_MAP_FILE)
-                MapNetworkGuard.setMapFile(null) // release the old file before replacing it
+                ActiveMapFile.set(null)
                 if (dest.exists()) dest.delete()
                 if (!tmp.renameTo(dest)) throw java.io.IOException("Rename failed")
                 refreshPackageStatus(context)

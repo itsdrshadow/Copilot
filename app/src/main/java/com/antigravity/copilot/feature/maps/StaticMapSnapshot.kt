@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalContext
-import com.antigravity.copilot.core.map.MapNetworkGuard
+import com.antigravity.copilot.core.map.ActiveMapFile
 import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.map.OfflineStyle
 import com.antigravity.copilot.core.map.StaticMapCamera
@@ -57,7 +57,7 @@ fun rememberStaticMapSnapshot(camera: StaticMapCamera?): StaticMapSnapshot? {
         val cam = camera ?: return@LaunchedEffect
         delay(SNAPSHOT_DEBOUNCE_MS) // taps / radius chips / resizes settle first
         val json = withContext(Dispatchers.IO) {
-            OfflineStyle.build(context, resolveMapId(context, cam), palette)
+            OfflineStyle.build(context, resolveMapUrl(context, cam), palette)
         } ?: return@LaunchedEffect
         val bitmap = takeSnapshot(context, cam, json) ?: return@LaunchedEffect
         result = StaticMapSnapshot(cam, bitmap.asImageBitmap())
@@ -66,13 +66,13 @@ fun rememberStaticMapSnapshot(camera: StaticMapCamera?): StaticMapSnapshot? {
 }
 
 /**
- * Map id to render: the file the live map already serves (never switch it under the dashboard
- * map); only when nothing is open yet, open the best file for this location.
+ * PMTiles URL to render: the file the live map already uses (never switch it under the dashboard
+ * map); only when nothing is active yet, pick the best file for this location.
  */
-private fun resolveMapId(context: Context, cam: StaticMapCamera): String? =
-    MapNetworkGuard.activeMapId() ?: try {
+private fun resolveMapUrl(context: Context, cam: StaticMapCamera): String? =
+    ActiveMapFile.current()?.url ?: try {
         OfflineMapManager.init(context)
-        MapNetworkGuard.setMapFile(OfflineMapManager.getBestMapFileForLocation(context, cam.centerLat, cam.centerLon))
+        ActiveMapFile.set(OfflineMapManager.getBestMapFileForLocation(context, cam.centerLat, cam.centerLon))?.url
     } catch (e: Exception) {
         Log.w(TAG, "No offline map for snapshot: ${e.message}")
         null

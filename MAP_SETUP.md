@@ -6,20 +6,23 @@ bulk downloading, and Geofabrik does not publish MBTiles (the old in-app URLs re
 
 ## How rendering works (why no MapLibre upgrade)
 
-* MapLibre Native Android **10.3.2** (used by the app) cannot open local MBTiles or PMTiles.
-* The **minimum** version that can is **11.8.0** (`pmtiles://`; checked: present in 11.8.8's
-  `libmaplibre.so`, absent in 11.7.1). But MapLibre 11.x **requires OpenGL ES 3.0**. On a GLES 2
-  device it crashes the whole app when the map is created (`eglCreateContext` fails; reproduced on
-  the emulator, which only exposes GLES 2.0). Many head units also ship GLES 2-only GPUs.
-* So the app **stays on 10.3.2** and serves the tiles itself: the style asks for
-  `http://tiles.copilot.invalid/{map_id}/{z}/{x}/{y}.pbf`. MapLibre's HTTP client is replaced by an
-  OkHttp interceptor (`MapNetworkGuard`) that answers those URLs from `india.pmtiles`
-  (`PmTilesReader`) **inside the process**. No socket is ever opened, and `.invalid` can never
-  resolve. Every other map request is blocked; **debug builds crash on purpose**, logging the URL.
-* Style JSON, sprites and the (future) glyphs folder ship in `app/src/main/assets/offline_style/`.
-
-If you later move to a GLES 3 head unit you can upgrade to MapLibre ≥ 11.8 and point the source at
-`pmtiles://file://…` directly. The rest of the pipeline stays the same.
+* The app uses MapLibre Native Android **13.7.1, OpenGL ES variant**
+  (`org.maplibre.gl:android-sdk-opengl`; not the default Vulkan build), which reads PMTiles natively.
+  The style source is `"url": "pmtiles://file:///…/maps/india.pmtiles"` (bound at runtime by
+  `ActiveMapFile` / `OfflineStyle`); MapLibre range-reads header, directories and tiles straight from
+  flash. There is no tile server, interceptor or Java-side tile cache.
+* MapLibre ≥ 11 **requires OpenGL ES 3.0**. The RK3566 / Mali-G31 head unit has GLES 3.2 and is fine,
+  but a GLES 2-only device or emulator crashes when the map is created (`eglCreateContext` fails).
+  Use an emulator image with host GPU / GLES 3 for map testing.
+* Imports are checked by `ActiveMapFile.headerProblem`: PMTiles v3, gzip or uncompressed, MVT tiles.
+* MapLibre's HTTP client is replaced by `MapNetworkGuard`, which blocks every request (the map
+  needs none); **debug builds crash on purpose**, logging the URL.
+* Style JSON, sprites and the (future) glyphs folder ship in `app/src/main/assets/offline_style/`
+  and are loaded via `asset://`.
+* RAM (2 GB unit): `MapMemoryGuard` polls native heap every 2 s while the map is visible: above
+  192 MB it drops cached tiles, above 256 MB it turns MapLibre's tile cache off until heap falls
+  below 160 MB. Tilted (3D) views use tile level-of-detail from 40° pitch, so the far half of the
+  screen loads lower-zoom tiles.
 
 ## 1. Build `india.pmtiles` on a PC (recommended: Planetiler)
 
@@ -85,9 +88,9 @@ Pick one:
 
 1. Turn on airplane mode and force-stop the app.
 2. Launch the app. The map should show roads and water around the vehicle.
-3. `adb logcat | grep -E "MapNetworkGuard|Mbgl-HttpRequest"` should show `Request was successful`
-   only for `tiles.copilot.invalid` and **no** `BLOCKED map network request` lines. A debug build
-   crashes on any other map request, so you cannot miss one.
+3. `adb logcat | grep -E "MapNetworkGuard|Mbgl"` should show **no** `BLOCKED map network request`
+   lines (the map makes no HTTP requests at all). A debug build crashes on any map request, so you
+   cannot miss one. `adb logcat -s MapPerf MapMemoryGuard` shows FPS, native heap and style load time.
 
 ## Labels (optional, not bundled)
 

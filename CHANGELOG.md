@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.18.0] - 2026-11-18
+
+### Added
+- `MapMemoryGuard`: polls native heap every 2 s while the map is visible. Above 192 MB it drops MapLibre's cached tiles; above 256 MB it turns the tile cache off until heap falls below 160 MB. Keeps panning the ~2 GB India archive safe on the 2 GB RK3566 unit.
+- Map import validates the PMTiles header (v3, gzip/none compression, MVT tiles) before swapping files in.
+
+### Changed
+- The map reads `india.pmtiles` with MapLibre's **native `pmtiles://file://` source** instead of tiles served in-process over a fake `http://tiles.copilot.invalid` host. Style, sprites and glyphs stay `asset://`.
+- `MapNetworkGuard` now only blocks map network access (the map makes no HTTP requests at all).
+- Tilted (3D) views use tile level-of-detail from 40° pitch (MapLibre default 60°), so the far half of the screen loads lower-zoom tiles.
+- `MAP_SETUP.md` updated for MapLibre 13.7.1, native PMTiles and the GLES 3 requirement.
+
+### Fixed
+- Debug map overlay: removed the ms/frame figure, which always read 0 (MapLibre does not fill per-frame timings on this build).
+
+### Removed
+- `PmTilesReader` (in-process PMTiles reader with its 50 MB Java tile cache) and the OkHttp tile-serving interceptor, with their tests.
+
 ## [2.17.0] - 2026-11-18
 
 ### Added

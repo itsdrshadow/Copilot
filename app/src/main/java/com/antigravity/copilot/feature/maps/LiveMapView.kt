@@ -44,7 +44,7 @@ import com.antigravity.copilot.core.designsystem.colors.*
 import com.antigravity.copilot.core.location.SpeedLimitInfo
 import com.antigravity.copilot.BuildConfig
 import com.antigravity.copilot.core.map.CarMapController
-import com.antigravity.copilot.core.map.MapNetworkGuard
+import com.antigravity.copilot.core.map.MapMemoryGuard
 import com.antigravity.copilot.core.map.OfflineMapManager
 import com.antigravity.copilot.core.model.TripPoint
 import org.maplibre.android.MapLibre
@@ -62,6 +62,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 const val MAP_MIN_ZOOM_LEVEL = 5.0
+/** Tile level-of-detail kicks in above this camera pitch (40°; MapLibre default 60°). */
+const val MAP_TILE_LOD_PITCH_THRESHOLD_RAD = 40.0 * Math.PI / 180.0
 const val MAP_MAX_ZOOM_LEVEL = 19.5
 const val MAP_DEFAULT_DRIVING_ZOOM = 17.5
 
@@ -238,6 +240,16 @@ fun LiveMapPanel(
     val mapPalette = CockpitTheme.map
     LaunchedEffect(mapController, mapPalette) { mapController.setMapPalette(mapPalette) }
 
+    // Keeps MapLibre's native tile memory inside the 2 GB head unit's budget (see MapMemoryGuard).
+    val memoryGuard = remember { MapMemoryGuard() }
+    LaunchedEffect(memoryGuard, isCovered) {
+        if (isCovered) return@LaunchedEffect
+        while (true) {
+            kotlinx.coroutines.delay(MapMemoryGuard.POLL_INTERVAL_MS)
+            memoryGuard.poll(android.os.SystemClock.elapsedRealtime())
+        }
+    }
+
     // Debug builds: live FPS / native heap / style-load overlay (+ `adb logcat -s MapPerf`).
     val perfStats = if (BuildConfig.DEBUG) remember { MapPerfStats() } else null
 
@@ -306,7 +318,6 @@ fun LiveMapPanel(
         lifecycleOwner.lifecycle.addObserver(observer)
         val memoryCallbacks = object : ComponentCallbacks2 {
             override fun onTrimMemory(level: Int) {
-                MapNetworkGuard.onTrimMemory(level)
                 if (level != ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN && level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
                     lifecycleHolder.mapView?.onLowMemory()
                 }
@@ -314,7 +325,6 @@ fun LiveMapPanel(
             override fun onConfigurationChanged(newConfig: Configuration) {}
             @Deprecated("Deprecated in Java")
             override fun onLowMemory() {
-                MapNetworkGuard.onTrimMemory(ComponentCallbacks2.TRIM_MEMORY_COMPLETE)
                 lifecycleHolder.mapView?.onLowMemory()
             }
         }
@@ -324,6 +334,7 @@ fun LiveMapPanel(
             lifecycleOwner.lifecycle.removeObserver(observer)
             mapController.detachMap()
             fpsGovernor.release()
+            memoryGuard.release()
             perfStats?.detach()
             lifecycleHolder.destroy()
         }
@@ -376,6 +387,7 @@ fun LiveMapPanel(
                     // Follow mode re-renders continuously while driving: the FPS cap comes from
                     // Settings > Map Rendering (see MapFpsGovernor).
                     fpsGovernor.mapView = this
+                    memoryGuard.mapView = this
                     perfStats?.attach(this)
                     setOnTouchListener { _, event -> fpsGovernor.onTouch(event); false }
                     lifecycleHolder.mapView = this
@@ -392,6 +404,11 @@ fun LiveMapPanel(
                         map.uiSettings.isZoomGesturesEnabled = true
                         map.uiSettings.isDoubleTapGesturesEnabled = true
                         map.addOnCameraIdleListener { fpsGovernor.onCameraIdle() }
+                        // Driving view is tilted 45°: start level-of-detail at 40° (default 60°)
+                        // so the far half of the screen loads lower-zoom tiles — fewer tiles to
+                        // parse, upload and keep resident on the Mali-G31 / 2 GB RAM.
+                        map.tileLodPitchThreshold = MAP_TILE_LOD_PITCH_THRESHOLD_RAD
+                        memoryGuard.map = map
                         mapController.attachMap(map)
                     }
                 }

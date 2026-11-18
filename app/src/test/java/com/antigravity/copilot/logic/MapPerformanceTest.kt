@@ -1,7 +1,7 @@
 package com.antigravity.copilot.logic
 
 import com.antigravity.copilot.core.map.CarMapController
-import com.antigravity.copilot.core.map.PmTilesReader
+import com.antigravity.copilot.core.map.MapMemoryGuard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -49,26 +49,13 @@ class MapPerformanceTest {
     }
 
     @Test
-    fun `tile cache is bounded by bytes and evicts least recently used`() {
-        val cache = PmTilesReader.ByteLruCache(maxBytes = 100)
-        cache.put(1, ByteArray(40))
-        cache.put(2, ByteArray(40))
-        assertNotNull(cache.get(1)) // 1 becomes most recently used
-        cache.put(3, ByteArray(40)) // 120 > 100 -> evict LRU (2)
-        assertNull(cache.get(2))
-        assertNotNull(cache.get(1))
-        assertNotNull(cache.get(3))
-        assertEquals(80L, cache.sizeBytes)
-        cache.put(4, ByteArray(500)) // larger than the whole budget: ignored
-        assertNull(cache.get(4))
-        assertEquals(2, cache.entryCount)
-        cache.clear()
-        assertEquals(0L, cache.sizeBytes)
-    }
-
-    @Test
-    fun `default tile cache budget is 50 MB`() {
-        assertEquals(50L * 1024 * 1024, PmTilesReader.DEFAULT_TILE_CACHE_BYTES)
-        assertTrue(PmTilesReader.recommendedTileCacheBytes() <= PmTilesReader.DEFAULT_TILE_CACHE_BYTES)
+    fun `memory guard trims, then disables the tile cache, then re-enables it`() {
+        val g = MapMemoryGuard.Companion
+        assertEquals(MapMemoryGuard.Action.NONE, g.decide(100, cacheEnabled = true, msSinceLastTrim = 60_000))
+        assertEquals(MapMemoryGuard.Action.TRIM, g.decide(200, cacheEnabled = true, msSinceLastTrim = 60_000))
+        assertEquals(MapMemoryGuard.Action.NONE, g.decide(200, cacheEnabled = true, msSinceLastTrim = 1_000)) // cooldown
+        assertEquals(MapMemoryGuard.Action.DISABLE_CACHE, g.decide(300, cacheEnabled = true, msSinceLastTrim = 0))
+        assertEquals(MapMemoryGuard.Action.NONE, g.decide(200, cacheEnabled = false, msSinceLastTrim = 0)) // hysteresis
+        assertEquals(MapMemoryGuard.Action.ENABLE_CACHE, g.decide(150, cacheEnabled = false, msSinceLastTrim = 0))
     }
 }

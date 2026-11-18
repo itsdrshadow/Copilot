@@ -6,11 +6,7 @@
   "sources": {
     "openmaptiles": {
       "type": "vector",
-      "tiles": [
-        "http://tiles.copilot.invalid/{map_id}/{z}/{x}/{y}.pbf"
-      ],
-      "minzoom": 0,
-      "maxzoom": 14,
+      "url": "{map_url}",
       "attribution": "© OpenStreetMap contributors"
     }
   },

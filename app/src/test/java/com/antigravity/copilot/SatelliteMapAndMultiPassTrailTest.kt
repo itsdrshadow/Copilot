@@ -21,11 +21,11 @@ class SatelliteMapAndMultiPassTrailTest {
         assertNotNull(masterPkg)
         assertEquals("india.pmtiles", masterPkg?.fileName)
 
-        // Tiles are served in-process from the PMTiles file under a reserved .invalid host.
+        // MapLibre reads the PMTiles archive natively from local storage.
         val policy = com.antigravity.copilot.core.logic.MapOfflinePolicy
-        val url = policy.LOCAL_TILE_TEMPLATE.replace("{map_id}", "abc-123").replace("{z}", "14").replace("{x}", "11800").replace("{y}", "7000")
+        val url = policy.pmtilesUrl("/storage/emulated/0/Android/data/x/files/maps/india.pmtiles")
+        assertEquals("pmtiles://file:///storage/emulated/0/Android/data/x/files/maps/india.pmtiles", url)
         assertTrue(policy.isLocalUrl(url))
-        assertEquals(com.antigravity.copilot.core.logic.MapOfflinePolicy.LocalTile("abc-123", 14, 11800, 7000), policy.parseLocalTileUrl(url))
     }
 
     @Test

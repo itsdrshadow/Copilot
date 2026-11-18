@@ -122,7 +122,7 @@ class CarMapController(
     private var mapboxMap: MapLibreMap? = null
     private var isStyleLoaded = false
     /** Map id baked into the loaded style (null = background-only style). */
-    private var loadedMapId: String? = null
+    private var loadedMap: ActiveMapFile.Map? = null
     private var styleJob: Job? = null
     private var lastRegionId: String? = null
 
@@ -233,7 +233,7 @@ class CarMapController(
         }
         mapboxMap = null
         isStyleLoaded = false
-        loadedMapId = null
+        loadedMap = null
     }
 
     /**
@@ -252,7 +252,7 @@ class CarMapController(
         if (isStyleLoaded) requestStyle(force = true)
     }
 
-    private data class ResolvedMap(val mapId: String?, val fileName: String?, val regionTitle: String?)
+    private data class ResolvedMap(val map: ActiveMapFile.Map?, val fileName: String?, val regionTitle: String?)
 
     private fun requestStyle(force: Boolean) {
         val map = mapboxMap ?: return
@@ -265,16 +265,16 @@ class CarMapController(
                 val file = OfflineMapManager.getBestMapFileForLocation(context, lat, lon)
                 val usable = file != null && file.isFile && file.length() > 0
                 ResolvedMap(
-                    mapId = MapNetworkGuard.setMapFile(if (usable) file else null),
+                    map = ActiveMapFile.set(if (usable) file else null),
                     fileName = file?.name,
                     regionTitle = OfflineMapManager.getRegionForLocation(lat, lon)?.title
                 )
             }
-            _hasMapInstalled.value = resolved.mapId != null
+            _hasMapInstalled.value = resolved.map != null
             _activeRegionTitle.value = resolved.regionTitle
-            if (!force && isStyleLoaded && resolved.mapId == loadedMapId) return@launch
+            if (!force && isStyleLoaded && resolved.map == loadedMap) return@launch
 
-            val json = withContext(Dispatchers.Default) { buildStyleJson(resolved.mapId) } ?: return@launch
+            val json = withContext(Dispatchers.Default) { buildStyleJson(resolved.map?.url) } ?: return@launch
             if (mapboxMap !== map) return@launch
             isStyleLoaded = false
             map.setStyle(Style.Builder().fromJson(json)) { style ->
@@ -284,14 +284,14 @@ class CarMapController(
                 setupTrailLayers(style)
                 setupVehicleLayer(style)
                 isStyleLoaded = true
-                loadedMapId = resolved.mapId
+                loadedMap = resolved.map
                 _firstStyleLoaded.value = true
                 Log.i(TAG, "MapLibre style loaded. Active pack: ${resolved.fileName ?: "None"}, Region: ${resolved.regionTitle}")
             }
         }
     }
 
-    private fun buildStyleJson(mapId: String?): String? = OfflineStyle.build(context, mapId, mapPalette)
+    private fun buildStyleJson(mapUrl: String?): String? = OfflineStyle.build(context, mapUrl, mapPalette)
 
     // ---------------- Live trail with overlap colouring (Phase 6) ----------------
     @Volatile private var lastTrailCollection: FeatureCollection = FeatureCollection.fromFeatures(arrayOf())
