@@ -15,8 +15,8 @@ android {
         applicationId = "com.antigravity.copilot"
         minSdk = 26
         targetSdk = 30
-        versionCode = 131
-        versionName = "2.26.0"
+        versionCode = 132
+        versionName = "2.27.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -38,7 +38,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: shrink + optimize (keep rules in proguard-rules.pro), drop unused resources.
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -48,6 +50,11 @@ android {
         debug {
             applicationIdSuffix = ""
         }
+    }
+
+    composeCompiler {
+        // Strong skipping is on by default (Kotlin 2.x); this marks app models / collections stable.
+        stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("app/compose_stability.conf"))
     }
 
     compileOptions {

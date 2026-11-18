@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.27.0] - 2026-11-18
+
+### Added
+- `AdaptiveCopilotLayout`: window size classes measured on the real window (Compact < 600 dp, Medium 600–840 dp, Expanded ≥ 840 dp) via `LocalCopilotWindowClass`. Nav and content are placed by one custom layout, so a resize or split-screen change never recreates the MapView.
+- Compact (phone / narrow split-screen): bottom navigation bar (`RaahiBottomBar`), full-bleed map and a collapsible cockpit sheet with the cards in a snapping row; map controls lift above the sheet in the layout phase (no map recomposition).
+- Medium: map 60 % | scrolling telemetry column 40 % (two cards per panel height, min 320 dp).
+- Screen-proportional text: all `sp` text scales with the window's shorter side (100 % at ≥ 600 dp, down to 80 %), on top of the system font scale, so small screens stop clipping labels.
+- Release build: R8 minification and resource shrinking, with keep rules for Gson-serialized backup / fuel-model fields and enums; Compose stability config for collections, `java.time`, Room entities and domain models.
+
+### Changed
+- Expanded (head unit) keeps the 50/50 map | 2x2 card grid.
+- Display cutout / waterfall edges are padded; system bars are not (the app is immersive, so transient bars no longer shift the layout).
+
 ## [2.26.0] - 2026-11-18
 
 ### Added

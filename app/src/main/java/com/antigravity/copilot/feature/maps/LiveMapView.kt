@@ -210,7 +210,12 @@ fun LiveMapPanel(
     isCovered: Boolean = false,
     onToggleFullScreen: () -> Unit = {},
     /** Top-right overlay (the rotating trip stat); recomposes on its own, not with the map. */
-    topOverlay: @Composable () -> Unit = {}
+    topOverlay: @Composable () -> Unit = {},
+    /**
+     * Height (px) of anything overlaying the map's bottom edge (the Compact cockpit sheet). Read in
+     * the layout phase only, so the controls lift with the sheet without recomposing the map.
+     */
+    controlsBottomInsetPx: () -> Int = { 0 }
 ) {
     if (isFullScreen && !isCovered) {
         BackHandler {
@@ -582,6 +587,7 @@ fun LiveMapPanel(
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
+                .offset { androidx.compose.ui.unit.IntOffset(0, -controlsBottomInsetPx()) }
                 .zIndex(20f)
                 .padding(14.dp),
             verticalAlignment = Alignment.Bottom,

@@ -73,6 +73,8 @@ import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material.icons.outlined.Settings
 import com.antigravity.copilot.core.designsystem.components.RailItem
 import com.antigravity.copilot.core.designsystem.components.RaahiNavRail
+import com.antigravity.copilot.core.designsystem.components.RaahiBottomBar
+import com.antigravity.copilot.core.designsystem.AdaptiveCopilotLayout
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -480,14 +482,16 @@ private fun MainAppScreen(
             .fillMaxSize()
             .cockpitBackground()
     ) {
-      if (mainContentComposed) Row(modifier = Modifier.fillMaxSize()) {
-        RaahiNavRail(
-            items = railItems,
-            bottomItems = railBottom,
-            selected = activeRail,
-            onSelect = onRailSelect
-        )
-      Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+      if (mainContentComposed) AdaptiveCopilotLayout(
+        navigation = { windowClass ->
+            if (windowClass.usesBottomBar) {
+                RaahiBottomBar(items = railItems, bottomItems = railBottom, selected = activeRail, onSelect = onRailSelect)
+            } else {
+                RaahiNavRail(items = railItems, bottomItems = railBottom, selected = activeRail, onSelect = onRailSelect)
+            }
+        }
+      ) {
+      Box(modifier = Modifier.fillMaxSize()) {
         // Tabs 2 (Trips) and 3 (Fuel) are opaque overlays on top of a dashboard that stays composed
         // for the whole session, so the single MapView (and its loaded style, tiles and camera) is
         // never destroyed on tab switches. Tab 1 (full map) is the same map panel expanded in place.
