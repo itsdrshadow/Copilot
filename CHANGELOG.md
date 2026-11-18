@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.28.0] - 2026-11-18
+
+### Changed
+- One UI on every display: the v2.26.0 head-unit cockpit (map | 2x2 cards) is laid out as on the 1280 x 800 reference screen and scaled uniformly to fit (`ScaleToReferenceDisplay`), so phones, tablets and head units all show the same layout with the same proportions. dp and sp scale together; the system font scale is kept.
+
+### Removed
+- The v2.27.0 Compact / Medium layouts (bottom bar, card sheet, telemetry column) and the separate text scale, superseded by the uniform scaling above. R8 / resource shrinking and the Compose stability config are unchanged.
+
 ## [2.27.0] - 2026-11-18
 
 ### Added

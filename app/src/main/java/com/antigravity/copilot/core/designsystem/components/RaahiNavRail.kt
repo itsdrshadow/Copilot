@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -78,37 +77,10 @@ fun <K> RaahiNavRail(
     }
 }
 
-/**
- * Compact-width (< 600 dp) replacement for [RaahiNavRail]: the same items in one bottom row, so a
- * phone keeps its full width for the map. Each tab is ≥ 64 dp tall and shares the width equally.
- */
-@Composable
-fun <K> RaahiBottomBar(
-    items: List<RailItem<K>>,
-    bottomItems: List<RailItem<K>>,
-    selected: K?,
-    onSelect: (K) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .background(CockpitTheme.colors.rail)
-                .padding(horizontal = 5.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        (items + bottomItems).forEach {
-            RailButton(it, it.key == selected, Modifier.weight(1f)) { onSelect(it.key) }
-        }
-    }
-}
-
 @Composable
 private fun <K> RailButton(
     item: RailItem<K>,
     isActive: Boolean,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val c = CockpitTheme.colors
@@ -116,7 +88,7 @@ private fun <K> RailButton(
     val tint = if (isActive) c.accent else c.textSecondary
     Column(
         modifier =
-            modifier
+            Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
                 .clip(shape)
