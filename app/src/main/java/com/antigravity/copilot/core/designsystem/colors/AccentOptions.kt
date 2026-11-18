@@ -14,8 +14,8 @@ enum class AccentOption(
     val day: Color,
     val dayText: Color
 ) {
-    CYAN("cyan", "Cyan", RaahiNight.Cyan, RaahiDay.Cyan, RaahiDay.CyanText),
-    SKY("sky", "Sky", Color(0xFF74AEEB), Color(0xFF3B7FCC), Color(0xFF1F5CA6)),
+    CYAN("cyan", "Blue", RaahiNight.Cyan, RaahiDay.Cyan, RaahiDay.CyanText),
+    SKY("sky", "Sky", Color(0xFF38BDF8), Color(0xFF3B7FCC), Color(0xFF1F5CA6)),
     INDIGO("indigo", "Indigo", Color(0xFF9DA8EE), Color(0xFF5662C4), Color(0xFF3A44A0)),
     VIOLET("violet", "Violet", Color(0xFFB7A0EC), Color(0xFF7A58C8), Color(0xFF5B3BA6)),
     PINK("pink", "Pink", Color(0xFFE897B9), Color(0xFFC24A78), Color(0xFF9E2F5C)),

@@ -50,6 +50,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.antigravity.copilot.core.designsystem.CockpitTheme
@@ -110,7 +111,7 @@ fun RaahiCard(
     )
 }
 
-/** Small uppercase-free card caption in textSecondary. */
+/** Eyebrow caption (uppercase, wide tracking) in textSecondary. */
 @Composable
 fun RaahiLabel(
     text: String,
@@ -118,8 +119,11 @@ fun RaahiLabel(
     color: Color = CockpitTheme.colors.textSecondary,
 ) {
     Text(
-        text = text,
-        style = CockpitTheme.typography.labelMedium,
+        text = text.uppercase(),
+        style = CockpitTheme.typography.labelMedium.copy(
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+            letterSpacing = 1.04.sp,
+        ),
         color = color,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,

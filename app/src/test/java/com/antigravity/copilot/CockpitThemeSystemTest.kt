@@ -41,19 +41,19 @@ class CockpitThemeSystemTest {
     @Test
     fun raahiNightPaletteMatchesSpec() {
         val c = RaahiNightColors
-        assertEquals(Color(0xFF080D16), c.bg)
-        assertEquals(Color(0xFF0B111C), c.rail)
-        assertEquals(Color(0xFF0F1623), c.card)
-        assertEquals(Color(0xFF172033), c.cardElevated)
-        assertEquals(Color(0xFF26334B), c.border)
-        assertEquals(Color(0xFFEDF3FB), c.textPrimary)
-        assertEquals(Color(0xFF9AABC4), c.textSecondary)
-        assertEquals(Color(0xFF38D6FF), c.accent)
-        assertEquals(Color(0xFFFFB224), c.warning)
-        assertEquals(Color(0xFF34D399), c.positive)
-        assertEquals(Color(0xFFFF5C5C), c.critical)
-        assertEquals(Color(0xFF5BA8FF), c.overlapBlue)
-        assertEquals(Color(0xFFFFA94D), c.overlapOrange)
+        assertEquals(Color(0xFF0A0A0B), c.bg)
+        assertEquals(Color(0xFF0E0F11), c.rail)
+        assertEquals(Color(0xFF17181A), c.card)
+        assertEquals(Color(0xFF1C1D20), c.cardElevated)
+        assertEquals(Color(0xFF26282C), c.border)
+        assertEquals(Color(0xFFFFFFFF), c.textPrimary)
+        assertEquals(Color(0xFF8E9299), c.textSecondary)
+        assertEquals(Color(0xFF3B82F6), c.accent)
+        assertEquals(Color(0xFFF59E0B), c.warning)
+        assertEquals(Color(0xFF22C55E), c.positive)
+        assertEquals(Color(0xFFF87171), c.critical)
+        assertEquals(Color(0xFF3B82F6), c.overlapBlue)
+        assertEquals(Color(0xFFF59E0B), c.overlapOrange)
         assertTrue(c.isDark)
     }
 

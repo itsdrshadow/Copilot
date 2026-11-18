@@ -12,7 +12,7 @@ enum class CockpitThemeMode(val id: String, val displayName: String, val subtitl
     RAAHI(
         id = "raahi",
         displayName = "Raahi",
-        subtitle = "Flat solid cards, cyan for live data, colour only where it means something"
+        subtitle = "Flat solid cards, blue for live data, colour only where it means something"
     );
 
     companion object {
@@ -118,49 +118,51 @@ data class MapPalette(
     val labelHalo: String,
     val waterLabel: String,
     // Overlays drawn on the map (live + trip maps)
-    val trail: String = "#38D6FF",
-    val overlap2: String = "#FFA94D",
-    val overlap3: String = "#FF5C5C",
-    val overlap1Blue: String = "#5BA8FF",
-    val puckRing: String = "#EDF3FB",
-    val geofence: String = "#38D6FF",
-    val mileageLow: String = "#FF5C5C",
-    val mileageMid: String = "#FFB224",
-    val mileageHigh: String = "#34D399"
+    val trail: String = "#3B82F6",
+    val overlap2: String = "#F59E0B",
+    val overlap3: String = "#F87171",
+    val overlap1Blue: String = "#3B82F6",
+    val puckRing: String = "#FFFFFF",
+    val geofence: String = "#3B82F6",
+    val mileageLow: String = "#F87171",
+    val mileageMid: String = "#F59E0B",
+    val mileageHigh: String = "#22C55E"
 )
 
 // ==================== RAAHI NIGHT ====================
 
 object RaahiNight {
-    val AppBg = Color(0xFF080D16)
-    val Rail = Color(0xFF0B111C)
-    val Card = Color(0xFF0F1623)
-    val CardRaised = Color(0xFF172033)
-    val Border = Color(0xFF26334B)
-    val TextPrimary = Color(0xFFEDF3FB)
-    val TextSecondary = Color(0xFF9AABC4)
-    val TextDisabled = Color(0xFF7D8DA6)
-    val Cyan = Color(0xFF38D6FF)
-    val Amber = Color(0xFFFFB224)
-    val Green = Color(0xFF34D399)
-    val Red = Color(0xFFFF5C5C)
-    val OverlapBlue = Color(0xFF5BA8FF)
-    val OverlapOrange = Color(0xFFFFA94D)
-    val OnAccent = Color(0xFF04131A)
+    // Bento dark: OLED black base, matte charcoal cards, hairline borders.
+    val AppBg = Color(0xFF0A0A0B)
+    val Rail = Color(0xFF0E0F11)
+    val Card = Color(0xFF17181A)
+    val CardRaised = Color(0xFF1C1D20)
+    val Border = Color(0xFF26282C)
+    val TextPrimary = Color(0xFFFFFFFF)
+    val TextSecondary = Color(0xFF8E9299)
+    val TextDisabled = Color(0xFF868B93)
+    /** Primary highlight (name kept for call sites): Electric Blue. */
+    val Cyan = Color(0xFF3B82F6)
+    val Amber = Color(0xFFF59E0B)
+    val Green = Color(0xFF22C55E)
+    val Red = Color(0xFFF87171)
+    val OverlapBlue = Color(0xFF3B82F6)
+    val OverlapOrange = Color(0xFFF59E0B)
+    val OnAccent = Color(0xFF0A0A0B)
 
     val Map = MapPalette(
-        land = "#0B1220",
-        park = "#0D1A1F",
-        water = "#0E3556",
-        roadMinor = "#3B4F70",
-        roadMajor = "#5A7399",
-        roadHighway = "#5A7399",
-        roadCasing = "#080D16",
-        building = "#101A2C",
-        label = "#9AABC4",
-        labelMajor = "#EDF3FB",
-        labelHalo = "#080D16",
-        waterLabel = "#7FB3E0"
+        land = "#0E0F11",
+        park = "#11171A",
+        water = "#10233A",
+        roadMinor = "#2A2D33",
+        roadMajor = "#3D414A",
+        roadHighway = "#4A4F5A",
+        roadCasing = "#0A0A0B",
+        building = "#17181A",
+        label = "#8E9299",
+        labelMajor = "#FFFFFF",
+        labelHalo = "#0A0A0B",
+        waterLabel = "#6E93C4"
     )
 }
 

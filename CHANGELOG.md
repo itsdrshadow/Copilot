@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.12.0] - 2026-11-18
+
+### Changed
+- Dark-mode Bento look: OLED black background, matte charcoal cards, hairline borders, white/cool-gray text.
+- Blue is now the default highlight; green/amber/red semantic colours and map palette retuned to match. All 12 accent options kept.
+- Card captions are uppercase with wide tracking.
+
+---
+
 ## [2.11.2] - 2026-11-18
 
 ### Fixed
