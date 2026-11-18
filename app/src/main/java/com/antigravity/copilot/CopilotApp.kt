@@ -51,6 +51,9 @@ class CopilotApp : Application() {
         // 4. Auto-start continuous tracking service on app launch
         DrivingTrackingService.start(this)
 
+        // Debug builds: adb-triggered fake trips / fuel history for UI testing
+        if (BuildConfig.DEBUG) com.antigravity.copilot.core.debug.DebugDemoDataSeeder.register(this)
+
         // 5. Diagnostic database integrity scan, kept off the blocking startup path
         appScope.launch { StorageMigrationManager.verifyDatabaseIntegrity(this@CopilotApp) }
     }

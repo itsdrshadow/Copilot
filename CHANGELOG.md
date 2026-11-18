@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.23.0] - 2026-11-18
+
+### Added
+- Debug builds: `DebugDemoDataSeeder` fills Trips and Fuel history with fake data (3–6 trips and 3–5 fill-ups every month, Jan 2025 – Dec 2030 by default) via `adb shell am broadcast -a com.antigravity.copilot.DEBUG_SEED_DEMO` (`--ei fromYear/toYear`, `--ez clear true` removes it). The fuel ledger is not touched.
+
 ## [2.22.0] - 2026-11-18
 
 UI/UX audit pass for the 10.1" 1280×800 head unit (148 dpi): larger type, plain wording, calmer colours.
