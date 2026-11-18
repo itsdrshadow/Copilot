@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.15.2] - 2026-11-18
+
+### Changed
+- Wider home-screen number glow (blur radius 14 → 24 px).
+
 ## [2.15.1] - 2026-11-18
 
 ### Changed
