@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.32.1] - 2026-11-19
+
+Fixes from a 5-trip device run (refuels, speed breakers, potholes).
+
+### Fixed
+- Refill balances: the legacy estimator is re-synced to the fuel model's level before each refill, so stored balances drain between refills (they climbed to 60 L in a 48 L tank and faked "full tank" inference).
+- Refill-to-refill mileage is learned only when the interval ends at a measured level (full tank or gauge reading), never from the model's own estimate.
+- Reserve light ON now sets the tank level (gauge reading 0 = hidden reserve) instead of only marking the station log; undo removes that reading. Previously the dashboard could show a full tank with the reserve lamp on.
+- Gauge readings of 0 / full no longer bound the gauge curve with a contradicting model estimate (a reserve reading while the model said 40 L lifted the whole curve).
+- Debug drive simulator: speed-breaker axle hits 250 ms apart with one heading (were filed as two potholes), and a stable start point across runs (GPS drift duplicated anomalies).
+
 ## [2.32.0] - 2026-11-19
 
 Full audit pass (77 items, batches 1-4).

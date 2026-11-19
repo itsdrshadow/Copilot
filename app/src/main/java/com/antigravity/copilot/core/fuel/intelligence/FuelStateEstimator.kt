@@ -135,6 +135,22 @@ class FuelStateEstimator(
     }
 
     /**
+     * Moves the level to [liters] (the FuelModel's tank level), shifting the uncertainty band with it.
+     * Live consumption is tracked only by the FuelModel, so this estimator must be re-synced before
+     * each refill or its balance never drains between refills.
+     */
+    fun syncNominal(liters: Double) {
+        if (!liters.isFinite()) return
+        ensureCapacityConsistency()
+        val target = FuelMath.roundFuel(liters.coerceIn(0.0, maxCapacityLiters))
+        val delta = target - nominalFuelLiters
+        nominalFuelLiters = target
+        conservativeFuelLiters = FuelMath.roundFuel((conservativeFuelLiters + delta).coerceIn(0.0, target))
+        upperFuelLiters = FuelMath.roundFuel((upperFuelLiters + delta).coerceIn(target, maxCapacityLiters))
+        gaugeCalibration?.let { currentGaugeBar = it.getBarForLiters(nominalFuelLiters) }
+    }
+
+    /**
      * Deducts fuel consumed during driving or engine idle.
      * Fuel balance = Previous fuel - Consumed fuel.
      * Never silently allows impossible negative balance.

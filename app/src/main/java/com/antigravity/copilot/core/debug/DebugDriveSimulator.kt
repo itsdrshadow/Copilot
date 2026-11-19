@@ -92,13 +92,14 @@ class DebugDriveSimulator(
 
     fun start(cfg: Config) {
         if (isRunning) { log("Already running"); return }
-        val origin = currentPoint()
-        if (origin == null) { log("No current GPS position yet; wait for a fix"); return }
+        val current = currentPoint()
+        if (current == null) { log("No current GPS position yet; wait for a fix"); return }
+        val origin = stableOrigin(current.latitude, current.longitude)
         isRunning = true
         job = scope.launch {
             try {
                 val full = withContext(Dispatchers.IO) {
-                    fetchRoute(origin.latitude, origin.longitude, cfg.destLat, cfg.destLon)
+                    fetchRoute(origin.first, origin.second, cfg.destLat, cfg.destLon)
                 }
                 val route = if (cfg.turnAtKm > 0.0) truncateAndReturn(full, cfg.turnAtKm * 1000.0) else full
                 drive(route, cfg)
@@ -110,6 +111,20 @@ class DebugDriveSimulator(
                 isRunning = false
             }
         }
+    }
+
+    /**
+     * Same start point for every run while parked at the same place: real GPS drifts tens of metres
+     * between runs, which shifted every planned jolt and created duplicate anomalies.
+     */
+    private fun stableOrigin(lat: Double, lon: Double): Pair<Double, Double> {
+        val f = java.io.File(context.filesDir, "sim_origin.txt")
+        try {
+            val p = f.readText().trim().split(",").map { it.toDouble() }
+            if (p.size == 2 && distanceM(lat, lon, p[0], p[1]) <= 300.0) return p[0] to p[1]
+        } catch (_: Exception) {}
+        try { f.writeText("$lat,$lon") } catch (_: Exception) {}
+        return lat to lon
     }
 
     private class Route(val lat: DoubleArray, val lon: DoubleArray, val cum: DoubleArray, val turnaroundM: Double) {
@@ -169,7 +184,7 @@ class DebugDriveSimulator(
         pumpFractions.take(cfg.refuels.coerceAtLeast(0)).forEachIndexed { i, m -> events += Event(m, EventType.PUMP, i) }
         // Jolts on the way out, so the return leg drives back over them.
         events += Event(out * 0.20, EventType.BREAKER, 0)
-        events += Event(out * 0.20 + 4.0, EventType.BREAKER, 1) // rear axle / 2nd hit → confidence 2
+        events += Event(out * 0.20 + BREAKER_AXLE_M, EventType.BREAKER, 1) // rear axle / 2nd hit → confidence 2
         events += Event(out * 0.50, EventType.POTHOLE, 0)
         events += Event(out * 0.85, EventType.POTHOLE, 1)
         return events.sortedBy { it.atM }
@@ -205,13 +220,19 @@ class DebugDriveSimulator(
             s += step
             emitFix(route, s, v)
 
-            // Jolts passed this second.
+            // Jolts passed this second. A speed breaker's two hits (front then rear axle) come
+            // ~250 ms apart with the car's heading, as on a real car (same-instant hits were filed
+            // as a pothole, and the bearing of a bend split one breaker into two records).
+            var joltsThisTick = 0
             events.filter { it.type != EventType.PUMP && it.atM <= s }.forEach { e ->
                 val (la, lo) = pointAt(route, e.atM)
                 val peak = if (e.type == EventType.POTHOLE) 7.8f else 4.6f
-                roadAnomalyManager.debugInjectHit(la, lo, peak, bearingAt(route, e.atM).toFloat())
+                val headingAt = if (e.type == EventType.BREAKER && e.index == 1) e.atM - BREAKER_AXLE_M else e.atM
+                if (joltsThisTick > 0) delay(AXLE_GAP_MS)
+                roadAnomalyManager.debugInjectHit(la, lo, peak, bearingAt(route, headingAt).toFloat())
                 log("Jolt ${e.type} injected at %.2f km (peak %.1f m/s²)".format(e.atM / 1000, peak))
                 events.remove(e)
+                joltsThisTick++
             }
 
             // Evidence for the 500 m warning: log each new pothole alert and its first distance.
@@ -244,8 +265,12 @@ class DebugDriveSimulator(
         // others are plain top-ups: exercises reserve-to-reserve mileage (Rule B) and Rule C.
         val atReserve = e.index % 2 == 0
         if (atReserve) {
-            stationRepo.toggleReserveLight(fuelRepository.getEffectiveOdometer())
-            log("Reserve light ON tapped at odo %.1f".format(fuelRepository.getEffectiveOdometer()))
+            // Same two calls as the dashboard button (MainViewModel.toggleReserveLight).
+            val on = stationRepo.toggleReserveLight(fuelRepository.getEffectiveOdometer())
+            fuelRepository.onReserveLight(on)
+            delay(1500L)
+            log("Reserve light ${if (on) "ON" else "OFF"} tapped at odo %.1f, tank now %.1f L".format(
+                fuelRepository.getEffectiveOdometer(), fuelRepository.fuelState.value.remainingLiters))
         }
         // Wait for the stop prompt, then leave it untouched so its 45 s auto-dismiss is exercised.
         var shownAt = -1
@@ -359,6 +384,8 @@ class DebugDriveSimulator(
 
     companion object {
         const val TAG = "DebugDriveSim"
+        private const val BREAKER_AXLE_M = 4.0
+        private const val AXLE_GAP_MS = 250L
         const val ACTION = "com.antigravity.copilot.DEBUG_SIM_DRIVE"
         /** Raigarh, Chhattisgarh (city centre). */
         const val RAIGARH_LAT = 21.8974

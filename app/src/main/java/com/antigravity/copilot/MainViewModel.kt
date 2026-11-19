@@ -131,7 +131,9 @@ class MainViewModel @Inject constructor(
     /** Dashboard "Reserve light ON": lock the odometer now (tap again to undo). */
     fun toggleReserveLight() {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            fuelStationRepository.toggleReserveLight(fuelRepository.getEffectiveOdometer())
+            val on = fuelStationRepository.toggleReserveLight(fuelRepository.getEffectiveOdometer())
+            // The tank level follows the car's own reserve lamp (undo removes that reading again).
+            fuelRepository.onReserveLight(on)
         }
     }
 

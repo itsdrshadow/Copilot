@@ -225,8 +225,13 @@ object FuelModel {
             p <= 0.0 -> minOf(est, c.litresAt(0.0))
             else -> c.litresAt(p)
         }
+        // Readings of 0 / full are censored bounds on the curve's end knots ("empty ⇒ knot0 ≥ litres").
+        // A model estimate that contradicts the reading (e.g. 40 L while the reserve lamp is on) is the
+        // model being wrong, not the gauge, so the bound uses the clamped level: it could otherwise
+        // drag the whole curve to the model's error.
+        val obsLitres = if (p <= 0.0 || p >= Config.GAUGE_MAX_POINT) gaugeL else est
         var next = s.copy(
-            observations = (s.observations + GaugeObservation(p, est, weight = 0.3 + m.confidence, timeMs = nowMs))
+            observations = (s.observations + GaugeObservation(p, obsLitres, weight = 0.3 + m.confidence, timeMs = nowMs))
                 .takeLast(FuelModelState.MAX_OBSERVATIONS)
         )
         next = addGaugeSegment(next, odoKm, gaugeL, nowMs)

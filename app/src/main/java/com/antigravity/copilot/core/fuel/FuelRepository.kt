@@ -679,13 +679,31 @@ class FuelRepository private constructor(context: Context) {
     fun calibrateMidBar(selectedBar: Int) = calibrateMidBar(selectedBar.toDouble())
 
     /** Gauge tap calibration: feeds the pure model (half points) and the legacy ledger. */
-    fun calibrateMidBar(point: Double) {
+    fun calibrateMidBar(point: Double, note: String? = null) {
         calibrateGaugePoint(point)
         val selectedBar = point.roundToInt().coerceIn(0, 10)
         val currentOdo = getEffectiveOdometer()
         // Feature 16: Reset slosh buffer on explicit user calibration so user's manual action applies immediately
         gaugeCalibration.resetSloshBuffer(selectedBar)
-        syncMidAndOdometer(currentOdo, selectedBar, latestAppLifetimeKm, exactPoint = FuelModel.snap(point))
+        syncMidAndOdometer(currentOdo, selectedBar, latestAppLifetimeKm, exactPoint = FuelModel.snap(point), note = note)
+    }
+
+    /**
+     * Dashboard "Reserve light ON": the car itself says the tank is at reserve, so the tank level
+     * follows it as a gauge reading of 0 (the curve's hidden-reserve litres). Stored as a gauge
+     * event so history replay keeps it; tapping again (undo) removes that event.
+     */
+    fun onReserveLight(on: Boolean) {
+        if (on) {
+            calibrateMidBar(0.0, note = RESERVE_LIGHT_NOTE)
+            return
+        }
+        scope.launch {
+            val last = fuelDao.getAllFuelEvents()
+                .filter { it.eventType == "MID_OBSERVED" && it.notes == RESERVE_LIGHT_NOTE }
+                .maxByOrNull { it.timestamp } ?: return@launch
+            deleteFuelEvent(last.id)
+        }
     }
 
     /**
@@ -697,7 +715,9 @@ class FuelRepository private constructor(context: Context) {
         newMidBar: Int,
         recordedLifetimeKm: Double = latestAppLifetimeKm,
         /** The exact (half-point) reading the pure model received, stored for history replay. */
-        exactPoint: Double? = null
+        exactPoint: Double? = null,
+        /** Marks where the reading came from (e.g. [RESERVE_LIGHT_NOTE]); default = cluster sync. */
+        note: String? = null
     ) {
         scope.launch {
             stateMutex.withLock {
@@ -732,10 +752,10 @@ class FuelRepository private constructor(context: Context) {
                         pricePerLiter = fuelPrice,
                         totalCost = 0.0,
                         calculatedBalanceLiters = estimator.nominalFuelLiters,
-                        notes = "Manual MID cluster sync: $filteredMidBar/10 bars at $effectiveOdo km",
+                        notes = note ?: "Manual MID cluster sync: $filteredMidBar/10 bars at $effectiveOdo km",
                         odometerKm = effectiveOdo,
                         calculatedMileageKmpl = mileageEngine.overallEstimatedMileage,
-                        locationName = "Cluster Calibration",
+                        locationName = if (note == RESERVE_LIGHT_NOTE) "Reserve light" else "Cluster Calibration",
                         gaugePoint = exactPoint ?: filteredMidBar.toDouble()
                     )
                     val legacyId = fuelDao.insertFuelEvent(legacyEvent)
@@ -858,9 +878,14 @@ class FuelRepository private constructor(context: Context) {
                         gaugeAfter = gaugeAfterPoint
                     )
                     val lastSegmentBefore = model.segments.lastOrNull()
+                    // Tank level just before this refill. Only the FuelModel tracks live consumption,
+                    // so the legacy estimator is re-synced to it here; otherwise its balance never
+                    // drains (stored balances climbed past the tank size and faked "full tank").
+                    val levelBeforeL = FuelModel.rawLitres(model, effectiveOdo, refillTimeMs).coerceAtLeast(0.0)
                     applyRefillToModel(refill)
                     if (fullTank) calibrateTripEstimateLocked(lastSegmentBefore)
 
+                    estimator.syncNominal(levelBeforeL)
                     val prevState = estimator.toSnapshot()
 
                     // Initialize pending anchor if uninitialized
@@ -901,7 +926,11 @@ class FuelRepository private constructor(context: Context) {
                     val deltaDistance = effectiveOdo - pendingAnchorOdometerKm
 
                     var computedMileage = 0.0
-                    if (deltaDistance >= com.antigravity.copilot.core.fuel.intelligence.AdaptiveMileageEngine.MIN_INTERVAL_KM && pendingAnchorFuelLiters > 0.0) {
+                    // Only a measured end level (full tank or a gauge reading) makes the interval real
+                    // evidence; with a plain partial fill the end level is the model's own estimate and
+                    // the "learned" km/L would just echo the model's prior.
+                    val endLevelObserved = fullTank || midBarObserved in 0..10
+                    if (endLevelObserved && deltaDistance >= com.antigravity.copilot.core.fuel.intelligence.AdaptiveMileageEngine.MIN_INTERVAL_KM && pendingAnchorFuelLiters > 0.0) {
                         val learned = mileageEngine.processAnchorInterval(
                             startOdometerKm = pendingAnchorOdometerKm,
                             endOdometerKm = effectiveOdo,
@@ -1513,6 +1542,8 @@ class FuelRepository private constructor(context: Context) {
 
     companion object {
         private const val TAG = "FuelRepository"
+        /** fuel_events.notes of the gauge reading written by the dashboard reserve-light tap. */
+        const val RESERVE_LIGHT_NOTE = "Reserve light ON"
         const val PERSIST_DEBOUNCE_MS: Long = 30000L
 
         @Volatile
